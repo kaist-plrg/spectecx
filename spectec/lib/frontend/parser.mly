@@ -71,7 +71,7 @@ let exit_scope () = vars := List.hd !scopes; scopes := List.tl !scopes
 %token HOLE
 %token<int> HOLE_NUM
 %token HOLE_MULTI HOLE_NIL
-%token EQ NEQ UP BAR
+%token EQ NEQ UP BAR BAR_DASH_DASH
 %token LATEX BOOL NAT INT TEXT
 %token SYNTAX RELATION RULE VAR DEC DEF
 %token IF OTHERWISE DEBUG HINT_LPAREN EPS
@@ -580,7 +580,6 @@ exp_atom : exp_atom_ { $1 @@@ $sloc }
 exp_atom_ :
   | exp_post_ { $1 }
   | atom { AtomE $1 }
-  | exp_atom BAR DASH DASH IF exp_atom { FilterE ($1, $6) }
   | atomid_lparen exp RPAREN
     { SeqE [
         AtomE (Atom.Atom $1 @@@ $loc($1)) @@@ $loc($1);
@@ -623,6 +622,7 @@ exp_bin_ :
   | exp_bin COLON2 exp_bin { ConsE ($1, $3) }
   | exp_bin PLUS2 exp_bin { CatE ($1, $3) }
   | exp_bin LANGLE_DASH exp_bin { MemE ($1, $3) }
+  | exp_atom BAR_DASH_DASH IF exp_atom { FilterE ($1, $4) }
 
 exp_rel : exp_rel_ { $1 @@@ $sloc }
 exp_rel_ :

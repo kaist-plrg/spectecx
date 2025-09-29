@@ -212,6 +212,8 @@ and token = parse
   | "`|+|=" { TICK_BAR_PLUS_BAR_EQ }
   | "`|-|" { TICK_BAR_MINUS_BAR }
   | "`|-|=" { TICK_BAR_MINUS_BAR_EQ }
+  | "`| --" { BAR_DASH_DASH }
+  | "`|--" { BAR_DASH_DASH }
   (* normal tokens *)
   | "<:" { SUB }
   | ":>" { SUP }

@@ -1,0 +1,4 @@
+dec $filter_nat(int*) : nat*
+def $filter_nat(int*) = nat*
+  -- if (int = nat | -- if int >= 0)
+  
