@@ -1,4 +1,4 @@
-open Il.Ast
+open Il
 
 (* Relation *)
 

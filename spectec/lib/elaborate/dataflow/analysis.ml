@@ -1,4 +1,4 @@
-open Il.Ast
+open Il
 
 (* Entry point of dataflow analysis *)
 

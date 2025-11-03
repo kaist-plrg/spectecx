@@ -15,18 +15,18 @@ let fresh_id (ids : IdSet.t) (id : Id.t) : Id.t =
   in
   fresh_id' id
 
-let rec fresh_from_typ (at : region) (typ : Il.Ast.typ) :
-    Id.t * Il.Ast.typ * Il.Ast.iter list =
+let rec fresh_from_typ (at : region) (typ : Il.typ) :
+    Id.t * Il.typ * Il.iter list =
   match typ.it with
   | IterT (typ, iter) ->
       let id, typ, iters = fresh_from_typ at typ in
       (id, typ, iters @ [ iter ])
   | _ ->
-      let id = Il.Ast.Print.string_of_typ typ $ at in
+      let id = Il.Print.string_of_typ typ $ at in
       (id, typ, [])
 
-let fresh_from_exp ?(wildcard = false) (ids : IdSet.t) (exp : Il.Ast.exp) :
-    Id.t * Il.Ast.typ * Il.Ast.iter list =
+let fresh_from_exp ?(wildcard = false) (ids : IdSet.t) (exp : Il.exp) :
+    Id.t * Il.typ * Il.iter list =
   let id, typ, iters = fresh_from_typ exp.at (exp.note $ exp.at) in
   let id = if wildcard then "_" ^ id.it $ id.at else id in
   let id = fresh_id ids id in

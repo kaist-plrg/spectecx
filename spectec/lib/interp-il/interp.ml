@@ -1,6 +1,6 @@
 open Domain.Lib
 open Xl
-open Il.Ast
+open Il
 module Hint = Runtime_static.Rel.Hint
 module Cache = Runtime_dynamic.Cache
 module Rel = Runtime_dynamic_il.Rel
@@ -377,8 +377,7 @@ and subtyp (ctx : Ctx.t) (typ : typ) (value : value) : bool =
           subtyp ctx typ value
       | VariantT typcases, CaseV (mixop_v, _) ->
           List.exists
-            (fun typcase ->
-              let nottyp, _hints = typcase in
+            (fun (nottyp, _) ->
               let mixop_t, _ = nottyp.it in
               Mixop.eq mixop_t mixop_v)
             typcases

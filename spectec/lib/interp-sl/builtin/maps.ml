@@ -1,5 +1,5 @@
 open Xl
-open Il.Ast
+open Il
 module Value = Runtime_dynamic.Value
 open Error
 open Util.Source
@@ -39,7 +39,7 @@ let value_of_map (typ_key : typ) (typ_value : typ) (map : map) : value =
   let value_of_tuple ((value_key, value_value) : value * value) : value =
     let value =
       let vid = Value.fresh () in
-      let typ = Il.Ast.VarT ("pair" $ no_region, [ typ_key; typ_value ]) in
+      let typ = Il.VarT ("pair" $ no_region, [ typ_key; typ_value ]) in
       CaseV ([ []; [ Atom.Arrow $ no_region ]; [] ], [ value_key; value_value ])
       $$$ { vid; typ }
     in
@@ -48,15 +48,15 @@ let value_of_map (typ_key : typ) (typ_value : typ) (map : map) : value =
   let value_pairs =
     let vid = Value.fresh () in
     let typ =
-      Il.Ast.IterT
-        ( Il.Ast.VarT ("pair" $ no_region, [ typ_key; typ_value ]) $ no_region,
-          Il.Ast.List )
+      Il.IterT
+        ( Il.VarT ("pair" $ no_region, [ typ_key; typ_value ]) $ no_region,
+          Il.List )
     in
     ListV (VMap.bindings map |> List.map value_of_tuple) $$$ { vid; typ }
   in
   let value =
     let vid = Value.fresh () in
-    let typ = Il.Ast.VarT ("map" $ no_region, [ typ_key; typ_value ]) in
+    let typ = Il.VarT ("map" $ no_region, [ typ_key; typ_value ]) in
     CaseV
       ( [ [ Atom.LBrace $ no_region ]; [ Atom.RBrace $ no_region ] ],
         [ value_pairs ] )
@@ -76,7 +76,7 @@ let find_map (at : region) (targs : targ list) (values_input : value list) :
   let value_opt = VMap.find_opt value_key map in
   let value =
     let vid = Value.fresh () in
-    let typ = Il.Ast.IterT (typ_value, Il.Ast.Opt) in
+    let typ = Il.IterT (typ_value, Il.Opt) in
     OptV value_opt $$$ { vid; typ }
   in
   value
@@ -98,7 +98,7 @@ let find_maps (at : region) (targs : targ list) (values_input : value list) :
   in
   let value =
     let vid = Value.fresh () in
-    let typ = Il.Ast.IterT (typ_value, Il.Ast.Opt) in
+    let typ = Il.IterT (typ_value, Il.Opt) in
     OptV value_opt $$$ { vid; typ }
   in
   value

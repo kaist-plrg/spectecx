@@ -2,6 +2,8 @@ include Core.Types
 include Core.Effects
 module Print = Core.Print
 module Eq = Core.Eq
+module Utils = Core.Utils
+module Print_debug = Core.Print_debug
 module Free = Core.Free
 
 module Value = struct

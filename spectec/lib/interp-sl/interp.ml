@@ -3,9 +3,10 @@ open Xl
 open Sl.Ast
 module Hint = Runtime_static.Rel.Hint
 module Typ = Runtime_dynamic.Typ
-module Value = Il.Ast.Value
+module Value = Il.Value
 module Cache = Runtime_dynamic.Cache
 module Rel = Runtime_dynamic_sl.Rel
+module Builtin = Interp_il.Builtin
 open Runtime_dynamic_sl.Envs
 open Error
 module F = Format
@@ -58,10 +59,10 @@ let rec assign_exp (ctx : Ctx.t) (exp : exp) (value : value) : Ctx.t =
       List.fold_left
         (fun ctx (id, typ, iters) ->
           let value_sub =
-            let typ = Typ.iterate typ (iters @ [ Il.Ast.Opt ]) in
+            let typ = Typ.iterate typ (iters @ [ Il.Opt ]) in
             None |> Value.Make.opt typ.it
           in
-          Ctx.add_value Local ctx (id, iters @ [ Il.Ast.Opt ]) value_sub)
+          Ctx.add_value Local ctx (id, iters @ [ Il.Opt ]) value_sub)
         ctx vars
   | IterE (exp, (Opt, vars)), OptV (Some value) ->
       (* Assign the value to the iterated expression *)
@@ -71,10 +72,10 @@ let rec assign_exp (ctx : Ctx.t) (exp : exp) (value : value) : Ctx.t =
         (fun ctx (id, typ, iters) ->
           let value_sub =
             let value = Ctx.find_value Local ctx (id, iters) in
-            let typ = Typ.iterate typ (iters @ [ Il.Ast.Opt ]) in
+            let typ = Typ.iterate typ (iters @ [ Il.Opt ]) in
             Some value |> Value.Make.opt typ.it
           in
-          Ctx.add_value Local ctx (id, iters @ [ Il.Ast.Opt ]) value_sub)
+          Ctx.add_value Local ctx (id, iters @ [ Il.Opt ]) value_sub)
         ctx vars
   | IterE (exp, (List, vars)), ListV values ->
       (* Map over the value list elements,
@@ -97,10 +98,10 @@ let rec assign_exp (ctx : Ctx.t) (exp : exp) (value : value) : Ctx.t =
             List.map (fun ctx -> Ctx.find_value Local ctx (id, iters)) ctxs
           in
           let value_sub =
-            let typ = Typ.iterate typ (iters @ [ Il.Ast.List ]) in
+            let typ = Typ.iterate typ (iters @ [ Il.List ]) in
             values |> Value.Make.list typ.it
           in
-          Ctx.add_value Local ctx (id, iters @ [ Il.Ast.List ]) value_sub)
+          Ctx.add_value Local ctx (id, iters @ [ Il.List ]) value_sub)
         ctx vars
   | _ ->
       error exp.at
@@ -329,7 +330,6 @@ and upcast (ctx : Ctx.t) (typ : typ) (value : value) : Ctx.t * value =
                 (ctx, values @ [ value ]))
               (ctx, []) typs values
           in
-
           (ctx, Value.Make.tuple typ.it values)
       | _ -> assert false)
   | _ -> (ctx, value)
@@ -630,7 +630,7 @@ and eval_hold_exp (note : typ') (ctx : Ctx.t) (id : id) (notexp : notexp) :
     | Some (ctx, _) -> (ctx, true)
     | None -> (ctx, false)
   in
-  let value_res = Value.Make.bool note hold in
+  let value_res = hold |> Value.Make.bool note in
   (ctx, value_res)
 
 (* Iterated expression evaluation *)
@@ -744,7 +744,7 @@ and eval_if_cond_iter' (ctx : Ctx.t) (exp_cond : exp) (iterexps : iterexp list)
             eval_if_cond_list ctx exp_cond vars_h iterexps_t
           in
           let value_cond =
-            let typ_inner = Il.Ast.BoolT $ no_region in
+            let typ_inner = Il.BoolT $ no_region in
             Value.list typ_inner values_cond
           in
           (ctx, cond, value_cond))
@@ -772,14 +772,13 @@ and eval_cases (ctx : Ctx.t) (exp : exp) (cases : case list) :
              let exp_cond =
                match guard with
                | BoolG true -> exp.it
-               | BoolG false -> Il.Ast.UnE (`NotOp, `BoolT, exp)
-               | CmpG (cmpop, optyp, exp_r) ->
-                   Il.Ast.CmpE (cmpop, optyp, exp, exp_r)
-               | SubG typ -> Il.Ast.SubE (exp, typ)
-               | MatchG pattern -> Il.Ast.MatchE (exp, pattern)
-               | MemG exp_s -> Il.Ast.MemE (exp, exp_s)
+               | BoolG false -> Il.UnE (`NotOp, `BoolT, exp)
+               | CmpG (cmpop, optyp, exp_r) -> Il.CmpE (cmpop, optyp, exp, exp_r)
+               | SubG typ -> Il.SubE (exp, typ)
+               | MatchG pattern -> Il.MatchE (exp, pattern)
+               | MemG exp_s -> Il.MemE (exp, exp_s)
              in
-             let exp_cond = exp_cond $$ (exp.at, Il.Ast.BoolT) in
+             let exp_cond = exp_cond $$ (exp.at, Il.BoolT) in
              let ctx, value_cond = eval_exp ctx exp_cond in
              let values_cond = values_cond @ [ value_cond ] in
              let cond = Value.get_bool value_cond in
@@ -788,7 +787,7 @@ and eval_cases (ctx : Ctx.t) (exp : exp) (cases : case list) :
        (ctx, None, [])
   |> fun (ctx, block_match, values_cond) ->
   let value_cond =
-    let typ_inner = Il.Ast.BoolT $ no_region in
+    let typ_inner = Il.BoolT $ no_region in
     Value.list typ_inner values_cond
   in
   (ctx, block_match, value_cond)
@@ -812,7 +811,7 @@ and eval_let_opt (ctx : Ctx.t) (exp_l : exp) (exp_r : exp) (vars : var list)
   let vars_bound, vars_binding =
     List.partition
       (fun (id, _typ, iters) ->
-        Ctx.bound_value Local ctx (id, iters @ [ Il.Ast.Opt ]))
+        Ctx.bound_value Local ctx (id, iters @ [ Il.Opt ]))
       vars
   in
   let ctx_sub_opt = Ctx.sub_opt ctx vars_bound in
@@ -826,7 +825,7 @@ and eval_let_opt (ctx : Ctx.t) (exp_l : exp) (exp_r : exp) (vars : var list)
             (fun (_id_binding, typ_binding, iters_binding) ->
               let value_binding =
                 let typ =
-                  Typ.iterate typ_binding (iters_binding @ [ Il.Ast.Opt ])
+                  Typ.iterate typ_binding (iters_binding @ [ Il.Opt ])
                 in
                 None |> Value.Make.opt typ.it
               in
@@ -846,7 +845,7 @@ and eval_let_opt (ctx : Ctx.t) (exp_l : exp) (exp_r : exp) (vars : var list)
               in
               let value_binding =
                 let typ =
-                  Typ.iterate typ_binding (iters_binding @ [ Il.Ast.Opt ])
+                  Typ.iterate typ_binding (iters_binding @ [ Il.Opt ])
                 in
                 Some value_binding |> Value.Make.opt typ.it
               in
@@ -859,7 +858,7 @@ and eval_let_opt (ctx : Ctx.t) (exp_l : exp) (exp_r : exp) (vars : var list)
   List.fold_left2
     (fun ctx (id_binding, _typ_binding, iters_binding) value_binding ->
       Ctx.add_value Local ctx
-        (id_binding, iters_binding @ [ Il.Ast.Opt ])
+        (id_binding, iters_binding @ [ Il.Opt ])
         value_binding)
     ctx vars_binding values_binding
 
@@ -869,7 +868,7 @@ and eval_let_list (ctx : Ctx.t) (exp_l : exp) (exp_r : exp) (vars : var list)
   let vars_bound, vars_binding =
     List.partition
       (fun (id, _typ, iters) ->
-        Ctx.bound_value Local ctx (id, iters @ [ Il.Ast.List ]))
+        Ctx.bound_value Local ctx (id, iters @ [ Il.List ]))
       vars
   in
   (* Create a subcontext for each batch of bound values *)
@@ -910,11 +909,11 @@ and eval_let_list (ctx : Ctx.t) (exp_l : exp) (exp_r : exp) (vars : var list)
   List.fold_left2
     (fun ctx (id_binding, typ_binding, iters_binding) values_binding ->
       let value_binding =
-        let typ = Typ.iterate typ_binding (iters_binding @ [ Il.Ast.List ]) in
+        let typ = Typ.iterate typ_binding (iters_binding @ [ Il.List ]) in
         values_binding |> Value.Make.list typ.it
       in
       Ctx.add_value Local ctx
-        (id_binding, iters_binding @ [ Il.Ast.List ])
+        (id_binding, iters_binding @ [ Il.List ])
         value_binding)
     ctx vars_binding values_binding
 
@@ -965,7 +964,7 @@ and eval_rule_list (ctx : Ctx.t) (id : id) (notexp : notexp) (vars : var list)
   let vars_bound, vars_binding =
     List.partition
       (fun (id, _typ, iters) ->
-        Ctx.bound_value Local ctx (id, iters @ [ Il.Ast.List ]))
+        Ctx.bound_value Local ctx (id, iters @ [ Il.List ]))
       vars
   in
   (* Create a subcontext for each batch of bound values *)
@@ -1006,11 +1005,11 @@ and eval_rule_list (ctx : Ctx.t) (id : id) (notexp : notexp) (vars : var list)
   List.fold_left2
     (fun ctx (id_binding, typ_binding, iters_binding) values_binding ->
       let value_binding =
-        let typ = Typ.iterate typ_binding (iters_binding @ [ Il.Ast.List ]) in
+        let typ = Typ.iterate typ_binding (iters_binding @ [ Il.List ]) in
         values_binding |> Value.Make.list typ.it
       in
       Ctx.add_value Local ctx
-        (id_binding, iters_binding @ [ Il.Ast.List ])
+        (id_binding, iters_binding @ [ Il.List ])
         value_binding)
     ctx vars_binding values_binding
 
@@ -1051,9 +1050,8 @@ and eval_return_instr (ctx : Ctx.t) (exp : exp) : Ctx.t * Sign.t =
 and eval_debug_instr (ctx : Ctx.t) (exp : exp) : Ctx.t * Sign.t =
   let ctx, value = eval_exp ctx exp in
   print_endline
-  @@ F.sprintf "%s: %s" (string_of_region exp.at)
-       (Il.Ast.Print.string_of_exp exp);
-  print_endline @@ Il.Ast.Print.string_of_value value;
+  @@ F.sprintf "%s: %s" (string_of_region exp.at) (Il.Print.string_of_exp exp);
+  print_endline @@ Il.Print.string_of_value value;
   (ctx, Cont)
 
 (* Invoke a relation *)
@@ -1105,9 +1103,7 @@ and invoke_func_def (ctx : Ctx.t) (id : id) (targs : targ list)
     let theta =
       TDEnv.bindings ctx.global.tdenv @ TDEnv.bindings ctx.local.tdenv
       |> List.filter_map (fun (tid, (_tparams, deftyp)) ->
-             match deftyp.it with
-             | Il.Ast.PlainT typ -> Some (tid, typ)
-             | _ -> None)
+             match deftyp.it with Il.PlainT typ -> Some (tid, typ) | _ -> None)
       |> TIdMap.of_list
     in
     List.map (Typ.subst_typ theta) targs
@@ -1115,7 +1111,7 @@ and invoke_func_def (ctx : Ctx.t) (id : id) (targs : targ list)
   let ctx_local =
     List.fold_left2
       (fun ctx_local tparam targ ->
-        Ctx.add_typdef Local ctx_local tparam ([], Il.Ast.PlainT targ $ targ.at))
+        Ctx.add_typdef Local ctx_local tparam ([], Il.PlainT targ $ targ.at))
       ctx_local tparams targs
   in
   let ctx, values_input = eval_args ctx args in

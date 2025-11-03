@@ -2,8 +2,8 @@ open Domain.Lib
 open Runtime_dynamic
 open Runtime_dynamic_il
 open Envs
-open Il.Ast
-module Value = Il.Ast.Value
+open Il
+module Value = Il.Value
 open Error
 open Attempt
 open Util.Source
@@ -111,7 +111,7 @@ let trace_close (ctx : t) : t =
 let trace_extend (ctx : t) (prem : prem) : t =
   let trace = Trace.extend ctx.trace prem in
   if ctx.config.debug then
-    Format.asprintf "Premise: %s\n" (prem |> Il.Ast.Print.string_of_prem)
+    Format.asprintf "Premise: %s\n" (prem |> Il.Print.string_of_prem)
     |> print_endline;
   { ctx with trace }
 

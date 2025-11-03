@@ -1,4 +1,4 @@
-open Il.Ast
+open Il
 module Cache = Runtime_dynamic.Cache
 module F = Format
 open Attempt

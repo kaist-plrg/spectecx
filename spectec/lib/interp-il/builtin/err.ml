@@ -1,5 +1,5 @@
 open Util.Source
-open Il.Ast
+open Il
 
 type t =
   | TypeError of region * string * value

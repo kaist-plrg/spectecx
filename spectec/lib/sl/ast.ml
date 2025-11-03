@@ -4,103 +4,103 @@ open Util.Source
 
 (* Numbers *)
 
-type num = Il.Ast.num
+type num = Il.num
 
 (* Texts *)
 
-type text = Il.Ast.text
+type text = Il.text
 
 (* Identifiers *)
 
-type id = Il.Ast.id
-type id' = Il.Ast.id'
+type id = Il.id
+type id' = Il.id'
 
 (* Atoms *)
 
-type atom = Il.Ast.atom
-type atom' = Il.Ast.atom'
+type atom = Il.atom
+type atom' = Il.atom'
 
 (* Mixfix operators *)
 
-type mixop = Il.Ast.mixop
+type mixop = Il.mixop
 
 (* Iterators *)
 
-type iter = Il.Ast.iter
+type iter = Il.iter
 
 (* Variables *)
 
-type var = Il.Ast.var
+type var = Il.var
 
 (* Types *)
 
-type typ = Il.Ast.typ
-type typ' = Il.Ast.typ'
+type typ = Il.typ
+type typ' = Il.typ'
 
-type nottyp = Il.Ast.nottyp
-type nottyp' = Il.Ast.nottyp'
+type nottyp = Il.nottyp
+type nottyp' = Il.nottyp'
 
-type deftyp = Il.Ast.deftyp
-type deftyp' = Il.Ast.deftyp'
+type deftyp = Il.deftyp
+type deftyp' = Il.deftyp'
 
-type typfield = Il.Ast.typfield
-type typcase = Il.Ast.typcase
+type typfield = Il.typfield
+type typcase = Il.typcase
 
 (* Values *)
 
-type vid = Il.Ast.vid
-type vnote = Il.Ast.vnote
+type vid = Il.vid
+type vnote = Il.vnote
 
-type value = Il.Ast.value
-type value' = Il.Ast.value'
+type value = Il.value
+type value' = Il.value'
 
 type valuefield = atom * value
 type valuecase = mixop * value list
 
 (* Operators *)
 
-type numop = Il.Ast.numop
-type unop = Il.Ast.unop
-type binop = Il.Ast.binop
-type cmpop = Il.Ast.cmpop
-type optyp = Il.Ast.optyp
+type numop = Il.numop
+type unop = Il.unop
+type binop = Il.binop
+type cmpop = Il.cmpop
+type optyp = Il.optyp
 
 (* Expressions *)
 
-type exp = Il.Ast.exp
-type exp' = Il.Ast.exp'
+type exp = Il.exp
+type exp' = Il.exp'
 
-type notexp = Il.Ast.notexp
-type iterexp = Il.Ast.iterexp
+type notexp = Il.notexp
+type iterexp = Il.iterexp
 
 (* Patterns *)
 
-type pattern = Il.Ast.pattern
+type pattern = Il.pattern
 
 (* Path *)
 
-type path = Il.Ast.path
-type path' = Il.Ast.path'
+type path = Il.path
+type path' = Il.path'
 
 (* Parameters *)
 
-type param = Il.Ast.param
-type param' = Il.Ast.param'
+type param = Il.param
+type param' = Il.param'
 
 (* Type parameters *)
 
-type tparam = Il.Ast.tparam
-type tparam' = Il.Ast.tparam'
+type tparam = Il.tparam
+type tparam' = Il.tparam'
 
 (* Arguments *)
 
-type arg = Il.Ast.arg
-type arg' = Il.Ast.arg'
+type arg = Il.arg
+type arg' = Il.arg'
 
 (* Type arguments *)
 
-type targ = Il.Ast.targ
-type targ' = Il.Ast.targ'
+type targ = Il.targ
+type targ' = Il.targ'
 
 (* Path conditions *)
 

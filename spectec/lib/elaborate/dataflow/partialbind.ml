@@ -1,5 +1,5 @@
 open Domain.Lib
-open Il.Ast
+open Il
 open Runtime_static
 open Error
 open Util.Source
@@ -206,7 +206,7 @@ let check_upcast_terminal (exp : exp) : bool =
 
 let rec rename_exp (dctx : Dctx.t) (binds : IdSet.t) (renv : REnv.t) (exp : exp)
     : Dctx.t * REnv.t * exp =
-  let frees = Il.Ast.Free.free_exp exp in
+  let frees = Il.Free.free_exp exp in
   (* If the expression contains no bindings, rename it
      Yet, skip upcast on terminals to enforce case-analysis,
      which helps with the later structuring phase
@@ -277,7 +277,7 @@ and rename_exp_bind (dctx : Dctx.t) (binds : IdSet.t) (renv : REnv.t)
         (Format.asprintf
            "iterated expression should initially have no annotations, but got \
             %s"
-           (Il.Ast.Print.string_of_iterexp iterexp))
+           (Il.Print.string_of_iterexp iterexp))
   | IterE (exp, (iter, [])) ->
       let renv_pre = renv in
       let dctx, renv_post, exp = rename_exp dctx binds renv_pre exp in

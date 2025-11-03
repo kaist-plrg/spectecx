@@ -1,4 +1,4 @@
-open Il.Ast
+open Il
 
 (* dec $rev_<X>(X* ) : X* *)
 

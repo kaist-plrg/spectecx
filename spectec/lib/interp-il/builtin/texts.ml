@@ -1,4 +1,4 @@
-open Il.Ast
+open Il
 
 (* dec $int_to_text(int) : text *)
 

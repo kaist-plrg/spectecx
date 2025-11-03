@@ -108,10 +108,10 @@ let find_rel (ctx : t) (rid : RId.t) : nottyp * int list =
 let bound_rel (ctx : t) (rid : RId.t) : bool =
   find_rel_opt ctx rid |> Option.is_some
 
-let find_rules_opt (ctx : t) (rid : RId.t) : Il.Ast.rule list option =
+let find_rules_opt (ctx : t) (rid : RId.t) : Il.rule list option =
   REnv.find_opt rid ctx.renv |> Option.map (fun (_, _, rules) -> rules)
 
-let find_rules (ctx : t) (rid : RId.t) : Il.Ast.rule list =
+let find_rules (ctx : t) (rid : RId.t) : Il.rule list =
   match find_rules_opt ctx rid with
   | Some rules -> rules
   | None -> error_undef rid.at "relation" rid.it
@@ -132,10 +132,10 @@ let find_dec (ctx : t) (fid : FId.t) : tparam list * param list * plaintyp =
 let bound_dec (ctx : t) (fid : FId.t) : bool =
   find_dec_opt ctx fid |> Option.is_some
 
-let find_clauses_opt (ctx : t) (fid : FId.t) : Il.Ast.clause list option =
+let find_clauses_opt (ctx : t) (fid : FId.t) : Il.clause list option =
   FEnv.find_opt fid ctx.fenv |> Option.map (fun (_, _, _, clauses) -> clauses)
 
-let find_clauses (ctx : t) (fid : FId.t) : Il.Ast.clause list =
+let find_clauses (ctx : t) (fid : FId.t) : Il.clause list =
   match find_clauses_opt ctx fid with
   | Some clauses -> clauses
   | None -> error_undef fid.at "function" fid.it
@@ -191,7 +191,7 @@ let add_rel (ctx : t) (rid : RId.t) (nottyp : nottyp) (inputs : int list) : t =
   let renv = REnv.add rid rel ctx.renv in
   { ctx with renv }
 
-let add_rule (ctx : t) (rid : RId.t) (rule : Il.Ast.rule) : t =
+let add_rule (ctx : t) (rid : RId.t) (rule : Il.rule) : t =
   if not (bound_rel ctx rid) then error_undef rid.at "relation" rid.it;
   let nottyp, inputs, rules = REnv.find rid ctx.renv in
   let rel = (nottyp, inputs, rules @ [ rule ]) in
@@ -207,7 +207,7 @@ let add_dec (ctx : t) (fid : FId.t) (tparams : tparam list)
   let fenv = FEnv.add fid func ctx.fenv in
   { ctx with fenv }
 
-let add_clause (ctx : t) (fid : FId.t) (clause : Il.Ast.clause) : t =
+let add_clause (ctx : t) (fid : FId.t) (clause : Il.clause) : t =
   if not (bound_dec ctx fid) then error_undef clause.at "function" fid.it;
   let tparams, params, plaintyp, clauses = FEnv.find fid ctx.fenv in
   let func = (tparams, params, plaintyp, clauses @ [ clause ]) in

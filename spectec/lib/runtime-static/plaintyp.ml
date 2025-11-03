@@ -12,7 +12,7 @@ let to_string t = string_of_plaintyp t
 
 (* Conversion from IL type *)
 
-let rec of_internal_typ (typ : Il.Ast.typ) : t =
+let rec of_internal_typ (typ : Il.typ) : t =
   match typ.it with
   | BoolT -> BoolT $ typ.at
   | NumT numtyp -> NumT numtyp $ typ.at

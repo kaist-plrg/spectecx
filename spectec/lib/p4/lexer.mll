@@ -16,11 +16,11 @@
 {
 open Lexing
 open Context
-open Il.Ast
-open Il.Core.Utils
+open Il
+open Il.Utils
 open Parser
 module F = Format
-module Value = Il.Ast.Value
+module Value = Il.Value
 
 exception Error of string
 
@@ -161,7 +161,7 @@ rule tokenize = parse
       { let str, end_info = (string lexbuf) in
         debug_token ("\"" ^ str ^ "\"");
         end_info |> ignore;
-        let value = Il.Ast.Value.text str in
+        let value = Il.Value.text str in
         STRING_LITERAL value
       }
   | whitespace

@@ -1,5 +1,5 @@
 open Domain.Lib
-open Il.Ast
+open Il
 open Util.Source
 
 (* Unification environment: a map from original id to its unified id *)
@@ -26,16 +26,16 @@ let rec populate_exp_template (uenv : UEnv.t) (exp_template : exp) (exp : exp) :
     | TupleE exps_template, TupleE exps ->
         populate_exps_templates uenv exps_template exps
     | CaseE (mixop_template, exps_template), CaseE (mixop, exps)
-      when Il.Ast.Eq.eq_mixop mixop_template mixop ->
+      when Il.Eq.eq_mixop mixop_template mixop ->
         populate_exps_templates uenv exps_template exps
     | ( IterE (exp_template, (iter_template, vars_template)),
         IterE (exp, (iter, vars)) )
-      when Il.Ast.Eq.eq_iter iter_template iter ->
+      when Il.Eq.eq_iter iter_template iter ->
         let iterexp =
           let vars =
             List.fold_left
               (fun vars var_template ->
-                if List.exists (Il.Ast.Eq.eq_var var_template) vars then vars
+                if List.exists (Il.Eq.eq_var var_template) vars then vars
                 else var_template :: vars)
               vars vars_template
           in
@@ -46,12 +46,11 @@ let rec populate_exp_template (uenv : UEnv.t) (exp_template : exp) (exp : exp) :
         [ prem ]
     | _ ->
         Format.asprintf "cannot populate anti-unified expressions %s and %s"
-          (Il.Ast.Print.string_of_exp exp_template)
-          (Il.Ast.Print.string_of_exp exp)
+          (Il.Print.string_of_exp exp_template)
+          (Il.Print.string_of_exp exp)
         |> failwith
   in
-  if Il.Ast.Eq.eq_exp exp_template exp then []
-  else populate_exp_template_unequal ()
+  if Il.Eq.eq_exp exp_template exp then [] else populate_exp_template_unequal ()
 
 and populate_exps_templates (uenv : UEnv.t) (exps_template : exp list)
     (exps : exp list) : prem list =
@@ -89,7 +88,7 @@ let rec antiunify_exp (frees : IdSet.t) (uenv : UEnv.t) (exp_template : exp)
         let exp_template = TupleE exps_template $$ (at, note) in
         (frees, uenv, exp_template)
     | CaseE (mixop_template, exps_template), CaseE (mixop, exps)
-      when Il.Ast.Eq.eq_mixop mixop_template mixop ->
+      when Il.Eq.eq_mixop mixop_template mixop ->
         let frees, uenv, exps_template =
           antiunify_exps frees uenv exps_template exps
         in
@@ -99,7 +98,7 @@ let rec antiunify_exp (frees : IdSet.t) (uenv : UEnv.t) (exp_template : exp)
         (frees, uenv, exp_template)
     | ( IterE (exp_template, (iter_template, vars_template)),
         IterE (exp, (iter, vars)) )
-      when Il.Ast.Eq.eq_iter iter_template iter ->
+      when Il.Eq.eq_iter iter_template iter ->
         let frees, uenv, exp_template =
           antiunify_exp frees uenv exp_template exp
         in
@@ -110,7 +109,7 @@ let rec antiunify_exp (frees : IdSet.t) (uenv : UEnv.t) (exp_template : exp)
                  match UEnv.find_opt id uenv with
                  | Some id_unifier ->
                      let var = (id_unifier, typ, iters) in
-                     if List.exists (Il.Ast.Eq.eq_var var) vars_template then
+                     if List.exists (Il.Eq.eq_var var) vars_template then
                        vars_template
                      else vars_template @ [ var ]
                  | None -> vars_template)
@@ -122,11 +121,11 @@ let rec antiunify_exp (frees : IdSet.t) (uenv : UEnv.t) (exp_template : exp)
         (frees, uenv, exp_template)
     | _ ->
         Format.asprintf "cannot anti-unify expressions %s and %s"
-          (Il.Ast.Print.string_of_exp exp_template)
-          (Il.Ast.Print.string_of_exp exp)
+          (Il.Print.string_of_exp exp_template)
+          (Il.Print.string_of_exp exp)
         |> failwith
   in
-  if Il.Ast.Eq.eq_exp exp_template exp then (frees, uenv, exp_template)
+  if Il.Eq.eq_exp exp_template exp then (frees, uenv, exp_template)
   else antiunify_exp_unequal ()
 
 and antiunify_exps (frees : IdSet.t) (uenv : UEnv.t) (exps_template : exp list)
@@ -177,11 +176,11 @@ let rec populate_arg_template (uenv : UEnv.t) (arg_template : arg) (arg : arg) :
     prem list =
   match (arg_template.it, arg.it) with
   | ExpA exp_template, ExpA exp -> populate_exp_template uenv exp_template exp
-  | DefA id_template, DefA id when Il.Ast.Eq.eq_id id_template id -> []
+  | DefA id_template, DefA id when Il.Eq.eq_id id_template id -> []
   | _ ->
       Format.asprintf "cannot populate anti-unified arguments %s and %s"
-        (Il.Ast.Print.string_of_arg arg_template)
-        (Il.Ast.Print.string_of_arg arg)
+        (Il.Print.string_of_arg arg_template)
+        (Il.Print.string_of_arg arg)
       |> failwith
 
 and populate_args_templates (uenv : UEnv.t) (args_template : arg list)
@@ -202,7 +201,7 @@ let antiunify_arg (frees : IdSet.t) (uenv : UEnv.t) (arg_template : arg)
       in
       let arg_template = ExpA exp_template $ arg_template.at in
       (frees, uenv, arg_template)
-  | DefA id_template, DefA id when Il.Ast.Eq.eq_id id_template id ->
+  | DefA id_template, DefA id when Il.Eq.eq_id id_template id ->
       (frees, uenv, arg_template)
   | _ -> assert false
 
@@ -253,7 +252,7 @@ let antiunify_rules (inputs : int list) (rules : rule list) :
         let exps_input_group = exps_input_group @ [ exps_input ] in
         let exps_output_group = exps_output_group @ [ exps_output ] in
         let prems_group = prems_group @ [ prems ] in
-        let frees = rule |> Il.Ast.Free.free_rule |> IdSet.union frees in
+        let frees = rule |> Il.Free.free_rule |> IdSet.union frees in
         (exps_input_group, exps_output_group, prems_group, frees))
       ([], [], [], IdSet.empty) rules
   in
@@ -281,7 +280,7 @@ let antiunify_clauses (clauses : clause list) :
         let args_input_group = args_input_group @ [ args_input ] in
         let exp_output_group = exp_output_group @ [ exp_output ] in
         let prems_group = prems_group @ [ prems ] in
-        let frees = clause |> Il.Ast.Free.free_clause |> IdSet.union frees in
+        let frees = clause |> Il.Free.free_clause |> IdSet.union frees in
         (args_input_group, exp_output_group, prems_group, frees))
       ([], [], [], IdSet.empty) clauses
   in

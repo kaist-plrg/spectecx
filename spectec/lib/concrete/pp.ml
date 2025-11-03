@@ -1,7 +1,7 @@
-open Il.Ast
+open Il
+open Il.Utils
 open Xl
 open Util.Source
-open Il.Core.Utils
 open Hint
 module Num = Num
 module F = Format

@@ -65,7 +65,7 @@ let token_name token =
     | Parser.END _ -> "end"
     | Parser.TYPENAME -> "typename"
     | Parser.IDENTIFIER -> "identifier"
-    | Parser.NAME s -> P.sprintf "name %s" (Il.Ast.Print.string_of_value s)
+    | Parser.NAME s -> P.sprintf "name %s" (Il.Print.string_of_value s)
     | Parser.STRING_LITERAL _ -> "string_literal"
     | Parser.NUMBER _ -> "number"
     | Parser.LE _ -> "<="

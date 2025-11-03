@@ -27,11 +27,11 @@ let parse (lexbuf : Lexing.lexbuf) =
       error (Source.to_region info) msg
   | e -> raise e
 
-let parse_string (filename : string) (str : string) : Il.Ast.value =
+let parse_string (filename : string) (str : string) : Il.value =
   (* assume str is preprocessed *)
   let tokens = lex filename str in
   parse tokens
 
-let parse_file (includes : string list) (filename : string) : Il.Ast.value =
+let parse_file (includes : string list) (filename : string) : Il.value =
   let program = preprocess includes filename in
   parse_string filename program

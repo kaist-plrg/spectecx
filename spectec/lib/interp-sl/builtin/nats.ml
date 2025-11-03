@@ -1,5 +1,5 @@
 open Xl
-open Il.Ast
+open Il
 module Value = Runtime_dynamic.Value
 open Util.Source
 
@@ -11,7 +11,7 @@ let bigint_of_value (value : value) : Bigint.t =
 let value_of_bigint (i : Bigint.t) : value =
   let value =
     let vid = Value.fresh () in
-    let typ = Il.Ast.NumT `NatT in
+    let typ = Il.NumT `NatT in
     NumV (`Nat i) $$$ { vid; typ }
   in
   value

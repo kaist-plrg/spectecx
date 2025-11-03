@@ -1,4 +1,4 @@
-open Il.Ast.Print
+open Il.Print
 open Ast
 open Util.Source
 

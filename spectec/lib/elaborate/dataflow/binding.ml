@@ -1,5 +1,5 @@
 open Domain.Lib
-open Il.Ast
+open Il
 module Typ = Runtime_static.Typ
 open Runtime_static.Rel
 open Runtime_static.Envs
@@ -111,7 +111,7 @@ let rec analyze_prem (dctx : Dctx.t) (prem : prem) :
       error prem.at
         (Format.asprintf
            "iterated premise should initially have no annotations, but got %s"
-           (Il.Ast.Print.string_of_iterexp iterexp))
+           (Il.Print.string_of_iterexp iterexp))
   | IterPr (prem, (iter, [])) -> analyze_iter_prem dctx prem.at prem iter
   | DebugPr exp -> analyze_debug_prem dctx prem.at exp
 

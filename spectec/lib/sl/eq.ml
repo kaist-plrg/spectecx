@@ -3,80 +3,76 @@ open Util.Source
 
 (* Identifiers *)
 
-let eq_id (id_a : id) (id_b : id) : bool = Il.Ast.Eq.eq_id id_a id_b
+let eq_id (id_a : id) (id_b : id) : bool = Il.Eq.eq_id id_a id_b
 
 (* Atoms *)
 
-let eq_atom (atom_a : atom) (atom_b : atom) : bool =
-  Il.Ast.Eq.eq_atom atom_a atom_b
+let eq_atom (atom_a : atom) (atom_b : atom) : bool = Il.Eq.eq_atom atom_a atom_b
 
 let eq_atoms (atoms_a : atom list) (atoms_b : atom list) : bool =
-  Il.Ast.Eq.eq_atoms atoms_a atoms_b
+  Il.Eq.eq_atoms atoms_a atoms_b
 
 (* Mixfix operators *)
 
 let eq_mixop (mixop_a : mixop) (mixop_b : mixop) : bool =
-  Il.Ast.Eq.eq_mixop mixop_a mixop_b
+  Il.Eq.eq_mixop mixop_a mixop_b
 
 (* Iterators *)
 
-let eq_iter (iter_a : iter) (iter_b : iter) : bool =
-  Il.Ast.Eq.eq_iter iter_a iter_b
+let eq_iter (iter_a : iter) (iter_b : iter) : bool = Il.Eq.eq_iter iter_a iter_b
 
 let eq_iters (iters_a : iter list) (iters_b : iter list) : bool =
-  Il.Ast.Eq.eq_iters iters_a iters_b
+  Il.Eq.eq_iters iters_a iters_b
 
 (* Variables *)
 
-let eq_var (var_a : var) (var_b : var) : bool = Il.Ast.Eq.eq_var var_a var_b
+let eq_var (var_a : var) (var_b : var) : bool = Il.Eq.eq_var var_a var_b
 
 let eq_vars (vars_a : var list) (vars_b : var list) : bool =
-  Il.Ast.Eq.eq_vars vars_a vars_b
+  Il.Eq.eq_vars vars_a vars_b
 
 (* Types *)
 
-let eq_typ (typ_a : typ) (typ_b : typ) : bool = Il.Ast.Eq.eq_typ typ_a typ_b
+let eq_typ (typ_a : typ) (typ_b : typ) : bool = Il.Eq.eq_typ typ_a typ_b
 
 let eq_typs (typs_a : typ list) (typs_b : typ list) : bool =
-  Il.Ast.Eq.eq_typs typs_a typs_b
+  Il.Eq.eq_typs typs_a typs_b
 
 (* Expressions *)
 
-let eq_exp (exp_a : exp) (exp_b : exp) : bool = Il.Ast.Eq.eq_exp exp_a exp_b
+let eq_exp (exp_a : exp) (exp_b : exp) : bool = Il.Eq.eq_exp exp_a exp_b
 
 let eq_exps (exps_a : exp list) (exps_b : exp list) : bool =
-  Il.Ast.Eq.eq_exps exps_a exps_b
+  Il.Eq.eq_exps exps_a exps_b
 
 let eq_iterexp (iterexp_a : iterexp) (iterexp_b : iterexp) : bool =
-  Il.Ast.Eq.eq_iterexp iterexp_a iterexp_b
+  Il.Eq.eq_iterexp iterexp_a iterexp_b
 
 let eq_iterexps (iterexps_a : iterexp list) (iterexps_b : iterexp list) : bool =
-  Il.Ast.Eq.eq_iterexps iterexps_a iterexps_b
+  Il.Eq.eq_iterexps iterexps_a iterexps_b
 
 (* Patterns *)
 
 let eq_pattern (pattern_a : pattern) (pattern_b : pattern) : bool =
-  Il.Ast.Eq.eq_pattern pattern_a pattern_b
+  Il.Eq.eq_pattern pattern_a pattern_b
 
 (* Paths *)
 
-let eq_path (path_a : path) (path_b : path) : bool =
-  Il.Ast.Eq.eq_path path_a path_b
+let eq_path (path_a : path) (path_b : path) : bool = Il.Eq.eq_path path_a path_b
 
 (* Arguments *)
 
-let eq_arg (arg_a : arg) (arg_b : arg) : bool = Il.Ast.Eq.eq_arg arg_a arg_b
+let eq_arg (arg_a : arg) (arg_b : arg) : bool = Il.Eq.eq_arg arg_a arg_b
 
 let eq_args (args_a : arg list) (args_b : arg list) : bool =
-  Il.Ast.Eq.eq_args args_a args_b
+  Il.Eq.eq_args args_a args_b
 
 (* Type arguments *)
 
-let eq_targ (targ_a : targ) (targ_b : targ) : bool =
-  Il.Ast.Eq.eq_targ targ_a targ_b
+let eq_targ (targ_a : targ) (targ_b : targ) : bool = Il.Eq.eq_targ targ_a targ_b
 
 let eq_targs (targs_a : targ list) (targs_b : targ list) : bool =
-  Il.Ast.Eq.eq_targs targs_a targs_b
+  Il.Eq.eq_targs targs_a targs_b
 
 (* Path conditions *)
 

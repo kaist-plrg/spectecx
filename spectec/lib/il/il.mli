@@ -6,6 +6,8 @@ include module type of Core.Effects
 module Print : module type of Core.Print
 module Eq : module type of Core.Eq
 module Free : module type of Core.Free
+module Utils : module type of Core.Utils
+module Print_debug : module type of Core.Print_debug
 
 (** Constructors and operations on IL Values. *)
 module Value : sig

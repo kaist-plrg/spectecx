@@ -1,5 +1,5 @@
 open Domain.Lib
-open Il.Ast
+open Il
 open Runtime_static
 open Error
 open Envs
@@ -164,7 +164,7 @@ let rec annotate_exp (bounds : VEnv.t) (exp : exp) : VEnv.t * exp =
         (Format.asprintf
            "iterated expression should initially have no annotations, but got \
             %s"
-           (Il.Ast.Print.string_of_iterexp iterexp))
+           (Il.Print.string_of_iterexp iterexp))
   | IterE (exp, (iter, [])) -> (
       let occurs, exp = annotate_exp bounds exp in
       let itervars = collect_itervars bounds occurs iter in
@@ -275,9 +275,9 @@ and annotate_prem (binds : VEnv.t) (bounds : VEnv.t) (prem : prem) :
                itervars ->
           error at
             ("cannot determine dimension of binding identifier(s) only: "
-            ^ String.concat ", " (List.map Il.Ast.Print.string_of_var itervars)
+            ^ String.concat ", " (List.map Il.Print.string_of_var itervars)
             ^ " "
-            ^ Il.Ast.Print.string_of_prem prem)
+            ^ Il.Print.string_of_prem prem)
       | _ ->
           let prem = IterPr (prem, (iter, itervars)) $ at in
           let occurs =

@@ -3,7 +3,7 @@ open El.Print
 
 (* Function *)
 
-type t = tparam list * param list * plaintyp * Il.Ast.clause list
+type t = tparam list * param list * plaintyp * Il.clause list
 
 let to_string (tparams, params, plaintyp, clauses) =
   "def " ^ string_of_tparams tparams ^ string_of_params params ^ " : "
@@ -11,5 +11,5 @@ let to_string (tparams, params, plaintyp, clauses) =
   ^ " =\n"
   ^ String.concat "\n"
       (List.mapi
-         (fun idx clause -> Il.Ast.Print.string_of_clause idx clause)
+         (fun idx clause -> Il.Print.string_of_clause idx clause)
          clauses)

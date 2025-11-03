@@ -5,9 +5,9 @@
  * - has_type_params : checks for type parameters in CaseV values
  *)
 
-open Il.Ast
-open Il.Core.Utils
-module Print_debug = Il.Core.Print_debug
+open Il
+open Il.Utils
+module Print_debug = Il.Print_debug
 module F = Format
 
 (* Identifier extraction *)

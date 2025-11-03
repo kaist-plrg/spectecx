@@ -23,7 +23,7 @@ let elab_command =
        try
          let spec = List.concat_map Frontend.Parse.parse_file filenames in
          let spec_il = elab_spec spec in
-         Format.printf "%s\n" (Il.Core.Print_debug.string_of_spec spec_il);
+         Format.printf "%s\n" (Il.Print_debug.string_of_spec spec_il);
          ()
        with
        | ParseError (at, msg) -> Format.printf "%s\n" (string_of_error at msg)
@@ -46,16 +46,16 @@ let parse_command =
          let spec = List.concat_map Frontend.Parse.parse_file filenames in
          let spec_il = elab_spec spec in
          let value_program =
-           Runner.Run.parse_file includes_target filename_target
+           Runner.parse_file includes_target filename_target
          in
          let unparsed_string =
            Format.asprintf "%a\n" (Concrete.Pp.pp_program spec_il) value_program
          in
          if roundtrip then
            let parsed_program =
-             Runner.Run.parse_string filename_target unparsed_string
+             Runner.parse_string filename_target unparsed_string
            in
-           Il.Ast.Eq.eq_value ~dbg:true value_program parsed_program
+           Il.Eq.eq_value ~dbg:true value_program parsed_program
            |> (fun b ->
            if b then "Roundtrip successful" else "Roundtrip failed")
            |> print_endline
@@ -83,7 +83,7 @@ let run_il_command =
          let spec = List.concat_map Frontend.Parse.parse_file filenames_spec in
          let spec_il = elab_spec spec in
          let _, _ =
-           Runner.Run.interp_il ~debug ~profile spec_il includes_target
+           Runner.interp_il ~debug ~profile spec_il includes_target
              filename_target
          in
          Format.printf "Interpreter succeeded\n"
