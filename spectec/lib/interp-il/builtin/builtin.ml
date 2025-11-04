@@ -1,8 +1,6 @@
 open Il
 open Error
 
-(* Initializer *)
-
 let ( let* ) = Result.bind
 
 module StringMap = Map.Make (String)

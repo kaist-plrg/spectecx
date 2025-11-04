@@ -1,5 +1,6 @@
 open Util.Error
 open Util.Source
+module Handlers = Runner.Handlers
 
 let version = "0.1"
 
@@ -101,7 +102,7 @@ let elab specdir =
 
 let elab_test specdir =
   let spec_il = elab specdir in
-  Il.Ast.Print.string_of_spec spec_il |> print_endline
+  Il.Print.string_of_spec spec_il |> print_endline
 
 let elab_command =
   Core.Command.basic ~summary:"run elaboration test"
@@ -133,7 +134,7 @@ let parse_roundtrip time_start includes filename spec =
     Format.asprintf "%a\n" (Concrete.Pp.pp_program spec) program
   in
   let program_roundtrip = parse_string time_start filename program_dump in
-  if not (Il.Ast.Eq.eq_value ~dbg:true program program_roundtrip) then
+  if not (Il.Eq.eq_value ~dbg:true program program_roundtrip) then
     raise (TestParseRoundtripErr time_start)
   else time_start
 
@@ -270,18 +271,18 @@ let run_il negative spec_il includes_p4 filename_p4 =
         effc =
           (fun (type a) (eff : a Effect.t) ->
             match eff with
-            | Il.Ast.FreshVid ->
+            | Il.FreshVid ->
                 Some
                   (fun (k : (a, _) Effect.Deep.continuation) ->
                     let id = !vid_counter in
                     incr vid_counter;
                     Effect.Deep.continue k (fun () -> id))
-            | Il.Ast.ValueCreated _ ->
+            | Il.ValueCreated _ ->
                 Some
                   (fun (k : (a, _) Effect.Deep.continuation) ->
                     (* No-op *)
                     Effect.Deep.continue k ())
-            | Il.Ast.FreshTid ->
+            | Il.FreshTid ->
                 Some
                   (fun (k : (a, _) Effect.Deep.continuation) ->
                     let tid = "FRESH__" ^ string_of_int !tid_counter in

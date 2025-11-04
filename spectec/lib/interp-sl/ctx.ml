@@ -1,5 +1,6 @@
 open Domain.Lib
 open Runtime_dynamic
+module Value = Il.Value
 open Runtime_dynamic_sl
 open Envs
 open Sl.Ast
