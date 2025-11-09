@@ -10,8 +10,6 @@ let run_relation (ctx : Ctx.t) (spec : spec) (rid : id') (values : value list) :
   let+ ctx, values = Interp.invoke_rel ctx (rid $ no_region) values in
   (ctx, values)
 
-(* Entry point : Run typing rule *)
-
 let init ?(debug : bool = false) ?(profile : bool = false)
     (filename_target : string) : Ctx.t =
   Cache.Cache.clear !Interp.func_cache;

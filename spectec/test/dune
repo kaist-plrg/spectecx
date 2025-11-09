@@ -14,6 +14,8 @@
     (diff elab.expected elab.actual))
    (ignore-outputs
     (diff run_il_pos_p4c.expected run_il_pos_p4c.actual))
+   (ignore-outputs
+    (diff run_sl_pos_p4c.expected run_sl_pos_p4c.actual))
    ; (ignore-outputs
    ;  (diff run_il_neg_p4c.expected run_il_neg_p4c.actual))
    )))
@@ -37,6 +39,25 @@
     (run
      ./test.exe
      run-il
+     -s
+     ../../../../reference-specs/p4-concrete
+     -i
+     ../../../../p4-tests/includes
+     -e
+     ../../../../p4-tests/excludes
+     -d
+     ../../../../p4-tests/tests/p4_16_samples)))))
+
+(rule
+ (target run_sl_pos_p4c.actual)
+ (action
+  (with-stdout-to
+   run_sl_pos_p4c.actual
+   (with-stderr-to
+    run_sl_pos_p4c.err
+    (run
+     ./test.exe
+     run-sl
      -s
      ../../../../reference-specs/p4-concrete
      -i

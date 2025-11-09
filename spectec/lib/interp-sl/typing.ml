@@ -17,3 +17,8 @@ let init (filename_target : string) : Ctx.t =
   Cache.Cache.clear !Interp.func_cache;
   Cache.Cache.clear !Interp.rule_cache;
   Ctx.empty filename_target
+
+let run_relation_fresh (spec : spec) (rid : id') (values : value list)
+    (filename_target : string) : Ctx.t * value list =
+  let ctx = init filename_target in
+  run_relation ctx spec rid values

@@ -112,7 +112,7 @@ let elab_command =
      fun () ->
        try elab_test specdir with
        | ParseError (at, msg) ->
-           Format.printf "Error on elaboration: %s\n" (string_of_error at msg)
+           Format.printf "Error on parse: %s\n" (string_of_error at msg)
        | ElabError (at, failtraces) ->
            Format.printf "Error on elaboration: %s\n"
              (string_of_elab_errors [ (at, failtraces) ]))
@@ -249,13 +249,10 @@ let run_parser_command =
 
 (* IL interpreter test *)
 
-let run_il negative spec_il includes_p4 filename_p4 =
+let run_il negative spec_il includes_p4 filename_p4 : float =
   let time_start = start () in
   try
-    let vid_counter = ref 0 in
-    let tid_counter = ref 0 in
-    Effect.Deep.try_with
-      (fun () ->
+    Runner.Handlers.il (fun () ->
         (* Parse target P4 program *)
         let value_program = P4.Parse.parse_file includes_p4 filename_p4 in
         (* Initialize runner and run typing relation *)
@@ -266,30 +263,6 @@ let run_il negative spec_il includes_p4 filename_p4 =
         in
         if negative then raise (TestCheckNegErr time_start);
         time_start)
-      ()
-      {
-        effc =
-          (fun (type a) (eff : a Effect.t) ->
-            match eff with
-            | Il.FreshVid ->
-                Some
-                  (fun (k : (a, _) Effect.Deep.continuation) ->
-                    let id = !vid_counter in
-                    incr vid_counter;
-                    Effect.Deep.continue k (fun () -> id))
-            | Il.ValueCreated _ ->
-                Some
-                  (fun (k : (a, _) Effect.Deep.continuation) ->
-                    (* No-op *)
-                    Effect.Deep.continue k ())
-            | Il.FreshTid ->
-                Some
-                  (fun (k : (a, _) Effect.Deep.continuation) ->
-                    let tid = "FRESH__" ^ string_of_int !tid_counter in
-                    incr tid_counter;
-                    Effect.Deep.continue k (fun () -> tid))
-            | _ -> None (* Other effects *));
-      }
   with
   | Util.Error.InterpError (at, msg) ->
       raise (TestCheckErr (msg, at, time_start))
@@ -395,6 +368,132 @@ let structure_command =
      let%map specdir = flag "-s" (required string) ~doc:"p4 spec directory" in
      fun () ->
        try structure_test specdir with
+       | ParseError (at, msg) ->
+           Format.printf "Error on parse: %s\n" (string_of_error at msg)
+       | ElabError (at, failtraces) ->
+           Format.printf "Error on elaboration: %s\n"
+             (string_of_elab_errors [ (at, failtraces) ]))
+
+(* SL interpreter test *)
+
+let run_sl negative spec_sl includes_p4 filename_p4 : float =
+  let time_start = start () in
+  try
+    Runner.Handlers.il (fun () ->
+        (* Parse target P4 program *)
+        let value_program = P4.Parse.parse_file includes_p4 filename_p4 in
+        (* Initialize runner and run typing relation *)
+        let _ctx, _values =
+          Interp_sl.Typing.run_relation_fresh spec_sl "Program_ok"
+            [ value_program ] filename_p4
+        in
+        if negative then raise (TestCheckNegErr time_start);
+        time_start)
+  with
+  | Util.Error.InterpError (at, msg) ->
+      raise (TestCheckErr (msg, at, time_start))
+  | Util.Error.ParseError (at, msg) ->
+      raise (TestCheckErr (msg, no_region, time_start))
+  | TestCheckErr _ as err -> raise err
+  | TestCheckNegErr _ as err -> raise err
+  | _ -> raise (TestUnknownErr time_start)
+
+let run_sl_test negative stat spec_sl includes_p4 excludes_p4 filename_p4 =
+  if List.exists (String.equal filename_p4) excludes_p4 then (
+    let log = Format.asprintf "Excluding file: %s" filename_p4 in
+    log |> print_endline;
+    {
+      stat with
+      durations = 0.0 :: stat.durations;
+      exclude_run = stat.exclude_run + 1;
+    })
+  else
+    try
+      let time_start = run_sl negative spec_sl includes_p4 filename_p4 in
+      let duration = stop time_start in
+      let log = Format.asprintf "Typecheck success: %s" filename_p4 in
+      log |> print_endline;
+      Format.eprintf "%s\n" log;
+      Format.eprintf ">>> took %.6f seconds\n" duration;
+      { stat with durations = duration :: stat.durations }
+    with
+    | TestCheckErr (msg, at, time_start) ->
+        let duration = stop time_start in
+        let log =
+          Format.asprintf "Error on typecheck: %s\n%s" filename_p4
+            (string_of_error at msg)
+        in
+        log |> print_endline;
+        Format.eprintf "%s\n" log;
+        Format.eprintf ">>> took %.6f seconds\n" duration;
+        {
+          stat with
+          durations = duration :: stat.durations;
+          fail_run = stat.fail_run + 1;
+        }
+    | TestCheckNegErr time_start ->
+        let duration = stop time_start in
+        let log = Format.asprintf "Error on typecheck: should fail" in
+        log |> print_endline;
+        Format.eprintf "%s\n" log;
+        Format.eprintf ">>> took %.6f seconds\n" duration;
+        { stat with durations = duration :: stat.durations }
+    | TestUnknownErr time_start ->
+        let duration = stop time_start in
+        let log = Format.asprintf "Error on typecheck: unknown" in
+        log |> print_endline;
+        Format.eprintf "%s\n" log;
+        Format.eprintf ">>> took %.6f seconds\n" duration;
+        {
+          stat with
+          durations = duration :: stat.durations;
+          fail_run = stat.fail_run + 1;
+        }
+
+let run_sl_test_driver negative specdir includes_p4 excludes_p4 testdir_p4 =
+  let spec_sl = structure specdir in
+  let excludes_p4 = collect_excludes excludes_p4 in
+  let filenames_p4 = collect_files ~suffix:".p4" testdir_p4 in
+  let total = List.length filenames_p4 in
+  let stat = empty_stat in
+  Format.asprintf "Running typing test on %d files\n" total |> print_endline;
+  let stat =
+    List.fold_left
+      (fun stat filename_p4 ->
+        Format.asprintf "\n>>> Running typing test on %s" filename_p4
+        |> print_endline;
+        run_sl_test negative stat spec_sl includes_p4 excludes_p4 filename_p4)
+      stat filenames_p4
+  in
+  log_stat "\nRunning typing" stat total
+
+let run_sl_command =
+  Core.Command.basic ~summary:"run typing test on SL"
+    (let open Core.Command.Let_syntax in
+     let open Core.Command.Param in
+     let%map specdir = flag "-s" (required string) ~doc:"p4 spec directory"
+     and includes_p4 = flag "-i" (listed string) ~doc:"p4 include paths"
+     and excludes_p4 = flag "-e" (listed string) ~doc:"p4 test exclude paths"
+     and testdir_p4 = flag "-d" (required string) ~doc:"p4 test directory"
+     and negative = flag "-neg" no_arg ~doc:"use negative typing rules" in
+     fun () ->
+       run_sl_test_driver negative specdir includes_p4 excludes_p4 testdir_p4)
+
+(* Spec Structuring test *)
+
+let structure specdir = specdir |> elab |> Structure.Struct.struct_spec
+
+let structure_test specdir =
+  let spec_sl = structure specdir in
+  Sl.Print.string_of_spec spec_sl |> print_endline
+
+let structure_command =
+  Core.Command.basic ~summary:"run structuring test"
+    (let open Core.Command.Let_syntax in
+     let open Core.Command.Param in
+     let%map specdir = flag "-s" (required string) ~doc:"p4 spec directory" in
+     fun () ->
+       try structure_test specdir with
        | ParseError (at, msg) -> Format.printf "%s\n" (string_of_error at msg)
        | ElabError (at, failtraces) ->
            Format.printf "%s\n" (string_of_elab_errors [ (at, failtraces) ]))
@@ -404,6 +503,7 @@ let command =
     [
       ("elab", elab_command);
       ("run-il", run_il_command);
+      ("run-sl", run_sl_command);
       ("struct", structure_command);
       ("parser", run_parser_command);
     ]
