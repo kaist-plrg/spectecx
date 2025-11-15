@@ -105,8 +105,18 @@ let interp_il ~debug ~profile spec_il includes_target filename_target :
   | Interp_il.Error.InterpError (at, msg) ->
       Error.IlInterpError (at, msg) |> Result.error
 
-let parse_and_interp_il ~debug ~profile filenames_spec includes_target
-    filename_target : (Interp_il.Ctx.t * Il.Value.t list) pipeline_result =
-  let* spec = parse_spec_files filenames_spec in
-  let* spec_il = elaborate spec in
-  interp_il ~debug ~profile spec_il includes_target filename_target
+let structure spec_il : Sl.Ast.spec = Structure.Struct.struct_spec spec_il
+
+let interp_sl spec_il includes_target filename_target :
+    (Interp_sl.Ctx.t * Il.Value.t list) pipeline_result =
+  let interp_sl () =
+    let* value_program = parse_p4_file includes_target filename_target in
+    Interp_sl.Runner.run_relation_fresh spec_il "Program_ok" [ value_program ]
+      filename_target
+    |> Result.ok
+  in
+  try Handlers.sl interp_sl with
+  | P4.Error.P4ParseError (at, msg) ->
+      Error.P4ParseError (at, msg) |> Result.error
+  | Interp_sl.Error.InterpError (at, msg) ->
+      Error.SlInterpError (at, msg) |> Result.error

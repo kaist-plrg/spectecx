@@ -1,495 +1,434 @@
-open Util.Error
+open Core
 open Util.Source
-module Handlers = Runner.Handlers
+module Error = Runner.Error
 
 let version = "0.1"
 
-(* Statistics *)
+module Filenames = Set
 
-type stat = { durations : float list; exclude_run : int; fail_run : int }
+module Timer = struct
+  let now () = Core_unix.gettimeofday ()
 
-let empty_stat = { durations = []; exclude_run = 0; fail_run = 0 }
+  let time f =
+    let start = now () in
+    let result = f () in
+    let duration = now () -. start in
+    (duration, result)
+end
 
-let log_stat name stat total : unit =
-  let excludes = stat.exclude_run in
-  let fails = stat.fail_run in
-  let passes = total - excludes - fails in
-  let exclude_rate = float_of_int excludes /. float_of_int total *. 100.0 in
-  let pass_rate = float_of_int passes /. float_of_int total *. 100.0 in
-  let fail_rate = float_of_int fails /. float_of_int total *. 100.0 in
-  let durations = List.sort compare stat.durations in
-  let duration_total = List.fold_left ( +. ) 0.0 durations in
-  let duration_avg = duration_total /. float_of_int total in
-  let duration_max = durations |> List.rev |> List.hd in
-  let duration_min = durations |> List.hd in
-  Format.asprintf
-    "%s: [EXCLUDE] %d/%d (%.2f%%) [PASS] %d/%d (%.2f%%) [FAIL] %d/%d (%.2f%%)"
-    name excludes total exclude_rate passes total pass_rate fails total
-    fail_rate
-  |> print_endline;
-  Format.eprintf "%s: [TOTAL] %.6f [AVG] %.6f [MAX] %.6f [MIN] %.6f\n" name
-    duration_total duration_avg duration_max duration_min
+module Files = struct
+  let skip_dirs = String.Set.of_list [ "include" ]
 
-(* Exceptions *)
+  let rec gather acc ~suffix dir =
+    let entries = Sys_unix.readdir dir in
+    Array.sort entries ~compare:String.compare;
+    Array.fold entries ~init:acc ~f:(fun acc entry ->
+        let path = Filename.concat dir entry in
+        if Sys_unix.is_directory_exn path then
+          if Filenames.mem skip_dirs entry then acc else gather acc ~suffix path
+        else if String.is_suffix path ~suffix then path :: acc
+        else acc)
 
-exception TestCheckErr of string * region * float
-exception TestCheckNegErr of float
-exception TestParseFileErr of string * region * float
-exception TestParseStringErr of string * region * float
-exception TestParseRoundtripErr of float
-exception TestUnknownErr of float
+  let collect ~suffix dir = gather [] ~suffix dir |> List.rev
+end
 
-(* Timer *)
+module Exclude = struct
+  module Excludes = Set.Make (String)
 
-let start () = Unix.gettimeofday ()
-let stop start = Unix.gettimeofday () -. start
+  let normalize line = "../../../../p4-tests/tests/" ^ line
 
-let rec collect_files ~(suffix : string) dir =
-  let files = Sys_unix.readdir dir in
-  Array.sort String.compare files;
-  Array.fold_left
-    (fun files file ->
-      let filename = dir ^ "/" ^ file in
-      if Sys_unix.is_directory_exn filename && file <> "include" then
-        files @ collect_files ~suffix filename
-      else if String.ends_with ~suffix filename then files @ [ filename ]
-      else files)
-    [] files
+  let from_file filename =
+    In_channel.read_lines filename
+    |> List.filter_map ~f:(fun line ->
+           let trimmed = String.strip line in
+           if String.is_empty trimmed then None
+           else if Char.equal trimmed.[0] '#' then None
+           else Some (normalize trimmed))
 
-(* Exclude collector *)
+  let load paths =
+    let files = List.concat_map paths ~f:(Files.collect ~suffix:".exclude") in
+    files |> List.concat_map ~f:from_file |> Excludes.of_list
 
-let collect_exclude filename_exclude =
-  let ic = open_in filename_exclude in
-  let rec parse_lines excludes =
-    try
-      let exclude = "../../../../p4-tests/tests/" ^ input_line ic in
-      let excludes = exclude :: excludes in
-      parse_lines excludes
-    with End_of_file -> excludes
+  let mem set filename = Set.mem set filename
+end
+
+module Stats = struct
+  type failure = Runner_error of Error.t | Unexpected_success
+
+  type float_summary = {
+    count : int;
+    sum : float;
+    mean : float option;
+    median : float option;
+    p95 : float option;
+    min : float option;
+    max : float option;
+  }
+
+  type t = {
+    passed : int;
+    failed : int;
+    skipped : int;
+    failures : (string * failure) list;
+    passed_durations : float list;
+    failed_durations : float list;
+  }
+
+  let empty : t =
+    {
+      passed = 0;
+      failed = 0;
+      skipped = 0;
+      failures = [];
+      passed_durations = [];
+      failed_durations = [];
+    }
+
+  let add_pass (stat : t) ~(label : string) ~(duration : float) : t =
+    {
+      stat with
+      passed = stat.passed + 1;
+      passed_durations = duration :: stat.passed_durations;
+    }
+
+  let add_fail (stat : t) ~(label : string) ~(duration : float)
+      (failure : failure) : t =
+    {
+      stat with
+      failed = stat.failed + 1;
+      failures = (label, failure) :: stat.failures;
+      failed_durations = duration :: stat.failed_durations;
+    }
+
+  let add_skip (stat : t) ~(label : string) : t =
+    { stat with skipped = stat.skipped + 1 }
+
+  let failure_from_runner err = Runner_error err
+  let failure_unexpected_success = Unexpected_success
+
+  let summarize_floats values =
+    let count = List.length values in
+    let sum = List.fold values ~init:0.0 ~f:( +. ) in
+    if Int.equal count 0 then
+      {
+        count;
+        sum;
+        mean = None;
+        median = None;
+        p95 = None;
+        min = None;
+        max = None;
+      }
+    else
+      let sorted = List.sort values ~compare:Float.compare in
+      let mean = Some (sum /. Float.of_int count) in
+      let min = List.hd sorted in
+      let max = List.last sorted in
+      let median =
+        if Int.( % ) count 2 = 1 then List.nth sorted (count / 2)
+        else
+          let lower = List.nth sorted ((count / 2) - 1) in
+          let upper = List.nth sorted (count / 2) in
+          Option.both lower upper
+          |> Option.map ~f:(fun (l, u) -> (l +. u) /. 2.0)
+      in
+      let percentile p =
+        let index = Float.of_int (count - 1) *. p |> Float.iround_down_exn in
+        List.nth sorted index
+      in
+      { count; sum; mean; median; p95 = percentile 0.95; min; max }
+
+  let format_float value = Printf.sprintf "%.6f" value
+
+  let format_float_option = function
+    | None -> "n/a"
+    | Some value -> format_float value
+
+  let print_summary name (stat : t) =
+    let {
+      passed;
+      failed;
+      skipped;
+      failures;
+      passed_durations;
+      failed_durations;
+    } =
+      stat
+    in
+    let total = passed + failed + skipped in
+    let executed = passed + failed in
+    let executed_rate =
+      if total = 0 then 0.0
+      else float_of_int executed /. float_of_int total *. 100.0
+    in
+    let skip_rate =
+      if total = 0 then 0.0
+      else float_of_int skipped /. float_of_int total *. 100.0
+    in
+    let pass_rate =
+      if executed = 0 then 0.0
+      else float_of_int passed /. float_of_int executed *. 100.0
+    in
+    let fail_rate =
+      if executed = 0 then 0.0
+      else float_of_int failed /. float_of_int executed *. 100.0
+    in
+    let duration_pass = summarize_floats passed_durations in
+    let duration_fail = summarize_floats failed_durations in
+    let duration_all =
+      summarize_floats (stat.passed_durations @ failed_durations)
+    in
+    let title = String.capitalize name in
+    Format.printf "%s summary\n" title;
+    Format.printf "  Ran:     %6d / %-6d (%.2f%%)\n" executed total
+      executed_rate;
+    Format.printf "  Passed:  %6d (%.2f%% of ran)\n" stat.passed pass_rate;
+    Format.printf "  Failed:  %6d (%.2f%% of ran)\n" stat.failed fail_rate;
+    Format.printf "  Skipped: %6d (%.2f%% of total)\n\n" stat.skipped skip_rate;
+    Format.printf "  Duration (s):\n";
+
+    Format.printf "    Total:   %9.3f\n" duration_all.sum;
+    Format.printf "    Mean:    %9s\n" (format_float_option duration_all.mean);
+    Format.printf "    Median:  %9s\n" (format_float_option duration_all.median);
+    Format.printf "    Min:     %9s\n" (format_float_option duration_all.min);
+    Format.printf "    Max:     %9s\n" (format_float_option duration_all.max);
+    Format.printf "    P95:     %9s\n" (format_float_option duration_all.p95);
+
+    if stat.passed > 0 && stat.failed > 0 then (
+      Format.printf "  Pass Stats (s):\n";
+      Format.printf "    Mean:    %9s  Min: %9s  Max: %9s\n"
+        (format_float_option duration_pass.mean)
+        (format_float_option duration_pass.min)
+        (format_float_option duration_pass.max);
+      Format.printf "  Fail Stats (s):\n";
+      Format.printf "    Mean:    %9s  Min: %9s  Max: %9s\n"
+        (format_float_option duration_fail.mean)
+        (format_float_option duration_fail.min)
+        (format_float_option duration_fail.max));
+    if stat.failed > 0 then (
+      Format.printf "\nFailures (%d):\n" stat.failed;
+      List.iter (List.rev stat.failures) ~f:(fun (label, failure) ->
+          match failure with
+          | Runner_error err ->
+              Format.printf "  [FAIL] %s\n    %s\n" label
+                (Error.string_of_error err)
+          | Unexpected_success ->
+              Format.printf "  [FAIL] %s\n    expected failure but succeeded\n"
+                label));
+
+    Format.printf "%!" (* Flush the output *)
+end
+
+type expectation = Expect_success | Expect_failure
+
+type suite = {
+  name : string;
+  intro : string;
+  heading : string;
+  success : string;
+  failure : string;
+  expected_failure : string;
+  unexpected_success : string;
+}
+
+let quiet_parser_logs () =
+  Core_unix.putenv ~key:"P4SPEC_LEXER_DEBUG" ~data:"quiet";
+  Core_unix.putenv ~key:"P4SPEC_PARSER_DEBUG" ~data:"quiet";
+  Core_unix.putenv ~key:"P4SPEC_CONTEXT_DEBUG" ~data:"quiet"
+
+let parser_roundtrip spec_il includes filename =
+  Runner.parse_p4_file includes filename
+  |> Result.bind ~f:(fun program ->
+         let unparsed =
+           Format.asprintf "%a\n" (Concrete.Pp.pp_program spec_il) program
+         in
+         Runner.parse_p4_string filename unparsed
+         |> Result.bind ~f:(fun program_rt ->
+                if Il.Eq.eq_value ~dbg:true program program_rt then Ok ()
+                else
+                  Error (Error.RoundtripError (no_region, "Roundtrip failed"))))
+
+let run_suite ~suite ~exclude_set ~filenames ~expectation ~run =
+  let total = List.length filenames in
+  Format.printf "%s %d files\n\n" suite.intro total;
+  let stats =
+    List.fold filenames ~init:Stats.empty ~f:(fun stats filename ->
+        Format.printf ">>> Running %s on %s\n" suite.heading filename;
+        if Exclude.mem exclude_set filename then (
+          Format.printf "Excluding file: %s\n\n" filename;
+          Stats.add_skip stats ~label:filename)
+        else
+          let duration, result = Timer.time (fun () -> run filename) in
+          let stats =
+            match (expectation, result) with
+            | Expect_success, Ok () ->
+                Format.printf "%s: %s\n\n" suite.success filename;
+                Stats.add_pass stats ~label:filename ~duration
+            | Expect_success, Error err ->
+                Format.printf "%s: %s\n  %s\n\n" suite.failure filename
+                  (Error.string_of_error err);
+                Stats.add_fail stats ~label:filename ~duration
+                  (Stats.failure_from_runner err)
+            | Expect_failure, Ok () ->
+                Format.printf "%s: %s\n\n" suite.unexpected_success filename;
+                Stats.add_fail stats ~label:filename ~duration
+                  Stats.failure_unexpected_success
+            | Expect_failure, Error err ->
+                Format.printf "%s: %s\n  %s\n\n" suite.expected_failure filename
+                  (Error.string_of_error err);
+                Stats.add_pass stats ~label:filename ~duration
+          in
+          stats)
   in
-  let excludes = parse_lines [] in
-  close_in ic;
-  excludes
+  Stats.print_summary suite.name stats;
+  Format.printf "\n%!"
 
-let collect_excludes (paths_exclude : string list) =
-  let filenames_exclude =
-    List.concat_map (collect_files ~suffix:".exclude") paths_exclude
+let run_elab specdir =
+  let spec_files = Files.collect ~suffix:".spectec" specdir in
+  match Runner.elaborate_files spec_files with
+  | Ok spec_il -> Format.printf "%s\n" (Il.Print.string_of_spec spec_il)
+  | Error err ->
+      Format.printf "Elaboration failed:\n  %s\n" (Error.string_of_error err)
+
+let run_structure specdir =
+  let open Core.Result.Let_syntax in
+  let spec_sl =
+    let spec_files = Files.collect ~suffix:".spectec" specdir in
+    let%bind spec_il = Runner.elaborate_files spec_files in
+    let spec_sl = Runner.structure spec_il in
+    Ok spec_sl
   in
-  List.concat_map collect_exclude filenames_exclude
+  match spec_sl with
+  | Error err ->
+      Format.printf "Structuring failed:\n  %s\n" (Error.string_of_error err)
+  | Ok spec_sl -> Format.printf "%s\n" (Sl.Print.string_of_spec spec_sl)
 
-(* Spec Elaboration test *)
+let run_parser includes exclude_dirs testdir specdir =
+  quiet_parser_logs ();
+  let spec_files = Files.collect ~suffix:".spectec" specdir in
+  match Runner.elaborate_files spec_files with
+  | Error err ->
+      Format.printf "Failed to elaborate spec:\n  %s\n"
+        (Error.string_of_error err)
+  | Ok spec_il ->
+      let filenames = Files.collect ~suffix:".p4" testdir in
+      let exclude_set = Exclude.load exclude_dirs in
+      let suite =
+        {
+          name = "parser";
+          intro = "Running parser tests on";
+          heading = "parser test";
+          success = "Parser roundtrip success";
+          failure = "Parser roundtrip failed";
+          expected_failure = "Expected parser failure";
+          unexpected_success = "Unexpected parser success";
+        }
+      in
+      run_suite ~suite ~exclude_set ~filenames ~expectation:Expect_success
+        ~run:(fun filename -> parser_roundtrip spec_il includes filename)
 
-let elab specdir =
-  let parsed =
-    specdir
-    |> collect_files ~suffix:".spectec"
-    |> List.concat_map Frontend.Parse.parse_file
-  in
-  match Elaborate.Elab.elab_spec parsed with
-  | Elaborate.Elab.Spec spec_il -> spec_il
-  | Elaborate.Elab.Errors errors -> (
-      (* propagate the first elaboration error so callers can handle it *)
-      match errors with
-      | (at, failtraces) :: _ -> raise (ElabError (at, failtraces))
-      | [] -> failwith "elab_spec returned Errors []")
+let run_il ?(negative = false) specdir includes exclude_dirs testdir =
+  let spec_files = Files.collect ~suffix:".spectec" specdir in
+  match Runner.elaborate_files spec_files with
+  | Error err ->
+      Format.printf "Failed to elaborate spec:\n  %s\n"
+        (Error.string_of_error err)
+  | Ok spec_il ->
+      let filenames = Files.collect ~suffix:".p4" testdir in
+      let exclude_set = Exclude.load exclude_dirs in
+      let suite =
+        {
+          name = "il typing";
+          intro = "Running typing test on";
+          heading = "typing test";
+          success = "Typecheck success";
+          failure = "Typecheck failed";
+          expected_failure = "Expected typing failure";
+          unexpected_success = "Unexpected typing success";
+        }
+      in
+      let expectation = if negative then Expect_failure else Expect_success in
+      run_suite ~suite ~exclude_set ~filenames ~expectation
+        ~run:(fun filename ->
+          Runner.interp_il ~debug:false ~profile:false spec_il includes filename
+          |> Result.map ~f:(fun _ -> ()))
 
-let elab_test specdir =
-  let spec_il = elab specdir in
-  Il.Print.string_of_spec spec_il |> print_endline
+let run_sl ?(negative = false) specdir includes exclude_dirs testdir =
+  let spec_files = Files.collect ~suffix:".spectec" specdir in
+  match Runner.elaborate_files spec_files with
+  | Error err ->
+      Format.printf "Failed to elaborate spec:\n  %s\n"
+        (Error.string_of_error err)
+  | Ok spec_il ->
+      let spec_sl = Structure.Struct.struct_spec spec_il in
+      let filenames = Files.collect ~suffix:".p4" testdir in
+      let exclude_set = Exclude.load exclude_dirs in
+      let suite =
+        {
+          name = "sl typing";
+          intro = "Running typing test on";
+          heading = "typing test";
+          success = "Typecheck success";
+          failure = "Typecheck failed";
+          expected_failure = "Expected typing failure";
+          unexpected_success = "Unexpected typing success";
+        }
+      in
+      let expectation = if negative then Expect_failure else Expect_success in
+      run_suite ~suite ~exclude_set ~filenames ~expectation
+        ~run:(fun filename ->
+          Runner.interp_sl spec_sl includes filename
+          |> Result.map ~f:(fun _ -> ()))
 
 let elab_command =
   Core.Command.basic ~summary:"run elaboration test"
     (let open Core.Command.Let_syntax in
      let open Core.Command.Param in
      let%map specdir = flag "-s" (required string) ~doc:"p4 spec directory" in
-     fun () ->
-       try elab_test specdir with
-       | ParseError (at, msg) ->
-           Format.printf "Error on parse: %s\n" (string_of_error at msg)
-       | ElabError (at, failtraces) ->
-           Format.printf "Error on elaboration: %s\n"
-             (string_of_elab_errors [ (at, failtraces) ]))
+     fun () -> run_elab specdir)
 
-(* P4 Parser test *)
-
-let parse_file time_start includes filename =
-  try P4.Parse.parse_file includes filename
-  with ParseError (at, msg) -> raise (TestParseFileErr (msg, at, time_start))
-
-let parse_string time_start filename program_dump =
-  try P4.Parse.parse_string filename program_dump
-  with ParseError (at, msg) ->
-    raise (TestParseStringErr (msg, at, time_start))
-
-let parse_roundtrip time_start includes filename spec =
-  let program = parse_file time_start includes filename in
-  let program_dump =
-    Format.asprintf "%a\n" (Concrete.Pp.pp_program spec) program
-  in
-  let program_roundtrip = parse_string time_start filename program_dump in
-  if not (Il.Eq.eq_value ~dbg:true program program_roundtrip) then
-    raise (TestParseRoundtripErr time_start)
-  else time_start
-
-let run_parser includes filename spec =
-  let time_start = start () in
-  try parse_roundtrip time_start includes filename spec with
-  | TestParseFileErr _ as err -> raise err
-  | TestParseStringErr _ as err -> raise err
-  | TestParseRoundtripErr _ as err -> raise err
-  | _ -> raise (TestUnknownErr time_start)
-
-let run_parser_test stat includes excludes filename spec =
-  if List.exists (String.equal filename) excludes then (
-    let log = Format.asprintf "Excluding file: %s" filename in
-    log |> print_endline;
-    {
-      stat with
-      durations = 0.0 :: stat.durations;
-      exclude_run = stat.exclude_run + 1;
-    })
-  else
-    try
-      let time_start = run_parser includes filename spec in
-      let duration = stop time_start in
-      let log = Format.asprintf "Parser roundtrip success: %s" filename in
-      log |> print_endline;
-      Format.eprintf "%s\n" log;
-      Format.eprintf ">>> took %.6f seconds\n" duration;
-      { stat with durations = duration :: stat.durations }
-    with
-    | TestParseFileErr (msg, at, time_start) ->
-        let duration = stop time_start in
-        let log =
-          Format.asprintf "Error parsing file: %s\n%s" filename
-            (string_of_error at msg)
-        in
-        log |> print_endline;
-        Format.eprintf "%s\n" log;
-        Format.eprintf ">>> took %.6f seconds\n" duration;
-        {
-          stat with
-          durations = duration :: stat.durations;
-          fail_run = stat.fail_run + 1;
-        }
-    | TestParseStringErr (msg, at, time_start) ->
-        let duration = stop time_start in
-        let log =
-          Format.asprintf "Error parsing string: %s\n%s" filename
-            (string_of_error at msg)
-        in
-        log |> print_endline;
-        Format.eprintf "%s\n" log;
-        Format.eprintf ">>> took %.6f seconds\n" duration;
-        {
-          stat with
-          durations = duration :: stat.durations;
-          fail_run = stat.fail_run + 1;
-        }
-    | TestParseRoundtripErr time_start ->
-        let duration = stop time_start in
-        let log = Format.asprintf "Error roundtripping parser: %s" filename in
-        log |> print_endline;
-        Format.eprintf "%s\n" log;
-        Format.eprintf ">>> took %.6f seconds\n" duration;
-        {
-          stat with
-          durations = duration :: stat.durations;
-          fail_run = stat.fail_run + 1;
-        }
-    | TestUnknownErr time_start ->
-        let duration = stop time_start in
-        let log = Format.asprintf "Unknown error on parser: %s" filename in
-        log |> print_endline;
-        Format.eprintf "%s\n" log;
-        Format.eprintf ">>> took %.6f seconds\n" duration;
-        {
-          stat with
-          durations = duration :: stat.durations;
-          fail_run = stat.fail_run + 1;
-        }
-
-let run_parser_test_driver includes excludes testdir specdir =
-  (* Force all debug levels to Quiet for testing *)
-  Unix.putenv "P4SPEC_LEXER_DEBUG" "quiet";
-  Unix.putenv "P4SPEC_PARSER_DEBUG" "quiet";
-  Unix.putenv "P4SPEC_CONTEXT_DEBUG" "quiet";
-  let excludes = collect_excludes excludes in
-  let filenames = collect_files ~suffix:".p4" testdir in
-  let spec = elab specdir in
-  let total = List.length filenames in
-  let stat = empty_stat in
-  Format.asprintf "Running parser tests on %d files\n" total |> print_endline;
-  let stat =
-    List.fold_left
-      (fun stat filename ->
-        Format.asprintf "\n>>> Running parser test on %s" filename
-        |> print_endline;
-        run_parser_test stat includes excludes filename spec)
-      stat filenames
-  in
-  log_stat "\nRunning parser" stat total
-
-let run_parser_command =
-  Core.Command.basic ~summary:"run parser test on P4 files"
+let structure_command =
+  Core.Command.basic ~summary:"run structuring test"
     (let open Core.Command.Let_syntax in
      let open Core.Command.Param in
-     let%map includes = flag "-i" (listed string) ~doc:"p4 include paths"
-     and excludes = flag "-e" (listed string) ~doc:"p4 test exclude paths"
-     and testdir = flag "-d" (required string) ~doc:"p4 test directory"
-     and specdir = flag "-s" (required string) ~doc:"p4 spec directory" in
-     fun () -> run_parser_test_driver includes excludes testdir specdir)
-
-(* IL interpreter test *)
-
-let run_il negative spec_il includes_p4 filename_p4 : float =
-  let time_start = start () in
-  try
-    Runner.Handlers.il (fun () ->
-        (* Parse target P4 program *)
-        let value_program = P4.Parse.parse_file includes_p4 filename_p4 in
-        (* Initialize runner and run typing relation *)
-        let ctx_init = Interp_il.Runner.init filename_p4 in
-        let _ctx, _values =
-          Interp_il.Runner.run_relation ctx_init spec_il "Program_ok"
-            [ value_program ]
-        in
-        if negative then raise (TestCheckNegErr time_start);
-        time_start)
-  with
-  | Util.Error.InterpError (at, msg) ->
-      raise (TestCheckErr (msg, at, time_start))
-  | Util.Error.ParseError (at, msg) ->
-      raise (TestCheckErr (msg, no_region, time_start))
-  | TestCheckErr _ as err -> raise err
-  | TestCheckNegErr _ as err -> raise err
-  | _ -> raise (TestUnknownErr time_start)
-
-let run_il_test negative stat spec_il includes_p4 excludes_p4 filename_p4 =
-  if List.exists (String.equal filename_p4) excludes_p4 then (
-    let log = Format.asprintf "Excluding file: %s" filename_p4 in
-    log |> print_endline;
-    {
-      stat with
-      durations = 0.0 :: stat.durations;
-      exclude_run = stat.exclude_run + 1;
-    })
-  else
-    try
-      let time_start = run_il negative spec_il includes_p4 filename_p4 in
-      let duration = stop time_start in
-      let log = Format.asprintf "Typecheck success: %s" filename_p4 in
-      log |> print_endline;
-      Format.eprintf "%s\n" log;
-      Format.eprintf ">>> took %.6f seconds\n" duration;
-      { stat with durations = duration :: stat.durations }
-    with
-    | TestCheckErr (msg, at, time_start) ->
-        let duration = stop time_start in
-        let log =
-          Format.asprintf "Error on typecheck: %s\n%s" filename_p4
-            (string_of_error at msg)
-        in
-        log |> print_endline;
-        Format.eprintf "%s\n" log;
-        Format.eprintf ">>> took %.6f seconds\n" duration;
-        {
-          stat with
-          durations = duration :: stat.durations;
-          fail_run = stat.fail_run + 1;
-        }
-    | TestCheckNegErr time_start ->
-        let duration = stop time_start in
-        let log = Format.asprintf "Error on typecheck: should fail" in
-        log |> print_endline;
-        Format.eprintf "%s\n" log;
-        Format.eprintf ">>> took %.6f seconds\n" duration;
-        { stat with durations = duration :: stat.durations }
-    | TestUnknownErr time_start ->
-        let duration = stop time_start in
-        let log = Format.asprintf "Error on typecheck: unknown" in
-        log |> print_endline;
-        Format.eprintf "%s\n" log;
-        Format.eprintf ">>> took %.6f seconds\n" duration;
-        {
-          stat with
-          durations = duration :: stat.durations;
-          fail_run = stat.fail_run + 1;
-        }
-
-let run_il_test_driver negative specdir includes_p4 excludes_p4 testdir_p4 =
-  let spec_il = elab specdir in
-  let excludes_p4 = collect_excludes excludes_p4 in
-  let filenames_p4 = collect_files ~suffix:".p4" testdir_p4 in
-  let total = List.length filenames_p4 in
-  let stat = empty_stat in
-  Format.asprintf "Running typing test on %d files\n" total |> print_endline;
-  let stat =
-    List.fold_left
-      (fun stat filename_p4 ->
-        Format.asprintf "\n>>> Running typing test on %s" filename_p4
-        |> print_endline;
-        run_il_test negative stat spec_il includes_p4 excludes_p4 filename_p4)
-      stat filenames_p4
-  in
-  log_stat "\nRunning typing" stat total
+     let%map specdir = flag "-s" (required string) ~doc:"p4 spec directory" in
+     fun () -> run_structure specdir)
 
 let run_il_command =
   Core.Command.basic ~summary:"run typing test on IL"
     (let open Core.Command.Let_syntax in
      let open Core.Command.Param in
      let%map specdir = flag "-s" (required string) ~doc:"p4 spec directory"
-     and includes_p4 = flag "-i" (listed string) ~doc:"p4 include paths"
-     and excludes_p4 = flag "-e" (listed string) ~doc:"p4 test exclude paths"
-     and testdir_p4 = flag "-d" (required string) ~doc:"p4 test directory"
-     and negative = flag "-neg" no_arg ~doc:"use negative typing rules" in
-     fun () ->
-       run_il_test_driver negative specdir includes_p4 excludes_p4 testdir_p4)
-
-(* Spec Structuring test *)
-
-let structure specdir = specdir |> elab |> Structure.Struct.struct_spec
-
-let structure_test specdir =
-  let spec_sl = structure specdir in
-  Sl.Print.string_of_spec spec_sl |> print_endline
-
-let structure_command =
-  Core.Command.basic ~summary:"run structuring test"
-    (let open Core.Command.Let_syntax in
-     let open Core.Command.Param in
-     let%map specdir = flag "-s" (required string) ~doc:"p4 spec directory" in
-     fun () ->
-       try structure_test specdir with
-       | ParseError (at, msg) ->
-           Format.printf "Error on parse: %s\n" (string_of_error at msg)
-       | ElabError (at, failtraces) ->
-           Format.printf "Error on elaboration: %s\n"
-             (string_of_elab_errors [ (at, failtraces) ]))
-
-(* SL interpreter test *)
-
-let run_sl negative spec_sl includes_p4 filename_p4 : float =
-  let time_start = start () in
-  try
-    Runner.Handlers.il (fun () ->
-        (* Parse target P4 program *)
-        let value_program = P4.Parse.parse_file includes_p4 filename_p4 in
-        (* Initialize runner and run typing relation *)
-        let _ctx, _values =
-          Interp_sl.Typing.run_relation_fresh spec_sl "Program_ok"
-            [ value_program ] filename_p4
-        in
-        if negative then raise (TestCheckNegErr time_start);
-        time_start)
-  with
-  | Util.Error.InterpError (at, msg) ->
-      raise (TestCheckErr (msg, at, time_start))
-  | Util.Error.ParseError (at, msg) ->
-      raise (TestCheckErr (msg, no_region, time_start))
-  | TestCheckErr _ as err -> raise err
-  | TestCheckNegErr _ as err -> raise err
-  | _ -> raise (TestUnknownErr time_start)
-
-let run_sl_test negative stat spec_sl includes_p4 excludes_p4 filename_p4 =
-  if List.exists (String.equal filename_p4) excludes_p4 then (
-    let log = Format.asprintf "Excluding file: %s" filename_p4 in
-    log |> print_endline;
-    {
-      stat with
-      durations = 0.0 :: stat.durations;
-      exclude_run = stat.exclude_run + 1;
-    })
-  else
-    try
-      let time_start = run_sl negative spec_sl includes_p4 filename_p4 in
-      let duration = stop time_start in
-      let log = Format.asprintf "Typecheck success: %s" filename_p4 in
-      log |> print_endline;
-      Format.eprintf "%s\n" log;
-      Format.eprintf ">>> took %.6f seconds\n" duration;
-      { stat with durations = duration :: stat.durations }
-    with
-    | TestCheckErr (msg, at, time_start) ->
-        let duration = stop time_start in
-        let log =
-          Format.asprintf "Error on typecheck: %s\n%s" filename_p4
-            (string_of_error at msg)
-        in
-        log |> print_endline;
-        Format.eprintf "%s\n" log;
-        Format.eprintf ">>> took %.6f seconds\n" duration;
-        {
-          stat with
-          durations = duration :: stat.durations;
-          fail_run = stat.fail_run + 1;
-        }
-    | TestCheckNegErr time_start ->
-        let duration = stop time_start in
-        let log = Format.asprintf "Error on typecheck: should fail" in
-        log |> print_endline;
-        Format.eprintf "%s\n" log;
-        Format.eprintf ">>> took %.6f seconds\n" duration;
-        { stat with durations = duration :: stat.durations }
-    | TestUnknownErr time_start ->
-        let duration = stop time_start in
-        let log = Format.asprintf "Error on typecheck: unknown" in
-        log |> print_endline;
-        Format.eprintf "%s\n" log;
-        Format.eprintf ">>> took %.6f seconds\n" duration;
-        {
-          stat with
-          durations = duration :: stat.durations;
-          fail_run = stat.fail_run + 1;
-        }
-
-let run_sl_test_driver negative specdir includes_p4 excludes_p4 testdir_p4 =
-  let spec_sl = structure specdir in
-  let excludes_p4 = collect_excludes excludes_p4 in
-  let filenames_p4 = collect_files ~suffix:".p4" testdir_p4 in
-  let total = List.length filenames_p4 in
-  let stat = empty_stat in
-  Format.asprintf "Running typing test on %d files\n" total |> print_endline;
-  let stat =
-    List.fold_left
-      (fun stat filename_p4 ->
-        Format.asprintf "\n>>> Running typing test on %s" filename_p4
-        |> print_endline;
-        run_sl_test negative stat spec_sl includes_p4 excludes_p4 filename_p4)
-      stat filenames_p4
-  in
-  log_stat "\nRunning typing" stat total
+     and includes = flag "-i" (listed string) ~doc:"p4 include paths"
+     and exclude_dirs = flag "-e" (listed string) ~doc:"p4 test exclude paths"
+     and testdir = flag "-d" (required string) ~doc:"p4 test directory"
+     and negative =
+       flag "-neg" no_arg ~doc:"expect typing failures (negative mode)"
+     in
+     fun () -> run_il ~negative specdir includes exclude_dirs testdir)
 
 let run_sl_command =
   Core.Command.basic ~summary:"run typing test on SL"
     (let open Core.Command.Let_syntax in
      let open Core.Command.Param in
      let%map specdir = flag "-s" (required string) ~doc:"p4 spec directory"
-     and includes_p4 = flag "-i" (listed string) ~doc:"p4 include paths"
-     and excludes_p4 = flag "-e" (listed string) ~doc:"p4 test exclude paths"
-     and testdir_p4 = flag "-d" (required string) ~doc:"p4 test directory"
-     and negative = flag "-neg" no_arg ~doc:"use negative typing rules" in
-     fun () ->
-       run_sl_test_driver negative specdir includes_p4 excludes_p4 testdir_p4)
+     and includes = flag "-i" (listed string) ~doc:"p4 include paths"
+     and exclude_dirs = flag "-e" (listed string) ~doc:"p4 test exclude paths"
+     and testdir = flag "-d" (required string) ~doc:"p4 test directory"
+     and negative =
+       flag "-neg" no_arg ~doc:"expect typing failures (negative mode)"
+     in
+     fun () -> run_sl ~negative specdir includes exclude_dirs testdir)
 
-(* Spec Structuring test *)
-
-let structure specdir = specdir |> elab |> Structure.Struct.struct_spec
-
-let structure_test specdir =
-  let spec_sl = structure specdir in
-  Sl.Print.string_of_spec spec_sl |> print_endline
-
-let structure_command =
-  Core.Command.basic ~summary:"run structuring test"
+let run_parser_command =
+  Core.Command.basic ~summary:"run parser test on P4 files"
     (let open Core.Command.Let_syntax in
      let open Core.Command.Param in
-     let%map specdir = flag "-s" (required string) ~doc:"p4 spec directory" in
-     fun () ->
-       try structure_test specdir with
-       | ParseError (at, msg) -> Format.printf "%s\n" (string_of_error at msg)
-       | ElabError (at, failtraces) ->
-           Format.printf "%s\n" (string_of_elab_errors [ (at, failtraces) ]))
+     let%map includes = flag "-i" (listed string) ~doc:"p4 include paths"
+     and exclude_dirs = flag "-e" (listed string) ~doc:"p4 test exclude paths"
+     and testdir = flag "-d" (required string) ~doc:"p4 test directory"
+     and specdir = flag "-s" (required string) ~doc:"p4 spec directory" in
+     fun () -> run_parser includes exclude_dirs testdir specdir)
 
 let command =
   Core.Command.group ~summary:"p4spec-test"

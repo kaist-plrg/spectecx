@@ -55,11 +55,15 @@ let run_il_command =
      and profile = flag "-profile" no_arg ~doc:"profiling" in
      fun () ->
        let interp_result =
-         Runner.parse_and_interp_il ~debug ~profile filenames_spec
-           includes_target filename_target
+         let* spec = parse_spec_files filenames_spec in
+         let* spec_il = elaborate spec in
+         let* _, _ =
+           interp_il ~debug ~profile spec_il includes_target filename_target
+         in
+         Ok ()
        in
        match interp_result with
-       | Ok (_ctx, _values) -> Format.printf "Interpreter succeeded\n"
+       | Ok () -> Format.printf "Interpreter succeeded\n"
        | Error e ->
            Format.printf "Interpreter failed:\n  %s\n"
              (Runner.Error.string_of_error e))
