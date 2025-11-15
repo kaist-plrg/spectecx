@@ -1676,7 +1676,7 @@ let populate_clauses (ctx : Ctx.t) (spec_il : Il.spec) : Il.spec =
 (* Elaborate and collect failtraces *)
 
 let elab_defs_with_errors (ctx : Ctx.t) (defs : def list) :
-    Ctx.t * Il.def list * Util.Error.elaboration_error list =
+    Ctx.t * Il.def list * Error.elaboration_error list =
   List.fold_left
     (fun (ctx, defs_il, errors) def ->
       try
@@ -1684,16 +1684,14 @@ let elab_defs_with_errors (ctx : Ctx.t) (defs : def list) :
         match def_il_opt with
         | Some def_il -> (ctx, defs_il @ [ def_il ], errors)
         | None -> (ctx, defs_il, errors)
-      with Util.Error.ElabError (at, failtraces) ->
+      with Error.ElabError (at, failtraces) ->
         (ctx, defs_il, (at, failtraces) :: errors))
     (ctx, [], []) defs
 
-type elab_result =
-  | Spec of Il.spec
-  | Errors of Util.Error.elaboration_error list
+type elab_result = (Il.spec, elaboration_error list) result
 
 let elab_spec (spec : spec) : elab_result =
   let ctx = Ctx.init () in
   let ctx, spec_il, errors = elab_defs_with_errors ctx spec in
   let spec_il = spec_il |> populate_rules ctx |> populate_clauses ctx in
-  if errors = [] then Spec spec_il else Errors errors
+  if errors = [] then Ok spec_il else Error errors

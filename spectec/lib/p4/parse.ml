@@ -1,7 +1,4 @@
-open Util.Error
-
-let error = error_parse
-let error_no_region = error_parse_no_region
+open Error
 
 let preprocess (includes : string list) (filename : string) =
   try Preprocessor.preprocess includes filename

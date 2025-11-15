@@ -1,10 +1,20 @@
 open Util.Error
 open Util.Source
+open Util.Attempt
 
-(* Error *)
+exception ElabError of region * failtrace list
 
-let error (at : region) (msg : string) = error_elab at msg
-let warn (at : region) (msg : string) = warn_elab at msg
+type elaboration_error = region * failtrace list
+
+(* Elaboration errors *)
+
+let error_with_traces (failtraces : failtrace list) =
+  raise (ElabError (region_of_failtraces failtraces, failtraces))
+
+let error (at : region) (msg : string) =
+  raise (ElabError (at, [ Failtrace (at, msg, []) ]))
+
+let warn (at : region) (msg : string) = warn at "elab" msg
 
 (* Checks *)
 

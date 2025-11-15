@@ -1,7 +1,7 @@
 open Types
 open Util.Source
 open Domain.Lib
-open Util.Error
+open Util.InternalError
 
 type t = typ
 type t' = typ'
@@ -34,7 +34,9 @@ let rec subst_typ (theta : theta) (typ : t) : t =
       match TIdMap.find_opt tid theta with
       | Some typ ->
           if targs <> [] then
-            error_interp typ.at "higher-order substitution is disallowed";
+            disallowed typ.at
+              ("higher-order substitution is disallowed for typ:"
+             ^ Print.string_of_typ typ);
           typ
       | None ->
           let targs = subst_targs theta targs in

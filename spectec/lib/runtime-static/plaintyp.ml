@@ -1,7 +1,7 @@
 open Domain.Lib
 open El.Ast
 open El.Print
-open Util.Error
+open Util.InternalError
 open Util.Source
 
 (* Plain type *)
@@ -54,7 +54,9 @@ and subst_plaintyp (theta : theta) (plaintyp : plaintyp) : plaintyp =
       match TIdMap.find_opt tid theta with
       | Some plaintyp ->
           if targs <> [] then
-            error_elab plaintyp.at "higher-order substitution is disallowed";
+            disallowed plaintyp.at
+              ("higher-order substitution is disallowed for plaintyp:"
+              ^ string_of_plaintyp plaintyp);
           plaintyp
       | None ->
           let targs = subst_targs theta targs in
@@ -132,7 +134,11 @@ let rec expand_plaintyp (tdenv : tdenv) (plaintyp : plaintyp) : plaintyp =
       | Some (Defined (tparams, typdef)) -> (
           match typdef with
           | `Plain _ when List.length targs <> List.length tparams ->
-              error_elab plaintyp.at "type arguments do not match"
+              disallowed plaintyp.at
+                ("type variable " ^ tid.it ^ " expects "
+                ^ string_of_int (List.length tparams)
+                ^ " type arguments, but got "
+                ^ string_of_int (List.length targs))
           | `Plain plaintyp ->
               let theta = List.combine tparams targs |> TIdMap.of_list in
               let plaintyp = subst_plaintyp theta plaintyp in
@@ -140,7 +146,7 @@ let rec expand_plaintyp (tdenv : tdenv) (plaintyp : plaintyp) : plaintyp =
           | _ -> plaintyp)
       | Some _ -> plaintyp
       | None ->
-          error_elab plaintyp.at ("type variable " ^ tid.it ^ " is not defined")
+          disallowed plaintyp.at ("type variable " ^ tid.it ^ " is not defined")
       )
   | ParenT plaintyp -> expand_plaintyp tdenv plaintyp
   | _ -> plaintyp

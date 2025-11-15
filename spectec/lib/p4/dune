@@ -6,6 +6,7 @@
   context
   extract
   parser
+  error
   lexer
   preprocessor
   parse

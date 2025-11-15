@@ -44,13 +44,6 @@ exception TestUnknownErr of float
 let start () = Unix.gettimeofday ()
 let stop start = Unix.gettimeofday () -. start
 
-(* File collector *)
-
-(* (* helper: string suffix *) *)
-(* let ends_with ~suffix (s : string) : bool = *)
-(*   let ls = String.length s and lsf = String.length suffix in *)
-(*   lsf <= ls && String.sub s (ls - lsf) lsf = suffix *)
-
 let rec collect_files ~(suffix : string) dir =
   let files = Sys_unix.readdir dir in
   Array.sort String.compare files;

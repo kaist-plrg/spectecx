@@ -1,3 +1,4 @@
 (library
  (name util)
- (modules print source error attempt))
+ (modules util print attempt source internal_error error)
+ (private_modules internal_error source))

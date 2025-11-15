@@ -1,10 +1,12 @@
 open Util.Error
 open Util.Source
 
+exception InterpError of region * string
+
 (* Error *)
 
-let error (at : region) (msg : string) = error_interp at msg
-let warn (at : region) (msg : string) = warn_interp at msg
+let error (at : region) (msg : string) = raise (InterpError (at, msg))
+let warn (at : region) (msg : string) = warn at "sl-interp" msg
 
 (* Check *)
 
