@@ -1,6 +1,5 @@
 Running typing test on 1278 files
 
-
 >>> Running typing test on ../../../../p4-tests/tests/p4_16_samples/action-bind.p4
 Typecheck success: ../../../../p4-tests/tests/p4_16_samples/action-bind.p4
 
@@ -3835,4 +3834,17 @@ Typecheck success: ../../../../p4-tests/tests/p4_16_samples/xdp_vlan_push_pop_eb
 >>> Running typing test on ../../../../p4-tests/tests/p4_16_samples/xor_test.p4
 Typecheck success: ../../../../p4-tests/tests/p4_16_samples/xor_test.p4
 
-Running typing: [EXCLUDE] 215/1278 (16.82%) [PASS] 1063/1278 (83.18%) [FAIL] 0/1278 (0.00%)
+Sl typing summary
+  Ran:       1063 / 1278   (83.18%)
+  Passed:    1063 (100.00% of ran)
+  Failed:       0 (0.00% of ran)
+  Skipped:    215 (16.82% of total)
+
+  Duration (s):
+    Total:     536.549
+    Mean:     0.504749
+    Median:   0.323827
+    Min:      0.020437
+    Max:     185.419237
+    P95:      1.245667
+
