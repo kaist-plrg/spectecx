@@ -13,6 +13,8 @@
    (ignore-outputs
     (diff elab.expected elab.actual))
    (ignore-outputs
+    (diff struct.expected struct.actual))
+   (ignore-outputs
     (diff run_il_pos_p4c.expected run_il_pos_p4c.actual))
    (ignore-outputs
     (diff run_sl_pos_p4c.expected run_sl_pos_p4c.actual))
@@ -28,6 +30,15 @@
    (with-stderr-to
     elab.err
     (run ./test.exe elab -s ../../../../reference-specs/p4-concrete)))))
+
+(rule
+ (target struct.actual)
+ (action
+  (with-stdout-to
+   struct.actual
+   (with-stderr-to
+    struct.err
+    (run ./test.exe struct -s ../../../../reference-specs/p4-concrete)))))
 
 (rule
  (target run_il_pos_p4c.actual)
