@@ -79,7 +79,7 @@ let colon_pair : (Value.t * Value.t) t =
   | CaseV ([ []; [ { it = Atom.Colon; _ } ]; [] ], [ k; v ]) -> Ok (k, v)
   | _ -> Error (Err.type_err at "Expected a 'k:v' pair" v)
 
-(** Parses a map value { ... } into an OCaml VMap.t *)
+(** Parses a map value into an OCaml VMap.t *)
 let map : Value.t VMap.t t =
  fun at v ->
   match v.it with
