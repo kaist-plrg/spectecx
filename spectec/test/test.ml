@@ -237,16 +237,14 @@ let quiet_parser_logs () =
   Core_unix.putenv ~key:"P4SPEC_CONTEXT_DEBUG" ~data:"quiet"
 
 let parser_roundtrip spec_il includes filename =
-  Runner.parse_p4_file includes filename
-  |> Result.bind ~f:(fun program ->
-         let unparsed =
-           Format.asprintf "%a\n" (Concrete.Pp.pp_program spec_il) program
-         in
-         Runner.parse_p4_string filename unparsed
-         |> Result.bind ~f:(fun program_rt ->
-                if Il.Eq.eq_value ~dbg:true program program_rt then Ok ()
-                else
-                  Error (Error.RoundtripError (no_region, "Roundtrip failed"))))
+  let open Core.Result.Let_syntax in
+  let%bind program = Runner.parse_p4_file includes filename in
+  let unparsed =
+    Format.asprintf "%a\n" (Concrete.Pp.pp_program spec_il) program
+  in
+  let%bind program_rt = Runner.parse_p4_string filename unparsed in
+  if Il.Eq.eq_value ~dbg:true program program_rt then Ok ()
+  else Error (Error.RoundtripError (no_region, "Roundtrip failed"))
 
 let run_suite ~suite ~exclude_set ~filenames ~expectation ~run =
   let total = List.length filenames in
@@ -284,8 +282,14 @@ let run_suite ~suite ~exclude_set ~filenames ~expectation ~run =
   Format.printf "\n%!"
 
 let run_elab specdir =
-  let spec_files = Files.collect ~suffix:".spectec" specdir in
-  match Runner.elaborate_files spec_files with
+  let open Core.Result.Let_syntax in
+  let spec_il =
+    let spec_files = Files.collect ~suffix:".spectec" specdir in
+    let%bind spec = Runner.parse_spec_files spec_files in
+    let%bind spec_il = Runner.elaborate spec in
+    Ok spec_il
+  in
+  match spec_il with
   | Ok spec_il -> Format.printf "%s\n" (Il.Print.string_of_spec spec_il)
   | Error err ->
       Format.printf "Elaboration failed:\n  %s\n" (Error.string_of_error err)
@@ -294,7 +298,8 @@ let run_structure specdir =
   let open Core.Result.Let_syntax in
   let spec_sl =
     let spec_files = Files.collect ~suffix:".spectec" specdir in
-    let%bind spec_il = Runner.elaborate_files spec_files in
+    let%bind spec = Runner.parse_spec_files spec_files in
+    let%bind spec_il = Runner.elaborate spec in
     let spec_sl = Runner.structure spec_il in
     Ok spec_sl
   in
@@ -305,80 +310,96 @@ let run_structure specdir =
 
 let run_parser includes exclude_dirs testdir specdir =
   quiet_parser_logs ();
-  let spec_files = Files.collect ~suffix:".spectec" specdir in
-  match Runner.elaborate_files spec_files with
+  let open Core.Result.Let_syntax in
+  let suite_result =
+    let spec_files = Files.collect ~suffix:".spectec" specdir in
+    let%bind spec = Runner.parse_spec_files spec_files in
+    let%bind spec_il = Runner.elaborate spec in
+    let filenames = Files.collect ~suffix:".p4" testdir in
+    let exclude_set = Exclude.load exclude_dirs in
+    let suite =
+      {
+        name = "parser";
+        intro = "Running parser tests on";
+        heading = "parser test";
+        success = "Parser roundtrip success";
+        failure = "Parser roundtrip failed";
+        expected_failure = "Expected parser failure";
+        unexpected_success = "Unexpected parser success";
+      }
+    in
+    run_suite ~suite ~exclude_set ~filenames ~expectation:Expect_success
+      ~run:(fun filename -> parser_roundtrip spec_il includes filename);
+    Ok ()
+  in
+  match suite_result with
+  | Ok () -> ()
   | Error err ->
       Format.printf "Failed to elaborate spec:\n  %s\n"
         (Error.string_of_error err)
-  | Ok spec_il ->
-      let filenames = Files.collect ~suffix:".p4" testdir in
-      let exclude_set = Exclude.load exclude_dirs in
-      let suite =
-        {
-          name = "parser";
-          intro = "Running parser tests on";
-          heading = "parser test";
-          success = "Parser roundtrip success";
-          failure = "Parser roundtrip failed";
-          expected_failure = "Expected parser failure";
-          unexpected_success = "Unexpected parser success";
-        }
-      in
-      run_suite ~suite ~exclude_set ~filenames ~expectation:Expect_success
-        ~run:(fun filename -> parser_roundtrip spec_il includes filename)
 
 let run_il ?(negative = false) specdir includes exclude_dirs testdir =
-  let spec_files = Files.collect ~suffix:".spectec" specdir in
-  match Runner.elaborate_files spec_files with
+  let open Core.Result.Let_syntax in
+  let suite_result =
+    let spec_files = Files.collect ~suffix:".spectec" specdir in
+    let%bind spec = Runner.parse_spec_files spec_files in
+    let%bind spec_il = Runner.elaborate spec in
+    let filenames = Files.collect ~suffix:".p4" testdir in
+    let exclude_set = Exclude.load exclude_dirs in
+    let suite =
+      {
+        name = "il typing";
+        intro = "Running typing test on";
+        heading = "typing test";
+        success = "Typecheck success";
+        failure = "Typecheck failed";
+        expected_failure = "Expected typing failure";
+        unexpected_success = "Unexpected typing success";
+      }
+    in
+    let expectation = if negative then Expect_failure else Expect_success in
+    run_suite ~suite ~exclude_set ~filenames ~expectation ~run:(fun filename ->
+        Runner.interp_il ~debug:false ~profile:false spec_il includes filename
+        |> Result.map ~f:(fun _ -> ()));
+    Ok ()
+  in
+  match suite_result with
+  | Ok () -> ()
   | Error err ->
       Format.printf "Failed to elaborate spec:\n  %s\n"
         (Error.string_of_error err)
-  | Ok spec_il ->
-      let filenames = Files.collect ~suffix:".p4" testdir in
-      let exclude_set = Exclude.load exclude_dirs in
-      let suite =
-        {
-          name = "il typing";
-          intro = "Running typing test on";
-          heading = "typing test";
-          success = "Typecheck success";
-          failure = "Typecheck failed";
-          expected_failure = "Expected typing failure";
-          unexpected_success = "Unexpected typing success";
-        }
-      in
-      let expectation = if negative then Expect_failure else Expect_success in
-      run_suite ~suite ~exclude_set ~filenames ~expectation
-        ~run:(fun filename ->
-          Runner.interp_il ~debug:false ~profile:false spec_il includes filename
-          |> Result.map ~f:(fun _ -> ()))
 
 let run_sl ?(negative = false) specdir includes exclude_dirs testdir =
-  let spec_files = Files.collect ~suffix:".spectec" specdir in
-  match Runner.elaborate_files spec_files with
+  let open Core.Result.Let_syntax in
+  let suite_result =
+    let spec_files = Files.collect ~suffix:".spectec" specdir in
+    let%bind spec = Runner.parse_spec_files spec_files in
+    let%bind spec_il = Runner.elaborate spec in
+    let spec_sl = Structure.Struct.struct_spec spec_il in
+    let filenames = Files.collect ~suffix:".p4" testdir in
+    let exclude_set = Exclude.load exclude_dirs in
+    let suite =
+      {
+        name = "sl typing";
+        intro = "Running typing test on";
+        heading = "typing test";
+        success = "Typecheck success";
+        failure = "Typecheck failed";
+        expected_failure = "Expected typing failure";
+        unexpected_success = "Unexpected typing success";
+      }
+    in
+    let expectation = if negative then Expect_failure else Expect_success in
+    run_suite ~suite ~exclude_set ~filenames ~expectation ~run:(fun filename ->
+        Runner.interp_sl spec_sl includes filename
+        |> Result.map ~f:(fun _ -> ()));
+    Ok ()
+  in
+  match suite_result with
+  | Ok () -> ()
   | Error err ->
       Format.printf "Failed to elaborate spec:\n  %s\n"
         (Error.string_of_error err)
-  | Ok spec_il ->
-      let spec_sl = Structure.Struct.struct_spec spec_il in
-      let filenames = Files.collect ~suffix:".p4" testdir in
-      let exclude_set = Exclude.load exclude_dirs in
-      let suite =
-        {
-          name = "sl typing";
-          intro = "Running typing test on";
-          heading = "typing test";
-          success = "Typecheck success";
-          failure = "Typecheck failed";
-          expected_failure = "Expected typing failure";
-          unexpected_success = "Unexpected typing success";
-        }
-      in
-      let expectation = if negative then Expect_failure else Expect_success in
-      run_suite ~suite ~exclude_set ~filenames ~expectation
-        ~run:(fun filename ->
-          Runner.interp_sl spec_sl includes filename
-          |> Result.map ~f:(fun _ -> ()))
 
 let elab_command =
   Core.Command.basic ~summary:"run elaboration test"

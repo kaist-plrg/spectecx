@@ -10,7 +10,12 @@ let elab_command =
      let open Core.Command.Param in
      let%map filenames = anon (sequence ("filename" %: string)) in
      fun () ->
-       match elaborate_files filenames with
+       let elaborate_result =
+         let* spec = parse_spec_files filenames in
+         let* spec_il = elaborate spec in
+         Ok spec_il
+       in
+       match elaborate_result with
        | Ok spec_il -> Format.printf "%s\n" (Il.Print.string_of_spec spec_il)
        | Error e -> Format.printf "%s\n" (Runner.Error.string_of_error e))
 

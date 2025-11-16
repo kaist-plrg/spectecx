@@ -72,24 +72,6 @@ let elaborate spec_el : Il.spec pipeline_result =
   with Elaborate.Error.ElabError (at, failtraces) ->
     Error.ElabError [ (at, failtraces) ] |> Result.error
 
-let elaborate_files filenames_spec : Il.spec pipeline_result =
-  let* spec_el = parse_spec_files filenames_spec in
-  elaborate spec_el
-
-let parse_p4_file_with_roundtrip roundtrip filenames_spec includes_target
-    filename_target : string pipeline_result =
-  let* spec_il = elaborate_files filenames_spec in
-  let* value_program = parse_p4_file includes_target filename_target in
-  let unparsed_string =
-    Format.asprintf "%a\n" (Concrete.Pp.pp_program spec_il) value_program
-  in
-  if roundtrip then
-    let* value_program_rt = parse_p4_string filename_target unparsed_string in
-    let eq = Il.Eq.eq_value ~dbg:true value_program value_program_rt in
-    if eq then unparsed_string |> Result.ok
-    else Error.RoundtripError (no_region, "Roundtrip failed") |> Result.error
-  else unparsed_string |> Result.ok
-
 let interp_il ~debug ~profile spec_il includes_target filename_target :
     (Interp_il.Ctx.t * Il.Value.t list) pipeline_result =
   let interp_il () =
@@ -99,11 +81,9 @@ let interp_il ~debug ~profile spec_il includes_target filename_target :
       [ value_program ]
     |> Result.ok
   in
-  try Handlers.il interp_il with
-  | P4.Error.P4ParseError (at, msg) ->
-      Error.P4ParseError (at, msg) |> Result.error
-  | Interp_il.Error.InterpError (at, msg) ->
-      Error.IlInterpError (at, msg) |> Result.error
+  try Handlers.il interp_il
+  with Interp_il.Error.InterpError (at, msg) ->
+    Error.IlInterpError (at, msg) |> Result.error
 
 let structure spec_il : Sl.Ast.spec = Structure.Struct.struct_spec spec_il
 
@@ -115,8 +95,23 @@ let interp_sl spec_il includes_target filename_target :
       filename_target
     |> Result.ok
   in
-  try Handlers.sl interp_sl with
-  | P4.Error.P4ParseError (at, msg) ->
-      Error.P4ParseError (at, msg) |> Result.error
-  | Interp_sl.Error.InterpError (at, msg) ->
-      Error.SlInterpError (at, msg) |> Result.error
+  try Handlers.sl interp_sl
+  with Interp_sl.Error.InterpError (at, msg) ->
+    Error.SlInterpError (at, msg) |> Result.error
+
+(* Composed functions *)
+
+let parse_p4_file_with_roundtrip roundtrip filenames_spec includes_target
+    filename_target : string pipeline_result =
+  let* spec_el = parse_spec_files filenames_spec in
+  let* spec_il = elaborate spec_el in
+  let* value_program = parse_p4_file includes_target filename_target in
+  let unparsed_string =
+    Format.asprintf "%a\n" (Concrete.Pp.pp_program spec_il) value_program
+  in
+  if roundtrip then
+    let* value_program_rt = parse_p4_string filename_target unparsed_string in
+    let eq = Il.Eq.eq_value ~dbg:true value_program value_program_rt in
+    if eq then unparsed_string |> Result.ok
+    else Error.RoundtripError (no_region, "Roundtrip failed") |> Result.error
+  else unparsed_string |> Result.ok
