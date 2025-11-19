@@ -2,7 +2,7 @@ open Domain.Lib
 open Xl
 open Sl.Ast
 module Hint = Runtime_static.Rel.Hint
-module Typ = Il.Typ
+module Typ = Runtime_dynamic.Typ
 module Value = Il.Value
 module Cache = Runtime_dynamic.Cache
 module Rel = Runtime_dynamic_sl.Rel
@@ -59,7 +59,7 @@ let rec assign_exp (ctx : Ctx.t) (exp : exp) (value : value) : Ctx.t =
       List.fold_left
         (fun ctx (id, typ, iters) ->
           let value_sub =
-            let typ = Typ.iterate typ (iters @ [ Il.Opt ]) in
+            let typ = Il.Typ.iterate typ (iters @ [ Il.Opt ]) in
             None |> Value.Make.opt typ.it
           in
           Ctx.add_value Local ctx (id, iters @ [ Il.Opt ]) value_sub)
@@ -72,7 +72,7 @@ let rec assign_exp (ctx : Ctx.t) (exp : exp) (value : value) : Ctx.t =
         (fun ctx (id, typ, iters) ->
           let value_sub =
             let value = Ctx.find_value Local ctx (id, iters) in
-            let typ = Typ.iterate typ (iters @ [ Il.Opt ]) in
+            let typ = Il.Typ.iterate typ (iters @ [ Il.Opt ]) in
             Some value |> Value.Make.opt typ.it
           in
           Ctx.add_value Local ctx (id, iters @ [ Il.Opt ]) value_sub)
@@ -98,7 +98,7 @@ let rec assign_exp (ctx : Ctx.t) (exp : exp) (value : value) : Ctx.t =
             List.map (fun ctx -> Ctx.find_value Local ctx (id, iters)) ctxs
           in
           let value_sub =
-            let typ = Typ.iterate typ (iters @ [ Il.List ]) in
+            let typ = Il.Typ.iterate typ (iters @ [ Il.List ]) in
             values |> Value.Make.list typ.it
           in
           Ctx.add_value Local ctx (id, iters @ [ Il.List ]) value_sub)
@@ -825,7 +825,7 @@ and eval_let_opt (ctx : Ctx.t) (exp_l : exp) (exp_r : exp) (vars : var list)
             (fun (_id_binding, typ_binding, iters_binding) ->
               let value_binding =
                 let typ =
-                  Typ.iterate typ_binding (iters_binding @ [ Il.Opt ])
+                  Il.Typ.iterate typ_binding (iters_binding @ [ Il.Opt ])
                 in
                 None |> Value.Make.opt typ.it
               in
@@ -845,7 +845,7 @@ and eval_let_opt (ctx : Ctx.t) (exp_l : exp) (exp_r : exp) (vars : var list)
               in
               let value_binding =
                 let typ =
-                  Typ.iterate typ_binding (iters_binding @ [ Il.Opt ])
+                  Il.Typ.iterate typ_binding (iters_binding @ [ Il.Opt ])
                 in
                 Some value_binding |> Value.Make.opt typ.it
               in
@@ -909,7 +909,7 @@ and eval_let_list (ctx : Ctx.t) (exp_l : exp) (exp_r : exp) (vars : var list)
   List.fold_left2
     (fun ctx (id_binding, typ_binding, iters_binding) values_binding ->
       let value_binding =
-        let typ = Typ.iterate typ_binding (iters_binding @ [ Il.List ]) in
+        let typ = Il.Typ.iterate typ_binding (iters_binding @ [ Il.List ]) in
         values_binding |> Value.Make.list typ.it
       in
       Ctx.add_value Local ctx
@@ -1005,7 +1005,7 @@ and eval_rule_list (ctx : Ctx.t) (id : id) (notexp : notexp) (vars : var list)
   List.fold_left2
     (fun ctx (id_binding, typ_binding, iters_binding) values_binding ->
       let value_binding =
-        let typ = Typ.iterate typ_binding (iters_binding @ [ Il.List ]) in
+        let typ = Il.Typ.iterate typ_binding (iters_binding @ [ Il.List ]) in
         values_binding |> Value.Make.list typ.it
       in
       Ctx.add_value Local ctx

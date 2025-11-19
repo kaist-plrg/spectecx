@@ -4,6 +4,7 @@ open Il
 module Hint = Runtime_static.Rel.Hint
 module Cache = Runtime_dynamic.Cache
 module Rel = Runtime_dynamic_il.Rel
+module Typ = Runtime_dynamic.Typ
 open Runtime_dynamic_il.Envs
 open Error
 open Attempt
@@ -45,7 +46,7 @@ let rec assign_exp (ctx : Ctx.t) (exp : exp) (value : value) : Ctx.t =
       List.fold_left
         (fun ctx (id, typ, iters) ->
           let value_sub =
-            let typ = Typ.iterate typ (iters @ [ Opt ]) in
+            let typ = Il.Typ.iterate typ (iters @ [ Opt ]) in
             None |> Value.Make.opt typ.it
           in
           Ctx.add_value Local ctx (id, iters @ [ Opt ]) value_sub)
@@ -58,7 +59,7 @@ let rec assign_exp (ctx : Ctx.t) (exp : exp) (value : value) : Ctx.t =
         (fun ctx (id, typ, iters) ->
           let value_sub =
             let value = Ctx.find_value Local ctx (id, iters) in
-            let typ = Typ.iterate typ (iters @ [ Opt ]) in
+            let typ = Il.Typ.iterate typ (iters @ [ Opt ]) in
             Some value |> Value.Make.opt typ.it
           in
           Ctx.add_value Local ctx (id, iters @ [ Opt ]) value_sub)
@@ -84,7 +85,7 @@ let rec assign_exp (ctx : Ctx.t) (exp : exp) (value : value) : Ctx.t =
             List.map (fun ctx -> Ctx.find_value Local ctx (id, iters)) ctxs
           in
           let value_sub =
-            let typ = Typ.iterate typ (iters @ [ List ]) in
+            let typ = Il.Typ.iterate typ (iters @ [ List ]) in
             values |> Value.Make.list typ.it
           in
           Ctx.add_value Local ctx (id, iters @ [ List ]) value_sub)
@@ -779,7 +780,7 @@ and eval_iter_prem_list (ctx : Ctx.t) (prem : prem) (vars : var list) :
     List.fold_left2
       (fun ctx (id_binding, typ_binding, iters_binding) values_binding ->
         let value_binding =
-          let typ = Typ.iterate typ_binding (iters_binding @ [ List ]) in
+          let typ = Il.Typ.iterate typ_binding (iters_binding @ [ List ]) in
           values_binding |> Value.Make.list typ.it
         in
         Ctx.add_value Local ctx
