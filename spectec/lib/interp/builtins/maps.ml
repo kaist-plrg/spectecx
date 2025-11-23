@@ -77,7 +77,7 @@ let adds_map ~at (typ_key : targ) (typ_val : targ) (map : map)
         "adds_map: key list length (%d) does not match value list length (%d)"
         (List.length keys) (List.length vals)
     in
-    Error (Err.RuntimeError (at, msg))
+    Error (Error.RuntimeError (at, msg))
 
 (* dec $update_map<K, V>(map<K, V>, K, V) : map<K, V> *)
 

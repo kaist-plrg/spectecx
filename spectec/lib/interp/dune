@@ -1,4 +1,4 @@
 (library
  (name interp)
  (public_name spectec.interp)
- (libraries spectec.lang spectec.semantics eval_il eval_sl))
+ (libraries spectec.lang spectec.semantics builtins eval_il eval_sl))

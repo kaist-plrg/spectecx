@@ -9,7 +9,6 @@ module Typ = Semantics.Dynamic.Typ
 module Cache = Semantics.Dynamic.Cache
 open Semantics.Dynamic_Sl.Envs
 module Rel = Semantics.Dynamic_Sl.Rel
-module Builtins = Eval_il.Builtins
 open Error
 module F = Format
 
@@ -1089,7 +1088,7 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
 and invoke_func_builtin (ctx : Ctx.t) (id : id) (targs : targ list)
     (args : arg list) : Ctx.t * value =
   let ctx, values_input = eval_args ctx args in
-  let value_output = Builtins.invoke id targs values_input in
+  let value_output = Builtins.invoke id targs values_input |> unwrap_builtin in
   (ctx, value_output)
 
 and invoke_func_def (ctx : Ctx.t) (id : id) (targs : targ list)

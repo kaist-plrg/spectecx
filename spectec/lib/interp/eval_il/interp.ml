@@ -916,7 +916,9 @@ and invoke_func_builtin (ctx : Ctx.t) (id : id) (targs : targ list)
   let invoke_func_builtin' () =
     let ctx_local = Ctx.localize ctx in
     let ctx_local = Ctx.trace_open_dec ctx_local id 0 values_input in
-    let value_output = Builtins.invoke id targs values_input in
+    let value_output =
+      Builtins.invoke id targs values_input |> unwrap_builtin
+    in
     let ctx_local = Ctx.trace_close ctx_local in
     let ctx = Ctx.trace_commit ctx ctx_local.trace in
     Ok (ctx, value_output)

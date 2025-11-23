@@ -3,4 +3,4 @@
 (library
  (name eval_il)
  (public_name spectec.interp.eval_il)
- (libraries spectec.common spectec.lang spectec.semantics))
+ (libraries spectec.common spectec.lang spectec.semantics unix builtins))

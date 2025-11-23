@@ -8,7 +8,7 @@ let bigint_of_value (value : value) : Bigint.t =
 
 (* dec $sum(nat* ) : nat *)
 
-let sum ~at (nums : Bigint.t list) : (Value.t, Err.t) result =
+let sum ~at (nums : Bigint.t list) : (Value.t, Error.t) result =
   at |> ignore;
   let sum = List.fold_left Bigint.( + ) Bigint.zero nums in
   Ok (Value.nat sum)
@@ -16,7 +16,7 @@ let sum ~at (nums : Bigint.t list) : (Value.t, Err.t) result =
 (* dec $max(nat* ) : nat *)
 
 (* Returns zero if list is empty *)
-let max ~at (nums : Bigint.t list) : (Value.t, Err.t) result =
+let max ~at (nums : Bigint.t list) : (Value.t, Error.t) result =
   at |> ignore;
   let max_value = List.fold_left Bigint.max Bigint.zero nums in
   Ok (Value.nat max_value)
@@ -24,7 +24,7 @@ let max ~at (nums : Bigint.t list) : (Value.t, Err.t) result =
 (* dec $min(nat* ) : nat *)
 
 (* Returns zero if list is empty *)
-let min ~at (nums : Bigint.t list) : (Value.t, Err.t) result =
+let min ~at (nums : Bigint.t list) : (Value.t, Error.t) result =
   at |> ignore;
   let min = List.fold_left Bigint.min Bigint.zero nums in
   Ok (Value.nat min)

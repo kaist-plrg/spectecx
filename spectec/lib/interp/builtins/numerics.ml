@@ -8,7 +8,7 @@ let rec shl' (v : Bigint.t) (o : Bigint.t) : Bigint.t =
   if Bigint.(o > zero) then shl' Bigint.(v * (one + one)) Bigint.(o - one)
   else v
 
-let shl ~at (base : Bigint.t) (offset : Bigint.t) : (Value.t, Err.t) result =
+let shl ~at (base : Bigint.t) (offset : Bigint.t) : (Value.t, Error.t) result =
   at |> ignore;
   Ok (Value.int (shl' base offset))
 
@@ -20,14 +20,14 @@ let rec shr' (v : Bigint.t) (o : Bigint.t) : Bigint.t =
     shr' v_shifted Bigint.(o - one)
   else v
 
-let shr ~at (base : Bigint.t) (offset : Bigint.t) : (Value.t, Err.t) result =
+let shr ~at (base : Bigint.t) (offset : Bigint.t) : (Value.t, Error.t) result =
   at |> ignore;
   Ok (Value.int (shr' base offset))
 
 (* dec $shr_arith(int, int, int) : int *)
 
 let shr_arith ~at (base : Bigint.t) (offset : Bigint.t) (modulus : Bigint.t) :
-    (Value.t, Err.t) result =
+    (Value.t, Error.t) result =
   at |> ignore;
   let rec shr_arith' (v : Bigint.t) (o : Bigint.t) (m : Bigint.t) : Bigint.t =
     if Bigint.(o > zero) then
@@ -41,7 +41,7 @@ let shr_arith ~at (base : Bigint.t) (offset : Bigint.t) (modulus : Bigint.t) :
 
 let pow2' (w : Bigint.t) : Bigint.t = shl' Bigint.one w
 
-let pow2 ~at (width : Bigint.t) : (Value.t, Err.t) result =
+let pow2 ~at (width : Bigint.t) : (Value.t, Error.t) result =
   at |> ignore;
   Ok (Value.int (pow2' width))
 
@@ -54,8 +54,8 @@ let rec to_int' (w : Bigint.t) (n : Bigint.t) : Bigint.t =
   else if Bigint.(n < -(w' / two)) then to_int' w Bigint.(n + w')
   else n
 
-let to_int ~at (width : Bigint.t) (bitstr : Bigint.t) : (Value.t, Err.t) result
-    =
+let to_int ~at (width : Bigint.t) (bitstr : Bigint.t) :
+    (Value.t, Error.t) result =
   at |> ignore;
   Ok (Value.int (to_int' width bitstr))
 
@@ -68,43 +68,43 @@ let rec to_bitstr' (w : Bigint.t) (n : Bigint.t) : Bigint.t =
   else n
 
 let to_bitstr ~at (width : Bigint.t) (rawint : Bigint.t) :
-    (Value.t, Err.t) result =
+    (Value.t, Error.t) result =
   at |> ignore;
   Ok (Value.int (to_bitstr' width rawint))
 
 (* dec $bneg(int) : int *)
 
-let bneg ~at (n : Bigint.t) : (Value.t, Err.t) result =
+let bneg ~at (n : Bigint.t) : (Value.t, Error.t) result =
   at |> ignore;
   Ok (Value.int (Bigint.bit_not n))
 
 (* dec $band(int, int) : int *)
 
-let band ~at (l : Bigint.t) (r : Bigint.t) : (Value.t, Err.t) result =
+let band ~at (l : Bigint.t) (r : Bigint.t) : (Value.t, Error.t) result =
   at |> ignore;
   Ok (Value.int (Bigint.bit_and l r))
 
 (* dec $bxor(int, int) : int *)
 
-let bxor ~at (l : Bigint.t) (r : Bigint.t) : (Value.t, Err.t) result =
+let bxor ~at (l : Bigint.t) (r : Bigint.t) : (Value.t, Error.t) result =
   at |> ignore;
   Ok (Value.int (Bigint.bit_xor l r))
 
 (* dec $bor(int, int) : int *)
 
-let bor ~at (l : Bigint.t) (r : Bigint.t) : (Value.t, Err.t) result =
+let bor ~at (l : Bigint.t) (r : Bigint.t) : (Value.t, Error.t) result =
   at |> ignore;
   Ok (Value.int (Bigint.bit_or l r))
 
 (* dec $bitacc(int, int, int) : int *)
 
 let bitacc ~at (n : Bigint.t) (m : Bigint.t) (l : Bigint.t) :
-    (Value.t, Err.t) result =
+    (Value.t, Error.t) result =
   try
     if Bigint.(l < zero) then
-      Error (Err.runtime at "bitacc: slice x[y:z] must have z >= 0")
+      Error (Error.runtime at "bitacc: slice x[y:z] must have z >= 0")
     else if Bigint.(m < l) then
-      Error (Err.runtime at "bitacc: slice x[y:z] must have y >= z")
+      Error (Error.runtime at "bitacc: slice x[y:z] must have y >= z")
     else
       let slice_width = Bigint.(m + one - l) in
       let l_int = Bigint.to_int_exn l in
@@ -116,9 +116,9 @@ let bitacc ~at (n : Bigint.t) (m : Bigint.t) (l : Bigint.t) :
   | Failure msg ->
       (* Catches 'to_int_exn' *)
       Error
-        (Err.runtime at
+        (Error.runtime at
            (Printf.sprintf "bitacc: slice index is too large (%s)" msg))
-  | _ -> Error (Err.runtime at "bitacc: unexpected error during calculation")
+  | _ -> Error (Error.runtime at "bitacc: unexpected error during calculation")
 
 let builtins : (string * Define.t) list =
   [

@@ -1,10 +1,11 @@
 open Lang.Il
 open Lang.Xl
 open Common.Source
+open Error
 
 let ( let* ) = Result.bind
 
-type 'a t = region -> Value.t -> ('a, Err.t) result
+type 'a t = region -> Value.t -> 'a result
 
 let value : Value.t t = fun _at v -> Ok v
 
@@ -12,33 +13,31 @@ let text : string t =
  fun at v ->
   match v.it with
   | TextV s -> Ok s
-  | _ -> Error (Err.type_err at "Expected TextV" v)
+  | _ -> Error (TypeError (at, "Expected TextV", v))
 
 let bool : bool t =
  fun at v ->
   match v.it with
   | BoolV b -> Ok b
-  | _ -> Error (Err.type_err at "Expected BoolV" v)
+  | _ -> Error (type_err at "Expected BoolV" v)
 
 let nat : Bigint.t t =
  fun at v ->
   match v.it with
   | NumV (`Nat n) -> Ok n
-  | _ -> Error (Err.type_err at "Expected Nat NumV" v)
+  | _ -> Error (type_err at "Expected Nat NumV" v)
 
 let int : Bigint.t t =
  fun at v ->
   match v.it with
   | NumV (`Int n) -> Ok n
-  | _ -> Error (Err.type_err at "Expected Int NumV" v)
+  | _ -> Error (type_err at "Expected Int NumV" v)
 
 let num : num t =
  fun at v ->
-  match v.it with
-  | NumV n -> Ok n
-  | _ -> Error (Err.type_err at "Expected NumV" v)
+  match v.it with NumV n -> Ok n | _ -> Error (type_err at "Expected NumV" v)
 
-let result_all (l : ('a, Err.t) result list) : ('a list, Err.t) result =
+let result_all (l : 'a result list) : 'a list result =
   let rec aux acc = function
     | [] -> Ok (List.rev acc)
     | x :: xs -> (
@@ -50,13 +49,13 @@ let pair : (Value.t * Value.t) t =
  fun at v ->
   match v.it with
   | TupleV [ a; b ] -> Ok (a, b)
-  | _ -> Error (Err.type_err at "Expected a 2-tuple" v)
+  | _ -> Error (type_err at "Expected a 2-tuple" v)
 
 let list_of (p : 'a t) : 'a list t =
  fun at v ->
   match v.it with
   | ListV vs -> result_all (List.map (p at) vs)
-  | _ -> Error (Err.type_err at "Expected ListV" v)
+  | _ -> Error (type_err at "Expected ListV" v)
 
 module VSet = Set.Make (Value)
 
@@ -66,9 +65,8 @@ let set : VSet.t t =
   | CaseV (_, [ elements ]) -> (
       match elements.it with
       | ListV vs -> Ok (VSet.of_list vs)
-      | _ -> Error (Err.type_err at "Expected set's inner value to be a list" v)
-      )
-  | _ -> Error (Err.type_err at "Expected a set value" v)
+      | _ -> Error (type_err at "Expected set's inner value to be a list" v))
+  | _ -> Error (type_err at "Expected a set value" v)
 
 module VMap = Map.Make (Value)
 
@@ -77,7 +75,7 @@ let colon_pair : (Value.t * Value.t) t =
  fun at v ->
   match v.it with
   | CaseV ([ []; [ { it = Atom.Colon; _ } ]; [] ], [ k; v ]) -> Ok (k, v)
-  | _ -> Error (Err.type_err at "Expected a 'k:v' pair" v)
+  | _ -> Error (type_err at "Expected a 'k:v' pair" v)
 
 (** Parses a map value into an OCaml VMap.t *)
 let map : Value.t VMap.t t =
@@ -88,4 +86,4 @@ let map : Value.t VMap.t t =
         [ pair_list_val ] ) ->
       let* pairs = (list_of colon_pair) at pair_list_val in
       Ok (VMap.of_list pairs)
-  | _ -> Error (Err.type_err at "Expected a map value" v)
+  | _ -> Error (type_err at "Expected a map value" v)

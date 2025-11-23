@@ -2,20 +2,21 @@ open Lang.Il
 
 (* dec $rev_<X>(X* ) : X* *)
 
-let rev_ ~at (typ : targ) (vs : Value.t list) : (Value.t, Err.t) result =
+let rev_ ~at (typ : targ) (vs : Value.t list) : (Value.t, Error.t) result =
   at |> ignore;
   Ok (Value.list typ (List.rev vs))
 
 (* dec $concat_<X>((X* )* ) : X* *)
 
-let concat_ ~at (typ : targ) (vss : Value.t list list) : (Value.t, Err.t) result
-    =
+let concat_ ~at (typ : targ) (vss : Value.t list list) :
+    (Value.t, Error.t) result =
   at |> ignore;
   Ok (Value.list typ (List.concat vss))
 
 (* dec $distinct_<K>(K* ) : bool *)
 
-let distinct_ ~at (_typ : targ) (vs : Value.t list) : (Value.t, Err.t) result =
+let distinct_ ~at (_typ : targ) (vs : Value.t list) : (Value.t, Error.t) result
+    =
   at |> ignore;
   let set = Sets.VSet.of_list vs in
   let is_distinct = Sets.VSet.cardinal set = List.length vs in
@@ -24,7 +25,7 @@ let distinct_ ~at (_typ : targ) (vs : Value.t list) : (Value.t, Err.t) result =
 (* dec $partition_<X>(X*, nat) : (X*, X* ) *)
 
 let partition_ ~at (typ : targ) (vs : Value.t list) (n : Bigint.t) :
-    (Value.t, Err.t) result =
+    (Value.t, Error.t) result =
   try
     (* Safely handle the int conversion *)
     let len = Bigint.to_int_exn n in
@@ -37,12 +38,12 @@ let partition_ ~at (typ : targ) (vs : Value.t list) (n : Bigint.t) :
     let v_right = Value.list typ (List.map snd right) in
     Ok (Value.tuple [ v_left; v_right ])
   with _ ->
-    Error (Err.runtime at "partition: index is too large to be an integer")
+    Error (Error.runtime at "partition: index is too large to be an integer")
 
 (* dec $assoc_<X, Y>(X, (X, Y)* ) : Y? *)
 
 let assoc_ ~at (_typ_x : targ) (typ_y : targ) (key_query : Value.t)
-    (pairs : (Value.t * Value.t) list) : (Value.t, Err.t) result =
+    (pairs : (Value.t * Value.t) list) : (Value.t, Error.t) result =
   at |> ignore;
   let value_opt =
     List.fold_left

@@ -1,7 +1,10 @@
 open Lang.Il
 open Error
+module Error = Error
 
 let ( let* ) = Result.bind
+
+type 'a result = 'a Error.result
 
 module StringMap = Map.Make (String)
 
@@ -36,20 +39,12 @@ let funcs : Define.t StringMap.t =
 
 let is_builtin (id : id) : bool = StringMap.mem id.it funcs
 
-let invoke (id : id) (targs : targ list) (args : value list) : value =
+let invoke (id : id) (targs : targ list) (args : Value.t list) :
+    Value.t Error.result =
   let func = StringMap.find_opt id.it funcs in
-  check (Option.is_some func) id.at
-    (Format.asprintf "implementation for builtin %s is missing" id.it);
-  let func = Option.get func in
-  let result = func ~at:id.at targs args in
-  match result with
-  | Ok v -> v
-  | Error err ->
-      let at, msg =
-        match err with
-        | Err.TypeError (at, msg, v) ->
-            (at, Printf.sprintf "%s (got: %s)" msg (Value.to_string v))
-        | Err.RuntimeError (at, msg) -> (at, msg)
-        | Err.ArityError (at, msg) -> (at, msg)
-      in
-      error at msg
+  if Option.is_none func then
+    Format.asprintf "implementation for builtin %s is missing" id.it
+    |> missing_impl id.at |> Result.error
+  else
+    let func = Option.get func in
+    func ~at:id.at targs args

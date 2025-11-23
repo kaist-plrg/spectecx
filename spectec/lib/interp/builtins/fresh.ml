@@ -4,7 +4,7 @@ open Common.Source
 
 (* dec $fresh_tid() : tid *)
 
-let fresh_tid ~at : (Value.t, Err.t) result =
+let fresh_tid ~at : (Value.t, Error.t) result =
   at |> ignore;
   let tid = Effect.perform FreshTid () in
   let typ = VarT ("tid" $ no_region, []) in
