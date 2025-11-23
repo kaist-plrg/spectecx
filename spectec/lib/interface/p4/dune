@@ -1,0 +1,24 @@
+(include_subdirs no)
+
+(library
+ (name p4)
+ (public_name spectec.interface.p4)
+ (libraries spectec.common spectec.lang concrete core_unix menhirLib)
+ (modules
+  source
+  context
+  extract
+  parser
+  error
+  lexer
+  preprocessor
+  parse
+  parser_debug
+  debug_config))
+
+(ocamllex
+ (modules lexer))
+
+(menhir
+ (modules parser)
+ (flags --explain --table --inspection))

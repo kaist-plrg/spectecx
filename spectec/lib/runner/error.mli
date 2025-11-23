@@ -1,8 +1,8 @@
-open Util.Source
+open Common.Util.Source
 
 type t =
   | ParseError of region * string
-  | ElabError of Elaborate.Error.elaboration_error list
+  | ElabError of Pipeline.Elaborate.Error.elaboration_error list
   | RoundtripError of region * string
   | IlInterpError of region * string
   | SlInterpError of region * string

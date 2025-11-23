@@ -1,0 +1,14 @@
+(include_subdirs no)
+
+(library
+ (name frontend)
+ (public_name spectec.pipeline.frontend)
+ (libraries spectec.common spectec.lang)
+ (modules error lexer parser parse))
+
+(ocamllex
+ (modules lexer))
+
+(menhir
+ (modules parser)
+ (flags --explain))

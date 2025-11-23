@@ -1,18 +1,11 @@
 (library
  (name spectec)
- (modules)
+ (public_name spectec)
  (libraries
-  (re_export util)
-  (re_export el)
-  (re_export frontend)
-  (re_export il)
-  (re_export runtime_static)
-  (re_export elaborate)
-  (re_export sl)
-  (re_export structure)
-  (re_export runtime_dynamic)
-  (re_export runtime_dynamic_il)
-  (re_export runtime_dynamic_sl)
-  (re_export interp_il)
-  (re_export interp_sl)
-  (re_export runner)))
+  spectec.common
+  spectec.lang
+  spectec.semantics
+  spectec.pipeline
+  ; spectec.interp
+  spectec.interface
+  spectec.runner))

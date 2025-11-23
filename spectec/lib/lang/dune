@@ -1,0 +1,6 @@
+(include_subdirs qualified)
+
+(library
+ (name lang)
+ (public_name spectec.lang)
+ (libraries spectec.common bignum))

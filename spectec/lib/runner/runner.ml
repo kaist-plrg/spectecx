@@ -1,5 +1,9 @@
-open Il
-open Util.Source
+open Lang
+open Lang.Il
+open Pipeline
+open Interface
+open Interp
+open Common.Util.Source
 module Error = Error
 
 type 'a pipeline_result = ('a, Error.t) result
@@ -73,30 +77,29 @@ let elaborate spec_el : Il.spec pipeline_result =
     Error.ElabError [ (at, failtraces) ] |> Result.error
 
 let interp_il ~debug ~profile spec_il includes_target filename_target :
-    (Interp_il.Ctx.t * Il.Value.t list) pipeline_result =
+    (Eval_Il.Ctx.t * Il.Value.t list) pipeline_result =
   let interp_il () =
     let* value_program = parse_p4_file includes_target filename_target in
-    let ctx_init = Interp_il.Runner.init ~debug ~profile filename_target in
-    Interp_il.Runner.run_relation ctx_init spec_il "Program_ok"
-      [ value_program ]
+    let ctx_init = Eval_Il.Runner.init ~debug ~profile filename_target in
+    Eval_Il.Runner.run_relation ctx_init spec_il "Program_ok" [ value_program ]
     |> Result.ok
   in
   try Handlers.il interp_il
-  with Interp_il.Error.InterpError (at, msg) ->
+  with Eval_Il.Error.InterpError (at, msg) ->
     Error.IlInterpError (at, msg) |> Result.error
 
 let structure spec_il : Sl.Ast.spec = Structure.Struct.struct_spec spec_il
 
 let interp_sl spec_il includes_target filename_target :
-    (Interp_sl.Ctx.t * Il.Value.t list) pipeline_result =
+    (Eval_Sl.Ctx.t * Il.Value.t list) pipeline_result =
   let interp_sl () =
     let* value_program = parse_p4_file includes_target filename_target in
-    Interp_sl.Runner.run_relation_fresh spec_il "Program_ok" [ value_program ]
+    Eval_Sl.Runner.run_relation_fresh spec_il "Program_ok" [ value_program ]
       filename_target
     |> Result.ok
   in
   try Handlers.sl interp_sl
-  with Interp_sl.Error.InterpError (at, msg) ->
+  with Eval_Sl.Error.InterpError (at, msg) ->
     Error.SlInterpError (at, msg) |> Result.error
 
 (* Composed functions *)

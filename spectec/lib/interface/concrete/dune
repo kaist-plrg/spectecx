@@ -1,0 +1,5 @@
+(library
+ (name concrete)
+ (public_name spectec.interface.concrete)
+ (libraries spectec.common spectec.lang)
+ (modules hint pp))

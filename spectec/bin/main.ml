@@ -16,7 +16,8 @@ let elab_command =
          Ok spec_il
        in
        match elaborate_result with
-       | Ok spec_il -> Format.printf "%s\n" (Il.Print.string_of_spec spec_il)
+       | Ok spec_il ->
+           Format.printf "%s\n" (Lang.Il.Print.string_of_spec spec_il)
        | Error e -> Format.printf "%s\n" (Runner.Error.string_of_error e))
 
 let structure_command =
@@ -32,7 +33,8 @@ let structure_command =
          Ok spec_sl
        in
        match structure_result with
-       | Ok spec_sl -> Format.printf "%s\n" (Sl.Print.string_of_spec spec_sl)
+       | Ok spec_sl ->
+           Format.printf "%s\n" (Lang.Sl.Print.string_of_spec spec_sl)
        | Error e -> Format.printf "%s\n" (Runner.Error.string_of_error e))
 
 let p4parse_command =

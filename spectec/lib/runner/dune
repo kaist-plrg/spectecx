@@ -1,3 +1,9 @@
 (library
  (name runner)
- (libraries elaborate frontend il p4 interp_il sl structure interp_sl))
+ (public_name spectec.runner)
+ (libraries
+  spectec.common
+  spectec.lang
+  spectec.pipeline
+  spectec.interp
+  spectec.interface))

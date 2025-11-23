@@ -1,4 +1,0 @@
-(library
- (name xl)
- (libraries util bignum)
- (modules atom bool num utf8 mixop var))

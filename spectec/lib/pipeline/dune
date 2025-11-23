@@ -1,0 +1,6 @@
+(include_subdirs qualified)
+
+(library
+ (name pipeline)
+ (public_name spectec.pipeline)
+ (libraries spectec.common spectec.lang spectec.semantics frontend))

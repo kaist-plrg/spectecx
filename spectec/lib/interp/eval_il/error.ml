@@ -1,0 +1,17 @@
+open Common.Util.Error
+open Common.Util.Source
+
+exception InterpError of region * string
+
+(* Interpreter errors *)
+
+let error (at : region) (msg : string) = raise (InterpError (at, msg))
+let warn (at : region) (msg : string) = warn at "il-interp" msg
+
+(* Check *)
+
+let check (b : bool) (at : region) (msg : string) : unit =
+  if not b then error at msg
+
+let guard (b : bool) (at : region) (msg : string) : unit =
+  if not b then warn at msg

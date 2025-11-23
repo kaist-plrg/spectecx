@@ -1,4 +1,0 @@
-(library
- (name sl)
- (libraries bignum util xl el il)
- (modules ast eq print))

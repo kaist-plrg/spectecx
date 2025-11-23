@@ -1,0 +1,4 @@
+(library
+ (name sl)
+ (public_name spectec.semantics.dynamic_sl)
+ (libraries spectec.common spectec.lang il))

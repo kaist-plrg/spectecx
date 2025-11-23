@@ -1,4 +1,0 @@
-(library
- (name runtime_static)
- (libraries util domain el il)
- (modules typ plaintyp typdef rel func envs))

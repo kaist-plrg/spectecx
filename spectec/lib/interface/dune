@@ -1,0 +1,4 @@
+(library
+ (name interface)
+ (public_name spectec.interface)
+ (libraries spectec.common spectec.lang concrete p4))

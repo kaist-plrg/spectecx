@@ -1,4 +1,0 @@
-(library
- (name runtime_dynamic_il)
- (libraries util domain xl el il runtime_static runtime_dynamic)
- (modules rel func envs))
