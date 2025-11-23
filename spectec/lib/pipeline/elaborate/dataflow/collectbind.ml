@@ -2,7 +2,7 @@ open Lang
 open Lang.Il
 open Error
 open Semantics.Static.Envs
-open Common.Util.Source
+open Common.Source
 
 (* Collect binding identifiers,
    while enforcing the invariant that binding identifiers

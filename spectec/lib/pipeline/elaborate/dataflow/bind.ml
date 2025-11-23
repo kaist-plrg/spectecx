@@ -1,9 +1,9 @@
-open Common.Domain.Lib
+open Common.Domain
 open Lang.Il
 open Semantics.Static
 open Semantics.Static.Envs
 open Error
-open Common.Util.Source
+open Common.Source
 
 (* Binding occurrences of identifiers, singular or multiple (parallel) *)
 

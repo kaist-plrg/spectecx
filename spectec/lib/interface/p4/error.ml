@@ -1,4 +1,4 @@
-open Common.Util.Source
+open Common.Source
 
 exception P4ParseError of region * string
 

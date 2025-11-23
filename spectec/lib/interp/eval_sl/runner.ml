@@ -2,7 +2,7 @@ open Lang.Sl.Ast
 module Cache = Semantics.Dynamic.Cache
 open Error
 module F = Format
-open Common.Util.Source
+open Common.Source
 
 let run_relation (ctx : Ctx.t) (spec : spec) (rid : id') (values : value list) :
     Ctx.t * value list =

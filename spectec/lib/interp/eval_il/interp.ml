@@ -1,4 +1,4 @@
-open Common.Domain.Lib
+open Common.Domain
 open Lang.Xl
 open Lang.Il
 module Hint = Semantics.Static.Rel.Hint
@@ -9,7 +9,7 @@ open Semantics.Dynamic_Il.Envs
 open Error
 open Attempt
 module F = Format
-open Common.Util.Source
+open Common.Source
 
 (* Cache *)
 

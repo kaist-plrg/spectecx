@@ -1,5 +1,5 @@
 open Ast
-open Common.Util.Source
+open Common.Source
 
 (* Numbers *)
 

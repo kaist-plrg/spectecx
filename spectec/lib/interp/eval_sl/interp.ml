@@ -1,5 +1,5 @@
-open Common.Util.Source
-open Common.Domain.Lib
+open Common.Source
+open Common.Domain
 open Lang.Xl
 module Il = Lang.Il
 module Value = Lang.Il.Value

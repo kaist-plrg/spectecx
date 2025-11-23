@@ -1,4 +1,4 @@
-open Common.Domain.Lib
+open Common.Domain
 open Lang.Xl
 open Lang.El.Ast
 module El = Lang.El
@@ -6,7 +6,7 @@ module Il = Lang.Il
 open Semantics.Static
 open Attempt
 open Error
-open Common.Util.Source
+open Common.Source
 
 (* Checks *)
 

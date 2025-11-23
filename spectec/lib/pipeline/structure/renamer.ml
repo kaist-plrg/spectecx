@@ -1,7 +1,7 @@
 module Il = Lang.Il
 open Ol.Ast
-open Common.Domain.Lib
-open Common.Util.Source
+open Common.Domain
+open Common.Source
 
 (* Helper for renaming identifiers in expressions and instructions. *)
 

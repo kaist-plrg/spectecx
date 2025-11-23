@@ -1,10 +1,10 @@
-open Common.Domain.Lib
+open Common.Domain
 open Lang
 open Il
 open Semantics.Static
 open Error
 open Envs
-open Common.Util.Source
+open Common.Source
 
 (* Dimension analysis :
 

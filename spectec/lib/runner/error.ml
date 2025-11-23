@@ -1,5 +1,5 @@
-open Common.Util.Source
-open Common.Util.Attempt
+open Common.Source
+open Common.Attempt
 
 type t =
   | ParseError of region * string

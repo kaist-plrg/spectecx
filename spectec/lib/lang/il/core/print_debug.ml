@@ -1,7 +1,7 @@
 open Xl
 open Types
-open Common.Util.Print
-open Common.Util.Source
+open Common.Print
+open Common.Source
 
 (* Numbers *)
 

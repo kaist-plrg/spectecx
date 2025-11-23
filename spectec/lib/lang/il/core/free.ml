@@ -1,6 +1,6 @@
 open Types
-open Common.Domain.Lib
-open Common.Util.Source
+open Common.Domain
+open Common.Source
 
 (* Identifier set *)
 

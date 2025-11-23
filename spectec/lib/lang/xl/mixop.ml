@@ -1,4 +1,4 @@
-open Common.Util.Source
+open Common.Source
 
 (* Mixop is a generalized case constructor *)
 

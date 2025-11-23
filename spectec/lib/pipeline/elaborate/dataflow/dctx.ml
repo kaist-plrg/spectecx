@@ -1,4 +1,4 @@
-open Common.Domain.Lib
+open Common.Domain
 open Semantics.Static.Envs
 
 (* Context for dataflow analysis *)

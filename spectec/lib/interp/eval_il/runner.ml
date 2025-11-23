@@ -2,7 +2,7 @@ open Lang.Il
 module Cache = Semantics.Dynamic.Cache
 module F = Format
 open Attempt
-open Common.Util.Source
+open Common.Source
 
 let run_relation (ctx : Ctx.t) (spec : spec) (rid : id') (values : value list) :
     Ctx.t * value list =

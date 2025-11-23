@@ -1,5 +1,5 @@
 {
-module Source = Common.Util.Source
+module Source = Common.Source
 open Lang.Xl
 open Parser
 open Error

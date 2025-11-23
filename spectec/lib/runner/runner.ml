@@ -3,7 +3,7 @@ open Lang.Il
 open Pipeline
 open Interface
 open Interp
-open Common.Util.Source
+open Common.Source
 module Error = Error
 
 type 'a pipeline_result = ('a, Error.t) result

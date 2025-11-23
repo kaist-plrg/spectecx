@@ -1,5 +1,5 @@
-open Common.Domain.Lib
-open Common.Util.Source
+open Common.Domain
+open Common.Source
 open Lang
 
 let fresh_id (ids : IdSet.t) (id : Id.t) : Id.t =

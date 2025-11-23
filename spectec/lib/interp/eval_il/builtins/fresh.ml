@@ -1,6 +1,6 @@
 module Il = Lang.Il
 open Il
-open Common.Util.Source
+open Common.Source
 
 (* dec $fresh_tid() : tid *)
 

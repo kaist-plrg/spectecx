@@ -1,4 +1,4 @@
-open Common.Util.Source
+open Common.Source
 
 type t =
   | ParseError of region * string

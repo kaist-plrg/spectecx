@@ -1,5 +1,5 @@
 open Types
-open Common.Util.Source
+open Common.Source
 
 type t = typ
 type t' = typ'

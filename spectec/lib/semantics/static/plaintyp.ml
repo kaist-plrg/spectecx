@@ -1,9 +1,9 @@
 open Lang
 open El.Ast
 open El.Print
-open Common.Domain.Lib
-open Common.Util.Source
-open Common.Util.InternalError
+open Common.Domain
+open Common.Source
+open Common.InternalError
 
 (* Plain type *)
 

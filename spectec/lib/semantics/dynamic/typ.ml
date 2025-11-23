@@ -1,6 +1,6 @@
-open Common.Util.Source
-open Common.Util.InternalError
-open Common.Domain.Lib
+open Common.Source
+open Common.InternalError
+open Common.Domain
 open Lang.Il
 open Typ
 

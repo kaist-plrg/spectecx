@@ -1,4 +1,4 @@
-open Common.Util.Source
+open Common.Source
 
 let strip_var_suffix id =
   let rec is_sub id idx =

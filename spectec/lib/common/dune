@@ -1,5 +1,3 @@
-(include_subdirs qualified)
-
 (library
  (name common)
  (public_name spectec.common))

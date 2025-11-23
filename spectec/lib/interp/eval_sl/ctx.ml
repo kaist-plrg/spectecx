@@ -1,4 +1,4 @@
-open Common.Domain.Lib
+open Common.Domain
 open Semantics.Dynamic
 module Il = Lang.Il
 module Value = Lang.Il.Value
@@ -6,7 +6,7 @@ open Semantics.Dynamic_Sl
 open Envs
 open Lang.Sl.Ast
 open Error
-open Common.Util.Source
+open Common.Source
 
 (* Error *)
 

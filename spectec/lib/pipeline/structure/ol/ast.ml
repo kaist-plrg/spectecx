@@ -1,5 +1,5 @@
 include Lang.Sl.Ast
-open Common.Util.Source
+open Common.Source
 
 (* Intermediate representation of SL instructions,
    for the optimization pass *)

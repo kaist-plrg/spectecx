@@ -1,4 +1,3 @@
-open Common
 (* Copyright 2018-present Cornell University
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -99,16 +98,16 @@ let it { it; _ } = it
 let at { at; _ } = at
 let note { note; _ } = note
 
-let to_region (info : info) : Util.Source.region =
+let to_region (info : info) : Common.Source.region =
   match info with
-  | M _ -> Util.Source.no_region
+  | M _ -> Common.Source.no_region
   | I { filename; line_start; line_end; col_start; col_end } ->
       let left =
-        { Util.Source.file = filename; line = line_start; column = col_start }
+        { Common.Source.file = filename; line = line_start; column = col_start }
       in
       let right =
         match line_end with
         | None -> { left with column = col_end }
         | Some line_end -> { left with line = line_end; column = col_end }
       in
-      { Util.Source.left; right }
+      { Common.Source.left; right }

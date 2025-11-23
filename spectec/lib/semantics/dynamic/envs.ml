@@ -1,4 +1,4 @@
-open Common.Domain.Lib
+open Common.Domain
 open Lang
 
 (* Variable environment functor *)

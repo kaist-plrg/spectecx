@@ -1,7 +1,7 @@
 open Lang
 open Ol.Ast
 module TDEnv = Semantics.Dynamic_Sl.Envs.TDEnv
-open Common.Util.Source
+open Common.Source
 
 (* Insert phantom instructions at dangling else branches,
    with the path condition necessary to reach the else branch

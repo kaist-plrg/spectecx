@@ -1,10 +1,10 @@
-open Common.Domain.Lib
+open Common.Domain
 open Lang.El.Ast
 module Il = Lang.Il
 open Semantics.Static
 open Envs
 open Error
-open Common.Util.Source
+open Common.Source
 
 (* Error *)
 

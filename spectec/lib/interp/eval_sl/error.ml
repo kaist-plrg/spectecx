@@ -1,5 +1,5 @@
-open Common.Util.Error
-open Common.Util.Source
+open Common.Error
+open Common.Source
 
 exception InterpError of region * string
 

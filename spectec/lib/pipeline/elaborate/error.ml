@@ -1,6 +1,6 @@
-open Common.Util.Error
-open Common.Util.Source
-open Common.Util.Attempt
+open Common.Error
+open Common.Source
+open Common.Attempt
 
 exception ElabError of region * failtrace list
 

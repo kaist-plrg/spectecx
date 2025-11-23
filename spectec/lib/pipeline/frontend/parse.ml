@@ -1,5 +1,5 @@
 open Error
-module Source = Common.Util.Source
+module Source = Common.Source
 
 let with_lexbuf name lexbuf start =
   let open Lexing in

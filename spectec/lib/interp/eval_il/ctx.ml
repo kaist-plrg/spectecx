@@ -1,5 +1,5 @@
-open Common.Util.Source
-open Common.Domain.Lib
+open Common.Source
+open Common.Domain
 open Semantics.Dynamic
 open Semantics.Dynamic_Il
 open Semantics.Dynamic_Il.Envs
