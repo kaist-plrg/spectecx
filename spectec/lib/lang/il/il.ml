@@ -1,5 +1,5 @@
 include Types
-include Effects
+module Effects = Effects
 module Print = Print
 module Eq = Eq
 module Utils = Utils

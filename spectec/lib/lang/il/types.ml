@@ -33,7 +33,7 @@ type iter =
 
 (* Hints *)
 
-type hint = { hintid : id; hintexp : El.Ast.exp }
+type hint = { hintid : id; hintexp : El.exp }
 
 (* Types *)
 

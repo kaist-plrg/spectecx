@@ -81,12 +81,12 @@ and pp_case_v (hmap : hmap) fmt (value : value) : unit =
   | Some hintexp -> pp_hint_case_v hmap hintexp fmt values
   | None -> pp_default_case_v hmap fmt value
 
-and pp_hint_case_v (hmap : hmap) (exp : El.Ast.exp) fmt (values : value list) :
-    unit =
+and pp_hint_case_v (hmap : hmap) (exp : El.exp) fmt (values : value list) : unit
+    =
   let _, str = pp_hint_case_v' hmap 0 exp values in
   F.fprintf fmt "%s" str
 
-and pp_hint_case_v' (hmap : hmap) (cur : int) (exp : El.Ast.exp)
+and pp_hint_case_v' (hmap : hmap) (cur : int) (exp : El.exp)
     (values : value list) : int * string =
   match exp.it with
   | TextE text -> (cur, text)

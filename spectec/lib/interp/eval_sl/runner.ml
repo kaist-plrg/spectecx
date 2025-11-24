@@ -1,4 +1,4 @@
-open Lang.Sl.Ast
+open Lang.Sl
 module Cache = Semantics.Dynamic.Cache
 open Error
 module F = Format

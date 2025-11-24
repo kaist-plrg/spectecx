@@ -139,7 +139,7 @@ and instr' =
 
 (* Hints *)
 
-type hint = { hintid : id; hintexp : El.Ast.exp }
+type hint = { hintid : id; hintexp : El.exp }
 
 (* Definitions *)
 

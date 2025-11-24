@@ -1,5 +1,5 @@
-open Ast
 open Common.Source
+open Types
 
 (* Identifiers *)
 

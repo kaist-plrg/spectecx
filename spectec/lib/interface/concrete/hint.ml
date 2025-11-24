@@ -2,7 +2,7 @@ open Lang.Il
 open Common.Source
 module SMap = Map.Make (String)
 
-type hmap = (nottyp * Lang.El.Ast.exp) list SMap.t
+type hmap = (nottyp * Lang.El.exp) list SMap.t
 
 let hintid = "print"
 

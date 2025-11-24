@@ -19,19 +19,19 @@ module Handlers = struct
         effc =
           (fun (type a) (eff : a Effect.t) ->
             match eff with
-            | FreshVid ->
+            | Effects.FreshVid ->
                 Some
                   (fun (k : (a, _) Effect.Deep.continuation) ->
                     let id = !vid_counter in
                     incr vid_counter;
                     Effect.Deep.continue k (fun () -> id))
-            | FreshTid ->
+            | Effects.FreshTid ->
                 Some
                   (fun (k : (a, _) Effect.Deep.continuation) ->
                     let tid = "FRESH__" ^ string_of_int !tid_counter in
                     incr tid_counter;
                     Effect.Deep.continue k (fun () -> tid))
-            | ValueCreated _ ->
+            | Effects.ValueCreated _ ->
                 Some
                   (fun (k : (a, _) Effect.Deep.continuation) ->
                     (* No-op *)
@@ -59,7 +59,7 @@ let parse_p4_string filename_target string : Il.Value.t pipeline_result =
   with P4.Error.P4ParseError (at, msg) ->
     Error.P4ParseError (at, msg) |> Result.error
 
-let parse_spec_files filenames : El.Ast.spec pipeline_result =
+let parse_spec_files filenames : El.spec pipeline_result =
   let parse_spec_files () =
     List.concat_map Frontend.Parse.parse_file filenames |> Result.ok
   in
@@ -88,7 +88,7 @@ let interp_il ~debug ~profile spec_il includes_target filename_target :
   with Eval_Il.Error.InterpError (at, msg) ->
     Error.IlInterpError (at, msg) |> Result.error
 
-let structure spec_il : Sl.Ast.spec = Structure.Struct.struct_spec spec_il
+let structure spec_il : Sl.spec = Structure.Struct.struct_spec spec_il
 
 let interp_sl spec_il includes_target filename_target :
     (Eval_Sl.Ctx.t * Il.Value.t list) pipeline_result =

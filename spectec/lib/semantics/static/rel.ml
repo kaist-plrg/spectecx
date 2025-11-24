@@ -36,7 +36,7 @@ end
 
 (* Relation *)
 
-type t = El.Ast.nottyp * Hint.t * Il.rule list
+type t = El.nottyp * Hint.t * Il.rule list
 
 let to_string (nottyp, inputs, rules) =
   El.Print.string_of_nottyp nottyp

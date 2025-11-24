@@ -1,12 +1,12 @@
-(** The IL Abstract Syntax Tree and API. This module is the main entry point for
-    IL. *)
+(** Data types and pure data functions for IL. IL is the internal representation
+    after elaboration. *)
 
 include module type of Types
-include module type of Effects
-module Print : module type of Print
+module Effects : module type of Effects
 module Eq : module type of Eq
 module Free : module type of Free
 module Utils : module type of Utils
+module Print : module type of Print
 module Print_debug : module type of Print_debug
 
 (** Constructors and operations on IL Values. *)

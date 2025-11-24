@@ -4,7 +4,7 @@ module Il = Lang.Il
 module Value = Lang.Il.Value
 open Semantics.Dynamic_Sl
 open Envs
-open Lang.Sl.Ast
+open Lang.Sl
 open Error
 open Common.Source
 

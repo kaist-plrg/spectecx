@@ -1,6 +1,6 @@
-open Ast
-open Common.Domain
 open Common.Source
+open Common.Domain
+open Types
 
 (* Collect free type identifiers *)
 

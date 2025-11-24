@@ -1,4 +1,4 @@
-include Lang.Sl.Ast
+include Lang.Sl
 open Common.Source
 
 (* Intermediate representation of SL instructions,

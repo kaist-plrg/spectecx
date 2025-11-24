@@ -1,5 +1,5 @@
 open Lang
-open El.Ast
+open El
 open El.Print
 open Common.Domain
 open Common.Source

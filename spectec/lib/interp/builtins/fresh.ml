@@ -6,7 +6,7 @@ open Common.Source
 
 let fresh_tid ~at : (Value.t, Error.t) result =
   at |> ignore;
-  let tid = Effect.perform FreshTid () in
+  let tid = Effect.perform Effects.FreshTid () in
   let typ = VarT ("tid" $ no_region, []) in
   Ok (Il.Value.Make.text typ tid)
 

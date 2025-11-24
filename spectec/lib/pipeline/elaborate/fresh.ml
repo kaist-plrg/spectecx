@@ -34,7 +34,7 @@ let fresh_from_exp ?(wildcard = false) (ids : IdSet.t) (exp : Il.exp) :
   (id, typ, iters)
 
 let fresh_from_plaintyp ?(wildcard = false) (ids : IdSet.t)
-    (plaintyp : El.Ast.plaintyp) : Id.t =
+    (plaintyp : El.plaintyp) : Id.t =
   let id = El.Print.string_of_plaintyp plaintyp $ plaintyp.at in
   let id = if wildcard then "_" ^ id.it $ id.at else id in
   fresh_id ids id

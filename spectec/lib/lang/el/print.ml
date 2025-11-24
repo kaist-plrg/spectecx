@@ -1,6 +1,6 @@
-open Xl
-open Ast
 open Common.Source
+open Xl
+open Types
 
 (* Numbers *)
 

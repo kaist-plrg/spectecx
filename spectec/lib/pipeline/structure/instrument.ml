@@ -67,11 +67,11 @@ let negate_pathcond (pathcond : pathcond) : pathcond =
 (* Phantom insertion *)
 
 let rec insert_phantom (tdenv : TDEnv.t) (pathconds : pathcond list)
-    (instrs : instr list) : Sl.Ast.instr list =
+    (instrs : instr list) : Sl.instr list =
   List.map (insert_phantom' tdenv pathconds) instrs
 
 and insert_phantom' (tdenv : TDEnv.t) (pathconds : pathcond list)
-    (instr : instr) : Sl.Ast.instr =
+    (instr : instr) : Sl.instr =
   let at = instr.at in
   match instr.it with
   | IfI (exp_cond, iterexps, instrs_then) ->
@@ -87,7 +87,7 @@ and insert_phantom' (tdenv : TDEnv.t) (pathconds : pathcond list)
         let pathconds = pathconds @ [ negate_pathcond pathcond ] in
         (pid, pathconds)
       in
-      Sl.Ast.IfI (exp_cond, iterexps, instrs_then, Some phantom) $ at
+      Sl.IfI (exp_cond, iterexps, instrs_then, Some phantom) $ at
   | CaseI (exp, cases, total) ->
       let pathconds_cases =
         List.map
@@ -101,11 +101,11 @@ and insert_phantom' (tdenv : TDEnv.t) (pathconds : pathcond list)
         let guards =
           List.map
             (function
-              | BoolG b -> Sl.Ast.BoolG b
-              | CmpG (cmpop, optyp, exp) -> Sl.Ast.CmpG (cmpop, optyp, exp)
-              | SubG typ -> Sl.Ast.SubG typ
-              | MatchG pattern -> Sl.Ast.MatchG pattern
-              | MemG exp -> Sl.Ast.MemG exp)
+              | BoolG b -> Sl.BoolG b
+              | CmpG (cmpop, optyp, exp) -> Sl.CmpG (cmpop, optyp, exp)
+              | SubG typ -> Sl.SubG typ
+              | MatchG pattern -> Sl.MatchG pattern
+              | MemG exp -> Sl.MemG exp)
             guards
         in
         let blocks =
@@ -124,56 +124,56 @@ and insert_phantom' (tdenv : TDEnv.t) (pathconds : pathcond list)
           let pathcond = pathconds @ List.map negate_pathcond pathconds_cases in
           Some (pid, pathcond)
       in
-      Sl.Ast.CaseI (exp, cases, phantom_opt) $ at
+      Sl.CaseI (exp, cases, phantom_opt) $ at
   | OtherwiseI instr ->
       let instr = insert_phantom' tdenv pathconds instr in
-      Sl.Ast.OtherwiseI instr $ at
-  | LetI (exp_l, exp_r, iterexps) -> Sl.Ast.LetI (exp_l, exp_r, iterexps) $ at
-  | RuleI (id, notexp, iterexps) -> Sl.Ast.RuleI (id, notexp, iterexps) $ at
-  | ResultI exps -> Sl.Ast.ResultI exps $ at
-  | ReturnI exp -> Sl.Ast.ReturnI exp $ at
-  | DebugI exp -> Sl.Ast.DebugI exp $ at
+      Sl.OtherwiseI instr $ at
+  | LetI (exp_l, exp_r, iterexps) -> Sl.LetI (exp_l, exp_r, iterexps) $ at
+  | RuleI (id, notexp, iterexps) -> Sl.RuleI (id, notexp, iterexps) $ at
+  | ResultI exps -> Sl.ResultI exps $ at
+  | ReturnI exp -> Sl.ReturnI exp $ at
+  | DebugI exp -> Sl.DebugI exp $ at
 
 (* Nop pass *)
 
-let rec insert_nothing (instrs : instr list) : Sl.Ast.instr list =
+let rec insert_nothing (instrs : instr list) : Sl.instr list =
   List.map insert_nothing' instrs
 
-and insert_nothing' (instr : instr) : Sl.Ast.instr =
+and insert_nothing' (instr : instr) : Sl.instr =
   let at = instr.at in
   match instr.it with
   | IfI (exp_cond, iterexps, instrs_then) ->
       let instrs_then = insert_nothing instrs_then in
-      Sl.Ast.IfI (exp_cond, iterexps, instrs_then, None) $ at
+      Sl.IfI (exp_cond, iterexps, instrs_then, None) $ at
   | CaseI (exp, cases, _total) ->
       let cases =
         let guards, blocks = List.split cases in
         let guards =
           List.map
             (function
-              | BoolG b -> Sl.Ast.BoolG b
-              | CmpG (cmpop, optyp, exp) -> Sl.Ast.CmpG (cmpop, optyp, exp)
-              | SubG typ -> Sl.Ast.SubG typ
-              | MatchG pattern -> Sl.Ast.MatchG pattern
-              | MemG exp -> Sl.Ast.MemG exp)
+              | BoolG b -> Sl.BoolG b
+              | CmpG (cmpop, optyp, exp) -> Sl.CmpG (cmpop, optyp, exp)
+              | SubG typ -> Sl.SubG typ
+              | MatchG pattern -> Sl.MatchG pattern
+              | MemG exp -> Sl.MemG exp)
             guards
         in
         let blocks = List.map insert_nothing blocks in
         List.combine guards blocks
       in
-      Sl.Ast.CaseI (exp, cases, None) $ at
+      Sl.CaseI (exp, cases, None) $ at
   | OtherwiseI instr ->
       let instr = insert_nothing' instr in
-      Sl.Ast.OtherwiseI instr $ at
-  | LetI (exp_l, exp_r, iterexps) -> Sl.Ast.LetI (exp_l, exp_r, iterexps) $ at
-  | RuleI (id, notexp, iterexps) -> Sl.Ast.RuleI (id, notexp, iterexps) $ at
-  | ResultI exps -> Sl.Ast.ResultI exps $ at
-  | ReturnI exp -> Sl.Ast.ReturnI exp $ at
-  | DebugI exp -> Sl.Ast.DebugI exp $ at
+      Sl.OtherwiseI instr $ at
+  | LetI (exp_l, exp_r, iterexps) -> Sl.LetI (exp_l, exp_r, iterexps) $ at
+  | RuleI (id, notexp, iterexps) -> Sl.RuleI (id, notexp, iterexps) $ at
+  | ResultI exps -> Sl.ResultI exps $ at
+  | ReturnI exp -> Sl.ReturnI exp $ at
+  | DebugI exp -> Sl.DebugI exp $ at
 
 (* Instrumentation *)
 
-let instrument (tdenv : TDEnv.t) (instrs : instr list) : Sl.Ast.instr list =
+let instrument (tdenv : TDEnv.t) (instrs : instr list) : Sl.instr list =
   if
     List.exists
       (fun instr -> match instr.it with OtherwiseI _ -> true | _ -> false)

@@ -3,7 +3,7 @@ open Common.Domain
 open Lang.Xl
 module Il = Lang.Il
 module Value = Lang.Il.Value
-open Lang.Sl.Ast
+open Lang.Sl
 module Hint = Semantics.Static.Rel.Hint
 module Typ = Semantics.Dynamic.Typ
 module Cache = Semantics.Dynamic.Cache

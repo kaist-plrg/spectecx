@@ -1,6 +1,6 @@
 open Common.Domain
 open Lang.Xl
-open Lang.El.Ast
+open Lang.El
 module El = Lang.El
 module Il = Lang.Il
 open Semantics.Static

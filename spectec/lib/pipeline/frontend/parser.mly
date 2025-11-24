@@ -2,7 +2,7 @@
 open Common.Source
 open Lang
 open Xl
-open El.Ast
+open El
 open Error
 
 (* Position handling *)
@@ -99,7 +99,7 @@ let exit_scope () = vars := List.hd !scopes; scopes := List.tl !scopes
 %left STAR SLASH BACKSLASH
 
 %start spec check_atom
-%type<El.Ast.spec> spec
+%type<El.spec> spec
 %type<bool> check_atom
 
 %%

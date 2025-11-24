@@ -1,4 +1,4 @@
-open Lang.Sl.Ast
+open Lang.Sl
 open Lang.Sl.Print
 
 (* Relation *)

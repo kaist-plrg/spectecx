@@ -1,5 +1,5 @@
 open Common.Domain
-open Lang.El.Ast
+open Lang.El
 module Il = Lang.Il
 open Semantics.Static
 open Envs
