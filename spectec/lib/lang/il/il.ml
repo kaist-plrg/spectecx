@@ -1,19 +1,19 @@
-include Core.Types
-include Core.Effects
-module Print = Core.Print
-module Eq = Core.Eq
-module Utils = Core.Utils
-module Print_debug = Core.Print_debug
-module Free = Core.Free
+include Types
+include Effects
+module Print = Print
+module Eq = Eq
+module Utils = Utils
+module Print_debug = Print_debug
+module Free = Free
 
 module Value = struct
-  include Core.Value
+  include Value
 
   let to_string t = Print.string_of_value ~short:false ~level:0 t
 end
 
 module Typ = struct
-  include Core.Typ
+  include Typ
 
   let to_string t = Print.string_of_typ t
   let eq = Eq.eq_typ
