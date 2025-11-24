@@ -1,11 +1,4 @@
 (library
  (name spectec)
  (public_name spectec)
- (libraries
-  spectec.common
-  spectec.lang
-  spectec.semantics
-  spectec.pipeline
-  ; spectec.interp
-  spectec.interface
-  spectec.runner))
+ (libraries spectec.runner))

@@ -84,7 +84,7 @@ let interp_il ~debug ~profile spec_il includes_target filename_target :
     Eval_Il.Runner.run_relation ctx_init spec_il "Program_ok" [ value_program ]
     |> Result.ok
   in
-  try Handlers.il interp_il
+  try interp_il ()
   with Eval_Il.Error.InterpError (at, msg) ->
     Error.IlInterpError (at, msg) |> Result.error
 
@@ -98,7 +98,7 @@ let interp_sl spec_il includes_target filename_target :
       filename_target
     |> Result.ok
   in
-  try Handlers.sl interp_sl
+  try interp_sl ()
   with Eval_Sl.Error.InterpError (at, msg) ->
     Error.SlInterpError (at, msg) |> Result.error
 

@@ -49,11 +49,14 @@ let p4parse_command =
        flag "-r" no_arg ~doc:"perform a round-trip parse/unparse"
      in
      fun () ->
-       let roundtrip_result =
-         Runner.parse_p4_file_with_roundtrip roundtrip filenames includes_target
-           filename_target
+       let do_roundtrip () =
+         let* rountrip_result =
+           Runner.parse_p4_file_with_roundtrip roundtrip filenames
+             includes_target filename_target
+         in
+         Ok rountrip_result
        in
-       match (roundtrip, roundtrip_result) with
+       match (roundtrip, Runner.Handlers.il do_roundtrip) with
        | false, Ok unparsed_string ->
            Format.printf "Parse succeeded:\n%s\n" unparsed_string
        | true, Ok unparsed_string ->
@@ -77,7 +80,7 @@ let run_il_command =
      and debug = flag "-dbg" no_arg ~doc:"print debug traces"
      and profile = flag "-profile" no_arg ~doc:"profiling" in
      fun () ->
-       let interp_result =
+       let interp () =
          let* spec = parse_spec_files filenames_spec in
          let* spec_il = elaborate spec in
          let* _, _ =
@@ -85,7 +88,7 @@ let run_il_command =
          in
          Ok ()
        in
-       match interp_result with
+       match Runner.Handlers.il interp with
        | Ok () -> Format.printf "Interpreter succeeded\n"
        | Error e ->
            Format.printf "Interpreter failed:\n  %s\n"
@@ -102,14 +105,14 @@ let run_sl_command =
        flag "-p" (required string) ~doc:"target file to run il interpreter on"
      in
      fun () ->
-       let interp_result =
+       let interp () =
          let* spec = parse_spec_files filenames_spec in
          let* spec_il = elaborate spec in
          let spec_sl = structure spec_il in
          let* _, _ = interp_sl spec_sl includes_target filename_target in
          Ok ()
        in
-       match interp_result with
+       match Runner.Handlers.sl interp with
        | Ok () -> Format.printf "Interpreter succeeded\n"
        | Error e ->
            Format.printf "Interpreter failed:\n  %s\n"
