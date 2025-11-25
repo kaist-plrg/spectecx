@@ -1,6 +1,6 @@
 open Core
-open Util.Source
-module Error = Runner.Error
+open Common.Source
+open Runner
 
 let version = "0.1"
 
@@ -243,8 +243,11 @@ let parser_roundtrip spec_il includes filename =
     Format.asprintf "%a\n" (Concrete.Pp.pp_program spec_il) program
   in
   let%bind program_rt = Runner.parse_p4_string filename unparsed in
-  if Il.Eq.eq_value ~dbg:true program program_rt then Ok ()
-  else Error (Error.RoundtripError (no_region, "Roundtrip failed"))
+  if Lang.Il.Eq.eq_value ~dbg:true program program_rt then Ok ()
+  else
+    Error
+      (Error.RoundtripError
+         (Common.Source.region_of_file filename, "Roundtrip failed"))
 
 let run_suite ~suite ~exclude_set ~filenames ~expectation ~run =
   let total = List.length filenames in
@@ -290,7 +293,7 @@ let run_elab specdir =
     Ok spec_il
   in
   match spec_il with
-  | Ok spec_il -> Format.printf "%s\n" (Il.Print.string_of_spec spec_il)
+  | Ok spec_il -> Format.printf "%s\n" (Lang.Il.Print.string_of_spec spec_il)
   | Error err ->
       Format.printf "Elaboration failed:\n  %s\n" (Error.string_of_error err)
 
@@ -306,7 +309,7 @@ let run_structure specdir =
   match spec_sl with
   | Error err ->
       Format.printf "Structuring failed:\n  %s\n" (Error.string_of_error err)
-  | Ok spec_sl -> Format.printf "%s\n" (Sl.Print.string_of_spec spec_sl)
+  | Ok spec_sl -> Format.printf "%s\n" (Lang.Sl.Print.string_of_spec spec_sl)
 
 let run_parser includes exclude_dirs testdir specdir =
   quiet_parser_logs ();
@@ -328,8 +331,10 @@ let run_parser includes exclude_dirs testdir specdir =
         unexpected_success = "Unexpected parser success";
       }
     in
-    run_suite ~suite ~exclude_set ~filenames ~expectation:Expect_success
-      ~run:(fun filename -> parser_roundtrip spec_il includes filename);
+    let run filename =
+      Handlers.il (fun () -> parser_roundtrip spec_il includes filename)
+    in
+    run_suite ~suite ~exclude_set ~filenames ~expectation:Expect_success ~run;
     Ok ()
   in
   match suite_result with
@@ -358,9 +363,15 @@ let run_il ?(negative = false) specdir includes exclude_dirs testdir =
       }
     in
     let expectation = if negative then Expect_failure else Expect_success in
-    run_suite ~suite ~exclude_set ~filenames ~expectation ~run:(fun filename ->
-        Runner.interp_il ~debug:false ~profile:false spec_il includes filename
-        |> Result.map ~f:(fun _ -> ()));
+    let run filename =
+      Handlers.il (fun () ->
+          let%bind _ =
+            Runner.interp_il ~debug:false ~profile:false spec_il includes
+              filename
+          in
+          Ok ())
+    in
+    run_suite ~suite ~exclude_set ~filenames ~expectation ~run;
     Ok ()
   in
   match suite_result with
@@ -375,7 +386,7 @@ let run_sl ?(negative = false) specdir includes exclude_dirs testdir =
     let spec_files = Files.collect ~suffix:".spectec" specdir in
     let%bind spec = Runner.parse_spec_files spec_files in
     let%bind spec_il = Runner.elaborate spec in
-    let spec_sl = Structure.Struct.struct_spec spec_il in
+    let spec_sl = Runner.structure spec_il in
     let filenames = Files.collect ~suffix:".p4" testdir in
     let exclude_set = Exclude.load exclude_dirs in
     let suite =
@@ -390,9 +401,12 @@ let run_sl ?(negative = false) specdir includes exclude_dirs testdir =
       }
     in
     let expectation = if negative then Expect_failure else Expect_success in
-    run_suite ~suite ~exclude_set ~filenames ~expectation ~run:(fun filename ->
-        Runner.interp_sl spec_sl includes filename
-        |> Result.map ~f:(fun _ -> ()));
+    let run filename =
+      Handlers.il (fun () ->
+          let%bind _ = Runner.interp_sl spec_sl includes filename in
+          Ok ())
+    in
+    run_suite ~suite ~exclude_set ~filenames ~expectation ~run;
     Ok ()
   in
   match suite_result with
