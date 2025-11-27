@@ -83,8 +83,10 @@ let run_il_command =
        let interp () =
          let* spec = parse_spec_files filenames_spec in
          let* spec_il = elaborate spec in
+         let* value_program = parse_p4_file includes_target filename_target in
          let* _, _ =
-           interp_il ~debug ~profile spec_il includes_target filename_target
+           eval_il ~debug ~profile spec_il "Program_ok" [ value_program ]
+             filename_target
          in
          Ok ()
        in
@@ -109,7 +111,10 @@ let run_sl_command =
          let* spec = parse_spec_files filenames_spec in
          let* spec_il = elaborate spec in
          let spec_sl = structure spec_il in
-         let* _, _ = interp_sl spec_sl includes_target filename_target in
+         let* value_program = parse_p4_file includes_target filename_target in
+         let* _, _ =
+           eval_sl spec_sl "Program_ok" [ value_program ] filename_target
+         in
          Ok ()
        in
        match Runner.Handlers.sl interp with

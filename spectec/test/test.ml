@@ -366,8 +366,8 @@ let run_il ?(negative = false) specdir includes exclude_dirs testdir =
     let run filename =
       Handlers.il (fun () ->
           let%bind _ =
-            Runner.interp_il ~debug:false ~profile:false spec_il includes
-              filename
+            Runner.eval_il_p4_typechecker ~debug:false ~profile:false spec_il
+              includes filename
           in
           Ok ())
     in
@@ -403,7 +403,9 @@ let run_sl ?(negative = false) specdir includes exclude_dirs testdir =
     let expectation = if negative then Expect_failure else Expect_success in
     let run filename =
       Handlers.il (fun () ->
-          let%bind _ = Runner.interp_sl spec_sl includes filename in
+          let%bind _ =
+            Runner.eval_sl_p4_typechecker spec_sl includes filename
+          in
           Ok ())
     in
     run_suite ~suite ~exclude_set ~filenames ~expectation ~run;
