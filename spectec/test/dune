@@ -29,7 +29,7 @@
    elab.actual
    (with-stderr-to
     elab.err
-    (run ./test.exe elab -s ../../../../reference-specs/p4-concrete)))))
+    (run ./test.exe elab -s ../../../../examples/p4-concrete)))))
 
 (rule
  (target struct.actual)
@@ -38,7 +38,7 @@
    struct.actual
    (with-stderr-to
     struct.err
-    (run ./test.exe struct -s ../../../../reference-specs/p4-concrete)))))
+    (run ./test.exe struct -s ../../../../examples/p4-concrete)))))
 
 (rule
  (target run_il_pos_p4c.actual)
@@ -51,13 +51,13 @@
      ./test.exe
      run-il
      -s
-     ../../../../reference-specs/p4-concrete
+     ../../../../examples/p4-concrete
      -i
-     ../../../../p4-tests/includes
+     ../../../../tests/interp/p4-tests/includes
      -e
-     ../../../../p4-tests/excludes
+     ../../../../tests/interp/p4-tests/excludes
      -d
-     ../../../../p4-tests/tests/p4_16_samples)))))
+     ../../../../tests/interp/p4-tests/tests/p4_16_samples)))))
 
 (rule
  (target run_sl_pos_p4c.actual)
@@ -70,13 +70,13 @@
      ./test.exe
      run-sl
      -s
-     ../../../../reference-specs/p4-concrete
+     ../../../../examples/p4-concrete
      -i
-     ../../../../p4-tests/includes
+     ../../../../tests/interp/p4-tests/includes
      -e
-     ../../../../p4-tests/excludes
+     ../../../../tests/interp/p4-tests/excludes
      -d
-     ../../../../p4-tests/tests/p4_16_samples)))))
+     ../../../../tests/interp/p4-tests/tests/p4_16_samples)))))
 
 ; (rule
 ;  (target run_il_neg_p4c.actual)
@@ -89,7 +89,7 @@
 ;      ./test.exe
 ;      run-il
 ;      -s
-;      ../../../../reference-specs/p4-concrete
+;      ../../../../examples/p4-concrete
 ;      -i
 ;      ../../../../../0_p4-spectec/p4c/p4include
 ;      -e
@@ -113,7 +113,7 @@
 ;      -d
 ;      ../../../../../0_p4-spectec/p4c/testdata/p4_16_samples
 ;      -s
-;      ../../../../reference-specs/p4-concrete)))))
+;      ../../../../examples/p4-concrete)))))
 ;
 ; (rule
 ;  (target parser_p4c_neg.actual)
@@ -130,4 +130,4 @@
 ;      -d
 ;      ../../../../../0_p4-spectec/p4c/testdata/p4_16_errors
 ;      -s
-;      ../../../../reference-specs/p4-concrete)))))
+;      ../../../../examples/p4-concrete)))))
