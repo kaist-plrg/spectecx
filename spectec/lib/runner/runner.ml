@@ -1,6 +1,6 @@
 open Lang
 open Lang.Il
-open Pipeline
+open Pass
 open Interface
 open Interp
 open Common.Source

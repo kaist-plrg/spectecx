@@ -1,0 +1,6 @@
+(include_subdirs qualified)
+
+(library
+ (name pass)
+ (public_name spectec.pass)
+ (libraries spectec.semantics frontend))

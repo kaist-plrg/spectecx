@@ -4,6 +4,6 @@
  (libraries
   spectec.common
   spectec.lang
-  spectec.pipeline
+  spectec.pass
   spectec.interp
   spectec.interface))
