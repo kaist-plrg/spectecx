@@ -8,7 +8,7 @@ let elab_command =
   Core.Command.basic ~summary:"parse and elaborate a spec"
     (let open Core.Command.Let_syntax in
      let open Core.Command.Param in
-     let%map filenames = anon (sequence ("filename" %: string)) in
+     let%map filenames = anon (sequence ("spec files" %: string)) in
      fun () ->
        let elaborate_result =
          let* spec = parse_spec_files filenames in
@@ -24,7 +24,7 @@ let structure_command =
   Core.Command.basic ~summary:"structure a spec"
     (let open Core.Command.Let_syntax in
      let open Core.Command.Param in
-     let%map filenames = anon (sequence ("filename" %: string)) in
+     let%map filenames = anon (sequence ("spec files" %: string)) in
      fun () ->
        let structure_result =
          let* spec = parse_spec_files filenames in
@@ -41,10 +41,9 @@ let p4parse_command =
   Core.Command.basic ~summary:"parse a P4 program"
     (let open Core.Command.Let_syntax in
      let open Core.Command.Param in
-     let%map filenames = anon (sequence ("filename" %: string))
+     let%map filenames = anon (sequence ("spec files" %: string))
      and includes_target = flag "-i" (listed string) ~doc:"p4 include paths"
-     and filename_target =
-       flag "-p" (required string) ~doc:"p4 file to typecheck"
+     and filename_target = flag "-p" (required string) ~doc:"p4 file to parse"
      and roundtrip =
        flag "-r" no_arg ~doc:"perform a round-trip parse/unparse"
      in
@@ -68,15 +67,16 @@ let p4parse_command =
            Format.printf "Roundtrip failed:\n  %s\n"
              (Runner.Error.string_of_error e))
 
-let run_il_command =
-  Core.Command.basic ~summary:"run a spec based on backtracking IL"
+let type_p4_il_command =
+  Core.Command.basic
+    ~summary:
+      "typecheck a P4 program based on a SpecTec spec, using the IL interpreter"
     (let open Core.Command.Let_syntax in
      let open Core.Command.Param in
-     let%map filenames_spec = anon (sequence ("filename" %: string))
-     and includes_target =
-       flag "-i" (listed string) ~doc:"target file include paths"
+     let%map filenames_spec = anon (sequence ("spec files" %: string))
+     and includes_target = flag "-i" (listed string) ~doc:"p4 include paths"
      and filename_target =
-       flag "-p" (required string) ~doc:"target file to run il interpreter on"
+       flag "-p" (required string) ~doc:"p4 file to typecheck"
      and debug = flag "-dbg" no_arg ~doc:"print debug traces"
      and profile = flag "-profile" no_arg ~doc:"profiling" in
      fun () ->
@@ -96,15 +96,16 @@ let run_il_command =
            Format.printf "Interpreter failed:\n  %s\n"
              (Runner.Error.string_of_error e))
 
-let run_sl_command =
-  Core.Command.basic ~summary:"run a spec based on backtracking IL"
+let type_p4_sl_command =
+  Core.Command.basic
+    ~summary:
+      "typecheck a P4 program based on a SpecTec spec, using the SL interpreter"
     (let open Core.Command.Let_syntax in
      let open Core.Command.Param in
-     let%map filenames_spec = anon (sequence ("filename" %: string))
-     and includes_target =
-       flag "-i" (listed string) ~doc:"target file include paths"
+     let%map filenames_spec = anon (sequence ("spec files" %: string))
+     and includes_target = flag "-i" (listed string) ~doc:"p4 include paths"
      and filename_target =
-       flag "-p" (required string) ~doc:"target file to run il interpreter on"
+       flag "-p" (required string) ~doc:"p4 file to typecheck"
      in
      fun () ->
        let interp () =
@@ -129,8 +130,8 @@ let command =
     [
       ("elab", elab_command);
       ("struct", structure_command);
-      ("run-sl", run_sl_command);
-      ("run-il", run_il_command);
+      ("type-p4-il", type_p4_il_command);
+      ("type-p4-sl", type_p4_sl_command);
       ("p4parse", p4parse_command);
     ]
 

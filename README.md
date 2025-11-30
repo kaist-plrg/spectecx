@@ -32,14 +32,34 @@ This creates an executable `spectec-core` in the project root.
 SpecTec-Core currently consists of three main components.
 * SpecTec EL is the surface language in which the spec is authored.
 * SpecTec IL (internal language). EL -> IL conversion is called "elaboration". Elaboration makes the spec more algorithmic and unambiguous.
-* An interpreter backend for IL.
-  * Needs to be coupled with a parser that converts an input file into a SpecTec IL value to properly produce output.
+* SpecTec SL (structured language). IL -> SL conversion is called "structuring". Structuring groups related execution paths into explicit branching with over-approximation. This minimizes backtracking, making the SL interpreter much faster than the IL interpreter.
+* Interpreter backends for IL/SL.
+  * Needs to be coupled with a parser that converts an input file into a SpecTec IL value.
 
 ### Commands
 ```bash
-# elaborate a SpecTec spec
+# print out the IL representation of a SpecTec spec
 ./spectec-core elab spec/*.spectec
+# print the SL representation of a SpecTec spec
+./spectec-core struct spec/*.spectec
+
+## P4-specific commands
+
+# parse a P4 program to an IL value (-r to do a roundtrip test)
+./spectec-core p4parse spec/*.spectec -i tests/interp/p4-tests/includes -p target/file.p4 [-r]
+
+# run a P4 program based on SpecTec IL/SL
+./spectec-core type-p4-il spec/*.spectec -i tests/interp/p4-tests/includes -p target/file.p4 [-dbg] [-profile]
+./spectec-core type-p4-sl spec/*.spectec [-i tests/interp/p4-tests/includes -p target/file.p4 [-dbg] [-profile]
+
 ```
+### Testing
+```bash
+make test
+```
+
+- Checks parsing, elaboration and structuring using the `examples/p4-concrete` spec corpus.
+- Checks IL/SL interpreter coupled with the P4 parser using `tests/interp/p4-tests` files.
 
 ### Contributing
 
@@ -48,3 +68,7 @@ SpecTec-Core is an open-source project. Please feel free to contribute by openin
 ### License
 
 SpecTec-Core is released under the [Apache 2.0 license](LICENSE).
+
+### Credits
+
+Most of the current codebase is derived from [P4-SpecTec](https://github.com/kaist-plrg/p4-spectec), which in turn is largely based on [Wasm-SpecTec](https://github.com/Wasm-DSL/spectec/tree/main).
