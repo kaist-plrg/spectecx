@@ -80,16 +80,17 @@ let rec assign_exp (ctx : Ctx.t) (exp : exp) (value : value) : Ctx.t =
   | IterE (exp, (List, vars)), ListV values ->
       (* Map over the value list elements,
          and assign each value to the iterated expression *)
-      let ctxs =
+      let ctxs_rev =
         List.fold_left
-          (fun ctxs value ->
+          (fun ctxs_rev value ->
             let ctx =
               { ctx with local = { ctx.local with venv = VEnv.empty } }
             in
             let ctx = assign_exp ctx exp value in
-            ctxs @ [ ctx ])
+            ctx :: ctxs_rev)
           [] values
       in
+      let ctxs = List.rev ctxs_rev in
       (* Per iterated variable, collect its elementwise value,
          then make a sequence out of them *)
       List.fold_left
@@ -654,15 +655,15 @@ and eval_iter_exp_opt (note : typ') (ctx : Ctx.t) (exp : exp) (vars : var list)
 and eval_iter_exp_list (note : typ') (ctx : Ctx.t) (exp : exp) (vars : var list)
     : Ctx.t * value =
   let ctxs_sub = Ctx.sub_list ctx vars in
-  let ctx, values =
+  let ctx, values_rev =
     List.fold_left
-      (fun (ctx, values) ctx_sub ->
+      (fun (ctx, values_rev) ctx_sub ->
         let ctx_sub, value = eval_exp ctx_sub exp in
         let ctx = Ctx.commit ctx ctx_sub in
-        (ctx, values @ [ value ]))
+        (ctx, value :: values_rev))
       (ctx, []) ctxs_sub
   in
-  let value_res = values |> Value.Make.list note in
+  let value_res = values_rev |> List.rev |> Value.Make.list note in
   (ctx, value_res)
 
 and eval_iter_exp (note : typ') (ctx : Ctx.t) (exp : exp) (iterexp : iterexp) :

@@ -224,16 +224,23 @@ let sub_opt (ctx : t) (vars : var list) : t option =
 let transpose (value_matrix : value list list) : value list list =
   match value_matrix with
   | [] -> []
-  | _ ->
+  | row :: rows ->
       let width = List.length (List.hd value_matrix) in
       check
         (List.for_all
            (fun value_row -> List.length value_row = width)
            value_matrix)
         no_region "cannot transpose a matrix of value batches";
-      List.init width (fun j ->
-          List.init (List.length value_matrix) (fun i ->
-              List.nth (List.nth value_matrix i) j))
+      let columns_init = List.map (fun elem -> [ elem ]) row in
+      let columns_rev =
+        List.fold_left
+          (fun columns_rev row ->
+            List.map2
+              (fun column_rev elem -> elem :: column_rev)
+              columns_rev row)
+          columns_init rows
+      in
+      List.map List.rev columns_rev
 
 let sub_list (ctx : t) (vars : var list) : t list =
   (* First break the values that are to be iterated over,
@@ -247,15 +254,16 @@ let sub_list (ctx : t) (vars : var list) : t list =
   in
   (* For each batch of values, create a sub-context *)
   List.fold_left
-    (fun ctxs_sub value_batch ->
+    (fun ctxs_sub_rev value_batch ->
       let ctx_sub =
         List.fold_left2
           (fun ctx_sub (id, _typ, iters) value ->
             add_value Local ctx_sub (id, iters) value)
           ctx vars value_batch
       in
-      ctxs_sub @ [ ctx_sub ])
+      ctx_sub :: ctxs_sub_rev)
     [] values_batch
+  |> List.rev
 
 (* Committing a sub-context *)
 
