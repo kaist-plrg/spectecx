@@ -293,8 +293,8 @@ let transpose (value_matrix : value list list) : value list list attempt =
   | [] -> Ok []
   | row :: rows ->
       let width = List.length (List.hd value_matrix) in
-      let* _ =
-        check_fail
+      let* () =
+        guard
           (List.for_all
              (fun value_row -> List.length value_row = width)
              value_matrix)

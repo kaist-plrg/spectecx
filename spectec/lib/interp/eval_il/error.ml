@@ -34,5 +34,5 @@ let unwrap_builtin (result : 'a Builtins.result) : 'a =
 let check (b : bool) (at : region) (msg : string) : unit =
   if not b then error at msg
 
-let guard (b : bool) (at : region) (msg : string) : unit =
+let check_warn (b : bool) (at : region) (msg : string) : unit =
   if not b then warn at msg

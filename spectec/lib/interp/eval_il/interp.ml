@@ -611,7 +611,7 @@ and eval_hold_exp (note : typ') (ctx : Ctx.t) (id : id) (notexp : notexp) :
   let ctx, hold =
     match invoke_rel ctx id values_input with
     | Ok _ -> (ctx, true)
-    | Fail _ -> (ctx, false)
+    | Error _ -> (ctx, false)
   in
   let value_res = hold |> Value.Make.bool note in
   (ctx, value_res)
@@ -835,7 +835,7 @@ and invoke_rel' (ctx : Ctx.t) (id : id) (values_input : value list) :
     (Ctx.t * value list) attempt =
   (* Find the relation *)
   let inputs, rules = Ctx.find_rel Local ctx id in
-  guard (rules <> []) id.at "relation has no rules";
+  check_warn (rules <> []) id.at "relation has no rules";
   (* Apply the first matching rule *)
   let attempt_rules () =
     let attempt_rules' =
@@ -946,7 +946,7 @@ and invoke_func_def (ctx : Ctx.t) (id : id) (targs : targ list)
     (args : arg list) : (Ctx.t * value) attempt =
   (* Find the function *)
   let tparams, clauses = Ctx.find_func Local ctx id in
-  guard (clauses <> []) id.at "function has no clauses";
+  check_warn (clauses <> []) id.at "function has no clauses";
   (* Evaluate type arguments *)
   let targs =
     match targs with
