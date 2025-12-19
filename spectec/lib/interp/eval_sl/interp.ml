@@ -720,17 +720,20 @@ and eval_if_cond (ctx : Ctx.t) (exp_cond : exp) : Ctx.t * bool * value =
 and eval_if_cond_list (ctx : Ctx.t) (exp_cond : exp) (vars : var list)
     (iterexps : iterexp list) : Ctx.t * bool * value list =
   let ctxs_sub = Ctx.sub_list ctx vars in
-  List.fold_left
-    (fun (ctx, cond, values_cond) ctx_sub ->
-      if not cond then (ctx, cond, values_cond)
-      else
-        let ctx_sub, cond, value_cond =
-          eval_if_cond_iter' ctx_sub exp_cond iterexps
-        in
-        let ctx = Ctx.commit ctx ctx_sub in
-        let values_cond = values_cond @ [ value_cond ] in
-        (ctx, cond, values_cond))
-    (ctx, true, []) ctxs_sub
+  let ctx, cond, values_cond_rev =
+    List.fold_left
+      (fun (ctx, cond, values_cond_rev) ctx_sub ->
+        if not cond then (ctx, cond, values_cond_rev)
+        else
+          let ctx_sub, cond, value_cond =
+            eval_if_cond_iter' ctx_sub exp_cond iterexps
+          in
+          let ctx = Ctx.commit ctx ctx_sub in
+          let values_cond_rev = value_cond :: values_cond_rev in
+          (ctx, cond, values_cond_rev))
+      (ctx, true, []) ctxs_sub
+  in
+  (ctx, cond, List.rev values_cond_rev)
 
 and eval_if_cond_iter' (ctx : Ctx.t) (exp_cond : exp) (iterexps : iterexp list)
     : Ctx.t * bool * value =
@@ -766,9 +769,9 @@ and eval_cases (ctx : Ctx.t) (exp : exp) (cases : case list) :
     Ctx.t * instr list option * value =
   cases
   |> List.fold_left
-       (fun (ctx, block_match, values_cond) (guard, block) ->
+       (fun (ctx, block_match, values_cond_rev) (guard, block) ->
          match block_match with
-         | Some _ -> (ctx, block_match, values_cond)
+         | Some _ -> (ctx, block_match, values_cond_rev)
          | None ->
              let exp_cond =
                match guard with
@@ -781,15 +784,15 @@ and eval_cases (ctx : Ctx.t) (exp : exp) (cases : case list) :
              in
              let exp_cond = exp_cond $$ (exp.at, Il.BoolT) in
              let ctx, value_cond = eval_exp ctx exp_cond in
-             let values_cond = values_cond @ [ value_cond ] in
+             let values_cond_rev = value_cond :: values_cond_rev in
              let cond = Value.get_bool value_cond in
-             if cond then (ctx, Some block, values_cond)
-             else (ctx, None, values_cond))
+             if cond then (ctx, Some block, values_cond_rev)
+             else (ctx, None, values_cond_rev))
        (ctx, None, [])
   |> fun (ctx, block_match, values_cond) ->
   let value_cond =
     let typ_inner = Il.BoolT $ no_region in
-    Value.list typ_inner values_cond
+    values_cond |> List.rev |> Value.list typ_inner
   in
   (ctx, block_match, value_cond)
 
@@ -886,9 +889,9 @@ and eval_let_list (ctx : Ctx.t) (exp_l : exp) (exp_r : exp) (vars : var list)
     (* Otherwise, evaluate the premise for each batch of bound values,
        and collect the resulting binding batches *)
     | _ ->
-        let ctx, values_binding_batch =
+        let ctx, values_binding_batch_rev =
           List.fold_left
-            (fun (ctx, values_binding_batch) ctx_sub ->
+            (fun (ctx, values_binding_batch_rev) ctx_sub ->
               let ctx_sub = eval_let_iter' ctx_sub exp_l exp_r iterexps in
               let ctx = Ctx.commit ctx ctx_sub in
               let value_binding_batch =
@@ -897,13 +900,15 @@ and eval_let_list (ctx : Ctx.t) (exp_l : exp) (exp_r : exp) (vars : var list)
                     Ctx.find_value Local ctx_sub (id_binding, iters_binding))
                   vars_binding
               in
-              let values_binding_batch =
-                values_binding_batch @ [ value_binding_batch ]
+              let values_binding_batch_rev =
+                value_binding_batch :: values_binding_batch_rev
               in
-              (ctx, values_binding_batch))
+              (ctx, values_binding_batch_rev))
             (ctx, []) ctxs_sub
         in
-        let values_binding = values_binding_batch |> Ctx.transpose in
+        let values_binding =
+          values_binding_batch_rev |> List.rev |> Ctx.transpose
+        in
         (ctx, values_binding)
   in
   (* Finally, bind the resulting binding batches *)
@@ -982,9 +987,9 @@ and eval_rule_list (ctx : Ctx.t) (id : id) (notexp : notexp) (vars : var list)
     (* Otherwise, evaluate the premise for each batch of bound values,
        and collect the resulting binding batches *)
     | _ ->
-        let ctx, values_binding_batch =
+        let ctx, values_binding_batch_rev =
           List.fold_left
-            (fun (ctx, values_binding_batch) ctx_sub ->
+            (fun (ctx, values_binding_batch_rev) ctx_sub ->
               let ctx_sub = eval_rule_iter' ctx_sub id notexp iterexps in
               let ctx = Ctx.commit ctx ctx_sub in
               let value_binding_batch =
@@ -993,13 +998,15 @@ and eval_rule_list (ctx : Ctx.t) (id : id) (notexp : notexp) (vars : var list)
                     Ctx.find_value Local ctx_sub (id_binding, iters_binding))
                   vars_binding
               in
-              let values_binding_batch =
-                values_binding_batch @ [ value_binding_batch ]
+              let values_binding_batch_rev =
+                value_binding_batch :: values_binding_batch_rev
               in
-              (ctx, values_binding_batch))
+              (ctx, values_binding_batch_rev))
             (ctx, []) ctxs_sub
         in
-        let values_binding = values_binding_batch |> Ctx.transpose in
+        let values_binding =
+          values_binding_batch_rev |> List.rev |> Ctx.transpose
+        in
         (ctx, values_binding)
   in
   (* Finally, bind the resulting binding batches *)
