@@ -110,6 +110,18 @@ and assign_exps (ctx : Ctx.t) (exps : exp list) (values : value list) : Ctx.t =
 
 and assign_arg (ctx_caller : Ctx.t) (ctx_callee : Ctx.t) (arg : arg)
     (value : value) : Ctx.t =
+  let assign_arg_exp ctx exp value = assign_exp ctx exp value in
+  let assign_arg_def ctx_caller ctx_callee id value =
+    match value.it with
+    | FuncV id_f ->
+        let func = Ctx.find_func Local ctx_caller id_f in
+        Ctx.add_func Local ctx_callee id func
+    | _ ->
+        error id.at
+          (F.asprintf "cannot assign a value %s to a definition %s"
+             (Print.string_of_value ~short:true value)
+             id.it)
+  in
   match arg.it with
   | ExpA exp -> assign_arg_exp ctx_callee exp value
   | DefA id -> assign_arg_def ctx_caller ctx_callee id value
@@ -125,22 +137,7 @@ and assign_args (ctx_caller : Ctx.t) (ctx_callee : Ctx.t) (args : arg list)
        (List.length args) (List.length values));
   List.fold_left2 (assign_arg ctx_caller) ctx_callee args values
 
-and assign_arg_exp (ctx : Ctx.t) (exp : exp) (value : value) : Ctx.t =
-  assign_exp ctx exp value
-
-and assign_arg_def (ctx_caller : Ctx.t) (ctx_callee : Ctx.t) (id : id)
-    (value : value) : Ctx.t =
-  match value.it with
-  | FuncV id_f ->
-      let func = Ctx.find_func Local ctx_caller id_f in
-      Ctx.add_func Local ctx_callee id func
-  | _ ->
-      error id.at
-        (F.asprintf "cannot assign a value %s to a definition %s"
-           (Print.string_of_value ~short:true value)
-           id.it)
-
-(* Expression evaluation *)
+(* Type coercion and subtyping *)
 
 (* DownCastE and SubE performs subtype checks that are not guaranteed by the type system,
     because in SpecTec assignment should be able to revert the type cast expression
@@ -154,7 +151,100 @@ and assign_arg_def (ctx_caller : Ctx.t) (ctx_callee : Ctx.t) (id : id)
 
    Note that structs are invariant in SpecTec, so we do not need to check for subtyping *)
 
+let rec upcast (ctx : Ctx.t) (typ : typ) (value : value) : value =
+  match typ.it with
+  | NumT `IntT -> (
+      match value.it with
+      | NumV (`Nat n) -> Value.int n
+      | NumV (`Int _) -> value
+      | _ -> assert false)
+  | VarT (tid, targs) -> (
+      let tparams, deftyp = Ctx.find_typdef Local ctx tid in
+      let theta = List.combine tparams targs |> TIdMap.of_list in
+      match deftyp.it with
+      | PlainT typ ->
+          let typ = Typ.subst_typ theta typ in
+          upcast ctx typ value
+      | _ -> value)
+  | TupleT typs -> (
+      match value.it with
+      | TupleV values ->
+          let values =
+            List.fold_left2
+              (fun values typ value ->
+                let value = upcast ctx typ value in
+                values @ [ value ])
+              [] typs values
+          in
+          Value.Make.tuple typ.it values
+      | _ -> assert false)
+  | _ -> value
+
+let rec downcast (ctx : Ctx.t) (typ : typ) (value : value) : value =
+  match typ.it with
+  | NumT `NatT -> (
+      match value.it with
+      | NumV (`Nat _) -> value
+      | NumV (`Int i) when Bigint.(i >= zero) -> Value.nat i
+      | _ -> assert false)
+  | VarT (tid, targs) -> (
+      let tparams, deftyp = Ctx.find_typdef Local ctx tid in
+      let theta = List.combine tparams targs |> TIdMap.of_list in
+      match deftyp.it with
+      | PlainT typ ->
+          let typ = Typ.subst_typ theta typ in
+          downcast ctx typ value
+      | _ -> value)
+  | TupleT typs -> (
+      match value.it with
+      | TupleV values ->
+          let values =
+            List.fold_left2
+              (fun values typ value ->
+                let value = downcast ctx typ value in
+                values @ [ value ])
+              [] typs values
+          in
+          Value.Make.tuple typ.it values
+      | _ -> assert false)
+  | _ -> value
+
+let rec subtyp (ctx : Ctx.t) (typ : typ) (value : value) : bool =
+  match typ.it with
+  | NumT `NatT -> (
+      match value.it with
+      | NumV (`Nat _) -> true
+      | NumV (`Int i) -> Bigint.(i >= zero)
+      | _ -> assert false)
+  | VarT (tid, targs) -> (
+      let tparams, deftyp = Ctx.find_typdef Local ctx tid in
+      let theta = List.combine tparams targs |> TIdMap.of_list in
+      match (deftyp.it, value.it) with
+      | PlainT typ, _ ->
+          let typ = Typ.subst_typ theta typ in
+          subtyp ctx typ value
+      | VariantT typcases, CaseV (mixop_v, _) ->
+          List.exists
+            (fun (nottyp, _) ->
+              let mixop_t, _ = nottyp.it in
+              Mixop.eq mixop_t mixop_v)
+            typcases
+      | _ -> true)
+  | TupleT typs -> (
+      match value.it with
+      | TupleV values ->
+          List.length typs = List.length values
+          && List.for_all2 (subtyp ctx) typs values
+      | _ -> false)
+  | _ -> true
+
+(* Expression evaluation *)
+
 let rec eval_exp (ctx : Ctx.t) (exp : exp) : Ctx.t * value =
+  let eval_bool_exp note b = Value.Make.bool note b in
+  let eval_num_exp note n = Value.Make.num note n in
+  let eval_text_exp note s = Value.Make.text note s in
+  let eval_var_exp _note ctx id = Ctx.find_value Local ctx (id, []) in
   let wrap_ctx value = (ctx, value) in
   let at, note = (exp.at, exp.note) in
   match exp.it with
@@ -195,36 +285,19 @@ and eval_exps (ctx : Ctx.t) (exps : exp list) : Ctx.t * value list =
       (ctx, values @ [ value ]))
     (ctx, []) exps
 
-(* Boolean expression evaluation *)
-
-and eval_bool_exp (note : typ') (b : bool) : value = Value.Make.bool note b
-
-(* Numeric expression evaluation *)
-
-and eval_num_exp (note : typ') (n : Num.t) : value = Value.Make.num note n
-
-(* Text expression evaluation *)
-
-and eval_text_exp (note : typ') (s : string) : value = Value.Make.text note s
-
-(* Variable expression evaluation *)
-
-and eval_var_exp (_note : typ') (ctx : Ctx.t) (id : id) : value =
-  Ctx.find_value Local ctx (id, [])
-
 (* Unary expression evaluation *)
-
-and eval_un_bool (note : typ') (unop : Bool.unop) (value : value) : value =
-  match unop with
-  | `NotOp -> (not (Value.get_bool value)) |> Value.Make.bool note
-
-and eval_un_num (note : typ') (unop : Num.unop) (value : value) : value =
-  let num = Value.get_num value in
-  let num = Num.un unop num in
-  num |> Value.Make.num note
 
 and eval_un_exp (note : typ') (ctx : Ctx.t) (unop : unop) (_optyp : optyp)
     (exp : exp) : Ctx.t * value =
+  let eval_un_bool note unop value =
+    match unop with
+    | `NotOp -> (not (Value.get_bool value)) |> Value.Make.bool note
+  in
+  let eval_un_num note unop value =
+    let num = Value.get_num value in
+    let num = Num.un unop num in
+    num |> Value.Make.num note
+  in
   let ctx, value = eval_exp ctx exp in
   let value_res =
     match unop with
@@ -235,27 +308,25 @@ and eval_un_exp (note : typ') (ctx : Ctx.t) (unop : unop) (_optyp : optyp)
 
 (* Binary expression evaluation *)
 
-and eval_bin_bool (note : typ') (binop : Bool.binop) (value_l : value)
-    (value_r : value) : value =
-  let bool_l = Value.get_bool value_l in
-  let bool_r = Value.get_bool value_r in
-  let bool_res =
-    match binop with
-    | `AndOp -> bool_l && bool_r
-    | `OrOp -> bool_l || bool_r
-    | `ImplOp -> (not bool_l) || bool_r
-    | `EquivOp -> bool_l = bool_r
-  in
-  bool_res |> Value.Make.bool note
-
-and eval_bin_num (note : typ') (binop : Num.binop) (value_l : value)
-    (value_r : value) : value =
-  let num_l = Value.get_num value_l in
-  let num_r = Value.get_num value_r in
-  Num.bin binop num_l num_r |> Value.Make.num note
-
 and eval_bin_exp (note : typ') (ctx : Ctx.t) (binop : binop) (_optyp : optyp)
     (exp_l : exp) (exp_r : exp) : Ctx.t * value =
+  let eval_bin_bool note binop value_l value_r =
+    let bool_l = Value.get_bool value_l in
+    let bool_r = Value.get_bool value_r in
+    let bool_res =
+      match binop with
+      | `AndOp -> bool_l && bool_r
+      | `OrOp -> bool_l || bool_r
+      | `ImplOp -> (not bool_l) || bool_r
+      | `EquivOp -> bool_l = bool_r
+    in
+    bool_res |> Value.Make.bool note
+  in
+  let eval_bin_num note binop value_l value_r =
+    let num_l = Value.get_num value_l in
+    let num_r = Value.get_num value_r in
+    Num.bin binop num_l num_r |> Value.Make.num note
+  in
   let ctx, value_l = eval_exp ctx exp_l in
   let ctx, value_r = eval_exp ctx exp_r in
   let value_res =
@@ -267,56 +338,28 @@ and eval_bin_exp (note : typ') (ctx : Ctx.t) (binop : binop) (_optyp : optyp)
 
 (* Comparison expression evaluation *)
 
-and eval_cmp_bool (note : typ') (ctx : Ctx.t) (cmpop : Bool.cmpop)
-    (value_l : value) (value_r : value) : Ctx.t * value =
-  let eq = Value.eq value_l value_r in
-  let bool_res = match cmpop with `EqOp -> eq | `NeOp -> not eq in
-  (ctx, Value.Make.bool note bool_res)
-
-and eval_cmp_num (note : typ') (ctx : Ctx.t) (cmpop : Num.cmpop)
-    (value_l : value) (value_r : value) : Ctx.t * value =
-  let num_l = Value.get_num value_l in
-  let num_r = Value.get_num value_r in
-  (ctx, Num.cmp cmpop num_l num_r |> Value.Make.bool note)
-
 and eval_cmp_exp (note : typ') (ctx : Ctx.t) (cmpop : cmpop) (_optyp : optyp)
     (exp_l : exp) (exp_r : exp) : Ctx.t * value =
+  let eval_cmp_bool note cmpop value_l value_r =
+    let eq = Value.eq value_l value_r in
+    let bool_res = match cmpop with `EqOp -> eq | `NeOp -> not eq in
+    Value.Make.bool note bool_res
+  in
+  let eval_cmp_num note cmpop value_l value_r =
+    let num_l = Value.get_num value_l in
+    let num_r = Value.get_num value_r in
+    Num.cmp cmpop num_l num_r |> Value.Make.bool note
+  in
   let ctx, value_l = eval_exp ctx exp_l in
   let ctx, value_r = eval_exp ctx exp_r in
-  match cmpop with
-  | #Bool.cmpop as cmpop -> eval_cmp_bool note ctx cmpop value_l value_r
-  | #Num.cmpop as cmpop -> eval_cmp_num note ctx cmpop value_l value_r
+  let value_res =
+    match cmpop with
+    | #Bool.cmpop as cmpop -> eval_cmp_bool note cmpop value_l value_r
+    | #Num.cmpop as cmpop -> eval_cmp_num note cmpop value_l value_r
+  in
+  (ctx, value_res)
 
 (* Upcast expression evaluation *)
-
-and upcast (ctx : Ctx.t) (typ : typ) (value : value) : value =
-  match typ.it with
-  | NumT `IntT -> (
-      match value.it with
-      | NumV (`Nat n) -> Value.int n
-      | NumV (`Int _) -> value
-      | _ -> assert false)
-  | VarT (tid, targs) -> (
-      let tparams, deftyp = Ctx.find_typdef Local ctx tid in
-      let theta = List.combine tparams targs |> TIdMap.of_list in
-      match deftyp.it with
-      | PlainT typ ->
-          let typ = Typ.subst_typ theta typ in
-          upcast ctx typ value
-      | _ -> value)
-  | TupleT typs -> (
-      match value.it with
-      | TupleV values ->
-          let values =
-            List.fold_left2
-              (fun values typ value ->
-                let value = upcast ctx typ value in
-                values @ [ value ])
-              [] typs values
-          in
-          Value.Make.tuple typ.it values
-      | _ -> assert false)
-  | _ -> value
 
 and eval_upcast_exp (_note : typ') (ctx : Ctx.t) (typ : typ) (exp : exp) :
     Ctx.t * value =
@@ -326,35 +369,6 @@ and eval_upcast_exp (_note : typ') (ctx : Ctx.t) (typ : typ) (exp : exp) :
 
 (* Downcast expression evaluation *)
 
-and downcast (ctx : Ctx.t) (typ : typ) (value : value) : value =
-  match typ.it with
-  | NumT `NatT -> (
-      match value.it with
-      | NumV (`Nat _) -> value
-      | NumV (`Int i) when Bigint.(i >= zero) -> Value.nat i
-      | _ -> assert false)
-  | VarT (tid, targs) -> (
-      let tparams, deftyp = Ctx.find_typdef Local ctx tid in
-      let theta = List.combine tparams targs |> TIdMap.of_list in
-      match deftyp.it with
-      | PlainT typ ->
-          let typ = Typ.subst_typ theta typ in
-          downcast ctx typ value
-      | _ -> value)
-  | TupleT typs -> (
-      match value.it with
-      | TupleV values ->
-          let values =
-            List.fold_left2
-              (fun values typ value ->
-                let value = downcast ctx typ value in
-                values @ [ value ])
-              [] typs values
-          in
-          Value.Make.tuple typ.it values
-      | _ -> assert false)
-  | _ -> value
-
 and eval_downcast_exp (_note : typ') (ctx : Ctx.t) (typ : typ) (exp : exp) :
     Ctx.t * value =
   let ctx, value = eval_exp ctx exp in
@@ -362,35 +376,6 @@ and eval_downcast_exp (_note : typ') (ctx : Ctx.t) (typ : typ) (exp : exp) :
   (ctx, value_res)
 
 (* Subtype check expression evaluation *)
-
-and subtyp (ctx : Ctx.t) (typ : typ) (value : value) : bool =
-  match typ.it with
-  | NumT `NatT -> (
-      match value.it with
-      | NumV (`Nat _) -> true
-      | NumV (`Int i) -> Bigint.(i >= zero)
-      | _ -> assert false)
-  | VarT (tid, targs) -> (
-      let tparams, deftyp = Ctx.find_typdef Local ctx tid in
-      let theta = List.combine tparams targs |> TIdMap.of_list in
-      match (deftyp.it, value.it) with
-      | PlainT typ, _ ->
-          let typ = Typ.subst_typ theta typ in
-          subtyp ctx typ value
-      | VariantT typcases, CaseV (mixop_v, _) ->
-          List.exists
-            (fun (nottyp, _) ->
-              let mixop_t, _ = nottyp.it in
-              Mixop.eq mixop_t mixop_v)
-            typcases
-      | _ -> true)
-  | TupleT typs -> (
-      match value.it with
-      | TupleV values ->
-          List.length typs = List.length values
-          && List.for_all2 (subtyp ctx) typs values
-      | _ -> false)
-  | _ -> true
 
 and eval_sub_exp (note : typ') (ctx : Ctx.t) (exp : exp) (typ : typ) :
     Ctx.t * value =
@@ -561,35 +546,35 @@ and eval_slice_exp (note : typ') (ctx : Ctx.t) (exp_b : exp) (exp_i : exp)
 
 (* Update expression evaluation *)
 
-and eval_access_path (value_b : value) (path : path) : value =
-  match path.it with
-  | RootP -> value_b
-  | DotP (path, atom) ->
-      let value = eval_access_path value_b path in
-      let fields = value |> Value.get_struct in
-      fields
-      |> List.map (fun (atom, value) -> (atom.it, value))
-      |> List.assoc atom.it
-  | _ -> failwith "(TODO) access_path"
-
-and eval_update_path (value_b : value) (path : path) (value_n : value) : value =
-  match path.it with
-  | RootP -> value_n
-  | DotP (path, atom) ->
-      let value = eval_access_path value_b path in
-      let fields = value |> Value.get_struct in
-      let fields =
-        List.map
-          (fun (atom_f, value_f) ->
-            if atom_f.it = atom.it then (atom_f, value_n) else (atom_f, value_f))
-          fields
-      in
-      let value = Value.Make.record path.note fields in
-      eval_update_path value_b path value
-  | _ -> failwith "(TODO) update"
-
 and eval_upd_exp (_note : typ') (ctx : Ctx.t) (exp_b : exp) (path : path)
     (exp_f : exp) : Ctx.t * value =
+  let rec eval_access_path value_b path =
+    match path.it with
+    | RootP -> value_b
+    | DotP (path, atom) ->
+        let value = eval_access_path value_b path in
+        let fields = value |> Value.get_struct in
+        fields
+        |> List.map (fun (atom, value) -> (atom.it, value))
+        |> List.assoc atom.it
+    | _ -> failwith "(TODO) access_path"
+  and eval_update_path value_b path value_n =
+    match path.it with
+    | RootP -> value_n
+    | DotP (path, atom) ->
+        let value = eval_access_path value_b path in
+        let fields = value |> Value.get_struct in
+        let fields =
+          List.map
+            (fun (atom_f, value_f) ->
+              if atom_f.it = atom.it then (atom_f, value_n)
+              else (atom_f, value_f))
+            fields
+        in
+        let value = Value.Make.record path.note fields in
+        eval_update_path value_b path value
+    | _ -> failwith "(TODO) update"
+  in
   let ctx, value_b = eval_exp ctx exp_b in
   let ctx, value_f = eval_exp ctx exp_f in
   let value_res = eval_update_path value_b path value_f in
@@ -618,39 +603,37 @@ and eval_hold_exp (note : typ') (ctx : Ctx.t) (id : id) (notexp : notexp) :
 
 (* Iterated expression evaluation *)
 
-and eval_iter_exp_opt (note : typ') (ctx : Ctx.t) (exp : exp) (vars : var list)
-    : Ctx.t * value =
-  let+ ctx_sub_opt = Ctx.sub_opt ctx vars in
-  match ctx_sub_opt with
-  | Some ctx_sub ->
-      let ctx_sub = Ctx.trace_open_iter ctx_sub (Print.string_of_exp exp) in
-      let ctx_sub, value = eval_exp ctx_sub exp in
-      let ctx_sub = Ctx.trace_close ctx_sub in
-      let ctx = Ctx.trace_commit ctx ctx_sub.trace in
-      let value_res = Some value |> Value.Make.opt note in
-      (ctx, value_res)
-  | None ->
-      let value_res = None |> Value.Make.opt note in
-      (ctx, value_res)
-
-and eval_iter_exp_list (note : typ') (ctx : Ctx.t) (exp : exp) (vars : var list)
-    : Ctx.t * value =
-  let+ ctxs_sub = Ctx.sub_list ctx vars in
-  let ctx, values_rev =
-    List.fold_left
-      (fun (ctx, values_rev) ctx_sub ->
+and eval_iter_exp (note : typ') (ctx : Ctx.t) (exp : exp) (iterexp : iterexp) :
+    Ctx.t * value =
+  let eval_iter_exp_opt note ctx exp vars =
+    let+ ctx_sub_opt = Ctx.sub_opt ctx vars in
+    match ctx_sub_opt with
+    | Some ctx_sub ->
         let ctx_sub = Ctx.trace_open_iter ctx_sub (Print.string_of_exp exp) in
         let ctx_sub, value = eval_exp ctx_sub exp in
         let ctx_sub = Ctx.trace_close ctx_sub in
         let ctx = Ctx.trace_commit ctx ctx_sub.trace in
-        (ctx, value :: values_rev))
-      (ctx, []) ctxs_sub
+        let value_res = Some value |> Value.Make.opt note in
+        (ctx, value_res)
+    | None ->
+        let value_res = None |> Value.Make.opt note in
+        (ctx, value_res)
   in
-  let value_res = values_rev |> List.rev |> Value.Make.list note in
-  (ctx, value_res)
-
-and eval_iter_exp (note : typ') (ctx : Ctx.t) (exp : exp) (iterexp : iterexp) :
-    Ctx.t * value =
+  let eval_iter_exp_list note ctx exp vars =
+    let+ ctxs_sub = Ctx.sub_list ctx vars in
+    let ctx, values_rev =
+      List.fold_left
+        (fun (ctx, values_rev) ctx_sub ->
+          let ctx_sub = Ctx.trace_open_iter ctx_sub (Print.string_of_exp exp) in
+          let ctx_sub, value = eval_exp ctx_sub exp in
+          let ctx_sub = Ctx.trace_close ctx_sub in
+          let ctx = Ctx.trace_commit ctx ctx_sub.trace in
+          (ctx, value :: values_rev))
+        (ctx, []) ctxs_sub
+    in
+    let value_res = values_rev |> List.rev |> Value.Make.list note in
+    (ctx, value_res)
+  in
   let iter, vars = iterexp in
   match iter with
   | Opt -> eval_iter_exp_opt note ctx exp vars
@@ -658,14 +641,14 @@ and eval_iter_exp (note : typ') (ctx : Ctx.t) (exp : exp) (iterexp : iterexp) :
 
 (* Argument evaluation *)
 
-and eval_arg (ctx : Ctx.t) (arg : arg) : Ctx.t * value =
-  match arg.it with
-  | ExpA exp -> eval_exp ctx exp
-  | DefA id ->
-      let value_res = Value.func id in
-      (ctx, value_res)
-
 and eval_args (ctx : Ctx.t) (args : arg list) : Ctx.t * value list =
+  let eval_arg ctx arg =
+    match arg.it with
+    | ExpA exp -> eval_exp ctx exp
+    | DefA id ->
+        let value_res = Value.func id in
+        (ctx, value_res)
+  in
   List.fold_left
     (fun (ctx, values) arg ->
       let ctx, value = eval_arg ctx arg in
@@ -675,10 +658,39 @@ and eval_args (ctx : Ctx.t) (args : arg list) : Ctx.t * value list =
 (* Premise evaluation *)
 
 and eval_prem (ctx : Ctx.t) (prem : prem) : Ctx.t attempt =
+  let eval_rule_prem ctx id notexp =
+    let rel = Ctx.find_rel Local ctx id in
+    let exps_input, exps_output =
+      let inputs, _ = rel in
+      let _, exps = notexp in
+      Hint.split_exps_without_idx inputs exps
+    in
+    let ctx, values_input = eval_exps ctx exps_input in
+    let* ctx, values_output = invoke_rel ctx id values_input in
+    let ctx = assign_exps ctx exps_output values_output in
+    Ok ctx
+  in
+  let eval_if_prem ctx exp_cond =
+    let ctx, value_cond = eval_exp ctx exp_cond in
+    let cond = Value.get_bool value_cond in
+    if cond then Ok ctx
+    else
+      fail exp_cond.at
+        (F.asprintf "condition %s was not met" (Print.string_of_exp exp_cond))
+  in
+  let eval_let_prem ctx exp_l exp_r =
+    let ctx, value = eval_exp ctx exp_r in
+    let ctx = assign_exp ctx exp_l value in
+    Ok ctx
+  in
+  let eval_debug_prem ctx exp =
+    let ctx, value = eval_exp ctx exp in
+    print_endline
+    @@ F.sprintf "%s: %s" (string_of_region exp.at) (Print.string_of_exp exp);
+    print_endline @@ Print.string_of_value value;
+    Ok ctx
+  in
   let ctx = Ctx.trace_extend ctx prem in
-  eval_prem' ctx prem
-
-and eval_prem' (ctx : Ctx.t) (prem : prem) : Ctx.t attempt =
   match prem.it with
   | RulePr (id, notexp) -> eval_rule_prem ctx id notexp
   | IfPr exp_cond -> eval_if_prem ctx exp_cond
@@ -693,37 +705,6 @@ and eval_prems (ctx : Ctx.t) (prems : prem list) : Ctx.t attempt =
       let* ctx = ctx in
       eval_prem ctx prem)
     (Ok ctx) prems
-
-(* Rule premise evaluation *)
-
-and eval_rule_prem (ctx : Ctx.t) (id : id) (notexp : notexp) : Ctx.t attempt =
-  let rel = Ctx.find_rel Local ctx id in
-  let exps_input, exps_output =
-    let inputs, _ = rel in
-    let _, exps = notexp in
-    Hint.split_exps_without_idx inputs exps
-  in
-  let ctx, values_input = eval_exps ctx exps_input in
-  let* ctx, values_output = invoke_rel ctx id values_input in
-  let ctx = assign_exps ctx exps_output values_output in
-  Ok ctx
-
-(* If premise evaluation *)
-
-and eval_if_prem (ctx : Ctx.t) (exp_cond : exp) : Ctx.t attempt =
-  let ctx, value_cond = eval_exp ctx exp_cond in
-  let cond = Value.get_bool value_cond in
-  if cond then Ok ctx
-  else
-    fail exp_cond.at
-      (F.asprintf "condition %s was not met" (Print.string_of_exp exp_cond))
-
-(* Let premise evaluation *)
-
-and eval_let_prem (ctx : Ctx.t) (exp_l : exp) (exp_r : exp) : Ctx.t attempt =
-  let ctx, value = eval_exp ctx exp_r in
-  let ctx = assign_exp ctx exp_l value in
-  Ok ctx
 
 (* Iterated premise evaluation *)
 
@@ -797,234 +778,294 @@ and eval_iter_prem_list (ctx : Ctx.t) (prem : prem) (vars : var list) :
 
 and eval_iter_prem (ctx : Ctx.t) (prem : prem) (iterexp : iterexp) :
     Ctx.t attempt =
+  (* List iteration *)
+  let eval_iter_prem_list ctx prem vars =
+    (* Discriminate between bound and binding variables *)
+    let vars_bound, vars_binding =
+      List.partition
+        (fun (id, _typ, iters) ->
+          Ctx.bound_value Local ctx (id, iters @ [ List ]))
+        vars
+    in
+    (* Create a subcontext for each batch of bound values *)
+    let* ctxs_sub = Ctx.sub_list ctx vars_bound in
+    let* ctx, values_binding =
+      match ctxs_sub with
+      (* If the bound variable supposed to guide the iteration is already empty,
+         then the binding variables are also empty *)
+      | [] ->
+          let values_binding =
+            List.init (List.length vars_binding) (fun _ -> [])
+          in
+          Ok (ctx, values_binding)
+      (* Otherwise, evaluate the premise for each batch of bound values,
+       and collect the resulting binding batches *)
+      | _ ->
+          let* ctx, values_binding_batch_rev =
+            List.fold_left
+              (fun ctx_values_binding_batch ctx_sub ->
+                let* ctx, values_binding_batch_rev = ctx_values_binding_batch in
+                let ctx_sub =
+                  Ctx.trace_open_iter ctx_sub (Print.string_of_prem prem)
+                in
+                let* ctx_sub = eval_prem ctx_sub prem in
+                let ctx_sub = Ctx.trace_close ctx_sub in
+                let ctx = Ctx.trace_commit ctx ctx_sub.trace in
+                let value_binding_batch =
+                  List.map
+                    (fun (id_binding, _typ_binding, iters_binding) ->
+                      Ctx.find_value Local ctx_sub (id_binding, iters_binding))
+                    vars_binding
+                in
+                let values_binding_batch_rev =
+                  value_binding_batch :: values_binding_batch_rev
+                in
+                Ok (ctx, values_binding_batch_rev))
+              (Ok (ctx, []))
+              ctxs_sub
+          in
+          let* values_binding =
+            values_binding_batch_rev |> List.rev |> Ctx.transpose
+          in
+          Ok (ctx, values_binding)
+    in
+    (* Finally, bind the resulting binding batches *)
+    let ctx =
+      List.fold_left2
+        (fun ctx (id_binding, typ_binding, iters_binding) values_binding ->
+          let value_binding =
+            let typ =
+              Lang.Il.Typ.iterate typ_binding (iters_binding @ [ List ])
+            in
+            values_binding |> Value.Make.list typ.it
+          in
+          Ctx.add_value Local ctx
+            (id_binding, iters_binding @ [ List ])
+            value_binding)
+        ctx vars_binding values_binding
+    in
+    Ok ctx
+  in
   let iter, vars = iterexp in
   match iter with
   | Opt -> error prem.at "(TODO) eval_iter_prem"
   | List -> eval_iter_prem_list ctx prem vars
 
-(* Debug premise evaluation *)
-
-and eval_debug_prem (ctx : Ctx.t) (exp : exp) : Ctx.t attempt =
-  let ctx, value = eval_exp ctx exp in
-  print_endline
-  @@ F.sprintf "%s: %s" (string_of_region exp.at) (Print.string_of_exp exp);
-  print_endline @@ Print.string_of_value value;
-  Ok ctx
-
 (* Invoke a relation *)
-
-and match_rule (ctx : Ctx.t) (inputs : Hint.t) (rule : rule)
-    (values_input : value list) : Ctx.t * prem list * exp list =
-  let _, notexp, prems = rule.it in
-  let exps_input, exps_output =
-    let _, exps = notexp in
-    Hint.split_exps_without_idx inputs exps
-  in
-  check
-    (List.length exps_input = List.length values_input)
-    rule.at "arity mismatch in rule";
-  let ctx = assign_exps ctx exps_input values_input in
-  (ctx, prems, exps_output)
 
 and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
     (Ctx.t * value list) attempt =
-  invoke_rel' ctx id values_input
-  |> nest id.at (F.asprintf "invocation of relation %s failed" id.it)
-
-and invoke_rel' (ctx : Ctx.t) (id : id) (values_input : value list) :
-    (Ctx.t * value list) attempt =
-  (* Find the relation *)
-  let inputs, rules = Ctx.find_rel Local ctx id in
-  check_warn (rules <> []) id.at "relation has no rules";
-  (* Apply the first matching rule *)
-  let attempt_rules () =
-    let attempt_rules' =
-      List.map
-        (fun rule ->
-          let id_rule, _, _ = rule.it in
-          let attempt_rule' (ctx_local : Ctx.t) (prems : prem list)
-              (exps_output : exp list) : (Ctx.t * value list) attempt =
-            let* ctx_local = eval_prems ctx_local prems in
-            let ctx_local, values_output = eval_exps ctx_local exps_output in
-            let ctx_local = Ctx.trace_close ctx_local in
-            let ctx = Ctx.trace_commit ctx ctx_local.trace in
-            Ok (ctx, values_output)
-          in
-          let attempt_rule () : (Ctx.t * value list) attempt =
-            (* Create a subtrace for the rule *)
-            let ctx_local = Ctx.localize ctx in
-            let ctx_local =
-              Ctx.trace_open_rel ctx_local id id_rule values_input
-            in
-            (* Try to match the rule *)
-            let ctx_local, prems, exps_output =
-              match_rule ctx_local inputs rule values_input
-            in
-            (* Try evaluating the rule *)
-            attempt_rule' ctx_local prems exps_output
-            |> nest id.at
-                 (F.asprintf "application of rule %s/%s failed" id.it id_rule.it)
-          in
-          attempt_rule)
-        rules
+  (* Rule matching *)
+  let match_rule ctx inputs rule values_input =
+    let _, notexp, prems = rule.it in
+    let exps_input, exps_output =
+      let _, exps = notexp in
+      Hint.split_exps_without_idx inputs exps
     in
-    choice attempt_rules'
+    check
+      (List.length exps_input = List.length values_input)
+      rule.at "arity mismatch in rule";
+    let ctx = assign_exps ctx exps_input values_input in
+    (ctx, prems, exps_output)
   in
-  if Cache.is_cached_rule id.it then (
-    let cache_result = Cache.Cache.find !rule_cache (id.it, values_input) in
-    match cache_result with
-    | Some (subtraces, values_output) ->
-        let ctx = Ctx.trace_replace ctx subtraces in
-        Ok (ctx, values_output)
-    | None ->
-        let* ctx, values_output = attempt_rules () in
-        let subtraces = Trace.wipe_subtraces ctx.trace in
-        Cache.Cache.add !rule_cache (id.it, values_input)
-          (subtraces, values_output);
-        Ok (ctx, values_output))
-  else
-    let* ctx, values_output = attempt_rules () in
-    Ok (ctx, values_output)
+  (* Main invocation logic *)
+  let invoke_rel' () =
+    (* Find the relation *)
+    let inputs, rules = Ctx.find_rel Local ctx id in
+    check_warn (rules <> []) id.at "relation has no rules";
+    (* Apply the first matching rule *)
+    let attempt_rules () =
+      let attempt_rules' =
+        List.map
+          (fun rule ->
+            let id_rule, _, _ = rule.it in
+            let attempt_rule' (ctx_local : Ctx.t) (prems : prem list)
+                (exps_output : exp list) : (Ctx.t * value list) attempt =
+              let* ctx_local = eval_prems ctx_local prems in
+              let ctx_local, values_output = eval_exps ctx_local exps_output in
+              let ctx_local = Ctx.trace_close ctx_local in
+              let ctx = Ctx.trace_commit ctx ctx_local.trace in
+              Ok (ctx, values_output)
+            in
+            let attempt_rule () : (Ctx.t * value list) attempt =
+              (* Create a subtrace for the rule *)
+              let ctx_local = Ctx.localize ctx in
+              let ctx_local =
+                Ctx.trace_open_rel ctx_local id id_rule values_input
+              in
+              (* Try to match the rule *)
+              let ctx_local, prems, exps_output =
+                match_rule ctx_local inputs rule values_input
+              in
+              (* Try evaluating the rule *)
+              attempt_rule' ctx_local prems exps_output
+              |> nest id.at
+                   (F.asprintf "application of rule %s/%s failed" id.it
+                      id_rule.it)
+            in
+            attempt_rule)
+          rules
+      in
+      choice attempt_rules'
+    in
+    if Cache.is_cached_rule id.it then (
+      let cache_result = Cache.Cache.find !rule_cache (id.it, values_input) in
+      match cache_result with
+      | Some (subtraces, values_output) ->
+          let ctx = Ctx.trace_replace ctx subtraces in
+          Ok (ctx, values_output)
+      | None ->
+          let* ctx, values_output = attempt_rules () in
+          let subtraces = Trace.wipe_subtraces ctx.trace in
+          Cache.Cache.add !rule_cache (id.it, values_input)
+            (subtraces, values_output);
+          Ok (ctx, values_output))
+    else
+      let* ctx, values_output = attempt_rules () in
+      Ok (ctx, values_output)
+  in
+  invoke_rel' ()
+  |> nest id.at (F.asprintf "invocation of relation %s failed" id.it)
 
 (* Invoke a function *)
 
-and match_clause (ctx_caller : Ctx.t) (ctx_callee : Ctx.t) (clause : clause)
-    (values_input : value list) : Ctx.t * arg list * prem list * exp =
-  let args_input, exp_output, prems = clause.it in
-  check
-    (List.length args_input = List.length values_input)
-    clause.at "arity mismatch while matching clause";
-  let ctx = assign_args ctx_caller ctx_callee args_input values_input in
-  (ctx, args_input, prems, exp_output)
-
 and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     (Ctx.t * value) attempt =
-  invoke_func' ctx id targs args
+  (* Clause matching *)
+  let match_clause ctx_caller ctx_callee clause values_input =
+    let args_input, exp_output, prems = clause.it in
+    check
+      (List.length args_input = List.length values_input)
+      clause.at "arity mismatch while matching clause";
+    let ctx = assign_args ctx_caller ctx_callee args_input values_input in
+    (ctx, args_input, prems, exp_output)
+  in
+  (* Builtin function invocation *)
+  let invoke_func_builtin () =
+    (* Evaluate arguments *)
+    let ctx, values_input = eval_args ctx args in
+    (* Invoke builtin function *)
+    let invoke_func_builtin' () =
+      let ctx_local = Ctx.localize ctx in
+      let ctx_local = Ctx.trace_open_dec ctx_local id 0 values_input in
+      let value_output =
+        Builtins.invoke id targs values_input |> unwrap_builtin
+      in
+      let ctx_local = Ctx.trace_close ctx_local in
+      let ctx = Ctx.trace_commit ctx ctx_local.trace in
+      Ok (ctx, value_output)
+    in
+    if Cache.is_cached_func id.it then (
+      let cache_result = Cache.Cache.find !func_cache (id.it, values_input) in
+      match cache_result with
+      | Some (subtraces, value_output) ->
+          let ctx = Ctx.trace_replace ctx subtraces in
+          Ok (ctx, value_output)
+      | None ->
+          let* ctx, value_output = invoke_func_builtin' () in
+          let subtraces = Trace.wipe_subtraces ctx.trace in
+          Cache.Cache.add !func_cache (id.it, values_input)
+            (subtraces, value_output);
+          Ok (ctx, value_output))
+    else
+      let* ctx, value_output = invoke_func_builtin' () in
+      Ok (ctx, value_output)
+  in
+  (* User-defined function invocation *)
+  let invoke_func_def () =
+    (* Find the function *)
+    let tparams, clauses = Ctx.find_func Local ctx id in
+    check_warn (clauses <> []) id.at "function has no clauses";
+    (* Evaluate type arguments *)
+    let targs =
+      match targs with
+      | [] -> []
+      | targs ->
+          let theta =
+            TDEnv.fold
+              (fun tid typdef theta ->
+                let tparams, deftyp = typdef in
+                match (tparams, deftyp.it) with
+                | [], PlainT typ -> TIdMap.add tid typ theta
+                | _ -> theta)
+              ctx.local.tdenv TIdMap.empty
+          in
+          List.map (Typ.subst_typ theta) targs
+    in
+    (* Evaluate arguments *)
+    let ctx, values_input = eval_args ctx args in
+    (* Apply the first matching clause *)
+    let attempt_clauses () =
+      let attempt_clauses' =
+        List.mapi
+          (fun idx_clause clause ->
+            let attempt_clause' (ctx_local : Ctx.t) (prems : prem list)
+                (exp_output : exp) : (Ctx.t * value) attempt =
+              let* ctx_local = eval_prems ctx_local prems in
+              let ctx_local, value_output = eval_exp ctx_local exp_output in
+              let ctx_local = Ctx.trace_close ctx_local in
+              let ctx = Ctx.trace_commit ctx ctx_local.trace in
+              Ok (ctx, value_output)
+            in
+            let attempt_clause () : (Ctx.t * value) attempt =
+              (* Create a subtrace for the clause *)
+              let ctx_local = Ctx.localize ctx in
+              let ctx_local =
+                Ctx.trace_open_dec ctx_local id idx_clause values_input
+              in
+              (* Add type arguments to the context *)
+              check
+                (List.length targs = List.length tparams)
+                id.at "arity mismatch in type arguments";
+              let ctx_local =
+                List.fold_left2
+                  (fun ctx_local tparam targ ->
+                    Ctx.add_typdef Local ctx_local tparam
+                      ([], PlainT targ $ targ.at))
+                  ctx_local tparams targs
+              in
+              (* Try to match the clause *)
+              let ctx_local, args_input, prems, exp_output =
+                match_clause ctx ctx_local clause values_input
+              in
+              (* Try evaluating the clause *)
+              attempt_clause' ctx_local prems exp_output
+              |> nest id.at
+                   (F.asprintf "application of clause %s%s failed" id.it
+                      (Print.string_of_args args_input))
+            in
+            attempt_clause)
+          clauses
+      in
+      choice attempt_clauses'
+    in
+    if Cache.is_cached_func id.it then (
+      let cache_result = Cache.Cache.find !func_cache (id.it, values_input) in
+      match cache_result with
+      | Some (subtraces, value_output) ->
+          let ctx = Ctx.trace_replace ctx subtraces in
+          Ok (ctx, value_output)
+      | None ->
+          let* ctx, value_output = attempt_clauses () in
+          let subtraces = Trace.wipe_subtraces ctx.trace in
+          Cache.Cache.add !func_cache (id.it, values_input)
+            (subtraces, value_output);
+          Ok (ctx, value_output))
+    else
+      let* ctx, value_output = attempt_clauses () in
+      Ok (ctx, value_output)
+  in
+  (* Main dispatch *)
+  let invoke_func' () =
+    if Builtins.is_builtin id then invoke_func_builtin ()
+    else invoke_func_def ()
+  in
+  invoke_func' ()
   |> nest id.at
        (F.asprintf "invocation of function %s%s%s failed"
           (Print.string_of_defid id)
           (Print.string_of_targs targs)
           (Print.string_of_args args))
-
-and invoke_func' (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
-    (Ctx.t * value) attempt =
-  if Builtins.is_builtin id then invoke_func_builtin ctx id targs args
-  else invoke_func_def ctx id targs args
-
-and invoke_func_builtin (ctx : Ctx.t) (id : id) (targs : targ list)
-    (args : arg list) : (Ctx.t * value) attempt =
-  (* Evaluate arguments *)
-  let ctx, values_input = eval_args ctx args in
-  (* Invoke builtin function *)
-  let invoke_func_builtin' () =
-    let ctx_local = Ctx.localize ctx in
-    let ctx_local = Ctx.trace_open_dec ctx_local id 0 values_input in
-    let value_output =
-      Builtins.invoke id targs values_input |> unwrap_builtin
-    in
-    let ctx_local = Ctx.trace_close ctx_local in
-    let ctx = Ctx.trace_commit ctx ctx_local.trace in
-    Ok (ctx, value_output)
-  in
-  if Cache.is_cached_func id.it then (
-    let cache_result = Cache.Cache.find !func_cache (id.it, values_input) in
-    match cache_result with
-    | Some (subtraces, value_output) ->
-        let ctx = Ctx.trace_replace ctx subtraces in
-        Ok (ctx, value_output)
-    | None ->
-        let* ctx, value_output = invoke_func_builtin' () in
-        let subtraces = Trace.wipe_subtraces ctx.trace in
-        Cache.Cache.add !func_cache (id.it, values_input)
-          (subtraces, value_output);
-        Ok (ctx, value_output))
-  else
-    let* ctx, value_output = invoke_func_builtin' () in
-    Ok (ctx, value_output)
-
-and invoke_func_def (ctx : Ctx.t) (id : id) (targs : targ list)
-    (args : arg list) : (Ctx.t * value) attempt =
-  (* Find the function *)
-  let tparams, clauses = Ctx.find_func Local ctx id in
-  check_warn (clauses <> []) id.at "function has no clauses";
-  (* Evaluate type arguments *)
-  let targs =
-    match targs with
-    | [] -> []
-    | targs ->
-        let theta =
-          TDEnv.fold
-            (fun tid typdef theta ->
-              let tparams, deftyp = typdef in
-              match (tparams, deftyp.it) with
-              | [], PlainT typ -> TIdMap.add tid typ theta
-              | _ -> theta)
-            ctx.local.tdenv TIdMap.empty
-        in
-        List.map (Typ.subst_typ theta) targs
-  in
-  (* Evaluate arguments *)
-  let ctx, values_input = eval_args ctx args in
-  (* Apply the first matching clause *)
-  let attempt_clauses () =
-    let attempt_clauses' =
-      List.mapi
-        (fun idx_clause clause ->
-          let attempt_clause' (ctx_local : Ctx.t) (prems : prem list)
-              (exp_output : exp) : (Ctx.t * value) attempt =
-            let* ctx_local = eval_prems ctx_local prems in
-            let ctx_local, value_output = eval_exp ctx_local exp_output in
-            let ctx_local = Ctx.trace_close ctx_local in
-            let ctx = Ctx.trace_commit ctx ctx_local.trace in
-            Ok (ctx, value_output)
-          in
-          let attempt_clause () : (Ctx.t * value) attempt =
-            (* Create a subtrace for the clause *)
-            let ctx_local = Ctx.localize ctx in
-            let ctx_local =
-              Ctx.trace_open_dec ctx_local id idx_clause values_input
-            in
-            (* Add type arguments to the context *)
-            check
-              (List.length targs = List.length tparams)
-              id.at "arity mismatch in type arguments";
-            let ctx_local =
-              List.fold_left2
-                (fun ctx_local tparam targ ->
-                  Ctx.add_typdef Local ctx_local tparam
-                    ([], PlainT targ $ targ.at))
-                ctx_local tparams targs
-            in
-            (* Try to match the clause *)
-            let ctx_local, args_input, prems, exp_output =
-              match_clause ctx ctx_local clause values_input
-            in
-            (* Try evaluating the clause *)
-            attempt_clause' ctx_local prems exp_output
-            |> nest id.at
-                 (F.asprintf "application of clause %s%s failed" id.it
-                    (Print.string_of_args args_input))
-          in
-          attempt_clause)
-        clauses
-    in
-    choice attempt_clauses'
-  in
-  if Cache.is_cached_func id.it then (
-    let cache_result = Cache.Cache.find !func_cache (id.it, values_input) in
-    match cache_result with
-    | Some (subtraces, value_output) ->
-        let ctx = Ctx.trace_replace ctx subtraces in
-        Ok (ctx, value_output)
-    | None ->
-        let* ctx, value_output = attempt_clauses () in
-        let subtraces = Trace.wipe_subtraces ctx.trace in
-        Cache.Cache.add !func_cache (id.it, values_input)
-          (subtraces, value_output);
-        Ok (ctx, value_output))
-  else
-    let* ctx, value_output = attempt_clauses () in
-    Ok (ctx, value_output)
 
 (* Load definitions into the context *)
 

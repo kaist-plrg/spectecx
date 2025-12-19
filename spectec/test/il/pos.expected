@@ -2737,7 +2737,6 @@ Typecheck success: ../../../../../tests/interp/p4-tests/tests/p4_16_samples/pna-
 Typecheck success: ../../../../../tests/interp/p4-tests/tests/p4_16_samples/pna-dpdk_128bit_odd_size.p4
 
 >>> Running typing test on ../../../../../tests/interp/p4-tests/tests/p4_16_samples/pna-elim-hdr-copy-dpdk.p4
-negative inner acc: -0.006582
 Typecheck success: ../../../../../tests/interp/p4-tests/tests/p4_16_samples/pna-elim-hdr-copy-dpdk.p4
 
 >>> Running typing test on ../../../../../tests/interp/p4-tests/tests/p4_16_samples/pna-example-SelectByDirection.p4
@@ -3842,10 +3841,10 @@ Il typing summary
   Skipped:    215 (16.82% of total)
 
   Duration (s):
-    Total:     238.233
-    Mean:     0.224114
-    Median:   0.215219
-    Min:      0.023490
-    Max:      0.958208
-    P95:      0.806975
+    Total:     237.223
+    Mean:     0.223164
+    Median:   0.214808
+    Min:      0.022025
+    Max:      0.974557
+    P95:      0.811741
 

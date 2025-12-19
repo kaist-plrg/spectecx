@@ -3841,10 +3841,10 @@ Sl typing summary
   Skipped:    215 (16.82% of total)
 
   Duration (s):
-    Total:     119.968
-    Mean:     0.112858
-    Median:   0.107977
-    Min:      0.022383
-    Max:      0.623812
-    P95:      0.385750
+    Total:     119.519
+    Mean:     0.112436
+    Median:   0.108210
+    Min:      0.022429
+    Max:      0.448650
+    P95:      0.384732
 
