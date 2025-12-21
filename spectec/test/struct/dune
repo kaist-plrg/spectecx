@@ -1,0 +1,19 @@
+(executable
+ (name main)
+ (preprocess
+  (pps ppx_let))
+ (libraries test_lib core core_unix core_unix.command_unix))
+
+(rule
+ (target struct.actual)
+ (action
+  (with-stdout-to
+   %{target}
+   (with-stderr-to
+    struct.err
+    (run ./main.exe -s ../../../../../examples/p4-concrete)))))
+
+(rule
+ (alias runtest)
+ (action
+  (diff struct.expected struct.actual)))

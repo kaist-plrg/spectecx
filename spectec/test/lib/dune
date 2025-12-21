@@ -1,0 +1,3 @@
+(library
+ (name test_lib)
+ (libraries spectec core core_kernel core_unix core_unix.sys_unix))

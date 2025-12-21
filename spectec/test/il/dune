@@ -1,0 +1,30 @@
+(executable
+ (name main)
+ (preprocess
+  (pps ppx_let))
+ (libraries test_lib core core_unix core_unix.command_unix))
+
+;; Positive tests
+
+(rule
+ (target pos.actual)
+ (action
+  (with-stdout-to
+   %{target}
+   (with-stderr-to
+    pos.err
+    (run
+     ./main.exe
+     -s
+     ../../../../../examples/p4-concrete
+     -i
+     ../../../../../tests/interp/p4-tests/includes
+     -e
+     ../../../../../tests/interp/p4-tests/excludes
+     -d
+     ../../../../../tests/interp/p4-tests/tests/p4_16_samples)))))
+
+(rule
+ (alias runtest)
+ (action
+  (diff pos.expected pos.actual)))
