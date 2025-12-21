@@ -2,7 +2,17 @@
 
 open Core
 
-type failure = Runner_error of Runner.Error.t | Unexpected_success
+(* Unified error type for test runs *)
+type test_error = Runner_error of Runner.Error.t | Exception of exn
+
+let string_of_test_error = function
+  | Runner_error err -> Runner.Error.string_of_error err
+  | Exception exn -> "uncaught exception: " ^ Exn.to_string exn
+
+let is_exception = function Exception _ -> true | Runner_error _ -> false
+
+(** Failure type for statistics tracking *)
+type failure = Test_error of test_error | Unexpected_success
 
 type float_summary = {
   count : int;
@@ -54,7 +64,7 @@ let add_skip (stat : t) ~(label : string) : t =
   ignore label;
   { stat with skipped = stat.skipped + 1 }
 
-let failure_from_runner err = Runner_error err
+let failure_from_test_error err = Test_error err
 let failure_unexpected_success = Unexpected_success
 
 let summarize_floats values =
@@ -158,9 +168,10 @@ let print_summary name (stat : t) =
     Format.printf "\nFailures (%d):\n" stat.failed;
     List.iter (List.rev stat.failures) ~f:(fun (label, failure) ->
         match failure with
-        | Runner_error err ->
-            Format.printf "  [FAIL] %s\n    %s\n" label
-              (Runner.Error.string_of_error err)
+        | Test_error err ->
+            let tag = if is_exception err then "CRASH" else "FAIL" in
+            Format.printf "  [%s] %s\n    %s\n" tag label
+              (string_of_test_error err)
         | Unexpected_success ->
             Format.printf "  [FAIL] %s\n    expected failure but succeeded\n"
               label));
