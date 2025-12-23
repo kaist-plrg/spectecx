@@ -609,10 +609,7 @@ and eval_iter_exp (note : typ') (ctx : Ctx.t) (exp : exp) (iterexp : iterexp) :
     let+ ctx_sub_opt = Ctx.sub_opt ctx vars in
     match ctx_sub_opt with
     | Some ctx_sub ->
-        let ctx_sub = Ctx.trace_open_iter ctx_sub (Print.string_of_exp exp) in
-        let ctx_sub, value = eval_exp ctx_sub exp in
-        let ctx_sub = Ctx.trace_close ctx_sub in
-        let ctx = Ctx.trace_commit ctx ctx_sub.trace in
+        let _, value = eval_exp ctx_sub exp in
         let value_res = Some value |> Value.Make.opt note in
         (ctx, value_res)
     | None ->
@@ -624,10 +621,7 @@ and eval_iter_exp (note : typ') (ctx : Ctx.t) (exp : exp) (iterexp : iterexp) :
     let ctx, values_rev =
       List.fold_left
         (fun (ctx, values_rev) ctx_sub ->
-          let ctx_sub = Ctx.trace_open_iter ctx_sub (Print.string_of_exp exp) in
-          let ctx_sub, value = eval_exp ctx_sub exp in
-          let ctx_sub = Ctx.trace_close ctx_sub in
-          let ctx = Ctx.trace_commit ctx ctx_sub.trace in
+          let _, value = eval_exp ctx_sub exp in
           (ctx, value :: values_rev))
         (ctx, []) ctxs_sub
     in
@@ -690,7 +684,6 @@ and eval_prem (ctx : Ctx.t) (prem : prem) : Ctx.t attempt =
     print_endline @@ Print.string_of_value value;
     Ok ctx
   in
-  let ctx = Ctx.trace_extend ctx prem in
   Semantics.Dynamic.Instr_hooks.notify_prem ~prem ~at:prem.at;
   match prem.it with
   | RulePr (id, notexp) -> eval_rule_prem ctx id notexp
@@ -738,13 +731,8 @@ and eval_iter_prem_list (ctx : Ctx.t) (prem : prem) (vars : var list) :
               let* ctx, values_binding_batch_rev = ctx_values_binding_batch in
               Semantics.Dynamic.Instr_hooks.notify_iter_prem_start ~prem
                 ~at:prem.at;
-              let ctx_sub =
-                Ctx.trace_open_iter ctx_sub (Print.string_of_prem prem)
-              in
               let* ctx_sub = eval_prem ctx_sub prem in
-              let ctx_sub = Ctx.trace_close ctx_sub in
               Semantics.Dynamic.Instr_hooks.notify_iter_prem_end ~at:prem.at;
-              let ctx = Ctx.trace_commit ctx ctx_sub.trace in
               let value_binding_batch =
                 List.map
                   (fun (id_binding, _typ_binding, iters_binding) ->
@@ -812,13 +800,8 @@ and eval_iter_prem (ctx : Ctx.t) (prem : prem) (iterexp : iterexp) :
                 let* ctx, values_binding_batch_rev = ctx_values_binding_batch in
                 Semantics.Dynamic.Instr_hooks.notify_iter_prem_start ~prem
                   ~at:prem.at;
-                let ctx_sub =
-                  Ctx.trace_open_iter ctx_sub (Print.string_of_prem prem)
-                in
                 let* ctx_sub = eval_prem ctx_sub prem in
-                let ctx_sub = Ctx.trace_close ctx_sub in
                 Semantics.Dynamic.Instr_hooks.notify_iter_prem_end ~at:prem.at;
-                let ctx = Ctx.trace_commit ctx ctx_sub.trace in
                 let value_binding_batch =
                   List.map
                     (fun (id_binding, _typ_binding, iters_binding) ->
@@ -892,9 +875,7 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
             let attempt_rule' (ctx_local : Ctx.t) (prems : prem list)
                 (exps_output : exp list) : (Ctx.t * value list) attempt =
               let* ctx_local = eval_prems ctx_local prems in
-              let ctx_local, values_output = eval_exps ctx_local exps_output in
-              let ctx_local = Ctx.trace_close ctx_local in
-              let ctx = Ctx.trace_commit ctx ctx_local.trace in
+              let _, values_output = eval_exps ctx_local exps_output in
               Ok (ctx, values_output)
             in
             let attempt_rule () : (Ctx.t * value list) attempt =
@@ -902,9 +883,6 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
                 ~rule_id:id_rule.it ~at:id.at;
               (* Create a subtrace for the rule *)
               let ctx_local = Ctx.localize ctx in
-              let ctx_local =
-                Ctx.trace_open_rel ctx_local id id_rule values_input
-              in
               (* Try to match the rule *)
               let ctx_local, prems, exps_output =
                 match_rule ctx_local inputs rule values_input
@@ -928,14 +906,10 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
     if Cache.is_cached_rule id.it then (
       let cache_result = Cache.Cache.find !rule_cache (id.it, values_input) in
       match cache_result with
-      | Some (subtraces, values_output) ->
-          let ctx = Ctx.trace_replace ctx subtraces in
-          Ok (ctx, values_output)
+      | Some values_output -> Ok (ctx, values_output)
       | None ->
           let* ctx, values_output = attempt_rules () in
-          let subtraces = Trace.wipe_subtraces ctx.trace in
-          Cache.Cache.add !rule_cache (id.it, values_input)
-            (subtraces, values_output);
+          Cache.Cache.add !rule_cache (id.it, values_input) values_output;
           Ok (ctx, values_output))
     else
       let* ctx, values_output = attempt_rules () in
@@ -969,27 +943,20 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     let invoke_func_builtin' () =
       Semantics.Dynamic.Instr_hooks.notify_clause_enter ~id:id.it ~clause_idx:0
         ~at:id.at;
-      let ctx_local = Ctx.localize ctx in
-      let ctx_local = Ctx.trace_open_dec ctx_local id 0 values_input in
+      let _ = Ctx.localize ctx in
       let value_output =
         Builtins.invoke id targs values_input |> unwrap_builtin
       in
-      let ctx_local = Ctx.trace_close ctx_local in
-      let ctx = Ctx.trace_commit ctx ctx_local.trace in
       Semantics.Dynamic.Instr_hooks.notify_clause_exit ~id:id.it ~at:id.at;
       Ok (ctx, value_output)
     in
     if Cache.is_cached_func id.it then (
       let cache_result = Cache.Cache.find !func_cache (id.it, values_input) in
       match cache_result with
-      | Some (subtraces, value_output) ->
-          let ctx = Ctx.trace_replace ctx subtraces in
-          Ok (ctx, value_output)
+      | Some value_output -> Ok (ctx, value_output)
       | None ->
           let* ctx, value_output = invoke_func_builtin' () in
-          let subtraces = Trace.wipe_subtraces ctx.trace in
-          Cache.Cache.add !func_cache (id.it, values_input)
-            (subtraces, value_output);
+          Cache.Cache.add !func_cache (id.it, values_input) value_output;
           Ok (ctx, value_output))
     else
       let* ctx, value_output = invoke_func_builtin' () in
@@ -1028,9 +995,7 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
             let attempt_clause' (ctx_local : Ctx.t) (prems : prem list)
                 (exp_output : exp) : (Ctx.t * value) attempt =
               let* ctx_local = eval_prems ctx_local prems in
-              let ctx_local, value_output = eval_exp ctx_local exp_output in
-              let ctx_local = Ctx.trace_close ctx_local in
-              let ctx = Ctx.trace_commit ctx ctx_local.trace in
+              let _, value_output = eval_exp ctx_local exp_output in
               Ok (ctx, value_output)
             in
             let attempt_clause () : (Ctx.t * value) attempt =
@@ -1038,9 +1003,6 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
                 ~clause_idx:idx_clause ~at:id.at;
               (* Create a subtrace for the clause *)
               let ctx_local = Ctx.localize ctx in
-              let ctx_local =
-                Ctx.trace_open_dec ctx_local id idx_clause values_input
-              in
               (* Add type arguments to the context *)
               check
                 (List.length targs = List.length tparams)
@@ -1075,14 +1037,10 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     if Cache.is_cached_func id.it then (
       let cache_result = Cache.Cache.find !func_cache (id.it, values_input) in
       match cache_result with
-      | Some (subtraces, value_output) ->
-          let ctx = Ctx.trace_replace ctx subtraces in
-          Ok (ctx, value_output)
+      | Some value_output -> Ok (ctx, value_output)
       | None ->
           let* ctx, value_output = attempt_clauses () in
-          let subtraces = Trace.wipe_subtraces ctx.trace in
-          Cache.Cache.add !func_cache (id.it, values_input)
-            (subtraces, value_output);
+          Cache.Cache.add !func_cache (id.it, values_input) value_output;
           Ok (ctx, value_output))
     else
       let* ctx, value_output = attempt_clauses () in

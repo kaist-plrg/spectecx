@@ -77,9 +77,7 @@ let eval_il ?(trace : Semantics.Dynamic.Trace_handler.level option = None)
   in
   Semantics.Dynamic.Instr_hooks.set_handlers handlers;
   let eval_il () =
-    (* TODO: remove old debug and profile flags *)
-    Eval_Il.Runner.run_relation_fresh ~debug:false ~profile:false spec_il rid
-      values_input filename_target
+    Eval_Il.Runner.run_relation_fresh spec_il rid values_input filename_target
     |> Result.ok
   in
   let result =

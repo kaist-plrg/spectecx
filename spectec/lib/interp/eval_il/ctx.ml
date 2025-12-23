@@ -22,10 +22,6 @@ type cursor = Global | Local
 
 (* Context *)
 
-(* Config *)
-
-type config = { debug : bool; profile : bool }
-
 (* Global layer *)
 
 type global = {
@@ -51,77 +47,11 @@ type local = {
 type t = {
   (* Filename of the source file *)
   filename : string;
-  (* Config *)
-  config : config;
-  (* Execution trace *)
-  trace : Trace.t;
   (* Global layer *)
   global : global;
   (* Local layer *)
   local : local;
 }
-
-(* Profiling *)
-
-let profile (ctx : t) : unit =
-  if ctx.config.profile then Trace.profile ctx.trace
-
-(* Tracing *)
-
-let trace_open_rel (ctx : t) (id_rel : id) (id_rule : id)
-    (values_input : value list) : t =
-  let trace = Trace.open_rel id_rel id_rule values_input in
-  if ctx.config.debug then
-    Format.asprintf
-      "Opening rule %s/%s\n--- with input ---\n%s\n----------------\n" id_rel.it
-      id_rule.it
-      (values_input |> List.map Value.to_string |> String.concat "\n")
-    |> print_endline;
-  { ctx with trace }
-
-let trace_open_dec (ctx : t) (id_func : id) (idx_clause : int)
-    (values_input : value list) : t =
-  let trace = Trace.open_dec id_func idx_clause values_input in
-  if ctx.config.debug then
-    Format.asprintf
-      "Opening clause $%s/%d\n--- with input ---\n%s\n----------------\n"
-      id_func.it idx_clause
-      (values_input |> List.map Value.to_string |> String.concat "\n")
-    |> print_endline;
-  { ctx with trace }
-
-let trace_open_iter (ctx : t) (inner : string) : t =
-  let trace = Trace.open_iter inner in
-  { ctx with trace }
-
-let trace_close (ctx : t) : t =
-  let trace = Trace.close ctx.trace in
-  (if ctx.config.debug then
-     match trace with
-     | Rel { id_rel; id_rule; _ } ->
-         Format.asprintf "Closing rule %s/%s\n" id_rel.it id_rule.it
-         |> print_endline
-     | Dec { id_func; idx_clause; _ } ->
-         Format.asprintf "Closing clause $%s/%d\n" id_func.it idx_clause
-         |> print_endline
-     | Iter _ -> Format.asprintf "Closing iteration\n" |> print_endline
-     | _ -> ());
-  { ctx with trace }
-
-let trace_extend (ctx : t) (prem : prem) : t =
-  let trace = Trace.extend ctx.trace prem in
-  if ctx.config.debug then
-    Format.asprintf "Premise: %s\n" (prem |> Lang.Il.Print.string_of_prem)
-    |> print_endline;
-  { ctx with trace }
-
-let trace_replace (ctx : t) (subtraces : Trace.t list) : t =
-  let trace = Trace.replace_subtraces ctx.trace subtraces in
-  { ctx with trace }
-
-let trace_commit (ctx : t) (trace : Trace.t) : t =
-  let trace = Trace.commit ctx.trace trace in
-  { ctx with trace }
 
 (* Finders *)
 
@@ -248,19 +178,16 @@ let empty_global () : global =
 let empty_local () : local =
   { tdenv = TDEnv.empty; fenv = FEnv.empty; venv = VEnv.empty }
 
-let empty ~(debug : bool) ~(profile : bool) (filename : string) : t =
-  let config = { debug; profile } in
-  let trace = Trace.Empty in
+let empty (filename : string) : t =
   let global = empty_global () in
   let local = empty_local () in
-  { filename; config; trace; global; local }
+  { filename; global; local }
 
 (* Constructing a local context *)
 
 let localize (ctx : t) : t =
-  let trace = Trace.Empty in
   let local = empty_local () in
-  { ctx with trace; local }
+  { ctx with local }
 
 (* Constructing sub-contexts *)
 
