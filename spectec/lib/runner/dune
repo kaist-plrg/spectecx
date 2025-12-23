@@ -6,4 +6,5 @@
   spectec.lang
   spectec.pass
   spectec.interp
+  spectec.instrumentation
   spectec.interface))

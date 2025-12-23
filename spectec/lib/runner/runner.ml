@@ -66,16 +66,16 @@ let structure spec_il : Sl.spec = Structure.Struct.struct_spec spec_il
 
 (* Interpreters *)
 
-let eval_il ?(trace : Semantics.Dynamic.Trace_handler.level option = None)
+let eval_il ?(trace : Instrumentation.Trace.level option = None)
     ?(profile = false) spec_il rid values_input filename_target :
     (Eval_Il.Ctx.t * Il.Value.t list) pipeline_result =
   (* Register handlers based on flags *)
-  let module TH = Semantics.Dynamic.Trace_handler in
+  let module TH = Instrumentation.Trace in
   let handlers =
     (match trace with None -> [] | Some level -> [ TH.make ~level () ])
-    @ if profile then [ Semantics.Dynamic.Profile_handler.make () ] else []
+    @ if profile then [ Instrumentation.Profile.make () ] else []
   in
-  Semantics.Dynamic.Instr_hooks.set_handlers handlers;
+  Instrumentation.Hooks.set_handlers handlers;
   let eval_il () =
     Eval_Il.Runner.run_relation_fresh spec_il rid values_input filename_target
     |> Result.ok
@@ -85,19 +85,19 @@ let eval_il ?(trace : Semantics.Dynamic.Trace_handler.level option = None)
     with Eval_Il.Error.InterpError (at, msg) ->
       Error.IlInterpError (at, msg) |> Result.error
   in
-  Semantics.Dynamic.Instr_hooks.finish ();
+  Instrumentation.Hooks.finish ();
   result
 
-let eval_sl ?(trace : Semantics.Dynamic.Trace_handler.level option = None)
+let eval_sl ?(trace : Instrumentation.Trace.level option = None)
     ?(profile = false) spec_sl rid values_input filename_target :
     (Eval_Sl.Ctx.t * Il.Value.t list) pipeline_result =
   (* Register handlers based on flags *)
-  let module TH = Semantics.Dynamic.Trace_handler in
+  let module TH = Instrumentation.Trace in
   let handlers =
     (match trace with None -> [] | Some level -> [ TH.make ~level () ])
-    @ if profile then [ Semantics.Dynamic.Profile_handler.make () ] else []
+    @ if profile then [ Instrumentation.Profile.make () ] else []
   in
-  Semantics.Dynamic.Instr_hooks.set_handlers handlers;
+  Instrumentation.Hooks.set_handlers handlers;
   let eval_sl () =
     Eval_Sl.Runner.run_relation_fresh spec_sl rid values_input filename_target
     |> Result.ok
@@ -107,7 +107,7 @@ let eval_sl ?(trace : Semantics.Dynamic.Trace_handler.level option = None)
     with Eval_Sl.Error.InterpError (at, msg) ->
       Error.SlInterpError (at, msg) |> Result.error
   in
-  Semantics.Dynamic.Instr_hooks.finish ();
+  Instrumentation.Hooks.finish ();
   result
 
 (* P4 Parsing *)
@@ -130,15 +130,13 @@ let parse_p4_string filename_target string : Il.Value.t pipeline_result =
 
 (* Composed functions *)
 
-let eval_il_p4_typechecker
-    ?(trace : Semantics.Dynamic.Trace_handler.level option = None)
+let eval_il_p4_typechecker ?(trace : Instrumentation.Trace.level option = None)
     ?(profile = false) spec_il includes_target filename_target :
     (Eval_Il.Ctx.t * Il.Value.t list) pipeline_result =
   let* value_program = parse_p4_file includes_target filename_target in
   eval_il ~trace ~profile spec_il "Program_ok" [ value_program ] filename_target
 
-let eval_sl_p4_typechecker
-    ?(trace : Semantics.Dynamic.Trace_handler.level option = None)
+let eval_sl_p4_typechecker ?(trace : Instrumentation.Trace.level option = None)
     ?(profile = false) spec_sl includes_target filename_target :
     (Eval_Sl.Ctx.t * Il.Value.t list) pipeline_result =
   let* value_program = parse_p4_file includes_target filename_target in

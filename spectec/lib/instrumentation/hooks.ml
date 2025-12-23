@@ -42,8 +42,8 @@ module type HANDLER = sig
     id:string -> clause_idx:int -> at:Common.Source.region -> unit
 
   val on_clause_exit : id:string -> at:Common.Source.region -> unit
-  val on_iter_prem_start : prem:Il.prem -> at:Common.Source.region -> unit
-  val on_iter_prem_end : at:Common.Source.region -> unit
+  val on_iter_prem_enter : prem:Il.prem -> at:Common.Source.region -> unit
+  val on_iter_prem_exit : at:Common.Source.region -> unit
   val on_prem : prem:Il.prem -> at:Common.Source.region -> unit
   val on_instr : at:Common.Source.region -> unit
   val finish : unit -> unit
@@ -101,15 +101,15 @@ let notify_clause_exit ~id ~at =
   if !handlers <> [] then
     List.iter (fun (module H : HANDLER) -> H.on_clause_exit ~id ~at) !handlers
 
-let notify_iter_prem_start ~prem ~at =
+let notify_iter_prem_enter ~prem ~at =
   if !handlers <> [] then
     List.iter
-      (fun (module H : HANDLER) -> H.on_iter_prem_start ~prem ~at)
+      (fun (module H : HANDLER) -> H.on_iter_prem_enter ~prem ~at)
       !handlers
 
-let notify_iter_prem_end ~at =
+let notify_iter_prem_exit ~at =
   if !handlers <> [] then
-    List.iter (fun (module H : HANDLER) -> H.on_iter_prem_end ~at) !handlers
+    List.iter (fun (module H : HANDLER) -> H.on_iter_prem_exit ~at) !handlers
 
 let notify_prem ~prem ~at =
   if !handlers <> [] then
@@ -132,8 +132,8 @@ module Noop : HANDLER = struct
   let on_func_exit ~id:_ ~at:_ = ()
   let on_clause_enter ~id:_ ~clause_idx:_ ~at:_ = ()
   let on_clause_exit ~id:_ ~at:_ = ()
-  let on_iter_prem_start ~prem:_ ~at:_ = ()
-  let on_iter_prem_end ~at:_ = ()
+  let on_iter_prem_enter ~prem:_ ~at:_ = ()
+  let on_iter_prem_exit ~at:_ = ()
   let on_prem ~prem:_ ~at:_ = ()
   let on_instr ~at:_ = ()
   let finish () = ()

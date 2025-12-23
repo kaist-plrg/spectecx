@@ -1044,7 +1044,7 @@ and eval_rule_instr (ctx : Ctx.t) (id : id) (notexp : notexp)
 
 and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
     (Ctx.t * value list) option =
-  Semantics.Dynamic.Instr_hooks.notify_rel_enter ~id:id.it ~at:id.at
+  Instrumentation.Hooks.notify_rel_enter ~id:id.it ~at:id.at
     ~values:values_input;
   let _inputs, exps_input, instrs = Ctx.find_rel Local ctx id in
   check (instrs <> []) id.at "relation has no instructions";
@@ -1067,7 +1067,7 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
           Some (ctx, values_output))
     else attempt_rules ()
   in
-  Semantics.Dynamic.Instr_hooks.notify_rel_exit ~id:id.it ~at:id.at
+  Instrumentation.Hooks.notify_rel_exit ~id:id.it ~at:id.at
     ~success:(Option.is_some result);
   result
 
@@ -1133,12 +1133,12 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     else attempt_clauses ()
   in
   (* Main dispatch *)
-  Semantics.Dynamic.Instr_hooks.notify_func_enter ~id:id.it ~at:id.at ~values:[];
+  Instrumentation.Hooks.notify_func_enter ~id:id.it ~at:id.at ~values:[];
   let result =
     if Builtins.is_builtin id then invoke_func_builtin ()
     else invoke_func_def ()
   in
-  Semantics.Dynamic.Instr_hooks.notify_func_exit ~id:id.it ~at:id.at;
+  Instrumentation.Hooks.notify_func_exit ~id:id.it ~at:id.at;
   result
 
 (* Load definitions into the context *)

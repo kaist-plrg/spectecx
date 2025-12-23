@@ -1,0 +1,4 @@
+(library
+ (name instrumentation)
+ (public_name spectec.instrumentation)
+ (libraries spectec.common spectec.lang unix))

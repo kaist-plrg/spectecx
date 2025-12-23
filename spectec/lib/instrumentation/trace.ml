@@ -1,14 +1,14 @@
 (* Trace handler - Live logging of interpreter events.
 
-   Implements Instr_hooks.HANDLER interface.
+   Implements Hooks.HANDLER interface.
    Supports verbosity levels:
    - Summary: relation/function  enter/exit
    - Full: + rule/clauses, premises and iteration summaries
 
    Usage:
-     let handler = Trace_handler.make ~level:Full () in
-     Instr_hooks.set_handlers [handler];
-     Instr_hooks.finish ()
+     let handler = Trace.make ~level:Full () in
+     Hooks.set_handlers [handler];
+     Hooks.finish ()
 *)
 
 module Il = Lang.Il
@@ -56,7 +56,7 @@ module State = struct
     Format.sprintf "[%2d] %s" !depth (String.make (!depth * 2) ' ')
 end
 
-module Handler : Instr_hooks.HANDLER = struct
+module Handler : Hooks.HANDLER = struct
   let on_rel_enter ~id ~at:_ ~values =
     Format.printf "%s→ %s\n%!" (State.indent ()) id;
     (* Only print inputs in full mode *)
@@ -99,11 +99,11 @@ module Handler : Instr_hooks.HANDLER = struct
   (* Function invocation return - decrement depth *)
 
   (* TODO: incr/decr depth *)
-  let on_iter_prem_start ~prem:_ ~at:_ =
+  let on_iter_prem_enter ~prem:_ ~at:_ =
     if !State.level = Full then
       Format.printf "%s  → [iteration]\n" (State.indent ())
 
-  let on_iter_prem_end ~at:_ =
+  let on_iter_prem_exit ~at:_ =
     if !State.level = Full then
       Format.printf "%s  ← [iteration]\n%!" (State.indent ())
 
@@ -116,6 +116,6 @@ module Handler : Instr_hooks.HANDLER = struct
   let finish () = ()
 end
 
-let make ?(level = Summary) () : (module Instr_hooks.HANDLER) =
+let make ?(level = Summary) () : (module Hooks.HANDLER) =
   State.reset ~level;
   (module Handler)

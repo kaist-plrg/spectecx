@@ -5,8 +5,8 @@ let version = "0.1"
 (* Parse trace level from CLI integer *)
 let trace_level_of_int = function
   | 0 -> None
-  | 1 -> Some Semantics.Dynamic.Trace_handler.Summary
-  | 2 -> Some Semantics.Dynamic.Trace_handler.Full
+  | 1 -> Some Instrumentation.Trace.Summary
+  | 2 -> Some Instrumentation.Trace.Full
   | n ->
       failwith
         (Format.sprintf

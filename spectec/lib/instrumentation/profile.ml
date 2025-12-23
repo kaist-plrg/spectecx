@@ -1,11 +1,11 @@
 (* Profile handler - Timing statistics with inclusive/exclusive times.
 
-   Implements Instr_hooks.HANDLER interface.
+   Implements Hooks.HANDLER interface.
    Collects call counts and timing, prints report on finish().
 
    Usage:
-     let handler = Profile_handler.make () in
-     Instr_hooks.run_with_handlers ~handlers_list:[handler] (fun () -> ...)
+     let handler = Profile.make () in
+     Hooks.run_with_handlers ~handlers_list:[handler] (fun () -> ...)
 *)
 
 (* Stats are mutable for accumulation across calls *)
@@ -41,7 +41,7 @@ module State = struct
         s
 end
 
-module Handler : Instr_hooks.HANDLER = struct
+module Handler : Hooks.HANDLER = struct
   open State
 
   let on_rel_enter ~id ~at:_ ~values:_ =
@@ -95,8 +95,8 @@ module Handler : Instr_hooks.HANDLER = struct
         let parent = Stack.top frame_stack in
         parent.child_time <- parent.child_time +. elapsed)
 
-  let on_iter_prem_start ~prem:_ ~at:_ = ()
-  let on_iter_prem_end ~at:_ = ()
+  let on_iter_prem_enter ~prem:_ ~at:_ = ()
+  let on_iter_prem_exit ~at:_ = ()
   let on_prem ~prem:_ ~at:_ = ()
   let on_instr ~at:_ = ()
 
@@ -154,6 +154,6 @@ module Handler : Instr_hooks.HANDLER = struct
         func_sorted)
 end
 
-let make () : (module Instr_hooks.HANDLER) =
+let make () : (module Hooks.HANDLER) =
   State.reset ();
   (module Handler)
