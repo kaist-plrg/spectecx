@@ -691,6 +691,7 @@ and eval_prem (ctx : Ctx.t) (prem : prem) : Ctx.t attempt =
     Ok ctx
   in
   let ctx = Ctx.trace_extend ctx prem in
+  Semantics.Dynamic.Instr_hooks.notify_prem ~prem ~at:prem.at;
   match prem.it with
   | RulePr (id, notexp) -> eval_rule_prem ctx id notexp
   | IfPr exp_cond -> eval_if_prem ctx exp_cond
@@ -735,11 +736,14 @@ and eval_iter_prem_list (ctx : Ctx.t) (prem : prem) (vars : var list) :
           List.fold_left
             (fun ctx_values_binding_batch ctx_sub ->
               let* ctx, values_binding_batch_rev = ctx_values_binding_batch in
+              Semantics.Dynamic.Instr_hooks.notify_iter_prem_start ~prem
+                ~at:prem.at;
               let ctx_sub =
                 Ctx.trace_open_iter ctx_sub (Print.string_of_prem prem)
               in
               let* ctx_sub = eval_prem ctx_sub prem in
               let ctx_sub = Ctx.trace_close ctx_sub in
+              Semantics.Dynamic.Instr_hooks.notify_iter_prem_end ~at:prem.at;
               let ctx = Ctx.trace_commit ctx ctx_sub.trace in
               let value_binding_batch =
                 List.map
@@ -801,15 +805,19 @@ and eval_iter_prem (ctx : Ctx.t) (prem : prem) (iterexp : iterexp) :
       (* Otherwise, evaluate the premise for each batch of bound values,
        and collect the resulting binding batches *)
       | _ ->
+          (* Hook: iteration start *)
           let* ctx, values_binding_batch_rev =
             List.fold_left
               (fun ctx_values_binding_batch ctx_sub ->
                 let* ctx, values_binding_batch_rev = ctx_values_binding_batch in
+                Semantics.Dynamic.Instr_hooks.notify_iter_prem_start ~prem
+                  ~at:prem.at;
                 let ctx_sub =
                   Ctx.trace_open_iter ctx_sub (Print.string_of_prem prem)
                 in
                 let* ctx_sub = eval_prem ctx_sub prem in
                 let ctx_sub = Ctx.trace_close ctx_sub in
+                Semantics.Dynamic.Instr_hooks.notify_iter_prem_end ~at:prem.at;
                 let ctx = Ctx.trace_commit ctx ctx_sub.trace in
                 let value_binding_batch =
                   List.map
@@ -855,9 +863,6 @@ and eval_iter_prem (ctx : Ctx.t) (prem : prem) (iterexp : iterexp) :
 
 and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
     (Ctx.t * value list) attempt =
-  (* Hook: relation enter *)
-  Semantics.Dynamic.Instr_hooks.notify_rel_enter ~id:id.it ~at:id.at
-    ~values:values_input;
   (* Rule matching *)
   let match_rule ctx inputs rule values_input =
     let _, notexp, prems = rule.it in
@@ -873,6 +878,8 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
   in
   (* Main invocation logic *)
   let invoke_rel' () =
+    Semantics.Dynamic.Instr_hooks.notify_rel_enter ~id:id.it ~at:id.at
+      ~values:values_input;
     (* Find the relation *)
     let inputs, rules = Ctx.find_rel Local ctx id in
     check_warn (rules <> []) id.at "relation has no rules";
@@ -891,6 +898,8 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
               Ok (ctx, values_output)
             in
             let attempt_rule () : (Ctx.t * value list) attempt =
+              Semantics.Dynamic.Instr_hooks.notify_rule_enter ~id:id.it
+                ~rule_id:id_rule.it ~at:id.at;
               (* Create a subtrace for the rule *)
               let ctx_local = Ctx.localize ctx in
               let ctx_local =
@@ -901,10 +910,15 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
                 match_rule ctx_local inputs rule values_input
               in
               (* Try evaluating the rule *)
-              attempt_rule' ctx_local prems exps_output
-              |> nest id.at
-                   (F.asprintf "application of rule %s/%s failed" id.it
-                      id_rule.it)
+              let result =
+                attempt_rule' ctx_local prems exps_output
+                |> nest id.at
+                     (F.asprintf "application of rule %s/%s failed" id.it
+                        id_rule.it)
+              in
+              Semantics.Dynamic.Instr_hooks.notify_rule_exit ~id:id.it
+                ~rule_id:id_rule.it ~at:id.at ~success:(Result.is_ok result);
+              result
             in
             attempt_rule)
           rules
@@ -927,14 +941,10 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
       let* ctx, values_output = attempt_rules () in
       Ok (ctx, values_output)
   in
-  let result =
-    invoke_rel' ()
-    |> nest id.at (F.asprintf "invocation of relation %s failed" id.it)
-  in
-  (* Hook: relation exit *)
+  let result = invoke_rel' () in
   Semantics.Dynamic.Instr_hooks.notify_rel_exit ~id:id.it ~at:id.at
     ~success:(Result.is_ok result);
-  result
+  result |> nest id.at (F.asprintf "invocation of relation %s failed" id.it)
 
 (* Invoke a function *)
 
@@ -953,8 +963,12 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
   let invoke_func_builtin () =
     (* Evaluate arguments *)
     let ctx, values_input = eval_args ctx args in
+    Semantics.Dynamic.Instr_hooks.notify_func_enter ~id:id.it ~at:id.at
+      ~values:values_input;
     (* Invoke builtin function *)
     let invoke_func_builtin' () =
+      Semantics.Dynamic.Instr_hooks.notify_clause_enter ~id:id.it ~clause_idx:0
+        ~at:id.at;
       let ctx_local = Ctx.localize ctx in
       let ctx_local = Ctx.trace_open_dec ctx_local id 0 values_input in
       let value_output =
@@ -962,6 +976,7 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
       in
       let ctx_local = Ctx.trace_close ctx_local in
       let ctx = Ctx.trace_commit ctx ctx_local.trace in
+      Semantics.Dynamic.Instr_hooks.notify_clause_exit ~id:id.it ~at:id.at;
       Ok (ctx, value_output)
     in
     if Cache.is_cached_func id.it then (
@@ -1003,6 +1018,8 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     in
     (* Evaluate arguments *)
     let ctx, values_input = eval_args ctx args in
+    Semantics.Dynamic.Instr_hooks.notify_func_enter ~id:id.it ~at:id.at
+      ~values:values_input;
     (* Apply the first matching clause *)
     let attempt_clauses () =
       let attempt_clauses' =
@@ -1017,6 +1034,8 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
               Ok (ctx, value_output)
             in
             let attempt_clause () : (Ctx.t * value) attempt =
+              Semantics.Dynamic.Instr_hooks.notify_clause_enter ~id:id.it
+                ~clause_idx:idx_clause ~at:id.at;
               (* Create a subtrace for the clause *)
               let ctx_local = Ctx.localize ctx in
               let ctx_local =
@@ -1038,10 +1057,15 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
                 match_clause ctx ctx_local clause values_input
               in
               (* Try evaluating the clause *)
-              attempt_clause' ctx_local prems exp_output
-              |> nest id.at
-                   (F.asprintf "application of clause %s%s failed" id.it
-                      (Print.string_of_args args_input))
+              let result =
+                attempt_clause' ctx_local prems exp_output
+                |> nest id.at
+                     (F.asprintf "application of clause %s%s failed" id.it
+                        (Print.string_of_args args_input))
+              in
+              Semantics.Dynamic.Instr_hooks.notify_clause_exit ~id:id.it
+                ~at:id.at;
+              result
             in
             attempt_clause)
           clauses
@@ -1065,23 +1089,18 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
       Ok (ctx, value_output)
   in
   (* Main dispatch *)
-  (* Hook: function enter - pass empty values for now *)
-  Semantics.Dynamic.Instr_hooks.notify_func_enter ~id:id.it ~at:id.at ~values:[];
   let invoke_func' () =
     if Builtins.is_builtin id then invoke_func_builtin ()
     else invoke_func_def ()
   in
-  let result =
-    invoke_func' ()
-    |> nest id.at
-         (F.asprintf "invocation of function %s%s%s failed"
-            (Print.string_of_defid id)
-            (Print.string_of_targs targs)
-            (Print.string_of_args args))
-  in
-  (* Hook: function exit *)
+  let result = invoke_func' () in
   Semantics.Dynamic.Instr_hooks.notify_func_exit ~id:id.it ~at:id.at;
   result
+  |> nest id.at
+       (F.asprintf "invocation of function %s%s%s failed"
+          (Print.string_of_defid id)
+          (Print.string_of_targs targs)
+          (Print.string_of_args args))
 
 (* Load definitions into the context *)
 

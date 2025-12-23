@@ -23,11 +23,28 @@ module type HANDLER = sig
 
   val on_rel_exit : id:string -> at:Common.Source.region -> success:bool -> unit
 
+  val on_rule_enter :
+    id:string -> rule_id:string -> at:Common.Source.region -> unit
+
+  val on_rule_exit :
+    id:string ->
+    rule_id:string ->
+    at:Common.Source.region ->
+    success:bool ->
+    unit
+
   val on_func_enter :
     id:string -> at:Common.Source.region -> values:Il.Value.t list -> unit
 
   val on_func_exit : id:string -> at:Common.Source.region -> unit
-  val on_prem : at:Common.Source.region -> unit
+
+  val on_clause_enter :
+    id:string -> clause_idx:int -> at:Common.Source.region -> unit
+
+  val on_clause_exit : id:string -> at:Common.Source.region -> unit
+  val on_iter_prem_start : prem:Il.prem -> at:Common.Source.region -> unit
+  val on_iter_prem_end : at:Common.Source.region -> unit
+  val on_prem : prem:Il.prem -> at:Common.Source.region -> unit
   val on_instr : at:Common.Source.region -> unit
   val finish : unit -> unit
 end
@@ -49,6 +66,16 @@ let notify_rel_exit ~id ~at ~success =
     (fun (module H : HANDLER) -> H.on_rel_exit ~id ~at ~success)
     !handlers
 
+let notify_rule_enter ~id ~rule_id ~at =
+  List.iter
+    (fun (module H : HANDLER) -> H.on_rule_enter ~id ~rule_id ~at)
+    !handlers
+
+let notify_rule_exit ~id ~rule_id ~at ~success =
+  List.iter
+    (fun (module H : HANDLER) -> H.on_rule_exit ~id ~rule_id ~at ~success)
+    !handlers
+
 let notify_func_enter ~id ~at ~values =
   List.iter
     (fun (module H : HANDLER) -> H.on_func_enter ~id ~at ~values)
@@ -57,8 +84,24 @@ let notify_func_enter ~id ~at ~values =
 let notify_func_exit ~id ~at =
   List.iter (fun (module H : HANDLER) -> H.on_func_exit ~id ~at) !handlers
 
-let notify_prem ~at =
-  List.iter (fun (module H : HANDLER) -> H.on_prem ~at) !handlers
+let notify_clause_enter ~id ~clause_idx ~at =
+  List.iter
+    (fun (module H : HANDLER) -> H.on_clause_enter ~id ~clause_idx ~at)
+    !handlers
+
+let notify_clause_exit ~id ~at =
+  List.iter (fun (module H : HANDLER) -> H.on_clause_exit ~id ~at) !handlers
+
+let notify_iter_prem_start ~prem ~at =
+  List.iter
+    (fun (module H : HANDLER) -> H.on_iter_prem_start ~prem ~at)
+    !handlers
+
+let notify_iter_prem_end ~at =
+  List.iter (fun (module H : HANDLER) -> H.on_iter_prem_end ~at) !handlers
+
+let notify_prem ~prem ~at =
+  List.iter (fun (module H : HANDLER) -> H.on_prem ~prem ~at) !handlers
 
 let notify_instr ~at =
   List.iter (fun (module H : HANDLER) -> H.on_instr ~at) !handlers
@@ -70,9 +113,15 @@ let finish () = List.iter (fun (module H : HANDLER) -> H.finish ()) !handlers
 module Noop : HANDLER = struct
   let on_rel_enter ~id:_ ~at:_ ~values:_ = ()
   let on_rel_exit ~id:_ ~at:_ ~success:_ = ()
+  let on_rule_enter ~id:_ ~rule_id:_ ~at:_ = ()
+  let on_rule_exit ~id:_ ~rule_id:_ ~at:_ ~success:_ = ()
   let on_func_enter ~id:_ ~at:_ ~values:_ = ()
   let on_func_exit ~id:_ ~at:_ = ()
-  let on_prem ~at:_ = ()
+  let on_clause_enter ~id:_ ~clause_idx:_ ~at:_ = ()
+  let on_clause_exit ~id:_ ~at:_ = ()
+  let on_iter_prem_start ~prem:_ ~at:_ = ()
+  let on_iter_prem_end ~at:_ = ()
+  let on_prem ~prem:_ ~at:_ = ()
   let on_instr ~at:_ = ()
   let finish () = ()
 end

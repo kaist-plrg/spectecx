@@ -2809,7 +2809,6 @@ Typecheck success: ../../../../../tests/interp/p4-tests/tests/p4_16_samples/pna-
 Typecheck success: ../../../../../tests/interp/p4-tests/tests/p4_16_samples/pna-example-varIndex-2.p4
 
 >>> Running typing test on ../../../../../tests/interp/p4-tests/tests/p4_16_samples/pna-example-varIndex.p4
-negative inner acc: -0.010386
 Typecheck success: ../../../../../tests/interp/p4-tests/tests/p4_16_samples/pna-example-varIndex.p4
 
 >>> Running typing test on ../../../../../tests/interp/p4-tests/tests/p4_16_samples/pna-extract-local-header.p4
@@ -3842,10 +3841,10 @@ Il typing summary
   Skipped:    215 (16.82% of total)
 
   Duration (s):
-    Total:     237.223
-    Mean:     0.223164
-    Median:   0.216253
-    Min:      0.023359
-    Max:      0.934877
-    P95:      0.809637
+    Total:     264.253
+    Mean:     0.248592
+    Median:   0.235948
+    Min:      0.024944
+    Max:      1.145923
+    P95:      0.911559
 

@@ -50,6 +50,10 @@ module Handler : Instr_hooks.HANDLER = struct
     in
     Stack.push frame frame_stack
 
+  (* Relation rule attempt - no-op for profiling *)
+  let on_rule_enter ~id:_ ~rule_id:_ ~at:_ = ()
+  let on_rule_exit ~id:_ ~rule_id:_ ~at:_ ~success:_ = ()
+
   let on_rel_exit ~id ~at:_ ~success:_ =
     if not (Stack.is_empty frame_stack) then (
       let frame = Stack.pop frame_stack in
@@ -74,6 +78,10 @@ module Handler : Instr_hooks.HANDLER = struct
     in
     Stack.push frame frame_stack
 
+  (* Function clause attempt - no-op for profiling *)
+  let on_clause_enter ~id:_ ~clause_idx:_ ~at:_ = ()
+  let on_clause_exit ~id:_ ~at:_ = ()
+
   let on_func_exit ~id ~at:_ =
     if not (Stack.is_empty frame_stack) then (
       let frame = Stack.pop frame_stack in
@@ -87,7 +95,9 @@ module Handler : Instr_hooks.HANDLER = struct
         let parent = Stack.top frame_stack in
         parent.child_time <- parent.child_time +. elapsed)
 
-  let on_prem ~at:_ = ()
+  let on_iter_prem_start ~prem:_ ~at:_ = ()
+  let on_iter_prem_end ~at:_ = ()
+  let on_prem ~prem:_ ~at:_ = ()
   let on_instr ~at:_ = ()
 
   let finish () =
