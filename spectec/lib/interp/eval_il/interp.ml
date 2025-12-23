@@ -855,6 +855,9 @@ and eval_iter_prem (ctx : Ctx.t) (prem : prem) (iterexp : iterexp) :
 
 and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
     (Ctx.t * value list) attempt =
+  (* Hook: relation enter *)
+  Semantics.Dynamic.Instr_hooks.notify_rel_enter ~id:id.it ~at:id.at
+    ~values:values_input;
   (* Rule matching *)
   let match_rule ctx inputs rule values_input =
     let _, notexp, prems = rule.it in
@@ -924,8 +927,14 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
       let* ctx, values_output = attempt_rules () in
       Ok (ctx, values_output)
   in
-  invoke_rel' ()
-  |> nest id.at (F.asprintf "invocation of relation %s failed" id.it)
+  let result =
+    invoke_rel' ()
+    |> nest id.at (F.asprintf "invocation of relation %s failed" id.it)
+  in
+  (* Hook: relation exit *)
+  Semantics.Dynamic.Instr_hooks.notify_rel_exit ~id:id.it ~at:id.at
+    ~success:(Result.is_ok result);
+  result
 
 (* Invoke a function *)
 
@@ -1056,16 +1065,23 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
       Ok (ctx, value_output)
   in
   (* Main dispatch *)
+  (* Hook: function enter - pass empty values for now *)
+  Semantics.Dynamic.Instr_hooks.notify_func_enter ~id:id.it ~at:id.at ~values:[];
   let invoke_func' () =
     if Builtins.is_builtin id then invoke_func_builtin ()
     else invoke_func_def ()
   in
-  invoke_func' ()
-  |> nest id.at
-       (F.asprintf "invocation of function %s%s%s failed"
-          (Print.string_of_defid id)
-          (Print.string_of_targs targs)
-          (Print.string_of_args args))
+  let result =
+    invoke_func' ()
+    |> nest id.at
+         (F.asprintf "invocation of function %s%s%s failed"
+            (Print.string_of_defid id)
+            (Print.string_of_targs targs)
+            (Print.string_of_args args))
+  in
+  (* Hook: function exit *)
+  Semantics.Dynamic.Instr_hooks.notify_func_exit ~id:id.it ~at:id.at;
+  result
 
 (* Load definitions into the context *)
 

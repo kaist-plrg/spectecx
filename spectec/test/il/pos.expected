@@ -2809,6 +2809,7 @@ Typecheck success: ../../../../../tests/interp/p4-tests/tests/p4_16_samples/pna-
 Typecheck success: ../../../../../tests/interp/p4-tests/tests/p4_16_samples/pna-example-varIndex-2.p4
 
 >>> Running typing test on ../../../../../tests/interp/p4-tests/tests/p4_16_samples/pna-example-varIndex.p4
+negative inner acc: -0.010386
 Typecheck success: ../../../../../tests/interp/p4-tests/tests/p4_16_samples/pna-example-varIndex.p4
 
 >>> Running typing test on ../../../../../tests/interp/p4-tests/tests/p4_16_samples/pna-extract-local-header.p4
@@ -3843,8 +3844,8 @@ Il typing summary
   Duration (s):
     Total:     237.223
     Mean:     0.223164
-    Median:   0.214808
-    Min:      0.022025
-    Max:      0.974557
-    P95:      0.811741
+    Median:   0.216253
+    Min:      0.023359
+    Max:      0.934877
+    P95:      0.809637
 

@@ -66,26 +66,47 @@ let structure spec_il : Sl.spec = Structure.Struct.struct_spec spec_il
 
 (* Interpreters *)
 
-let eval_il ~debug ~profile spec_il rid values_input filename_target :
-    (Eval_Il.Ctx.t * Il.Value.t list) pipeline_result =
+let eval_il ?(trace = false) ?(profile = false) spec_il rid values_input
+    filename_target : (Eval_Il.Ctx.t * Il.Value.t list) pipeline_result =
+  (* Register handlers based on flags *)
+  let handlers =
+    (if trace then [ Semantics.Dynamic.Trace_handler.make () ] else [])
+    @ if profile then [ Semantics.Dynamic.Profile_handler.make () ] else []
+  in
+  Semantics.Dynamic.Instr_hooks.set_handlers handlers;
   let eval_il () =
-    Eval_Il.Runner.run_relation_fresh ~debug ~profile spec_il rid values_input
-      filename_target
+    (* TODO: remove old debug and profile flags *)
+    Eval_Il.Runner.run_relation_fresh ~debug:false ~profile:false spec_il rid
+      values_input filename_target
     |> Result.ok
   in
-  try eval_il ()
-  with Eval_Il.Error.InterpError (at, msg) ->
-    Error.IlInterpError (at, msg) |> Result.error
+  let result =
+    try eval_il ()
+    with Eval_Il.Error.InterpError (at, msg) ->
+      Error.IlInterpError (at, msg) |> Result.error
+  in
+  Semantics.Dynamic.Instr_hooks.finish ();
+  result
 
-let eval_sl spec_sl rid values_input filename_target :
-    (Eval_Sl.Ctx.t * Il.Value.t list) pipeline_result =
+let eval_sl ?(trace = false) ?(profile = false) spec_sl rid values_input
+    filename_target : (Eval_Sl.Ctx.t * Il.Value.t list) pipeline_result =
+  (* Register handlers based on flags *)
+  let handlers =
+    (if trace then [ Semantics.Dynamic.Trace_handler.make () ] else [])
+    @ if profile then [ Semantics.Dynamic.Profile_handler.make () ] else []
+  in
+  Semantics.Dynamic.Instr_hooks.set_handlers handlers;
   let eval_sl () =
     Eval_Sl.Runner.run_relation_fresh spec_sl rid values_input filename_target
     |> Result.ok
   in
-  try eval_sl ()
-  with Eval_Sl.Error.InterpError (at, msg) ->
-    Error.SlInterpError (at, msg) |> Result.error
+  let result =
+    try eval_sl ()
+    with Eval_Sl.Error.InterpError (at, msg) ->
+      Error.SlInterpError (at, msg) |> Result.error
+  in
+  Semantics.Dynamic.Instr_hooks.finish ();
+  result
 
 (* P4 Parsing *)
 
@@ -107,15 +128,17 @@ let parse_p4_string filename_target string : Il.Value.t pipeline_result =
 
 (* Composed functions *)
 
-let eval_il_p4_typechecker ~debug ~profile spec_il includes_target
-    filename_target : (Eval_Il.Ctx.t * Il.Value.t list) pipeline_result =
+let eval_il_p4_typechecker ?(trace = false) ?(profile = false) spec_il
+    includes_target filename_target :
+    (Eval_Il.Ctx.t * Il.Value.t list) pipeline_result =
   let* value_program = parse_p4_file includes_target filename_target in
-  eval_il ~debug ~profile spec_il "Program_ok" [ value_program ] filename_target
+  eval_il ~trace ~profile spec_il "Program_ok" [ value_program ] filename_target
 
-let eval_sl_p4_typechecker spec_sl includes_target filename_target :
+let eval_sl_p4_typechecker ?(trace = false) ?(profile = false) spec_sl
+    includes_target filename_target :
     (Eval_Sl.Ctx.t * Il.Value.t list) pipeline_result =
   let* value_program = parse_p4_file includes_target filename_target in
-  eval_sl spec_sl "Program_ok" [ value_program ] filename_target
+  eval_sl ~trace ~profile spec_sl "Program_ok" [ value_program ] filename_target
 
 let parse_p4_file_with_roundtrip roundtrip filenames_spec includes_target
     filename_target : string pipeline_result =

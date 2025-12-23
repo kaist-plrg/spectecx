@@ -1044,6 +1044,9 @@ and eval_rule_instr (ctx : Ctx.t) (id : id) (notexp : notexp)
 
 and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
     (Ctx.t * value list) option =
+  (* Hook: relation enter *)
+  Semantics.Dynamic.Instr_hooks.notify_rel_enter ~id:id.it ~at:id.at
+    ~values:values_input;
   let _inputs, exps_input, instrs = Ctx.find_rel Local ctx id in
   check (instrs <> []) id.at "relation has no instructions";
   let attempt_rules () =
@@ -1054,15 +1057,21 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
     let ctx = Ctx.commit ctx ctx_local in
     match sign with Res values_output -> Some (ctx, values_output) | _ -> None
   in
-  if Cache.is_cached_rule id.it then (
-    let cache_result = Cache.Cache.find !rule_cache (id.it, values_input) in
-    match cache_result with
-    | Some values_output -> Some (ctx, values_output)
-    | None ->
-        let* ctx, values_output = attempt_rules () in
-        Cache.Cache.add !rule_cache (id.it, values_input) values_output;
-        Some (ctx, values_output))
-  else attempt_rules ()
+  let result =
+    if Cache.is_cached_rule id.it then (
+      let cache_result = Cache.Cache.find !rule_cache (id.it, values_input) in
+      match cache_result with
+      | Some values_output -> Some (ctx, values_output)
+      | None ->
+          let* ctx, values_output = attempt_rules () in
+          Cache.Cache.add !rule_cache (id.it, values_input) values_output;
+          Some (ctx, values_output))
+    else attempt_rules ()
+  in
+  (* Hook: relation exit *)
+  Semantics.Dynamic.Instr_hooks.notify_rel_exit ~id:id.it ~at:id.at
+    ~success:(Option.is_some result);
+  result
 
 (* Invoke a function *)
 
@@ -1126,7 +1135,15 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     else attempt_clauses ()
   in
   (* Main dispatch *)
-  if Builtins.is_builtin id then invoke_func_builtin () else invoke_func_def ()
+  (* Hook: function enter *)
+  Semantics.Dynamic.Instr_hooks.notify_func_enter ~id:id.it ~at:id.at ~values:[];
+  let result =
+    if Builtins.is_builtin id then invoke_func_builtin ()
+    else invoke_func_def ()
+  in
+  (* Hook: function exit *)
+  Semantics.Dynamic.Instr_hooks.notify_func_exit ~id:id.it ~at:id.at;
+  result
 
 (* Load definitions into the context *)
 

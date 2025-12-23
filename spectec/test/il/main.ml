@@ -28,7 +28,7 @@ let run ~negative specdir includes exclude_dirs testdir =
     let run filename =
       Runner.Handlers.il (fun () ->
           let%bind _ =
-            Runner.eval_il_p4_typechecker ~debug:false ~profile:false spec_il
+            Runner.eval_il_p4_typechecker ~trace:false ~profile:false spec_il
               includes filename
           in
           Ok ())
