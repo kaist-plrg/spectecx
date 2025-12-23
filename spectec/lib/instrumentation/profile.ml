@@ -20,6 +20,7 @@ type frame = {
   is_rel : bool;
   start_time : float;
   mutable child_time : float;
+  is_recursive : bool;
 }
 
 module State = struct
@@ -45,8 +46,17 @@ module Handler : Hooks.HANDLER = struct
   open State
 
   let on_rel_enter ~id ~at:_ ~values:_ =
+    let is_recursive =
+      frame_stack |> Stack.to_seq |> Seq.exists (fun f -> f.is_rel && f.id = id)
+    in
     let frame =
-      { id; is_rel = true; start_time = Unix.gettimeofday (); child_time = 0.0 }
+      {
+        id;
+        is_rel = true;
+        start_time = Unix.gettimeofday ();
+        child_time = 0.0;
+        is_recursive;
+      }
     in
     Stack.push frame frame_stack
 
@@ -61,19 +71,25 @@ module Handler : Hooks.HANDLER = struct
       let exclusive = elapsed -. frame.child_time in
       let stats = get_or_create_stats rel_stats id in
       stats.count <- stats.count + 1;
-      stats.inclusive_time <- stats.inclusive_time +. elapsed;
+      if not frame.is_recursive then
+        stats.inclusive_time <- stats.inclusive_time +. elapsed;
       stats.exclusive_time <- stats.exclusive_time +. exclusive;
       if not (Stack.is_empty frame_stack) then
         let parent = Stack.top frame_stack in
         parent.child_time <- parent.child_time +. elapsed)
 
   let on_func_enter ~id ~at:_ ~values:_ =
+    let is_recursive =
+      frame_stack |> Stack.to_seq
+      |> Seq.exists (fun f -> (not f.is_rel) && f.id = id)
+    in
     let frame =
       {
         id;
         is_rel = false;
         start_time = Unix.gettimeofday ();
         child_time = 0.0;
+        is_recursive;
       }
     in
     Stack.push frame frame_stack
@@ -89,7 +105,8 @@ module Handler : Hooks.HANDLER = struct
       let exclusive = elapsed -. frame.child_time in
       let stats = get_or_create_stats func_stats id in
       stats.count <- stats.count + 1;
-      stats.inclusive_time <- stats.inclusive_time +. elapsed;
+      if not frame.is_recursive then
+        stats.inclusive_time <- stats.inclusive_time +. elapsed;
       stats.exclusive_time <- stats.exclusive_time +. exclusive;
       if not (Stack.is_empty frame_stack) then
         let parent = Stack.top frame_stack in
