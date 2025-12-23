@@ -57,54 +57,67 @@ let set_handlers hs = handlers := hs
 (* Event dispatchers called from interpreters *)
 
 let notify_rel_enter ~id ~at ~values =
-  List.iter
-    (fun (module H : HANDLER) -> H.on_rel_enter ~id ~at ~values)
-    !handlers
+  if !handlers <> [] then
+    if !handlers <> [] then
+      List.iter
+        (fun (module H : HANDLER) -> H.on_rel_enter ~id ~at ~values)
+        !handlers
 
 let notify_rel_exit ~id ~at ~success =
-  List.iter
-    (fun (module H : HANDLER) -> H.on_rel_exit ~id ~at ~success)
-    !handlers
+  if !handlers <> [] then
+    List.iter
+      (fun (module H : HANDLER) -> H.on_rel_exit ~id ~at ~success)
+      !handlers
 
 let notify_rule_enter ~id ~rule_id ~at =
-  List.iter
-    (fun (module H : HANDLER) -> H.on_rule_enter ~id ~rule_id ~at)
-    !handlers
+  if !handlers <> [] then
+    List.iter
+      (fun (module H : HANDLER) -> H.on_rule_enter ~id ~rule_id ~at)
+      !handlers
 
 let notify_rule_exit ~id ~rule_id ~at ~success =
-  List.iter
-    (fun (module H : HANDLER) -> H.on_rule_exit ~id ~rule_id ~at ~success)
-    !handlers
+  if !handlers <> [] then
+    List.iter
+      (fun (module H : HANDLER) -> H.on_rule_exit ~id ~rule_id ~at ~success)
+      !handlers
 
 let notify_func_enter ~id ~at ~values =
-  List.iter
-    (fun (module H : HANDLER) -> H.on_func_enter ~id ~at ~values)
-    !handlers
+  if !handlers <> [] then
+    List.iter
+      (fun (module H : HANDLER) -> H.on_func_enter ~id ~at ~values)
+      !handlers
 
 let notify_func_exit ~id ~at =
-  List.iter (fun (module H : HANDLER) -> H.on_func_exit ~id ~at) !handlers
+  if !handlers <> [] then
+    List.iter (fun (module H : HANDLER) -> H.on_func_exit ~id ~at) !handlers
 
 let notify_clause_enter ~id ~clause_idx ~at =
-  List.iter
-    (fun (module H : HANDLER) -> H.on_clause_enter ~id ~clause_idx ~at)
-    !handlers
+  if !handlers <> [] then
+    List.iter
+      (fun (module H : HANDLER) -> H.on_clause_enter ~id ~clause_idx ~at)
+      !handlers
 
 let notify_clause_exit ~id ~at =
-  List.iter (fun (module H : HANDLER) -> H.on_clause_exit ~id ~at) !handlers
+  if !handlers <> [] then
+    List.iter (fun (module H : HANDLER) -> H.on_clause_exit ~id ~at) !handlers
 
 let notify_iter_prem_start ~prem ~at =
-  List.iter
-    (fun (module H : HANDLER) -> H.on_iter_prem_start ~prem ~at)
-    !handlers
+  if !handlers <> [] then
+    List.iter
+      (fun (module H : HANDLER) -> H.on_iter_prem_start ~prem ~at)
+      !handlers
 
 let notify_iter_prem_end ~at =
-  List.iter (fun (module H : HANDLER) -> H.on_iter_prem_end ~at) !handlers
+  if !handlers <> [] then
+    List.iter (fun (module H : HANDLER) -> H.on_iter_prem_end ~at) !handlers
 
 let notify_prem ~prem ~at =
-  List.iter (fun (module H : HANDLER) -> H.on_prem ~prem ~at) !handlers
+  if !handlers <> [] then
+    List.iter (fun (module H : HANDLER) -> H.on_prem ~prem ~at) !handlers
 
 let notify_instr ~at =
-  List.iter (fun (module H : HANDLER) -> H.on_instr ~at) !handlers
+  if !handlers <> [] then
+    List.iter (fun (module H : HANDLER) -> H.on_instr ~at) !handlers
 
 let finish () = List.iter (fun (module H : HANDLER) -> H.finish ()) !handlers
 
