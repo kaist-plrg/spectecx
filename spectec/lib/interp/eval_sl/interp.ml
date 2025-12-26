@@ -1066,14 +1066,15 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
     result
   in
   let result =
-    if Cache.is_cached_rule id.it then (
-      let cache_result = Cache.Cache.find !rule_cache (id.it, values_input) in
-      match cache_result with
-      | Some values_output -> Some (ctx, values_output)
-      | None ->
-          let* ctx, values_output = attempt_rules () in
-          Cache.Cache.add !rule_cache (id.it, values_input) values_output;
-          Some (ctx, values_output))
+    if Cache.is_cached_rule id.it then
+      let invoke () =
+        match attempt_rules () with
+        | Some (_, values_output) -> Ok values_output
+        | None -> Error ()
+      in
+      match invoke |> Cache.with_cache rule_cache (id.it, values_input) with
+      | Ok values_output -> Some (ctx, values_output)
+      | Error _ -> None
     else attempt_rules ()
   in
   Instrumentation.Hooks.notify_rel_exit ~id:id.it ~at:id.at
@@ -1084,9 +1085,9 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
 
 and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     Ctx.t * value =
+  let ctx, values_input = eval_args ctx args in
   (* Builtin function invocation *)
   let invoke_func_builtin () =
-    let ctx, values_input = eval_args ctx args in
     let value_output =
       Builtins.invoke id targs values_input |> unwrap_builtin
     in
@@ -1121,7 +1122,6 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
           Ctx.add_typdef Local ctx_local tparam ([], Il.PlainT targ $ targ.at))
         ctx_local tparams targs
     in
-    let ctx, values_input = eval_args ctx args in
     let attempt_clauses () =
       Instrumentation.Hooks.notify_clause_enter ~id:id.it ~clause_idx:0
         ~at:id.at;
@@ -1134,22 +1134,32 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
       | Ret value_output -> (ctx, value_output)
       | _ -> error id.at "function was not matched"
     in
-    if Cache.is_cached_func id.it then (
-      let cache_result = Cache.Cache.find !func_cache (id.it, values_input) in
-      match cache_result with
-      | Some value_output -> (ctx, value_output)
-      | None ->
-          let ctx, value_output = attempt_clauses () in
-          Cache.Cache.add !func_cache (id.it, values_input) value_output;
-          (ctx, value_output))
-    else attempt_clauses ()
+    attempt_clauses ()
   in
   (* Main dispatch *)
   Instrumentation.Hooks.notify_func_enter ~id:id.it ~at:id.at ~values:[];
-  let result =
-    if Builtins.is_builtin id then invoke_func_builtin ()
-    else invoke_func_def ()
+  let invoke_func' () =
+    let invoke () =
+      let _, v =
+        if Builtins.is_builtin id then invoke_func_builtin ()
+        else invoke_func_def ()
+      in
+      Ok v
+    in
+    let value_output_result =
+      if
+        (not (Cache.is_cached_func id.it))
+        || targs <> []
+        || List.exists
+             (fun value ->
+               match value.it with Lang.Il.FuncV _ -> true | _ -> false)
+             values_input
+      then invoke ()
+      else invoke |> Cache.with_cache func_cache (id.it, values_input)
+    in
+    (ctx, value_output_result |> Result.get_ok)
   in
+  let result = invoke_func' () in
   Instrumentation.Hooks.notify_func_exit ~id:id.it ~at:id.at;
   result
 

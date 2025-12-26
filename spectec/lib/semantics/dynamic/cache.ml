@@ -64,8 +64,6 @@ module Cache = struct
   let add cache key value = Table.add cache key value
 end
 
-(* Cache targets *)
-
 let is_cached_func = function
   | "subst_type" | "subst_typeDef" | "specialize_typeDef" | "canon"
   | "free_type" | "is_nominal_typeIR" | "bound" | "gen_constraint_type"
@@ -79,3 +77,12 @@ let is_cached_rule = function
   | "Sub_impl_canon" | "Sub_impl_canon_neq" | "Type_wf" | "Type_alpha" ->
       true
   | _ -> false
+
+let with_cache cache (id, values) compute =
+  let key = (id, values) in
+  match Cache.find !cache key with
+  | Some v -> Ok v
+  | None ->
+      let result = compute () in
+      (match result with Ok v -> Cache.add !cache key v | _ -> ());
+      result

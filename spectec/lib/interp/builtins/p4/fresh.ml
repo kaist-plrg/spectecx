@@ -1,4 +1,5 @@
 module Il = Lang.Il
+module Cache = Semantics.Dynamic.Cache
 open Il
 open Common.Source
 
