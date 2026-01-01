@@ -5,6 +5,8 @@ open Interface
 open Interp
 open Common.Source
 module Error = Error
+module Task = Task
+module Target = Target
 
 type 'a pipeline_result = ('a, Error.t) result
 
@@ -152,74 +154,238 @@ let eval_sl_suite ?(config = Instrumentation.Config.default) spec_sl
   Instrumentation.Hooks.finish ();
   { passed; failed; total = List.length inputs }
 
+(* --- T-spec-based runners --- *)
+
+(* Single-run with input spec *)
+let eval_il_with_task (type input)
+    (module T : Task.TASK with type input = input)
+    ?(config = Instrumentation.Config.default) spec_il (input : input) =
+  let* relation, values = T.parse ~spec:spec_il input in
+  eval_il ~config spec_il relation values (T.source input)
+
+let eval_sl_with_task (type input)
+    (module T : Task.TASK with type input = input)
+    ?(config = Instrumentation.Config.default) spec_il spec_sl (input : input) =
+  let* relation, values = T.parse ~spec:spec_il input in
+  eval_sl ~config spec_sl relation values (T.source input)
+
+(* Suite run with input spec *)
+let eval_il_suite_with_task (type i) (module T : Task.TASK with type input = i)
+    ?(config = Instrumentation.Config.default) spec_il (inputs : i list) =
+  let suite_inputs =
+    List.map
+      (fun input ->
+        T.parse ~spec:spec_il input
+        |> Result.map (fun (rel, vals) -> (rel, vals, T.source input)))
+      inputs
+  in
+  eval_il_suite ~config spec_il suite_inputs
+
+let eval_sl_suite_with_task (type i) (module T : Task.TASK with type input = i)
+    ?(config = Instrumentation.Config.default) spec_il spec_sl (inputs : i list)
+    =
+  let suite_inputs =
+    List.map
+      (fun input ->
+        T.parse ~spec:spec_il input
+        |> Result.map (fun (rel, vals) -> (rel, vals, T.source input)))
+      inputs
+  in
+  eval_sl_suite ~config spec_sl suite_inputs
+
+(* --- Higher-level runners using expectation and test_outcome --- *)
+
+(* Run single input and compute outcome based on expectation *)
+let run_with_outcome (type i) (module T : Task.TASK with type input = i)
+    ?(config = Instrumentation.Config.default) ~sl_mode ~spec_il (input : i) =
+  let result =
+    let handler = if sl_mode then Handlers.sl else Handlers.il in
+    handler (fun () ->
+        if sl_mode then
+          let spec_sl = structure spec_il in
+          let* _, values =
+            eval_sl_with_task (module T) ~config spec_il spec_sl input
+          in
+          Ok values
+        else
+          let* _, values = eval_il_with_task (module T) ~config spec_il input in
+          Ok values)
+  in
+  Task.compute_outcome (T.expectation input) result
+
+(* Result for a single test in a suite *)
+type 'i test_result = {
+  input : 'i;
+  source : string;
+  outcome : Task.test_outcome;
+}
+
+(* Run suite of inputs and return individual outcomes *)
+let run_suite_with_outcomes (type i) (module T : Task.TASK with type input = i)
+    ?(config = Instrumentation.Config.default) ~sl_mode ~spec_il
+    (inputs : i list) =
+  List.map
+    (fun input ->
+      let outcome =
+        run_with_outcome (module T) ~config ~sl_mode ~spec_il input
+      in
+      { input; source = T.source input; outcome })
+    inputs
+
+(* Summary stats from suite results - tracks all four outcome types *)
+type suite_summary = {
+  pass : int; (* Positive test succeeded *)
+  expected_fail : int; (* Negative test failed as expected *)
+  fail : int; (* Positive test failed *)
+  unexpected_pass : int; (* Negative test succeeded unexpectedly *)
+  total : int;
+}
+
+(* Convenience getters *)
+let summary_passed s = s.pass + s.expected_fail
+let summary_failed s = s.fail + s.unexpected_pass
+
+let summarize_outcomes results =
+  let pass, expected_fail, fail, unexpected_pass =
+    List.fold_left
+      (fun (p, ef, f, up) { outcome; _ } ->
+        match outcome with
+        | Task.Pass _ -> (p + 1, ef, f, up)
+        | Task.ExpectedFail _ -> (p, ef + 1, f, up)
+        | Task.Fail _ -> (p, ef, f + 1, up)
+        | Task.UnexpectedPass _ -> (p, ef, f, up + 1))
+      (0, 0, 0, 0) results
+  in
+  { pass; expected_fail; fail; unexpected_pass; total = List.length results }
+
+(* Result for one input spec in coverage run *)
+type task_result = { task_name : string; summary : suite_summary }
+
+(* Run coverage across all input specs in a target *)
+let run_target_coverage (module Target : Target.TARGET)
+    ?(config = Instrumentation.Config.default) ~sl_mode spec_il =
+  List.map
+    (fun (Task.Pack (module T)) ->
+      let inputs = T.collect Target.spec_dir in
+      let results =
+        run_suite_with_outcomes (module T) ~config ~sl_mode ~spec_il inputs
+      in
+      { task_name = T.name; summary = summarize_outcomes results })
+    Target.tasks
+
 (* --- P4 runners --- *)
 
 (* P4 Parsing *)
 
-let parse_p4_file includes_target filename_target : Il.Value.t pipeline_result =
+let parse_p4_file includes_p4 filename_p4 : Il.Value.t pipeline_result =
   let parse_p4_file () =
-    P4.Parse.parse_file includes_target filename_target |> Result.ok
+    P4.Parse.parse_file includes_p4 filename_p4 |> Result.ok
   in
   try Handlers.il parse_p4_file
   with P4.Error.P4ParseError (at, msg) ->
     Error.P4ParseError (at, msg) |> Result.error
 
-let parse_p4_string filename_target string : Il.Value.t pipeline_result =
+let parse_p4_string filename_p4 string : Il.Value.t pipeline_result =
   let parse_p4_string () =
-    P4.Parse.parse_string filename_target string |> Result.ok
+    P4.Parse.parse_string filename_p4 string |> Result.ok
   in
   try Handlers.il parse_p4_string
   with P4.Error.P4ParseError (at, msg) ->
     Error.P4ParseError (at, msg) |> Result.error
 
-(* Composed functions *)
+(** P4 Typechecker target - Implements TASK for P4 typechecking *)
+
+(* Recursively collect files with given suffix from directory *)
+let collect_files ~suffix dir =
+  let rec walk acc path =
+    if Sys.is_directory path then
+      Array.fold_left
+        (fun acc name -> walk acc (Filename.concat path name))
+        acc (Sys.readdir path)
+    else if Filename.check_suffix path suffix then path :: acc
+    else acc
+  in
+  walk [] dir |> List.sort String.compare
+
+(* P4 Typechecker task - implements TASK with extra make function *)
+module P4_Typechecker = struct
+  let name = "typecheck"
+
+  type input = {
+    includes : string list;
+    filename : string;
+    expect : Task.expectation;
+  }
+
+  let make ?(expect = Task.Positive) ~includes ~filename () =
+    { includes; filename; expect }
+
+  let parse ~spec:_ { includes; filename; _ } =
+    parse_p4_file includes filename
+    |> Result.map (fun v -> ("Program_ok", [ v ]))
+
+  let source { filename; _ } = filename
+  let expectation { expect; _ } = expect
+
+  let collect dir =
+    collect_files ~suffix:".p4" dir
+    |> List.map (fun filename ->
+           { includes = []; filename; expect = Task.Positive })
+
+  let format_output _values = "Typecheck succeeded"
+  let save_output _filename _values = ()
+end
+
+(* P4 target specification *)
+module P4 = struct
+  let name = "p4"
+  let spec_dir = "examples/p4-concrete"
+  let tasks = [ Task.Pack (module P4_Typechecker) ]
+end
+
+(* Composed functions using input spec *)
 
 let eval_il_p4_typechecker ?(config = Instrumentation.Config.default) spec_il
-    includes_target filename_target :
-    (Eval_Il.Ctx.t * Il.Value.t list) pipeline_result =
-  let* value_program = parse_p4_file includes_target filename_target in
-  eval_il ~config spec_il "Program_ok" [ value_program ] filename_target
+    includes filename : (Eval_Il.Ctx.t * Il.Value.t list) pipeline_result =
+  let input = P4_Typechecker.make ~includes ~filename () in
+  eval_il_with_task (module P4_Typechecker) ~config spec_il input
 
-let eval_sl_p4_typechecker ?(config = Instrumentation.Config.default) spec_sl
-    includes_target filename_target :
+let eval_sl_p4_typechecker ?(config = Instrumentation.Config.default) spec_il
+    spec_sl includes filename :
     (Eval_Sl.Ctx.t * Il.Value.t list) pipeline_result =
-  let* value_program = parse_p4_file includes_target filename_target in
-  eval_sl ~config spec_sl "Program_ok" [ value_program ] filename_target
+  let input = P4_Typechecker.make ~includes ~filename () in
+  eval_sl_with_task (module P4_Typechecker) ~config spec_il spec_sl input
 
-(* P4 coverage suite functions - compose P4 parsing with general suite runners *)
+(* P4 coverage suite functions *)
 
 let eval_il_suite_p4_typechecker ?(config = Instrumentation.Config.default)
-    spec_il includes_target filenames : suite_result =
+    spec_il includes filenames : suite_result =
   let inputs =
     List.map
-      (fun filename ->
-        parse_p4_file includes_target filename
-        |> Result.map (fun value -> ("Program_ok", [ value ], filename)))
+      (fun filename -> P4_Typechecker.make ~includes ~filename ())
       filenames
   in
-  eval_il_suite ~config spec_il inputs
+  eval_il_suite_with_task (module P4_Typechecker) ~config spec_il inputs
 
 let eval_sl_suite_p4_typechecker ?(config = Instrumentation.Config.default)
-    spec_sl includes_target filenames : suite_result =
+    spec_il spec_sl includes filenames : suite_result =
   let inputs =
     List.map
-      (fun filename ->
-        parse_p4_file includes_target filename
-        |> Result.map (fun value -> ("Program_ok", [ value ], filename)))
+      (fun filename -> P4_Typechecker.make ~includes ~filename ())
       filenames
   in
-  eval_sl_suite ~config spec_sl inputs
+  eval_sl_suite_with_task (module P4_Typechecker) ~config spec_il spec_sl inputs
 
-let parse_p4_file_with_roundtrip roundtrip filenames_spec includes_target
-    filename_target : string pipeline_result =
+let parse_p4_file_with_roundtrip roundtrip filenames_spec includes_p4
+    filename_p4 : string pipeline_result =
   let* spec_el = parse_spec_files filenames_spec in
   let* spec_il = elaborate spec_el in
-  let* value_program = parse_p4_file includes_target filename_target in
+  let* value_program = parse_p4_file includes_p4 filename_p4 in
   let unparsed_string =
     Format.asprintf "%a\n" (Concrete.Pp.pp_program spec_il) value_program
   in
   if roundtrip then
-    let* value_program_rt = parse_p4_string filename_target unparsed_string in
+    let* value_program_rt = parse_p4_string filename_p4 unparsed_string in
     let eq = Il.Eq.eq_value ~dbg:true value_program value_program_rt in
     if eq then unparsed_string |> Result.ok
     else Error.RoundtripError (no_region, "Roundtrip failed") |> Result.error

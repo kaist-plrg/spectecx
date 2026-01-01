@@ -2,7 +2,7 @@
 
 open Core
 
-type expectation = Expect_success | Expect_failure
+type expectation = Runner.Task.expectation
 
 type config = {
   name : string;
@@ -43,10 +43,10 @@ let run ~(config : config) ~(exclude_set : Exclude.t) ~(filenames : string list)
           let stats =
             match (expectation, result) with
             (* Positive tests: success expected *)
-            | Expect_success, Ok () ->
+            | Positive, Ok () ->
                 Format.printf "%s: %s\n\n" config.success filename;
                 Stats.add_pass stats ~label:filename ~duration
-            | Expect_success, Error err ->
+            | Positive, Error err ->
                 let prefix =
                   if Stats.is_exception err then "CRASHED" else config.failure
                 in
@@ -55,11 +55,11 @@ let run ~(config : config) ~(exclude_set : Exclude.t) ~(filenames : string list)
                 Stats.add_fail stats ~label:filename ~duration
                   (Stats.failure_from_test_error err)
             (* Negative tests: failure expected *)
-            | Expect_failure, Ok () ->
+            | Negative, Ok () ->
                 Format.printf "%s: %s\n\n" config.unexpected_success filename;
                 Stats.add_fail stats ~label:filename ~duration
                   Stats.failure_unexpected_success
-            | Expect_failure, Error err ->
+            | Negative, Error err ->
                 let prefix =
                   if Stats.is_exception err then "CRASHED (counted as failure)"
                   else config.expected_failure

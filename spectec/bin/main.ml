@@ -254,7 +254,7 @@ let coverage_p4_sl_command =
          let spec_sl = structure spec_il in
          let filenames = collect_files ~suffix:".p4" testdir in
          let result =
-           eval_sl_suite_p4_typechecker ~config spec_sl includes_target
+           eval_sl_suite_p4_typechecker ~config spec_il spec_sl includes_target
              filenames
          in
          Ok result

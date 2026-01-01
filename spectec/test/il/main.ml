@@ -23,7 +23,7 @@ let run ~negative specdir includes exclude_dirs testdir =
       }
     in
     let expectation =
-      if negative then Suite.Expect_failure else Suite.Expect_success
+      if negative then Runner.Task.Negative else Runner.Task.Positive
     in
     let run filename =
       Runner.Handlers.il (fun () ->
