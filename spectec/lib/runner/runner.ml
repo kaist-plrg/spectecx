@@ -3,7 +3,6 @@ open Lang.Il
 open Pass
 open Interface
 open Interp
-open Common.Source
 module Error = Error
 module Task = Task
 module Target = Target
@@ -293,89 +292,6 @@ let parse_p4_string filename_p4 string : Il.Value.t pipeline_result =
   with P4.Error.P4ParseError (at, msg) ->
     Error.P4ParseError (at, msg) |> Result.error
 
-(** P4 Typechecker target - Implements TASK for P4 typechecking *)
-
-(* Recursively collect files with given suffix from directory *)
-let collect_files ~suffix dir =
-  let rec walk acc path =
-    if Sys.is_directory path then
-      Array.fold_left
-        (fun acc name -> walk acc (Filename.concat path name))
-        acc (Sys.readdir path)
-    else if Filename.check_suffix path suffix then path :: acc
-    else acc
-  in
-  walk [] dir |> List.sort String.compare
-
-(* P4 Typechecker task - implements TASK with extra make function *)
-module P4_Typechecker = struct
-  let name = "typecheck"
-
-  type input = {
-    includes : string list;
-    filename : string;
-    expect : Task.expectation;
-  }
-
-  let make ?(expect = Task.Positive) ~includes ~filename () =
-    { includes; filename; expect }
-
-  let parse ~spec:_ { includes; filename; _ } =
-    parse_p4_file includes filename
-    |> Result.map (fun v -> ("Program_ok", [ v ]))
-
-  let source { filename; _ } = filename
-  let expectation { expect; _ } = expect
-
-  let collect dir =
-    collect_files ~suffix:".p4" dir
-    |> List.map (fun filename ->
-           { includes = []; filename; expect = Task.Positive })
-
-  let format_output _values = "Typecheck succeeded"
-  let save_output _filename _values = ()
-end
-
-(* P4 target specification *)
-module P4 = struct
-  let name = "p4"
-  let spec_dir = "examples/p4-concrete"
-  let tasks = [ Task.Pack (module P4_Typechecker) ]
-end
-
-(* Composed functions using input spec *)
-
-let eval_il_p4_typechecker ?(config = Instrumentation.Config.default) spec_il
-    includes filename : (Eval_Il.Ctx.t * Il.Value.t list) pipeline_result =
-  let input = P4_Typechecker.make ~includes ~filename () in
-  eval_il_with_task (module P4_Typechecker) ~config spec_il input
-
-let eval_sl_p4_typechecker ?(config = Instrumentation.Config.default) spec_il
-    spec_sl includes filename :
-    (Eval_Sl.Ctx.t * Il.Value.t list) pipeline_result =
-  let input = P4_Typechecker.make ~includes ~filename () in
-  eval_sl_with_task (module P4_Typechecker) ~config spec_il spec_sl input
-
-(* P4 coverage suite functions *)
-
-let eval_il_suite_p4_typechecker ?(config = Instrumentation.Config.default)
-    spec_il includes filenames : suite_result =
-  let inputs =
-    List.map
-      (fun filename -> P4_Typechecker.make ~includes ~filename ())
-      filenames
-  in
-  eval_il_suite_with_task (module P4_Typechecker) ~config spec_il inputs
-
-let eval_sl_suite_p4_typechecker ?(config = Instrumentation.Config.default)
-    spec_il spec_sl includes filenames : suite_result =
-  let inputs =
-    List.map
-      (fun filename -> P4_Typechecker.make ~includes ~filename ())
-      filenames
-  in
-  eval_sl_suite_with_task (module P4_Typechecker) ~config spec_il spec_sl inputs
-
 let parse_p4_file_with_roundtrip roundtrip filenames_spec includes_p4
     filename_p4 : string pipeline_result =
   let* spec_el = parse_spec_files filenames_spec in
@@ -388,5 +304,7 @@ let parse_p4_file_with_roundtrip roundtrip filenames_spec includes_p4
     let* value_program_rt = parse_p4_string filename_p4 unparsed_string in
     let eq = Il.Eq.eq_value ~dbg:true value_program value_program_rt in
     if eq then unparsed_string |> Result.ok
-    else Error.RoundtripError (no_region, "Roundtrip failed") |> Result.error
+    else
+      Error.RoundtripError (Common.Source.no_region, "Roundtrip failed")
+      |> Result.error
   else unparsed_string |> Result.ok

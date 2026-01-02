@@ -1,20 +1,27 @@
 (** P4 Typechecker target - Implements TASK for P4 typechecking *)
 
+(* Directories to skip during file collection *)
+let skip_dirs = [ "include" ]
+
 (* Recursively collect files with given suffix from directory *)
 let collect_files ~suffix dir =
-  let rec walk acc path =
-    if Sys.is_directory path then
+  let rec gather acc path =
+    if Sys.is_directory path then (
+      let entries = Sys.readdir path in
+      Array.sort String.compare entries;
       Array.fold_left
-        (fun acc name -> walk acc (Filename.concat path name))
-        acc (Sys.readdir path)
+        (fun acc name ->
+          let full_path = Filename.concat path name in
+          if List.mem name skip_dirs then acc else gather acc full_path)
+        acc entries)
     else if Filename.check_suffix path suffix then path :: acc
     else acc
   in
-  walk [] dir |> List.sort String.compare
+  gather [] dir |> List.rev
 
 (* P4 Typechecker task - implements TASK with extra make function *)
 module Typecheck = struct
-  let name = "typecheck"
+  let name = "typechecker"
 
   type input = {
     includes : string list;

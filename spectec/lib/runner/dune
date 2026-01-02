@@ -2,9 +2,12 @@
  (name runner)
  (public_name spectec.runner)
  (libraries
+  core
   spectec.common
   spectec.lang
   spectec.pass
   spectec.interp
   spectec.instrumentation
-  spectec.interface))
+  spectec.interface)
+ (preprocess
+  (pps ppx_let)))

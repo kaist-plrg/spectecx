@@ -1,0 +1,4 @@
+(library
+ (name targets_p4)
+ (public_name spectec.targets.p4)
+ (libraries spectec.runner))

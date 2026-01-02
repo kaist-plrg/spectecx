@@ -1,0 +1,5 @@
+(library
+ (name cli)
+ (libraries core spectec.runner spectec.instrumentation)
+ (preprocess
+  (pps ppx_let)))

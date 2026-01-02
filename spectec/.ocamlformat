@@ -1,1 +1,4 @@
 version = 0.27.0
+profile = default
+
+doc-comments = before
