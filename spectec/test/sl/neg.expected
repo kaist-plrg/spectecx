@@ -1190,11 +1190,4 @@ Sl typing summary
   Failed:       0 (0.00% of ran)
   Skipped:     56 (18.06% of total)
 
-  Duration (s):
-    Total:       8.098
-    Mean:     0.031880
-    Median:   0.024548
-    Min:      0.021923
-    Max:      0.148127
-    P95:      0.075012
 

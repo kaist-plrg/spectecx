@@ -3840,11 +3840,4 @@ Il typing summary
   Failed:       0 (0.00% of ran)
   Skipped:    215 (16.82% of total)
 
-  Duration (s):
-    Total:     186.929
-    Mean:     0.175850
-    Median:   0.181506
-    Min:      0.023572
-    Max:      0.646833
-    P95:      0.571285
 

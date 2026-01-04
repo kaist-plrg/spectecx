@@ -144,23 +144,23 @@ let print_summary name (stat : t) =
   Format.printf "  Passed:  %6d (%.2f%% of ran)\n" stat.passed pass_rate;
   Format.printf "  Failed:  %6d (%.2f%% of ran)\n" stat.failed fail_rate;
   Format.printf "  Skipped: %6d (%.2f%% of total)\n\n" stat.skipped skip_rate;
-  Format.printf "  Duration (s):\n";
+  Format.eprintf "  Duration (s):\n";
 
-  Format.printf "    Total:   %9.3f\n" duration_all.sum;
-  Format.printf "    Mean:    %9s\n" (format_float_option duration_all.mean);
-  Format.printf "    Median:  %9s\n" (format_float_option duration_all.median);
-  Format.printf "    Min:     %9s\n" (format_float_option duration_all.min);
-  Format.printf "    Max:     %9s\n" (format_float_option duration_all.max);
-  Format.printf "    P95:     %9s\n" (format_float_option duration_all.p95);
+  Format.eprintf "    Total:   %9.3f\n" duration_all.sum;
+  Format.eprintf "    Mean:    %9s\n" (format_float_option duration_all.mean);
+  Format.eprintf "    Median:  %9s\n" (format_float_option duration_all.median);
+  Format.eprintf "    Min:     %9s\n" (format_float_option duration_all.min);
+  Format.eprintf "    Max:     %9s\n" (format_float_option duration_all.max);
+  Format.eprintf "    P95:     %9s\n" (format_float_option duration_all.p95);
 
   if stat.passed > 0 && stat.failed > 0 then (
-    Format.printf "  Pass Stats (s):\n";
-    Format.printf "    Mean:    %9s  Min: %9s  Max: %9s\n"
+    Format.eprintf "  Pass Stats (s):\n";
+    Format.eprintf "    Mean:    %9s  Min: %9s  Max: %9s\n"
       (format_float_option duration_pass.mean)
       (format_float_option duration_pass.min)
       (format_float_option duration_pass.max);
-    Format.printf "  Fail Stats (s):\n";
-    Format.printf "    Mean:    %9s  Min: %9s  Max: %9s\n"
+    Format.eprintf "  Fail Stats (s):\n";
+    Format.eprintf "    Mean:    %9s  Min: %9s  Max: %9s\n"
       (format_float_option duration_fail.mean)
       (format_float_option duration_fail.min)
       (format_float_option duration_fail.max));
