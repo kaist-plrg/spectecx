@@ -49,10 +49,10 @@ SpecTec-Core currently consists of three main components.
 ./spectec-core p4parse spec/*.spectec -i tests/interp/p4-tests/includes -p target/file.p4 [-r]
 
 # run a P4 program based on SpecTec IL/SL
-./spectec-core type-p4-il spec/*.spectec -i tests/interp/p4-tests/includes -p target/file.p4 [-dbg] [-profile]
-./spectec-core type-p4-sl spec/*.spectec [-i tests/interp/p4-tests/includes -p target/file.p4 [-dbg] [-profile]
-
+./spectec-core p4 typecheck -i tests/interp/p4-tests/includes -p target/file.p4
+./spectec-core p4 typecheck -i tests/interp/p4-tests/includes -p target/file.p4 --sl
 ```
+
 ### Testing
 ```bash
 make test
