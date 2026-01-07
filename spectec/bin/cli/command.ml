@@ -2,7 +2,7 @@
 
 (** Extended input spec with CLI argument parsing support *)
 module type CLI_TASK = sig
-  include Runner.Task.TASK
+  include Runner.Task.S
 
   (** Command-line argument parser that produces an input value *)
   val cli_flags : input Core.Command.Param.t
@@ -16,8 +16,8 @@ let collect_spec_files spec_dir =
   |> List.map (Filename.concat spec_dir)
 
 (* Print outcome for a single test *)
-let print_outcome (type i) (module T : Runner.Task.TASK with type input = i)
-    source outcome =
+let print_outcome (type i) (module T : Runner.Task.S with type input = i) source
+    outcome =
   let open Runner in
   match outcome with
   | Task.Pass values ->
@@ -32,15 +32,15 @@ let print_outcome (type i) (module T : Runner.Task.TASK with type input = i)
         (T.format_output values)
 
 (* Run interpreter on a single input and print result *)
-let run_single (type i) (module T : Runner.Task.TASK with type input = i)
-    ~config ~sl_mode ~spec_il (input : i) =
+let run_single (type i) (module T : Runner.Task.S with type input = i) ~config
+    ~sl_mode ~spec_il (input : i) =
   let outcome =
     Runner.run_with_outcome (module T) ~config ~sl_mode ~spec_il input
   in
   print_outcome (module T) (T.source input) outcome
 
 (* Run interpreter on a suite of inputs and print results *)
-let run_suite (type i) (module T : Runner.Task.TASK with type input = i) ~config
+let run_suite (type i) (module T : Runner.Task.S with type input = i) ~config
     ~sl_mode ~spec_il (inputs : i list) =
   let results =
     Runner.run_suite_with_outcomes (module T) ~config ~sl_mode ~spec_il inputs
@@ -94,9 +94,9 @@ let make (type i) ~summary (module T : CLI_TASK with type input = i) =
 
 (* Functor to generate commands for a specific target.
    Enforces that only tasks belonging to this target can be used. *)
-module Make (Tgt : Runner.Target.TARGET) = struct
+module Make (Tgt : Runner.Target.S) = struct
   (* Task signature restricted to this target *)
-  module type TARGET_TASK = Runner.Task.TASK with module Target = Tgt
+  module type TARGET_TASK = Runner.Task.S with module Target = Tgt
 
   (* Packed task restricted to this target *)
   type packed_task =

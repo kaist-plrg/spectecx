@@ -684,7 +684,7 @@ and eval_prem (ctx : Ctx.t) (prem : prem) : Ctx.t attempt =
     print_endline @@ Print.string_of_value value;
     Ok ctx
   in
-  Instrumentation.Hooks.notify_prem_enter ~prem ~at:prem.at;
+  Instrumentation.Dispatcher.notify_prem_enter ~prem ~at:prem.at;
   let result =
     match prem.it with
     | RulePr (id, notexp) -> eval_rule_prem ctx id notexp
@@ -694,7 +694,7 @@ and eval_prem (ctx : Ctx.t) (prem : prem) : Ctx.t attempt =
     | IterPr (prem, iterexp) -> eval_iter_prem ctx prem iterexp
     | DebugPr exp -> eval_debug_prem ctx exp
   in
-  Instrumentation.Hooks.notify_prem_exit ~prem ~at:prem.at
+  Instrumentation.Dispatcher.notify_prem_exit ~prem ~at:prem.at
     ~success:(Result.is_ok result);
   result
 
@@ -734,9 +734,10 @@ and eval_iter_prem_list (ctx : Ctx.t) (prem : prem) (vars : var list) :
           List.fold_left
             (fun ctx_values_binding_batch ctx_sub ->
               let* ctx, values_binding_batch_rev = ctx_values_binding_batch in
-              Instrumentation.Hooks.notify_iter_prem_enter ~prem ~at:prem.at;
+              Instrumentation.Dispatcher.notify_iter_prem_enter ~prem
+                ~at:prem.at;
               let* ctx_sub = eval_prem ctx_sub prem in
-              Instrumentation.Hooks.notify_iter_prem_exit ~at:prem.at;
+              Instrumentation.Dispatcher.notify_iter_prem_exit ~at:prem.at;
               let value_binding_batch =
                 List.map
                   (fun (id_binding, _typ_binding, iters_binding) ->
@@ -802,9 +803,10 @@ and eval_iter_prem (ctx : Ctx.t) (prem : prem) (iterexp : iterexp) :
             List.fold_left
               (fun ctx_values_binding_batch ctx_sub ->
                 let* ctx, values_binding_batch_rev = ctx_values_binding_batch in
-                Instrumentation.Hooks.notify_iter_prem_enter ~prem ~at:prem.at;
+                Instrumentation.Dispatcher.notify_iter_prem_enter ~prem
+                  ~at:prem.at;
                 let* ctx_sub = eval_prem ctx_sub prem in
-                Instrumentation.Hooks.notify_iter_prem_exit ~at:prem.at;
+                Instrumentation.Dispatcher.notify_iter_prem_exit ~at:prem.at;
                 let value_binding_batch =
                   List.map
                     (fun (id_binding, _typ_binding, iters_binding) ->
@@ -849,7 +851,7 @@ and eval_iter_prem (ctx : Ctx.t) (prem : prem) (iterexp : iterexp) :
 
 and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
     (Ctx.t * value list) attempt =
-  Instrumentation.Hooks.notify_rel_enter ~id:id.it ~at:id.at
+  Instrumentation.Dispatcher.notify_rel_enter ~id:id.it ~at:id.at
     ~values:values_input;
   (* Rule matching *)
   let match_rule ctx inputs rule values_input =
@@ -882,7 +884,7 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
               Ok (ctx, values_output)
             in
             let attempt_rule () : (Ctx.t * value list) attempt =
-              Instrumentation.Hooks.notify_rule_enter ~id:id.it
+              Instrumentation.Dispatcher.notify_rule_enter ~id:id.it
                 ~rule_id:id_rule.it ~at:id.at;
               (* Create a subtrace for the rule *)
               let ctx_local = Ctx.localize ctx in
@@ -897,7 +899,7 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
                      (F.asprintf "application of rule %s/%s failed" id.it
                         id_rule.it)
               in
-              Instrumentation.Hooks.notify_rule_exit ~id:id.it
+              Instrumentation.Dispatcher.notify_rule_exit ~id:id.it
                 ~rule_id:id_rule.it ~at:id.at ~success:(Result.is_ok result);
               result
             in
@@ -918,7 +920,7 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
     Ok (ctx, values_output)
   in
   let result = invoke_rel' () in
-  Instrumentation.Hooks.notify_rel_exit ~id:id.it ~at:id.at
+  Instrumentation.Dispatcher.notify_rel_exit ~id:id.it ~at:id.at
     ~success:(Result.is_ok result);
   result |> nest id.at (F.asprintf "invocation of relation %s failed" id.it)
 
@@ -927,7 +929,7 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
 and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     (Ctx.t * value) attempt =
   let ctx, values_input = eval_args ctx args in
-  Instrumentation.Hooks.notify_func_enter ~id:id.it ~at:id.at
+  Instrumentation.Dispatcher.notify_func_enter ~id:id.it ~at:id.at
     ~values:values_input;
   (* Clause matching *)
   let match_clause ctx_caller ctx_callee clause values_input =
@@ -942,14 +944,14 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
   let invoke_func_builtin () =
     (* Invoke builtin function *)
     let invoke_func_builtin' () =
-      Instrumentation.Hooks.notify_clause_enter ~id:id.it ~clause_idx:0
+      Instrumentation.Dispatcher.notify_clause_enter ~id:id.it ~clause_idx:0
         ~at:id.at;
       let _ = Ctx.localize ctx in
       let value_output =
         Builtins.invoke id targs values_input |> unwrap_builtin
       in
-      Instrumentation.Hooks.notify_clause_exit ~id:id.it ~clause_idx:0 ~at:id.at
-        ~success:true;
+      Instrumentation.Dispatcher.notify_clause_exit ~id:id.it ~clause_idx:0
+        ~at:id.at ~success:true;
       Ok (ctx, value_output)
     in
     invoke_func_builtin' ()
@@ -987,7 +989,7 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
               Ok (ctx, value_output)
             in
             let attempt_clause () : (Ctx.t * value) attempt =
-              Instrumentation.Hooks.notify_clause_enter ~id:id.it
+              Instrumentation.Dispatcher.notify_clause_enter ~id:id.it
                 ~clause_idx:idx_clause ~at:id.at;
               (* Create a subtrace for the clause *)
               let ctx_local = Ctx.localize ctx in
@@ -1013,7 +1015,7 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
                      (F.asprintf "application of clause %s%s failed" id.it
                         (Print.string_of_args args_input))
               in
-              Instrumentation.Hooks.notify_clause_exit ~id:id.it
+              Instrumentation.Dispatcher.notify_clause_exit ~id:id.it
                 ~clause_idx:idx_clause ~at:id.at ~success:(Result.is_ok result);
               result
             in
@@ -1048,7 +1050,7 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     in
     Ok (ctx, value_output)
   in
-  Instrumentation.Hooks.notify_func_exit ~id:id.it ~at:id.at;
+  Instrumentation.Dispatcher.notify_func_exit ~id:id.it ~at:id.at;
   result
   |> nest id.at
        (F.asprintf "invocation of function %s%s%s failed"

@@ -4,7 +4,7 @@ open Core
 open Test_lib
 
 (** Generic test runner - works with any TASK, supports IL or SL mode *)
-let run_with_task (type i) (module T : Runner.Task.TASK with type input = i)
+let run_with_task (type i) (module T : Runner.Task.S with type input = i)
     ~sl_mode ~spec_files ~inputs ~exclude_dirs =
   let open Core.Result.Let_syntax in
   let suite_result =

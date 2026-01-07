@@ -1,4 +1,6 @@
+; Instrumentation - top-level config that depends on core and handlers
+
 (library
  (name instrumentation)
  (public_name spectec.instrumentation)
- (libraries spectec.common spectec.lang unix))
+ (libraries instrumentation_core instrumentation_handlers unix))

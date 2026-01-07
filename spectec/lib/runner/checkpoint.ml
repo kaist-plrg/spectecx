@@ -142,7 +142,7 @@ let display_report ~(config : Instrumentation.Config.t) checkpoint =
       Instrumentation.Node_coverage_sl.make node_il_cfg;
     ]
   in
-  Instrumentation.Hooks.set_handlers handlers;
+  Instrumentation.Dispatcher.set_handlers handlers;
   (* Restore state from checkpoint data *)
   (match checkpoint.coverage.branch with
   | Some branch_result -> Instrumentation.Branch_coverage.restore branch_result
@@ -154,5 +154,5 @@ let display_report ~(config : Instrumentation.Config.t) checkpoint =
   | Some node_result -> Instrumentation.Node_coverage_sl.restore node_result
   | None -> ());
   (* Call finish to print the reports *)
-  Instrumentation.Hooks.finish ();
+  Instrumentation.Dispatcher.finish ();
   Instrumentation.Config.close_outputs config

@@ -1,25 +1,27 @@
 (* Trace handler - Live logging of interpreter events.
 
-   Implements Hooks.HANDLER interface.
+   Implements Instrumentation_core.Handler.S interface.
 
    Output levels:
    - Summary: relation/function enter/exit
    - Full: + rule/clauses, premises and iteration summaries
 
    Usage:
-     let handler = Trace.make { level = Full; output = Output.stdout }
+     let handler = Trace.make { level = Full; output = Instrumentation_core.Output.stdout }
 *)
 
 module Il = Lang.Il
-open Util
+open Instrumentation_core.Util
 
 (* Verbosity levels *)
 type level = Summary | Full
 
 (* Handler configuration *)
-type config = { level : level; output : Output.t }
+type config = { level : level; output : Instrumentation_core.Output.t }
 
-let default_config = { level = Summary; output = Output.stdout }
+let default_config =
+  { level = Summary; output = Instrumentation_core.Output.stdout }
+
 let config = ref default_config
 let fmt = ref Format.std_formatter
 
@@ -42,11 +44,11 @@ module State = struct
     Format.sprintf "[%2d] %s" !depth (String.make (!depth * 2) ' ')
 end
 
-module Handler : Hooks.HANDLER = struct
+module M : Instrumentation_core.Handler.S = struct
   let init ~spec:_ = State.reset ()
-  let on_instr = Hooks.Noop.on_instr
-  let on_prem_exit = Hooks.Noop.on_prem_exit
-  let finish = Hooks.Noop.finish
+  let on_instr = Instrumentation_core.Noop.on_instr
+  let on_prem_exit = Instrumentation_core.Noop.on_prem_exit
+  let finish = Instrumentation_core.Noop.finish
 
   let on_rel_enter ~id ~at:_ ~values =
     Format.fprintf !fmt "%s→ %s\n%!" (State.indent ()) id;
@@ -102,5 +104,5 @@ end
 
 let make cfg =
   config := cfg;
-  fmt := Output.formatter cfg.output;
-  (module Handler : Hooks.HANDLER)
+  fmt := Instrumentation_core.Output.formatter cfg.output;
+  (module M : Instrumentation_core.Handler.S)

@@ -2,7 +2,14 @@
 
    Consolidates all instrumentation options into a single record type.
    Each handler has its own config type with level (if applicable) and output.
-   Use `to_handlers` to convert a config to the handler list for hooks. *)
+   Use `to_handlers` to convert a config to the handler list for dispatcher. *)
+
+module Trace = Instrumentation_handlers.Trace
+module Profile = Instrumentation_handlers.Profile
+module Branch_coverage = Instrumentation_handlers.Branch_coverage
+module Node_coverage_il = Instrumentation_handlers.Node_coverage_il
+module Node_coverage_sl = Instrumentation_handlers.Node_coverage_sl
+module Output = Instrumentation_core.Output
 
 type t = {
   trace : Trace.config option;

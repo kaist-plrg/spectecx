@@ -1,0 +1,6 @@
+; Instrumentation handlers - handler implementations
+
+(library
+ (name instrumentation_handlers)
+ (public_name spectec.instrumentation.handlers)
+ (libraries instrumentation_core))

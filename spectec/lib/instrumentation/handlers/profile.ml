@@ -1,16 +1,16 @@
 (* Profile handler - Timing statistics with inclusive/exclusive times.
 
-   Implements Hooks.HANDLER interface.
+   Implements Instrumentation_core.Handler.S interface.
    Collects call counts and timing, prints report on finish().
 
    Usage:
-     let handler = Profile.make { output = Output.stdout }
+     let handler = Profile.make { output = Instrumentation_core.Output.stdout }
 *)
 
 (* Handler configuration *)
-type config = { output : Output.t }
+type config = { output : Instrumentation_core.Output.t }
 
-let default_config = { output = Output.stdout }
+let default_config = { output = Instrumentation_core.Output.stdout }
 let config = ref default_config
 let fmt = ref Format.std_formatter
 
@@ -54,19 +54,19 @@ let now () =
   Core.Time_ns.now () |> Core.Time_ns.to_span_since_epoch
   |> Core.Time_ns.Span.to_sec
 
-module Handler : Hooks.HANDLER = struct
+module M : Instrumentation_core.Handler.S = struct
   open State
 
   let init ~spec:_ = State.reset ()
-  let on_rule_enter = Hooks.Noop.on_rule_enter
-  let on_rule_exit = Hooks.Noop.on_rule_exit
-  let on_clause_enter = Hooks.Noop.on_clause_enter
-  let on_clause_exit = Hooks.Noop.on_clause_exit
-  let on_iter_prem_enter = Hooks.Noop.on_iter_prem_enter
-  let on_iter_prem_exit = Hooks.Noop.on_iter_prem_exit
-  let on_prem_enter = Hooks.Noop.on_prem_enter
-  let on_prem_exit = Hooks.Noop.on_prem_exit
-  let on_instr = Hooks.Noop.on_instr
+  let on_rule_enter = Instrumentation_core.Noop.on_rule_enter
+  let on_rule_exit = Instrumentation_core.Noop.on_rule_exit
+  let on_clause_enter = Instrumentation_core.Noop.on_clause_enter
+  let on_clause_exit = Instrumentation_core.Noop.on_clause_exit
+  let on_iter_prem_enter = Instrumentation_core.Noop.on_iter_prem_enter
+  let on_iter_prem_exit = Instrumentation_core.Noop.on_iter_prem_exit
+  let on_prem_enter = Instrumentation_core.Noop.on_prem_enter
+  let on_prem_exit = Instrumentation_core.Noop.on_prem_exit
+  let on_instr = Instrumentation_core.Noop.on_instr
 
   let on_rel_enter ~id ~at:_ ~values:_ =
     let is_recursive =
@@ -177,5 +177,5 @@ end
 
 let make cfg =
   config := cfg;
-  fmt := Output.formatter cfg.output;
-  (module Handler : Hooks.HANDLER)
+  fmt := Instrumentation_core.Output.formatter cfg.output;
+  (module M : Instrumentation_core.Handler.S)

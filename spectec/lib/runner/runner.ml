@@ -96,20 +96,20 @@ let eval_sl_run spec_sl rid values_input filename_target :
 let eval_il ?(config = Instrumentation.Config.default) spec_il rid values_input
     filename_target : (Eval_Il.Ctx.t * Il.Value.t list) pipeline_result =
   let handlers = Instrumentation.Config.to_handlers config in
-  Instrumentation.Hooks.set_handlers handlers;
-  Instrumentation.Hooks.init ~spec:(Instrumentation.Hooks.IlSpec spec_il);
+  Instrumentation.Dispatcher.set_handlers handlers;
+  Instrumentation.Dispatcher.init ~spec:(Instrumentation.Handler.IlSpec spec_il);
   let result = eval_il_run spec_il rid values_input filename_target in
-  Instrumentation.Hooks.finish ();
+  Instrumentation.Dispatcher.finish ();
   Instrumentation.Config.close_outputs config;
   result
 
 let eval_sl ?(config = Instrumentation.Config.default) spec_sl rid values_input
     filename_target : (Eval_Sl.Ctx.t * Il.Value.t list) pipeline_result =
   let handlers = Instrumentation.Config.to_handlers config in
-  Instrumentation.Hooks.set_handlers handlers;
-  Instrumentation.Hooks.init ~spec:(Instrumentation.Hooks.SlSpec spec_sl);
+  Instrumentation.Dispatcher.set_handlers handlers;
+  Instrumentation.Dispatcher.init ~spec:(Instrumentation.Handler.SlSpec spec_sl);
   let result = eval_sl_run spec_sl rid values_input filename_target in
-  Instrumentation.Hooks.finish ();
+  Instrumentation.Dispatcher.finish ();
   Instrumentation.Config.close_outputs config;
   result
 
@@ -122,8 +122,8 @@ type suite_input = (string * Il.Value.t list * string, Error.t) result
 let eval_il_suite ?(config = Instrumentation.Config.default) spec_il
     (inputs : suite_input list) : suite_result =
   let handlers = Instrumentation.Config.to_handlers config in
-  Instrumentation.Hooks.set_handlers handlers;
-  Instrumentation.Hooks.init ~spec:(Instrumentation.Hooks.IlSpec spec_il);
+  Instrumentation.Dispatcher.set_handlers handlers;
+  Instrumentation.Dispatcher.init ~spec:(Instrumentation.Handler.IlSpec spec_il);
   let passed, failed =
     List.fold_left
       (fun (p, f) input ->
@@ -134,7 +134,7 @@ let eval_il_suite ?(config = Instrumentation.Config.default) spec_il
             match result with Ok _ -> (p + 1, f) | Error _ -> (p, f + 1)))
       (0, 0) inputs
   in
-  Instrumentation.Hooks.finish ();
+  Instrumentation.Dispatcher.finish ();
   Instrumentation.Config.close_outputs config;
   { passed; failed; total = List.length inputs }
 
@@ -142,8 +142,8 @@ let eval_il_suite ?(config = Instrumentation.Config.default) spec_il
 let eval_sl_suite ?(config = Instrumentation.Config.default) spec_sl
     (inputs : suite_input list) : suite_result =
   let handlers = Instrumentation.Config.to_handlers config in
-  Instrumentation.Hooks.set_handlers handlers;
-  Instrumentation.Hooks.init ~spec:(Instrumentation.Hooks.SlSpec spec_sl);
+  Instrumentation.Dispatcher.set_handlers handlers;
+  Instrumentation.Dispatcher.init ~spec:(Instrumentation.Handler.SlSpec spec_sl);
   let passed, failed =
     List.fold_left
       (fun (p, f) input ->
@@ -154,39 +154,37 @@ let eval_sl_suite ?(config = Instrumentation.Config.default) spec_sl
             match result with Ok _ -> (p + 1, f) | Error _ -> (p, f + 1)))
       (0, 0) inputs
   in
-  Instrumentation.Hooks.finish ();
+  Instrumentation.Dispatcher.finish ();
   Instrumentation.Config.close_outputs config;
   { passed; failed; total = List.length inputs }
 
 (* --- T-spec-based runners --- *)
 
 (* Single-run with input spec - includes full init/finish lifecycle *)
-let eval_il_with_task (type input)
-    (module T : Task.TASK with type input = input)
+let eval_il_with_task (type input) (module T : Task.S with type input = input)
     ?(config = Instrumentation.Config.default) spec_il (input : input) =
   let* relation, values = T.parse ~spec:spec_il input in
   eval_il ~config spec_il relation values (T.source input)
 
-let eval_sl_with_task (type input)
-    (module T : Task.TASK with type input = input)
+let eval_sl_with_task (type input) (module T : Task.S with type input = input)
     ?(config = Instrumentation.Config.default) spec_il spec_sl (input : input) =
   let* relation, values = T.parse ~spec:spec_il input in
   eval_sl ~config spec_sl relation values (T.source input)
 
 (* Run-only versions - no init/finish, for use in batch/coverage runs *)
 let eval_il_with_task_run (type input)
-    (module T : Task.TASK with type input = input) spec_il (input : input) =
+    (module T : Task.S with type input = input) spec_il (input : input) =
   let* relation, values = T.parse ~spec:spec_il input in
   eval_il_run spec_il relation values (T.source input)
 
 let eval_sl_with_task_run (type input)
-    (module T : Task.TASK with type input = input) spec_il spec_sl
-    (input : input) =
+    (module T : Task.S with type input = input) spec_il spec_sl (input : input)
+    =
   let* relation, values = T.parse ~spec:spec_il input in
   eval_sl_run spec_sl relation values (T.source input)
 
 (* Suite run with input spec *)
-let eval_il_suite_with_task (type i) (module T : Task.TASK with type input = i)
+let eval_il_suite_with_task (type i) (module T : Task.S with type input = i)
     ?(config = Instrumentation.Config.default) spec_il (inputs : i list) =
   let suite_inputs =
     List.map
@@ -197,7 +195,7 @@ let eval_il_suite_with_task (type i) (module T : Task.TASK with type input = i)
   in
   eval_il_suite ~config spec_il suite_inputs
 
-let eval_sl_suite_with_task (type i) (module T : Task.TASK with type input = i)
+let eval_sl_suite_with_task (type i) (module T : Task.S with type input = i)
     ?(config = Instrumentation.Config.default) spec_il spec_sl (inputs : i list)
     =
   let suite_inputs =
@@ -213,7 +211,7 @@ let eval_sl_suite_with_task (type i) (module T : Task.TASK with type input = i)
 
 (* Run single input and compute outcome based on expectation.
    Includes full init/finish lifecycle - use for single runs. *)
-let run_with_outcome (type i) (module T : Task.TASK with type input = i)
+let run_with_outcome (type i) (module T : Task.S with type input = i)
     ?(config = Instrumentation.Config.default) ~sl_mode ~spec_il (input : i) =
   let result =
     let handler = if sl_mode then Handlers.sl else Handlers.il in
@@ -233,7 +231,7 @@ let run_with_outcome (type i) (module T : Task.TASK with type input = i)
 (* Run single input without init/finish lifecycle.
    For use in batch/coverage runs where init/finish is managed externally. *)
 let run_with_outcome_no_lifecycle (type i)
-    (module T : Task.TASK with type input = i) ~sl_mode ~spec_il (input : i) =
+    (module T : Task.S with type input = i) ~sl_mode ~spec_il (input : i) =
   let result =
     let handler = if sl_mode then Handlers.sl else Handlers.il in
     handler (fun () ->
@@ -257,7 +255,7 @@ type 'i test_result = {
 }
 
 (* Run suite of inputs and return individual outcomes *)
-let run_suite_with_outcomes (type i) (module T : Task.TASK with type input = i)
+let run_suite_with_outcomes (type i) (module T : Task.S with type input = i)
     ?(config = Instrumentation.Config.default) ~sl_mode ~spec_il
     (inputs : i list) =
   List.map
@@ -304,8 +302,8 @@ let run_target_coverage ?(config = Instrumentation.Config.default)
     spec_il tasks =
   (* Initialize instrumentation once for the entire coverage run *)
   let handlers = Instrumentation.Config.to_handlers config in
-  Instrumentation.Hooks.set_handlers handlers;
-  Instrumentation.Hooks.init ~spec:(Instrumentation.Hooks.IlSpec spec_il);
+  Instrumentation.Dispatcher.set_handlers handlers;
+  Instrumentation.Dispatcher.init ~spec:(Instrumentation.Handler.IlSpec spec_il);
 
   (* Load checkpoint if resuming *)
   let loaded_checkpoint =
@@ -407,7 +405,7 @@ let run_target_coverage ?(config = Instrumentation.Config.default)
   (* Final checkpoint save *)
   save_current_checkpoint ();
   (* Finish instrumentation once for the entire coverage run *)
-  Instrumentation.Hooks.finish ();
+  Instrumentation.Dispatcher.finish ();
   Instrumentation.Config.close_outputs config;
   results
 

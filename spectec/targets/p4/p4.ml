@@ -54,7 +54,7 @@ let is_excluded excludes path =
   List.exists (fun pattern -> contains_substring path pattern) excludes
 
 (* P4 target specification *)
-module Target : Runner.Target.TARGET = struct
+module Target : Runner.Target.S = struct
   let name = "p4"
   let spec_dir = "examples/p4-concrete"
   let test_dir = test_base_dir

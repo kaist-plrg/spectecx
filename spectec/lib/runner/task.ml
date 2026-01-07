@@ -33,11 +33,11 @@ let compute_outcome expectation result =
   | Negative, Ok values -> UnexpectedPass values
 
 (** A task specification for interpreter execution *)
-module type TASK = sig
+module type S = sig
   val name : string
 
   (* Reference to the full Target module *)
-  module Target : Target.TARGET
+  module Target : Target.S
 
   type input
 
@@ -56,4 +56,4 @@ module type TASK = sig
 end
 
 (** Existential wrapper for heterogeneous tasks *)
-type packed_task = Pack : (module TASK with type input = 'a) -> packed_task
+type packed_task = Pack : (module S with type input = 'a) -> packed_task

@@ -1,6 +1,6 @@
 (* IL Node coverage handler - Tracks premise execution.
 
-   Implements Hooks.HANDLER interface.
+   Implements Instrumentation_core.Handler.S interface.
    Records all premises at init(), then tracks which are hit during execution.
 
    Output levels:
@@ -8,20 +8,22 @@
    - Full: GCOV-style annotated spec with execution counts
 
    Usage:
-     let handler = Node_coverage_il.make { level = Full; output = Output.stdout }
+     let handler = Node_coverage_il.make { level = Full; output = Instrumentation_core.Output.stdout }
 *)
 
 open Common.Source
 module Il = Lang.Il
-open Util
+open Instrumentation_core.Util
 
 (* Verbosity levels *)
 type level = Summary | Full
 
 (* Handler configuration *)
-type config = { level : level; output : Output.t }
+type config = { level : level; output : Instrumentation_core.Output.t }
 
-let default_config = { level = Summary; output = Output.stdout }
+let default_config =
+  { level = Summary; output = Instrumentation_core.Output.stdout }
+
 let config = ref default_config
 let fmt = ref Format.std_formatter
 
@@ -48,7 +50,7 @@ let prem_key prem =
   let content = Il.Print.string_of_prem prem |> normalize_whitespace in
   (prem.at, truncate 30 content)
 
-module Handler : Hooks.HANDLER = struct
+module M : Instrumentation_core.Handler.S = struct
   let rec count_prem prem =
     State.total_prems := !State.total_prems + 1;
     match prem.it with Il.IterPr (inner, _) -> count_prem inner | _ -> ()
@@ -56,7 +58,7 @@ module Handler : Hooks.HANDLER = struct
   let init ~spec =
     State.reset ();
     match spec with
-    | Hooks.IlSpec il_spec ->
+    | Instrumentation_core.Handler.IlSpec il_spec ->
         State.il_spec := il_spec;
         List.iter
           (fun def ->
@@ -75,18 +77,18 @@ module Handler : Hooks.HANDLER = struct
                   clauses
             | Il.TypD _ -> ())
           il_spec
-    | Hooks.SlSpec _ -> ()
+    | Instrumentation_core.Handler.SlSpec _ -> ()
 
-  let on_rel_enter = Hooks.Noop.on_rel_enter
-  let on_rel_exit = Hooks.Noop.on_rel_exit
-  let on_rule_enter = Hooks.Noop.on_rule_enter
-  let on_rule_exit = Hooks.Noop.on_rule_exit
-  let on_func_enter = Hooks.Noop.on_func_enter
-  let on_func_exit = Hooks.Noop.on_func_exit
-  let on_clause_enter = Hooks.Noop.on_clause_enter
-  let on_clause_exit = Hooks.Noop.on_clause_exit
-  let on_iter_prem_enter = Hooks.Noop.on_iter_prem_enter
-  let on_iter_prem_exit = Hooks.Noop.on_iter_prem_exit
+  let on_rel_enter = Instrumentation_core.Noop.on_rel_enter
+  let on_rel_exit = Instrumentation_core.Noop.on_rel_exit
+  let on_rule_enter = Instrumentation_core.Noop.on_rule_enter
+  let on_rule_exit = Instrumentation_core.Noop.on_rule_exit
+  let on_func_enter = Instrumentation_core.Noop.on_func_enter
+  let on_func_exit = Instrumentation_core.Noop.on_func_exit
+  let on_clause_enter = Instrumentation_core.Noop.on_clause_enter
+  let on_clause_exit = Instrumentation_core.Noop.on_clause_exit
+  let on_iter_prem_enter = Instrumentation_core.Noop.on_iter_prem_enter
+  let on_iter_prem_exit = Instrumentation_core.Noop.on_iter_prem_exit
 
   let on_prem_enter ~prem ~at:_ =
     State.incr State.prems_attempted (prem_key prem)
@@ -94,7 +96,7 @@ module Handler : Hooks.HANDLER = struct
   let on_prem_exit ~prem ~at:_ ~success =
     if success then State.incr State.prems_succeeded (prem_key prem)
 
-  let on_instr = Hooks.Noop.on_instr
+  let on_instr = Instrumentation_core.Noop.on_instr
 
   (* --- Output: Summary mode (stats + uncovered only) --- *)
 
@@ -245,9 +247,9 @@ let restore result =
   State.total_prems := result.total_prems
 
 (* Handler with data access - implements HANDLER_WITH_DATA signature *)
-module HandlerWithData : Hooks.HANDLER_WITH_DATA with type result = result =
-struct
-  include Handler
+module HandlerWithData :
+  Instrumentation_core.Handler.S_with_data with type result = result = struct
+  include M
 
   type nonrec result = result
 
@@ -257,8 +259,8 @@ end
 
 let make cfg =
   config := cfg;
-  fmt := Output.formatter cfg.output;
-  (module Handler : Hooks.HANDLER)
+  fmt := Instrumentation_core.Output.formatter cfg.output;
+  (module M : Instrumentation_core.Handler.S)
 
 (* Create handler with data getter for programmatic access.
    Usage:
@@ -269,6 +271,7 @@ let make cfg =
 *)
 let make_with_data cfg =
   config := cfg;
-  fmt := Output.formatter cfg.output;
-  ( (module HandlerWithData : Hooks.HANDLER_WITH_DATA with type result = result),
+  fmt := Instrumentation_core.Output.formatter cfg.output;
+  ( (module HandlerWithData : Instrumentation_core.Handler.S_with_data
+      with type result = result),
     get_result )

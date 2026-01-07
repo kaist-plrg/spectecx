@@ -1,6 +1,6 @@
 (* SL Node coverage handler - Tracks instruction execution.
 
-   Implements Hooks.HANDLER interface.
+   Implements Instrumentation_core.Handler.S interface.
    Records all instructions at init(), then tracks which are hit during execution.
 
    Output levels:
@@ -8,18 +8,21 @@
    - Full: GCOV-style annotated spec with execution counts
 
    Usage:
-     let handler = Node_coverage_sl.make { level = Full; output = Output.stdout }
+     let handler = Node_coverage_sl.make { level = Full; output = Instrumentation_core.Output.stdout }
 *)
 
 open Common.Source
 module Sl = Lang.Sl
-open Util
+open Instrumentation_core.Util
 
 (* Verbosity levels - reuse from IL module *)
 type level = Node_coverage_il.level = Summary | Full
 
 (* Handler configuration - reuse from IL module for type compatibility *)
-type config = Node_coverage_il.config = { level : level; output : Output.t }
+type config = Node_coverage_il.config = {
+  level : level;
+  output : Instrumentation_core.Output.t;
+}
 
 let default_config = Node_coverage_il.default_config
 let config = ref default_config
@@ -72,7 +75,7 @@ let instr_key instr =
   let content = instr_header instr |> normalize_whitespace in
   (instr.at, content)
 
-module Handler : Hooks.HANDLER = struct
+module M : Instrumentation_core.Handler.S = struct
   let rec count_instr instr =
     State.total_instrs := !State.total_instrs + 1;
     match instr.it with
@@ -85,8 +88,8 @@ module Handler : Hooks.HANDLER = struct
   let init ~spec =
     State.reset ();
     match spec with
-    | Hooks.IlSpec _ -> ()
-    | Hooks.SlSpec sl_spec ->
+    | Instrumentation_core.Handler.IlSpec _ -> ()
+    | Instrumentation_core.Handler.SlSpec sl_spec ->
         State.sl_spec := sl_spec;
         List.iter
           (fun def ->
@@ -96,18 +99,18 @@ module Handler : Hooks.HANDLER = struct
             | Sl.TypD _ -> ())
           sl_spec
 
-  let on_rel_enter = Hooks.Noop.on_rel_enter
-  let on_rel_exit = Hooks.Noop.on_rel_exit
-  let on_rule_enter = Hooks.Noop.on_rule_enter
-  let on_rule_exit = Hooks.Noop.on_rule_exit
-  let on_func_enter = Hooks.Noop.on_func_enter
-  let on_func_exit = Hooks.Noop.on_func_exit
-  let on_clause_enter = Hooks.Noop.on_clause_enter
-  let on_clause_exit = Hooks.Noop.on_clause_exit
-  let on_iter_prem_enter = Hooks.Noop.on_iter_prem_enter
-  let on_iter_prem_exit = Hooks.Noop.on_iter_prem_exit
-  let on_prem_enter = Hooks.Noop.on_prem_enter
-  let on_prem_exit = Hooks.Noop.on_prem_exit
+  let on_rel_enter = Instrumentation_core.Noop.on_rel_enter
+  let on_rel_exit = Instrumentation_core.Noop.on_rel_exit
+  let on_rule_enter = Instrumentation_core.Noop.on_rule_enter
+  let on_rule_exit = Instrumentation_core.Noop.on_rule_exit
+  let on_func_enter = Instrumentation_core.Noop.on_func_enter
+  let on_func_exit = Instrumentation_core.Noop.on_func_exit
+  let on_clause_enter = Instrumentation_core.Noop.on_clause_enter
+  let on_clause_exit = Instrumentation_core.Noop.on_clause_exit
+  let on_iter_prem_enter = Instrumentation_core.Noop.on_iter_prem_enter
+  let on_iter_prem_exit = Instrumentation_core.Noop.on_iter_prem_exit
+  let on_prem_enter = Instrumentation_core.Noop.on_prem_enter
+  let on_prem_exit = Instrumentation_core.Noop.on_prem_exit
   let on_instr ~instr ~at:_ = State.incr State.instrs_hit (instr_key instr)
 
   (* --- Output: Summary mode (stats + uncovered only) --- *)
@@ -222,9 +225,9 @@ let restore result =
   State.total_instrs := result.total_instrs
 
 (* Handler with data access - implements HANDLER_WITH_DATA signature *)
-module HandlerWithData : Hooks.HANDLER_WITH_DATA with type result = result =
-struct
-  include Handler
+module HandlerWithData :
+  Instrumentation_core.Handler.S_with_data with type result = result = struct
+  include M
 
   type nonrec result = result
 
@@ -234,5 +237,5 @@ end
 
 let make cfg =
   config := cfg;
-  fmt := Output.formatter cfg.output;
-  (module Handler : Hooks.HANDLER)
+  fmt := Instrumentation_core.Output.formatter cfg.output;
+  (module M : Instrumentation_core.Handler.S)
