@@ -12,7 +12,7 @@
 *)
 
 open Common.Source
-module Il = Lang.Il
+open Lang.Il
 open Instrumentation_core.Util
 open Instrumentation_static.Premise_uid
 
@@ -30,7 +30,7 @@ let fmt = ref Format.std_formatter
 
 (* Runtime state - changes during execution *)
 module State = struct
-  let il_spec : Il.spec ref = ref []
+  let il_spec : spec ref = ref []
   let prems_attempted : (region * string, int) Hashtbl.t = Hashtbl.create 256
   let prems_succeeded : (region * string, int) Hashtbl.t = Hashtbl.create 256
   let prems_failed : (region * string, int) Hashtbl.t = Hashtbl.create 256
@@ -40,7 +40,7 @@ module State = struct
 
   let current_test_case_id : string option ref = ref None
   let total_prems = ref 0
-  let total_if_prems = ref 0
+  let total_fallible_prems = ref 0
 
   let reset () =
     il_spec := [];
@@ -50,7 +50,7 @@ module State = struct
     Hashtbl.clear prem_to_test;
     current_test_case_id := None;
     total_prems := 0;
-    total_if_prems := 0
+    total_fallible_prems := 0
 
   (* Set current test case ID (called by runner before each test) *)
   let set_test_case_id id = current_test_case_id := Some id
@@ -72,10 +72,22 @@ module State = struct
     Hashtbl.replace tbl key (count + 1)
 end
 
+let rec is_fallible prem =
+  match prem.it with
+  | LetPr _ | ElsePr | DebugPr _ -> false
+  | IterPr (inner, _) -> is_fallible inner
+  | IfPr _ | RulePr _ -> true
+
 module M : Instrumentation_core.Handler.S = struct
   let rec count_prem prem =
-    State.total_prems := !State.total_prems + 1;
-    match prem.it with Il.IterPr (inner, _) -> count_prem inner | _ -> ()
+    match prem.it with
+    (* count IfPr, RulePr, and their iterations *)
+    | LetPr _ | ElsePr | DebugPr _ ->
+        State.total_prems := !State.total_prems + 1
+    | IterPr (inner, _) -> count_prem inner
+    | IfPr _ | RulePr _ ->
+        State.total_prems := !State.total_prems + 1;
+        State.total_fallible_prems := !State.total_fallible_prems + 1
 
   let init ~spec =
     State.reset ();
@@ -85,19 +97,19 @@ module M : Instrumentation_core.Handler.S = struct
         List.iter
           (fun def ->
             match def.it with
-            | Il.RelD (_, _, _, rules) ->
+            | RelD (_, _, _, rules) ->
                 List.iter
                   (fun rule ->
                     let _, _, prems = rule.it in
                     List.iter (fun prem -> count_prem prem) prems)
                   rules
-            | Il.DecD (_, _, _, _, clauses) ->
+            | DecD (_, _, _, _, clauses) ->
                 List.iter
                   (fun clause ->
                     let _, _, prems = clause.it in
                     List.iter (fun prem -> count_prem prem) prems)
                   clauses
-            | Il.TypD _ -> ())
+            | TypD _ -> ())
           il_spec
     | Instrumentation_core.Handler.SlSpec _ -> ()
 
@@ -126,9 +138,15 @@ module M : Instrumentation_core.Handler.S = struct
       State.incr_count State.prems_succeeded key;
       State.record_premise_coverage key)
     else
-      match prem.it with
-      | Il.LetPr _ -> ()
-      | _ -> State.incr_count State.prems_failed key
+      let rec incr_failures prem =
+        match prem.it with
+        | LetPr _ | ElsePr | DebugPr _ -> ()
+        | IterPr (inner, _) -> incr_failures inner
+        | IfPr _ | RulePr _ ->
+            let key = prem_key prem in
+            State.incr_count State.prems_failed key
+      in
+      incr_failures prem
 
   let on_instr = Instrumentation_core.Noop.on_instr
 
@@ -136,15 +154,20 @@ module M : Instrumentation_core.Handler.S = struct
 
   let print_stats () =
     let succeeded = Hashtbl.length State.prems_succeeded in
+    let failed = Hashtbl.length State.prems_failed in
     let attempted = Hashtbl.length State.prems_attempted in
     let total = !State.total_prems in
-    if total > 0 then
+    let total_fallible = !State.total_fallible_prems in
+    if total > 0 then (
       Format.fprintf !fmt
-        "IL Premises: %d/%d succeeded (%.2f%%), %d/%d attempted (%.2f%%)\n"
-        succeeded total
-        (percentage succeeded total)
+        "IL Premises: %d/%d attempted (%.2f%%), %d/%d succeeded (%.2f%%)\n"
         attempted total
         (percentage attempted total)
+        succeeded total
+        (percentage succeeded total);
+      Format.fprintf !fmt
+        "Fallible Premises: %d/%d failed at least once, %d never failed\n"
+        failed total_fallible (total_fallible - failed))
 
   let print_uncovered () =
     let total = !State.total_prems in
@@ -154,7 +177,7 @@ module M : Instrumentation_core.Handler.S = struct
       List.iter
         (fun def ->
           match def.it with
-          | Il.RelD (id, _, _, rules) ->
+          | RelD (id, _, _, rules) ->
               List.iter
                 (fun rule ->
                   let rule_id, _, prems = rule.it in
@@ -163,11 +186,11 @@ module M : Instrumentation_core.Handler.S = struct
                       if not (Hashtbl.mem State.prems_succeeded (prem_key prem))
                       then
                         uncovered :=
-                          (id.it, rule_id.it, Il.Print.string_of_prem prem)
+                          (id.it, rule_id.it, Print.string_of_prem prem)
                           :: !uncovered)
                     prems)
                 rules
-          | Il.DecD (id, _, _, _, clauses) ->
+          | DecD (id, _, _, _, clauses) ->
               List.iteri
                 (fun idx clause ->
                   let _, _, prems = clause.it in
@@ -178,11 +201,11 @@ module M : Instrumentation_core.Handler.S = struct
                         uncovered :=
                           ( id.it,
                             Format.sprintf "clause/%d" idx,
-                            Il.Print.string_of_prem prem )
+                            Print.string_of_prem prem )
                           :: !uncovered)
                     prems)
                 clauses
-          | Il.TypD _ -> ())
+          | TypD _ -> ())
         !State.il_spec;
       if !uncovered <> [] then (
         Format.fprintf !fmt "\nNever succeeded:\n";
@@ -214,12 +237,17 @@ module M : Instrumentation_core.Handler.S = struct
     Hashtbl.find_opt State.prems_succeeded key |> Option.value ~default:0
 
   let print_prem indent prem =
-    let succ_fail = fmt_succ_fail prem in
-    let content = Il.Print.string_of_prem prem |> normalize_whitespace in
+    let content = Print.string_of_prem prem |> normalize_whitespace in
     let uid =
       match get_uid (prem_key prem) with Some uid -> uid | None -> -1
     in
-    Format.fprintf !fmt "%d: %s %s-- %s\n" uid succ_fail indent content
+    if is_fallible prem then
+      let succ_fail = fmt_succ_fail prem in
+      Format.fprintf !fmt "%4d: %s %s-- %s\n" uid succ_fail indent content
+    else
+      let succ = get_prem_succeeded (prem_key prem) in
+      Format.fprintf !fmt "%4d: %s     %s-- %s\n" uid (format_count succ) indent
+        content
 
   let print_prems indent prems =
     List.iter (print_prem indent) prems;
@@ -228,8 +256,7 @@ module M : Instrumentation_core.Handler.S = struct
     | last :: _ ->
         let key = prem_key last in
         let succ = get_prem_succeeded key in
-        let uid = match get_uid key with Some uid -> uid | None -> -1 in
-        Format.fprintf !fmt "%d: %s      %sSUCCESS\n" uid (format_count succ)
+        Format.fprintf !fmt "      %s      %sSUCCESS\n" (format_count succ)
           indent
     | [] -> ()
 
@@ -237,7 +264,7 @@ module M : Instrumentation_core.Handler.S = struct
     List.iter
       (fun def ->
         match def.it with
-        | Il.RelD (id, _, _, rules) ->
+        | RelD (id, _, _, rules) ->
             Format.fprintf !fmt "\nrelation %s:\n" id.it;
             List.iter
               (fun rule ->
@@ -245,7 +272,7 @@ module M : Instrumentation_core.Handler.S = struct
                 Format.fprintf !fmt "      rule %s:\n" rule_id.it;
                 print_prems "    " prems)
               rules
-        | Il.DecD (id, _, _, _, clauses) ->
+        | DecD (id, _, _, _, clauses) ->
             Format.fprintf !fmt "\ndef $%s:\n" id.it;
             List.iteri
               (fun idx clause ->
@@ -253,7 +280,7 @@ module M : Instrumentation_core.Handler.S = struct
                 Format.fprintf !fmt "      clause %d:\n" idx;
                 print_prems "    " prems)
               clauses
-        | Il.TypD _ -> ())
+        | TypD _ -> ())
       !State.il_spec
 
   (* --- Finish: print report --- *)

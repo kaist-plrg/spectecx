@@ -691,7 +691,9 @@ and eval_prem (ctx : Ctx.t) (prem : prem) : Ctx.t attempt =
     print_endline @@ Print.string_of_value value;
     Ok ctx
   in
-  Instrumentation.Dispatcher.notify_prem_enter ~prem ~at:prem.at;
+  (match prem.it with
+  | IterPr _ -> ()
+  | _ -> Instrumentation.Dispatcher.notify_prem_enter ~prem ~at:prem.at);
   let result =
     match prem.it with
     | RulePr (id, notexp) -> eval_rule_prem ctx id notexp
@@ -701,8 +703,11 @@ and eval_prem (ctx : Ctx.t) (prem : prem) : Ctx.t attempt =
     | IterPr (prem, iterexp) -> eval_iter_prem ctx prem iterexp
     | DebugPr exp -> eval_debug_prem ctx exp
   in
-  Instrumentation.Dispatcher.notify_prem_exit ~prem ~at:prem.at
-    ~success:(Result.is_ok result);
+  (match prem.it with
+  | IterPr _ -> ()
+  | _ ->
+      Instrumentation.Dispatcher.notify_prem_exit ~prem ~at:prem.at
+        ~success:(Result.is_ok result));
   result
 
 and eval_prems (ctx : Ctx.t) (prems : prem list) : Ctx.t attempt =

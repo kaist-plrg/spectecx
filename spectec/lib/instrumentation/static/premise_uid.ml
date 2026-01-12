@@ -62,19 +62,10 @@ let get_uid key = Hashtbl.find_opt State.prem_to_uid key
 let get_premise uid = Hashtbl.find_opt State.uid_to_prem uid
 
 (* Recursively assign UIDs to all premises in a premise *)
-let rec assign_premise_uid prem =
+let assign_premise_uid prem =
   let key = prem_key prem in
   let _ = assign_uid key in
-  match prem.it with
-  | Il.IterPr (inner, _) -> assign_premise_uid inner
-  | _ -> ()
-
-(* Recursively count premises *)
-let rec count_prem prem =
-  match prem.it with
-  | Il.LetPr _ -> ()
-  | Il.IterPr (inner, _) -> count_prem inner
-  | _ -> ()
+  ()
 
 (* Initialize: walk spec and assign UIDs to all premises *)
 let init spec =
@@ -88,21 +79,13 @@ let init spec =
               List.iter
                 (fun rule ->
                   let _, _, prems = rule.it in
-                  List.iter
-                    (fun prem ->
-                      count_prem prem;
-                      assign_premise_uid prem)
-                    prems)
+                  List.iter (fun prem -> assign_premise_uid prem) prems)
                 rules
           | Il.DecD (_, _, _, _, clauses) ->
               List.iter
                 (fun clause ->
                   let _, _, prems = clause.it in
-                  List.iter
-                    (fun prem ->
-                      count_prem prem;
-                      assign_premise_uid prem)
-                    prems)
+                  List.iter (fun prem -> assign_premise_uid prem) prems)
                 clauses
           | Il.TypD _ -> ())
         il_spec

@@ -323,7 +323,8 @@ and string_of_clauses clauses =
 
 and string_of_prem prem =
   match prem.it with
-  | RulePr (id, notexp) -> string_of_relid id ^ ": " ^ string_of_notexp notexp
+  | RulePr (id, notexp) ->
+      "rel " ^ string_of_relid id ^ ": " ^ string_of_notexp notexp
   | IfPr exp -> "if " ^ string_of_exp exp
   | ElsePr -> "otherwise"
   | LetPr (exp_l, exp_r) ->
