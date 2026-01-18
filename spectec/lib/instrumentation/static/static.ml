@@ -28,10 +28,11 @@ end
 (* Registry of static analyses *)
 let registered : (string, (module S)) Hashtbl.t = Hashtbl.create 16
 
-(* Register a static analysis module *)
+(* Register a static analysis module (idempotent - safe to call multiple times) *)
 let register (module M : S) =
   if Hashtbl.mem registered M.name then
-    failwith (Printf.sprintf "Static analysis '%s' already registered" M.name)
+    (* Already registered - skip (enables automatic deduplication) *)
+    ()
   else Hashtbl.replace registered M.name (module M : S)
 
 (* Get a registered static analysis by name *)

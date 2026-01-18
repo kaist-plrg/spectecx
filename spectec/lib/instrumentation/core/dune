@@ -3,4 +3,4 @@
 (library
  (name instrumentation_core)
  (public_name spectec.instrumentation.core)
- (libraries spectec.common spectec.lang))
+ (libraries spectec.common spectec.lang instrumentation_static))

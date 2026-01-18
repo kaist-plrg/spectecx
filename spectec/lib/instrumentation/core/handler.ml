@@ -16,6 +16,7 @@ type spec = IlSpec of Il.spec | SlSpec of Sl.spec
 
 (* Base handler signature *)
 module type S = sig
+  val static_dependencies : (module Instrumentation_static.Static.S) list
   val init : spec:spec -> unit
 
   (* Test lifecycle events - called by runner for each test case *)

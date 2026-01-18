@@ -300,6 +300,14 @@ let display_report ~spec ~(config : Instrumentation.Config.t) checkpoint =
       Instrumentation.Node_coverage_sl.make node_il_cfg;
     ]
   in
+  (* Register static dependencies from all handlers *)
+  List.iter
+    (fun (module H : Instrumentation.Handler.S) ->
+      List.iter
+        (fun (module M : Instrumentation_static.Static.S) ->
+          Instrumentation_static.Static.register (module M))
+        H.static_dependencies)
+    handlers;
   (* Initialize Static analysis *)
   Instrumentation_static.Static.reset_all ();
   Instrumentation_static.Static.init_all

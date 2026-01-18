@@ -5,6 +5,7 @@
 *)
 
 module M : Handler.S = struct
+  let static_dependencies = []
   let init ~spec:_ = ()
   let on_test_start ~test_case_id:_ = ()
   let on_test_end ~test_case_id:_ = ()
@@ -42,3 +43,4 @@ let on_prem_enter = M.on_prem_enter
 let on_prem_exit = M.on_prem_exit
 let on_instr = M.on_instr
 let finish = M.finish
+let static_dependencies = M.static_dependencies

@@ -24,18 +24,31 @@ let default =
 
 (* Convert config to handler list *)
 let to_handlers config =
-  (match config.trace with None -> [] | Some cfg -> [ Trace.make cfg ])
-  @ (match config.profile with None -> [] | Some cfg -> [ Profile.make cfg ])
-  @ (match config.branch_coverage with
+  let handlers =
+    (match config.trace with None -> [] | Some cfg -> [ Trace.make cfg ])
+    @ (match config.profile with
+      | None -> []
+      | Some cfg -> [ Profile.make cfg ])
+    @ (match config.branch_coverage with
+      | None -> []
+      | Some cfg -> [ Branch_coverage.make cfg ])
+    @
+    match config.node_coverage with
     | None -> []
-    | Some cfg -> [ Branch_coverage.make cfg ])
-  @
-  match config.node_coverage with
-  | None -> []
-  | Some cfg ->
-      (* Both IL and SL handlers share the same config;
-         they self-select based on spec type at init() *)
-      [ Node_coverage_il.make cfg; Node_coverage_sl.make cfg ]
+    | Some cfg ->
+        (* Both IL and SL handlers share the same config;
+           they self-select based on spec type at init() *)
+        [ Node_coverage_il.make cfg; Node_coverage_sl.make cfg ]
+  in
+  (* Auto-collect and register static dependencies from all active handlers *)
+  List.iter
+    (fun (module H : Instrumentation_core.Handler.S) ->
+      List.iter
+        (fun (module M : Instrumentation_static.Static.S) ->
+          Instrumentation_static.Static.register (module M))
+        H.static_dependencies)
+    handlers;
+  handlers
 
 (* Close all output destinations after finish() *)
 let close_outputs config =

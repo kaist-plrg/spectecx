@@ -79,6 +79,12 @@ let rec is_fallible prem =
   | IfPr _ | RulePr _ -> true
 
 module M : Instrumentation_core.Handler.S = struct
+  let static_dependencies =
+    [
+      (module Instrumentation_static.Premise_uid.Premise_uid
+      : Instrumentation_static.Static.S);
+    ]
+
   let rec count_prem prem =
     match prem.it with
     (* count IfPr, RulePr, and their iterations *)
@@ -369,8 +375,6 @@ module HandlerWithData :
 end
 
 let make cfg =
-  Instrumentation_static.Static.register
-    (module Premise_uid : Instrumentation_static.Static.S);
   config := cfg;
   fmt := Instrumentation_core.Output.formatter cfg.output;
   (module M : Instrumentation_core.Handler.S)

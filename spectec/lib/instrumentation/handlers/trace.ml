@@ -45,6 +45,7 @@ module State = struct
 end
 
 module M : Instrumentation_core.Handler.S = struct
+  let static_dependencies = []
   let init ~spec:_ = State.reset ()
   let on_test_start = Instrumentation_core.Noop.on_test_start
   let on_test_end = Instrumentation_core.Noop.on_test_end
