@@ -260,7 +260,7 @@ type task_result = { task_name : string; summary : suite_summary }
 
 (* Run coverage across all input specs in a target with checkpoint support.
    Init/finish lifecycle is managed here - called once for the entire run. *)
-let run_target_coverage ?(config = Instrumentation.Config.default)
+let run_target_coverage ?(config = Instrumentation.Config.default) ?test_dir
     ~(checkpoint_config : Checkpoint.config) ~verbose ~sl_mode ~spec_files
     spec_il tasks =
   (* Initialize instrumentation once for the entire coverage run *)
@@ -299,7 +299,11 @@ let run_target_coverage ?(config = Instrumentation.Config.default)
     List.map
       (fun (Task.Pack (module T)) ->
         (* Each task discovers its own inputs *)
-        let all_inputs = T.collect () in
+        let all_inputs =
+          match test_dir with
+          | Some dir -> T.collect ~dir ()
+          | None -> T.collect ()
+        in
         let total_all = List.length all_inputs in
         (* Filter out completed inputs if resuming *)
         let inputs =

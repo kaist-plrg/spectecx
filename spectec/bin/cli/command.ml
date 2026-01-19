@@ -139,6 +139,11 @@ module Make (Tgt : Runner.Target.S) = struct
          flag "--sl" no_arg ~doc:" use SL interpreter (default: IL)"
        and verbose =
          flag "-v" no_arg ~doc:" verbose: print progress for each test"
+       and test_dir =
+         flag "--test-dir" (optional string)
+           ~doc:
+             "DIR directory containing test inputs (default: target's test \
+              directory)"
        and checkpoint_output_file =
          flag "--checkpoint" (optional string)
            ~doc:"FILE save checkpoint to file (enables resume)"
@@ -169,7 +174,7 @@ module Make (Tgt : Runner.Target.S) = struct
            (* Convert to generic tasks for runner *)
            let generic_tasks = List.map to_generic tasks in
            let results =
-             run_target_coverage ~config:instrumentation_config
+             run_target_coverage ~config:instrumentation_config ?test_dir
                ~checkpoint_config ~verbose ~sl_mode ~spec_files spec_il
                generic_tasks
            in
