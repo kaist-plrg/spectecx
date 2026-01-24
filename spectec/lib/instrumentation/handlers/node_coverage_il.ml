@@ -41,6 +41,8 @@ module State = struct
   let current_test_case_id : string option ref = ref None
   let total_prems = ref 0
   let total_fallible_prems = ref 0
+  let total_rule_prems = ref 0
+  let total_if_prems = ref 0
 
   let reset () =
     il_spec := [];
@@ -50,7 +52,9 @@ module State = struct
     Hashtbl.clear prem_to_test;
     current_test_case_id := None;
     total_prems := 0;
-    total_fallible_prems := 0
+    total_fallible_prems := 0;
+    total_rule_prems := 0;
+    total_if_prems := 0
 
   (* Set current test case ID (called by runner before each test) *)
   let set_test_case_id id = current_test_case_id := Some id
@@ -91,9 +95,14 @@ module M : Instrumentation_core.Handler.S = struct
     | LetPr _ | ElsePr | DebugPr _ ->
         State.total_prems := !State.total_prems + 1
     | IterPr (inner, _) -> count_prem inner
-    | IfPr _ | RulePr _ ->
+    | IfPr _ ->
         State.total_prems := !State.total_prems + 1;
-        State.total_fallible_prems := !State.total_fallible_prems + 1
+        State.total_fallible_prems := !State.total_fallible_prems + 1;
+        State.total_if_prems := !State.total_if_prems + 1
+    | RulePr _ ->
+        State.total_prems := !State.total_prems + 1;
+        State.total_fallible_prems := !State.total_fallible_prems + 1;
+        State.total_rule_prems := !State.total_rule_prems + 1
 
   let init ~spec =
     State.reset ();
@@ -158,12 +167,14 @@ module M : Instrumentation_core.Handler.S = struct
 
   (* --- Output: Summary mode (stats + uncovered only) --- *)
 
+  let is_if_prem_key ((_, content) : region * string) : bool =
+    String.length content >= 3 && String.sub content 0 3 = "if "
+
   let print_stats () =
     let succeeded = Hashtbl.length State.prems_succeeded in
-    let failed = Hashtbl.length State.prems_failed in
     let attempted = Hashtbl.length State.prems_attempted in
     let total = !State.total_prems in
-    let total_fallible = !State.total_fallible_prems in
+
     if total > 0 then (
       Format.fprintf !fmt
         "IL Premises: %d/%d attempted (%.2f%%), %d/%d succeeded (%.2f%%)\n"
@@ -171,9 +182,28 @@ module M : Instrumentation_core.Handler.S = struct
         (percentage attempted total)
         succeeded total
         (percentage succeeded total);
+
+      (* Breakdown for if-premises *)
+      let total_if = !State.total_if_prems in
+      let attempted_if =
+        Hashtbl.fold
+          (fun k _ acc -> if is_if_prem_key k then acc + 1 else acc)
+          State.prems_attempted 0
+      in
+      let failed_if =
+        Hashtbl.fold
+          (fun k _ acc -> if is_if_prem_key k then acc + 1 else acc)
+          State.prems_failed 0
+      in
+      let never_attempted = total_if - attempted_if in
+      let attempted_failed = failed_if in
+      let attempted_never_failed = attempted_if - failed_if in
+
+      Format.fprintf !fmt "%d rule premises\n" !State.total_rule_prems;
       Format.fprintf !fmt
-        "Fallible Premises: %d/%d failed at least once, %d never failed\n"
-        failed total_fallible (total_fallible - failed))
+        "%d if-premises : %d never attempted, %d attempted but never failed, \
+         %d attempted and failed\n"
+        total_if never_attempted attempted_never_failed attempted_failed)
 
   let print_uncovered () =
     let total = !State.total_prems in
