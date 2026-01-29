@@ -616,13 +616,27 @@ and eval_iter_exp (note : typ') (ctx : Ctx.t) (exp : exp) (iterexp : iterexp) :
         (ctx, value_res)
   in
   let eval_iter_exp_list note ctx exp vars =
-    let+ ctxs_sub = Ctx.sub_list ctx vars in
-    let ctx, values_rev =
+    (* Get transposed batches of values *)
+    let+ batches =
+      List.map
+        (fun (id, _typ, iters) ->
+          Ctx.find_value ctx (id, iters @ [ List ]) |> Value.get_list)
+        vars
+      |> Ctx.transpose
+    in
+    (* Fold over batches, discarding the sub-context each time *)
+    let values_rev =
       List.fold_left
-        (fun (ctx, values_rev) ctx_sub ->
+        (fun values_rev batch ->
+          let ctx_sub =
+            List.fold_left2
+              (fun ctx_sub (id, _typ, iters) value ->
+                Ctx.add_value ~shadow:true ctx_sub (id, iters) value)
+              ctx vars batch
+          in
           let _, value = eval_exp ctx_sub exp in
-          (ctx, value :: values_rev))
-        (ctx, []) ctxs_sub
+          value :: values_rev)
+        [] batches
     in
     let value_res = values_rev |> List.rev |> Value.Make.list note in
     (ctx, value_res)
@@ -709,72 +723,6 @@ and eval_prems (ctx : Ctx.t) (prems : prem list) : Ctx.t attempt =
       eval_prem ctx prem)
     (Ok ctx) prems
 
-(* Iterated premise evaluation *)
-
-and eval_iter_prem_list (ctx : Ctx.t) (prem : prem) (vars : var list) :
-    Ctx.t attempt =
-  (* Discriminate between bound and binding variables *)
-  let vars_bound, vars_binding =
-    List.partition
-      (fun (id, _typ, iters) -> Ctx.bound_value ctx (id, iters @ [ List ]))
-      vars
-  in
-  (* Create a subcontext for each batch of bound values *)
-  let* ctxs_sub = Ctx.sub_list ctx vars_bound in
-  let* ctx, values_binding =
-    match ctxs_sub with
-    (* If the bound variable supposed to guide the iteration is already empty,
-       then the binding variables are also empty *)
-    | [] ->
-        let values_binding =
-          List.init (List.length vars_binding) (fun _ -> [])
-        in
-        Ok (ctx, values_binding)
-    (* Otherwise, evaluate the premise for each batch of bound values,
-       and collect the resulting binding batches *)
-    | _ ->
-        let* ctx, values_binding_batch_rev =
-          List.fold_left
-            (fun ctx_values_binding_batch ctx_sub ->
-              let* ctx, values_binding_batch_rev = ctx_values_binding_batch in
-              Instrumentation.Dispatcher.notify_iter_prem_enter ~prem
-                ~at:prem.at;
-              let* ctx_sub = eval_prem ctx_sub prem in
-              Instrumentation.Dispatcher.notify_iter_prem_exit ~at:prem.at;
-              let value_binding_batch =
-                List.map
-                  (fun (id_binding, _typ_binding, iters_binding) ->
-                    Ctx.find_value ctx_sub (id_binding, iters_binding))
-                  vars_binding
-              in
-              let values_binding_batch_rev =
-                value_binding_batch :: values_binding_batch_rev
-              in
-              Ok (ctx, values_binding_batch_rev))
-            (Ok (ctx, []))
-            ctxs_sub
-        in
-        let* values_binding =
-          values_binding_batch_rev |> List.rev |> Ctx.transpose
-        in
-        Ok (ctx, values_binding)
-  in
-  (* Finally, bind the resulting binding batches *)
-  let bindings =
-    List.map2
-      (fun (id_binding, typ_binding, iters_binding) values_binding ->
-        let value_binding =
-          let typ =
-            Lang.Il.Typ.iterate typ_binding (iters_binding @ [ List ])
-          in
-          values_binding |> Value.Make.list typ.it
-        in
-        ((id_binding, iters_binding @ [ List ]), value_binding))
-      vars_binding values_binding
-  in
-  let ctx = Ctx.add_values ctx bindings in
-  Ok ctx
-
 and eval_iter_prem (ctx : Ctx.t) (prem : prem) (iterexp : iterexp) :
     Ctx.t attempt =
   (* List iteration *)
@@ -785,46 +733,55 @@ and eval_iter_prem (ctx : Ctx.t) (prem : prem) (iterexp : iterexp) :
         (fun (id, _typ, iters) -> Ctx.bound_value ctx (id, iters @ [ List ]))
         vars
     in
-    (* Create a subcontext for each batch of bound values *)
-    let* ctxs_sub = Ctx.sub_list ctx vars_bound in
-    let* ctx, values_binding =
-      match ctxs_sub with
+    (* Lookup bound variables and split them into batches.
+       For values x* = [ x0; x1; x2 ], y* = [ y0; y1; y2 ],
+       batches = [ [ x0; y0 ]; [ x1; y1 ]; [ x2; y2 ] ] *)
+    let* batches =
+      List.map
+        (fun (id, _typ, iters) ->
+          Ctx.find_value ctx (id, iters @ [ List ]) |> Value.get_list)
+        vars_bound
+      |> Ctx.transpose
+    in
+    let* values_binding =
+      match batches with
       (* If the bound variable supposed to guide the iteration is already empty,
          then the binding variables are also empty *)
       | [] ->
           let values_binding =
             List.init (List.length vars_binding) (fun _ -> [])
           in
-          Ok (ctx, values_binding)
+          Ok values_binding
       (* Otherwise, evaluate the premise for each batch of bound values,
        and collect the resulting binding batches *)
       | _ ->
-          (* Hook: iteration start *)
-          let* ctx, values_binding_batch_rev =
+          let* batches_binding_rev =
             List.fold_left
-              (fun ctx_values_binding_batch ctx_sub ->
-                let* ctx, values_binding_batch_rev = ctx_values_binding_batch in
+              (fun batches_binding_rev_res batch ->
+                let ctx_sub =
+                  List.fold_left2
+                    (fun ctx_sub (id, _typ, iters) value ->
+                      Ctx.add_value ~shadow:true ctx_sub (id, iters) value)
+                    ctx vars_bound batch
+                in
                 Instrumentation.Dispatcher.notify_iter_prem_enter ~prem
                   ~at:prem.at;
                 let* ctx_sub = eval_prem ctx_sub prem in
                 Instrumentation.Dispatcher.notify_iter_prem_exit ~at:prem.at;
-                let value_binding_batch =
+                let batch_binding =
                   List.map
                     (fun (id_binding, _typ_binding, iters_binding) ->
                       Ctx.find_value ctx_sub (id_binding, iters_binding))
                     vars_binding
                 in
-                let values_binding_batch_rev =
-                  value_binding_batch :: values_binding_batch_rev
-                in
-                Ok (ctx, values_binding_batch_rev))
-              (Ok (ctx, []))
-              ctxs_sub
+                let* batches_binding_rev = batches_binding_rev_res in
+                Ok (batch_binding :: batches_binding_rev))
+              (Ok []) batches
           in
           let* values_binding =
-            values_binding_batch_rev |> List.rev |> Ctx.transpose
+            batches_binding_rev |> List.rev |> Ctx.transpose
           in
-          Ok (ctx, values_binding)
+          Ok values_binding
     in
     (* Finally, bind the resulting binding batches *)
     let ctx =

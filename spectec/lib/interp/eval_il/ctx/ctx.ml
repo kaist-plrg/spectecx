@@ -155,7 +155,7 @@ let bound_func (ctx : t) (fid : FId.t) : bool =
 
 (* Adders *)
 
-(* Adders for values *)
+(* Adders for values : shadowing is off by default and throws a duplication error *)
 
 let add_value ?(shadow = false) (ctx : t) (var : Var.t) (value : Value.t) : t =
   (if (not shadow) && Local.VEnv.mem var ctx.local.venv then
@@ -309,31 +309,3 @@ let transpose (value_matrix : value list list) : value list list attempt =
           columns_init rows
       in
       Ok (List.map List.rev columns_rev)
-
-let sub_list (ctx : t) (vars : var list) : t list attempt =
-  (* First break the values that are to be iterated over,
-     into a batch of values *)
-  let* values_batch =
-    List.map
-      (fun (id, _typ, iters) ->
-        find_value ctx (id, iters @ [ List ]) |> Value.get_list)
-      vars
-    |> transpose
-  in
-  (* For each batch of values, create a sub-context *)
-  (* Build venv in one pass per batch to avoid intermediate context creations *)
-  let ctxs_sub =
-    List.fold_left
-      (fun ctxs_sub_rev value_batch ->
-        let venv_sub =
-          List.fold_left2
-            (fun venv (id, _typ, iters) value ->
-              Local.VEnv.add (id, iters) value venv)
-            ctx.local.venv vars value_batch
-        in
-        let ctx_sub = { ctx with local = { ctx.local with venv = venv_sub } } in
-        ctx_sub :: ctxs_sub_rev)
-      [] values_batch
-    |> List.rev
-  in
-  Ok ctxs_sub
