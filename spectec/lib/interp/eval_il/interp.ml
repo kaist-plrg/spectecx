@@ -63,31 +63,41 @@ let rec assign_exp (ctx : Ctx.t) (exp : exp) (value : value) : Ctx.t =
       in
       Ctx.add_values ctx bindings
   | IterE (exp, (List, vars)), ListV values ->
-      (* Map over the value list elements,
-         and assign each value to the iterated expression *)
-      let ctxs_rev =
+      (* Process one value at a time in a fresh sub-context,
+         collect binding batches to transpose *)
+      let batches_rev =
         List.fold_left
-          (fun ctxs_rev value ->
-            (* Use localize to reuse cached empty local *)
-            let ctx = Ctx.localize ctx in
-            let ctx = assign_exp ctx exp value in
-            ctx :: ctxs_rev)
+          (fun batches_rev value ->
+            let ctx_sub = Ctx.localize ctx in
+            let ctx_sub = assign_exp ctx_sub exp value in
+            (* Collect values for each var from this sub-context *)
+            let batch =
+              List.map
+                (fun (id, _typ, iters) -> Ctx.find_value ctx_sub (id, iters))
+                vars
+            in
+            batch :: batches_rev)
           [] values
       in
-      let ctxs = List.rev ctxs_rev in
-      (* Per iterated variable, collect its elementwise value,
-         then make a sequence out of them *)
-      List.fold_left
-        (fun ctx (id, typ, iters) ->
-          let values =
-            List.map (fun ctx -> Ctx.find_value ctx (id, iters)) ctxs
-          in
+      let batches = List.rev batches_rev in
+      let values =
+        if batches = [] then
+          (* Empty case: each var gets empty list.
+             This is necessary to match list arity. *)
+          List.map (fun _ -> []) vars
+        else
+          let+ values = Ctx.transpose batches in
+          values
+      in
+      (* Bind each var to its aggregated list *)
+      List.fold_left2
+        (fun ctx (id, typ, iters) values ->
           let value_sub =
             let typ = Lang.Il.Typ.iterate typ (iters @ [ List ]) in
             values |> Value.Make.list typ.it
           in
           Ctx.add_value ctx (id, iters @ [ List ]) value_sub)
-        ctx vars
+        ctx vars values
   | _ ->
       error exp.at
         (F.asprintf "(TODO) match failed %s <- %s" (Print.string_of_exp exp)
@@ -748,9 +758,7 @@ and eval_iter_prem (ctx : Ctx.t) (prem : prem) (iterexp : iterexp) :
       (* If the bound variable supposed to guide the iteration is already empty,
          then the binding variables are also empty *)
       | [] ->
-          let values_binding =
-            List.init (List.length vars_binding) (fun _ -> [])
-          in
+          let values_binding = List.map (fun _ -> []) vars_binding in
           Ok values_binding
       (* Otherwise, evaluate the premise for each batch of bound values,
        and collect the resulting binding batches *)
