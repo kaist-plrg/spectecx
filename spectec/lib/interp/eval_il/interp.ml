@@ -4,106 +4,105 @@ open Lang.Il
 open Envs.Make
 module Hint = Envs.Hint
 module Typ = Envs.Il.Typ
+module Var = Envs.Il.Var
 open Error
 open Attempt
 module F = Format
 
 (* Assignments *)
 
-(* Assigning a value to an expression *)
+(* Find binding for a variable in a list of bindings *)
+let find_binding (var : Var.t) (bindings : (Var.t * value) list) : value =
+  let id, iters = var in
+  let _, value =
+    try
+      List.find
+        (fun ((id_b, iters_b), _) -> id_b.it = id.it && iters_b = iters)
+        bindings
+    with Not_found ->
+      failwith
+        (F.asprintf "variable `%s%s` not found in bindings" id.it
+           (String.concat "; "
+              (List.map (function Opt -> "?" | List -> "*") iters)))
+  in
+  value
 
-let rec assign_exp (ctx : Ctx.t) (exp : exp) (value : value) : Ctx.t =
+(* Take bindings of the form
+   [ [ var0 -> value0_0; var1 -> value1_0 ];
+     [ var0 -> value0_1; var1 -> value1_1 ] ],
+   and aggregate them into
+   [ var0 -> ListV([value0_0; value0_1]);
+     var1 -> ListV([value1_0; value1_1]) ] *)
+let aggregate_list_bindings (bindings_list : (Var.t * value) list list)
+    (vars : var list) : (Var.t * value) list =
+  List.map
+    (fun (id, typ, iters) ->
+      let values = List.map (find_binding (id, iters)) bindings_list in
+      let value_as_list =
+        let typ = Lang.Il.Typ.iterate typ (iters @ [ List ]) in
+        values |> Value.Make.list typ.it
+      in
+      ((id, iters @ [ List ]), value_as_list))
+    vars
+
+(* Extract bindings from an expression and value *)
+
+let rec extract_bindings_from_exp (ctx : Ctx.t) (exp : exp) (value : value) :
+    (Var.t * value) list =
   let note = value.note.typ in
   match (exp.it, value.it) with
-  | VarE id, _ ->
-      let ctx = Ctx.add_value ctx (id, []) value in
-      ctx
-  | TupleE exps, TupleV values -> assign_exps ctx exps values
+  | VarE id, _ -> [ ((id, []), value) ]
+  | TupleE exps, TupleV values ->
+      List.combine exps values
+      |> List.concat_map (fun (exp, value) ->
+             extract_bindings_from_exp ctx exp value)
   | CaseE notexp, CaseV (_mixop_value, values) ->
       let _mixop_exp, exps = notexp in
-      assign_exps ctx exps values
+      extract_bindings_from_exps ctx exps values
   | OptE exp_opt, OptV value_opt -> (
       match (exp_opt, value_opt) with
-      | Some exp, Some value -> assign_exp ctx exp value
-      | None, None -> ctx
+      | Some exp, Some value -> extract_bindings_from_exp ctx exp value
+      | None, None -> []
       | _ -> assert false)
-  | ListE exps, ListV values -> assign_exps ctx exps values
+  | ListE exps, ListV values -> extract_bindings_from_exps ctx exps values
   | ConsE (exp_h, exp_t), ListV values_inner ->
       let value_h = List.hd values_inner in
       let value_t = List.tl values_inner |> Value.Make.list note in
-      let ctx = assign_exp ctx exp_h value_h in
-      assign_exp ctx exp_t value_t
+      extract_bindings_from_exp ctx exp_h value_h
+      @ extract_bindings_from_exp ctx exp_t value_t
   | IterE (_, (Opt, vars)), OptV None ->
       (* Per iterated variable, make an option out of the value *)
-      let bindings =
-        List.map
-          (fun (id, typ, iters) ->
-            let value_sub =
-              let typ = Lang.Il.Typ.iterate typ (iters @ [ Opt ]) in
-              None |> Value.Make.opt typ.it
-            in
-            ((id, iters @ [ Opt ]), value_sub))
-          vars
-      in
-      Ctx.add_values ctx bindings
+      List.map
+        (fun (id, typ, iters) ->
+          let value_sub =
+            let typ = Lang.Il.Typ.iterate typ (iters @ [ Opt ]) in
+            None |> Value.Make.opt typ.it
+          in
+          ((id, iters @ [ Opt ]), value_sub))
+        vars
   | IterE (exp, (Opt, vars)), OptV (Some value) ->
       (* Assign the value to the iterated expression *)
-      let ctx = assign_exp ctx exp value in
+      let bindings_sub = extract_bindings_from_exp ctx exp value in
       (* Per iterated variable, make an option out of the value *)
-      let bindings =
-        List.map
-          (fun (id, typ, iters) ->
-            let value_sub =
-              let value = Ctx.find_value ctx (id, iters) in
-              let typ = Lang.Il.Typ.iterate typ (iters @ [ Opt ]) in
-              Some value |> Value.Make.opt typ.it
-            in
-            ((id, iters @ [ Opt ]), value_sub))
-          vars
-      in
-      Ctx.add_values ctx bindings
+      List.map
+        (fun (id, typ, iters) ->
+          let value = find_binding (id, iters) bindings_sub in
+          let typ = Lang.Il.Typ.iterate typ (iters @ [ Opt ]) in
+          let value_sub = Some value |> Value.Make.opt typ.it in
+          ((id, iters @ [ Opt ]), value_sub))
+        vars
   | IterE (exp, (List, vars)), ListV values ->
-      (* Process one value at a time in a fresh sub-context,
-         collect binding batches to transpose *)
-      let batches_rev =
-        List.fold_left
-          (fun batches_rev value ->
-            let ctx_sub = Ctx.localize ctx in
-            let ctx_sub = assign_exp ctx_sub exp value in
-            (* Collect values for each var from this sub-context *)
-            let batch =
-              List.map
-                (fun (id, _typ, iters) -> Ctx.find_value ctx_sub (id, iters))
-                vars
-            in
-            batch :: batches_rev)
-          [] values
+      let bindings_list_sub =
+        List.map (extract_bindings_from_exp ctx exp) values
       in
-      let batches = List.rev batches_rev in
-      let values =
-        if batches = [] then
-          (* Empty case: each var gets empty list.
-             This is necessary to match list arity. *)
-          List.map (fun _ -> []) vars
-        else
-          let+ values = Ctx.transpose batches in
-          values
-      in
-      (* Bind each var to its aggregated list *)
-      List.fold_left2
-        (fun ctx (id, typ, iters) values ->
-          let value_sub =
-            let typ = Lang.Il.Typ.iterate typ (iters @ [ List ]) in
-            values |> Value.Make.list typ.it
-          in
-          Ctx.add_value ctx (id, iters @ [ List ]) value_sub)
-        ctx vars values
+      aggregate_list_bindings bindings_list_sub vars
   | _ ->
       error exp.at
         (F.asprintf "(TODO) match failed %s <- %s" (Print.string_of_exp exp)
            (Print.string_of_value ~short:true value))
 
-and assign_exps (ctx : Ctx.t) (exps : exp list) (values : value list) : Ctx.t =
+and extract_bindings_from_exps (ctx : Ctx.t) (exps : exp list)
+    (values : value list) : (Var.t * value) list =
   check
     (List.length exps = List.length values)
     (over_region (List.map at exps))
@@ -111,7 +110,21 @@ and assign_exps (ctx : Ctx.t) (exps : exp list) (values : value list) : Ctx.t =
        "mismatch in number of expressions and values while assigning, expected \
         %d value(s) but got %d"
        (List.length exps) (List.length values));
-  List.fold_left2 assign_exp ctx exps values
+  List.map2 (extract_bindings_from_exp ctx) exps values |> List.concat
+
+(* Assigning a value to an expression *)
+
+let rec assign_exp (ctx : Ctx.t) (exp : exp) (value : value) : Ctx.t =
+  let bindings = extract_bindings_from_exp ctx exp value in
+  List.fold_left
+    (fun ctx ((id, iters), value) -> Ctx.add_value ctx (id, iters) value)
+    ctx bindings
+
+and assign_exps (ctx : Ctx.t) (exps : exp list) (values : value list) : Ctx.t =
+  let bindings = extract_bindings_from_exps ctx exps values in
+  List.fold_left
+    (fun ctx ((id, iters), value) -> Ctx.add_value ctx (id, iters) value)
+    ctx bindings
 
 (* Assigning a value to an argument *)
 
@@ -634,7 +647,7 @@ and eval_iter_exp (note : typ') (ctx : Ctx.t) (exp : exp) (iterexp : iterexp) :
         vars
       |> Ctx.transpose
     in
-    (* Fold over batches, discarding the sub-context each time *)
+    (* Fold over batches *)
     let values_rev =
       List.fold_left
         (fun values_rev batch ->
@@ -674,7 +687,9 @@ and eval_args (ctx : Ctx.t) (args : arg list) : Ctx.t * value list =
 
 (* Premise evaluation *)
 
-and eval_prem (ctx : Ctx.t) (prem : prem) : Ctx.t attempt =
+(* Inner evaluation: returns (ctx, bindings) without applying bindings *)
+and eval_prem_inner (ctx : Ctx.t) (prem : prem) :
+    (Ctx.t * (Var.t * value) list) attempt =
   let eval_rule_prem ctx id notexp =
     let rel = Ctx.find_rel ctx id in
     let exps_input, exps_output =
@@ -684,28 +699,28 @@ and eval_prem (ctx : Ctx.t) (prem : prem) : Ctx.t attempt =
     in
     let ctx, values_input = eval_exps ctx exps_input in
     let* ctx, values_output = invoke_rel ctx id values_input in
-    let ctx = assign_exps ctx exps_output values_output in
-    Ok ctx
+    let bindings = extract_bindings_from_exps ctx exps_output values_output in
+    Ok (ctx, bindings)
   in
   let eval_if_prem ctx exp_cond =
     let ctx, value_cond = eval_exp ctx exp_cond in
     let cond = Value.get_bool value_cond in
-    if cond then Ok ctx
+    if cond then Ok (ctx, [])
     else
       fail exp_cond.at
         (F.asprintf "condition %s was not met" (Print.string_of_exp exp_cond))
   in
   let eval_let_prem ctx exp_l exp_r =
     let ctx, value = eval_exp ctx exp_r in
-    let ctx = assign_exp ctx exp_l value in
-    Ok ctx
+    let bindings = extract_bindings_from_exp ctx exp_l value in
+    Ok (ctx, bindings)
   in
   let eval_debug_prem ctx exp =
     let ctx, value = eval_exp ctx exp in
     print_endline
     @@ F.sprintf "%s: %s" (string_of_region exp.at) (Print.string_of_exp exp);
     print_endline @@ Print.string_of_value value;
-    Ok ctx
+    Ok (ctx, [])
   in
   (match prem.it with
   | IterPr _ -> ()
@@ -714,7 +729,7 @@ and eval_prem (ctx : Ctx.t) (prem : prem) : Ctx.t attempt =
     match prem.it with
     | RulePr (id, notexp) -> eval_rule_prem ctx id notexp
     | IfPr exp_cond -> eval_if_prem ctx exp_cond
-    | ElsePr -> Ok ctx
+    | ElsePr -> Ok (ctx, [])
     | LetPr (exp_l, exp_r) -> eval_let_prem ctx exp_l exp_r
     | IterPr (prem, iterexp) -> eval_iter_prem ctx prem iterexp
     | DebugPr exp -> eval_debug_prem ctx exp
@@ -726,6 +741,16 @@ and eval_prem (ctx : Ctx.t) (prem : prem) : Ctx.t attempt =
         ~success:(Result.is_ok result));
   result
 
+(* Outer evaluation: evaluates and applies bindings immediately *)
+and eval_prem (ctx : Ctx.t) (prem : prem) : Ctx.t attempt =
+  let* ctx, bindings = eval_prem_inner ctx prem in
+  let ctx =
+    List.fold_left
+      (fun ctx (var, value) -> Ctx.add_value ctx var value)
+      ctx bindings
+  in
+  Ok ctx
+
 and eval_prems (ctx : Ctx.t) (prems : prem list) : Ctx.t attempt =
   List.fold_left
     (fun ctx prem ->
@@ -733,9 +758,10 @@ and eval_prems (ctx : Ctx.t) (prems : prem list) : Ctx.t attempt =
       eval_prem ctx prem)
     (Ok ctx) prems
 
+(* Returns aggregated bindings WITHOUT applying them - for nested IterPr *)
 and eval_iter_prem (ctx : Ctx.t) (prem : prem) (iterexp : iterexp) :
-    Ctx.t attempt =
-  (* List iteration *)
+    (Ctx.t * (Var.t * value) list) attempt =
+  (* List iteration with deferred bindings *)
   let eval_iter_prem_list ctx prem vars =
     (* Discriminate between bound and binding variables *)
     let vars_bound, vars_binding =
@@ -753,62 +779,43 @@ and eval_iter_prem (ctx : Ctx.t) (prem : prem) (iterexp : iterexp) :
         vars_bound
       |> Ctx.transpose
     in
-    let* values_binding =
+    (* Collect bindings per iteration *)
+    let* bindings_list_rev =
       match batches with
       (* If the bound variable supposed to guide the iteration is already empty,
          then the binding variables are also empty *)
-      | [] ->
-          let values_binding = List.map (fun _ -> []) vars_binding in
-          Ok values_binding
+      | [] -> Ok []
       (* Otherwise, evaluate the premise for each batch of bound values,
        and collect the resulting binding batches *)
       | _ ->
-          let* batches_binding_rev =
-            List.fold_left
-              (fun batches_binding_rev_res batch ->
-                let ctx_sub =
-                  List.fold_left2
-                    (fun ctx_sub (id, _typ, iters) value ->
-                      Ctx.add_value ~shadow:true ctx_sub (id, iters) value)
-                    ctx vars_bound batch
-                in
-                Instrumentation.Dispatcher.notify_iter_prem_enter ~prem
-                  ~at:prem.at;
-                let* ctx_sub = eval_prem ctx_sub prem in
-                Instrumentation.Dispatcher.notify_iter_prem_exit ~at:prem.at;
-                let batch_binding =
-                  List.map
-                    (fun (id_binding, _typ_binding, iters_binding) ->
-                      Ctx.find_value ctx_sub (id_binding, iters_binding))
-                    vars_binding
-                in
-                let* batches_binding_rev = batches_binding_rev_res in
-                Ok (batch_binding :: batches_binding_rev))
-              (Ok []) batches
-          in
-          let* values_binding =
-            batches_binding_rev |> List.rev |> Ctx.transpose
-          in
-          Ok values_binding
+          List.fold_left
+            (fun bindings_list_res batch ->
+              (* Enter local scope with iteration variables *)
+              let ctx_sub =
+                List.fold_left2
+                  (fun ctx_sub (id, _typ, iters) value ->
+                    Ctx.add_value ~shadow:true ctx_sub (id, iters) value)
+                  ctx vars_bound batch
+              in
+              Instrumentation.Dispatcher.notify_iter_prem_enter ~prem
+                ~at:prem.at;
+              let* _, bindings = eval_prem_inner ctx_sub prem in
+              Instrumentation.Dispatcher.notify_iter_prem_exit ~at:prem.at;
+              (* Accumulate bindings *)
+              let* bindings_list = bindings_list_res in
+              Ok (bindings :: bindings_list))
+            (Ok []) batches
     in
-    (* Finally, bind the resulting binding batches *)
-    let ctx =
-      List.fold_left2
-        (fun ctx (id_binding, typ_binding, iters_binding) values_binding ->
-          let value_binding =
-            let typ =
-              Lang.Il.Typ.iterate typ_binding (iters_binding @ [ List ])
-            in
-            values_binding |> Value.Make.list typ.it
-          in
-          Ctx.add_value ctx (id_binding, iters_binding @ [ List ]) value_binding)
-        ctx vars_binding values_binding
+    let bindings_list = List.rev bindings_list_rev in
+    (* Aggregate bindings: for each binding variable, collect values across iterations *)
+    let aggregated_bindings =
+      aggregate_list_bindings bindings_list vars_binding
     in
-    Ok ctx
+    Ok (ctx, aggregated_bindings)
   in
   let iter, vars = iterexp in
   match iter with
-  | Opt -> error prem.at "(TODO) eval_iter_prem"
+  | Opt -> error prem.at "(TODO) eval_iter_prem Opt"
   | List -> eval_iter_prem_list ctx prem vars
 
 (* Invoke a relation *)
