@@ -83,33 +83,33 @@ let eval_sl_run spec_sl rid values_input filename_target :
   with Eval_Sl.Error.InterpError (at, msg) ->
     Error.SlInterpError (at, msg) |> Result.error
 
-(* Single-run wrappers that set up handlers, init, run, and finish *)
-let eval_il ?(config = Instrumentation.Config.default) spec_il rid values_input
-    filename_target : (Eval_Il.Ctx.t * Il.Value.t list) pipeline_result =
-  (* Initialize Static analysis *)
+(* Convert Static.spec to Handler.spec *)
+let handler_spec_of_static = function
+  | Instrumentation.Static.IlSpec s -> Instrumentation.Handler.IlSpec s
+  | Instrumentation.Static.SlSpec s -> Instrumentation.Handler.SlSpec s
+
+(* Shared init/finish lifecycle: register static deps, init handlers, run f, finish *)
+let with_instrumentation config spec_type f =
   let handlers = Instrumentation.Config.to_handlers config in
-  Instrumentation_static.Static.reset_all ();
-  Instrumentation_static.Static.init_all
-    (Instrumentation_static.Static.IlSpec spec_il);
+  Instrumentation.Static.reset_all ();
+  Instrumentation.Static.init_all spec_type;
   Instrumentation.Dispatcher.set_handlers handlers;
-  Instrumentation.Dispatcher.init ~spec:(Instrumentation.Handler.IlSpec spec_il);
-  let result = eval_il_run spec_il rid values_input filename_target in
+  Instrumentation.Dispatcher.init ~spec:(handler_spec_of_static spec_type);
+  let result = f () in
   Instrumentation.Dispatcher.finish ();
   Instrumentation.Config.close_outputs config;
   result
 
+(* Single-run wrappers that set up handlers, init, run, and finish *)
+let eval_il ?(config = Instrumentation.Config.default) spec_il rid values_input
+    filename_target : (Eval_Il.Ctx.t * Il.Value.t list) pipeline_result =
+  with_instrumentation config (Instrumentation.Static.IlSpec spec_il)
+  @@ fun () -> eval_il_run spec_il rid values_input filename_target
+
 let eval_sl ?(config = Instrumentation.Config.default) spec_sl rid values_input
     filename_target : (Eval_Sl.Ctx.t * Il.Value.t list) pipeline_result =
-  (* Initialize Static analysis *)
-  let handlers = Instrumentation.Config.to_handlers config in
-  Instrumentation.Static.reset_all ();
-  Instrumentation.Static.init_all (Instrumentation.Static.SlSpec spec_sl);
-  Instrumentation.Dispatcher.set_handlers handlers;
-  Instrumentation.Dispatcher.init ~spec:(Instrumentation.Handler.SlSpec spec_sl);
-  let result = eval_sl_run spec_sl rid values_input filename_target in
-  Instrumentation.Dispatcher.finish ();
-  Instrumentation.Config.close_outputs config;
-  result
+  with_instrumentation config (Instrumentation.Static.SlSpec spec_sl)
+  @@ fun () -> eval_sl_run spec_sl rid values_input filename_target
 
 (* Single-run with input spec - includes full init/finish lifecycle *)
 let eval_il_with_task (type input) (module T : Task.S with type input = input)
@@ -195,14 +195,8 @@ type 'i test_result = {
 let run_suite_with_outcomes (type i) (module T : Task.S with type input = i)
     ?(config = Instrumentation.Config.default) ~sl_mode ~spec_il
     ?(verbose = false) (inputs : i list) =
-  (* Initialize instrumentation once for the entire suite run *)
-  let handlers = Instrumentation.Config.to_handlers config in
-  Instrumentation.Static.reset_all ();
-  Instrumentation.Static.init_all (Instrumentation.Static.IlSpec spec_il);
-  Instrumentation.Dispatcher.set_handlers handlers;
-  Instrumentation.Dispatcher.init ~spec:(Instrumentation.Handler.IlSpec spec_il);
   let total = List.length inputs in
-  let results =
+  let run () =
     List.mapi
       (fun idx input ->
         let source = T.source input in
@@ -225,9 +219,7 @@ let run_suite_with_outcomes (type i) (module T : Task.S with type input = i)
         { input; source; outcome })
       inputs
   in
-  Instrumentation.Dispatcher.finish ();
-  Instrumentation.Config.close_outputs config;
-  results
+  with_instrumentation config (Instrumentation.Static.IlSpec spec_il) run
 
 (* Summary stats from suite results - tracks all four outcome types *)
 type suite_summary = {
@@ -263,105 +255,101 @@ type task_result = { task_name : string; summary : suite_summary }
 let run_target_coverage ?(config = Instrumentation.Config.default) ?test_dir
     ~(checkpoint_config : Checkpoint.config) ~verbose ~sl_mode ~spec_files
     spec_il tasks =
-  (* Initialize instrumentation once for the entire coverage run *)
-  let handlers = Instrumentation.Config.to_handlers config in
-  Instrumentation.Static.reset_all ();
-  Instrumentation.Static.init_all (Instrumentation.Static.IlSpec spec_il);
-  Instrumentation.Dispatcher.set_handlers handlers;
-  Instrumentation.Dispatcher.init ~spec:(Instrumentation.Handler.IlSpec spec_il);
+  let run_coverage () =
+    (* Load checkpoint if resuming *)
+    let loaded_checkpoint =
+      match checkpoint_config.resume_from with
+      | Some file -> (
+          match Checkpoint.verify_and_load ~file ~spec_files ~verbose with
+          | Ok checkpoint -> Some checkpoint
+          | Error e ->
+              Format.printf "%s\n" (Error.string_of_error e);
+              None)
+      | None -> None
+    in
 
-  (* Load checkpoint if resuming *)
-  let loaded_checkpoint =
-    match checkpoint_config.resume_from with
-    | Some file -> (
-        match Checkpoint.verify_and_load ~file ~spec_files ~verbose with
-        | Ok checkpoint -> Some checkpoint
-        | Error e ->
-            Format.printf "%s\n" (Error.string_of_error e);
-            None)
-    | None -> None
+    (* Track completed inputs across all tasks *)
+    let all_completed_inputs = ref [] in
+    (match loaded_checkpoint with
+    | Some checkpoint ->
+        all_completed_inputs := checkpoint.Checkpoint.completed_inputs;
+        Checkpoint.restore_coverage checkpoint
+    | None -> ());
+
+    let save_current_checkpoint () =
+      Checkpoint.save ~spec_files ~completed_inputs:!all_completed_inputs
+        ~output_file:checkpoint_config.output_file
+    in
+
+    let results =
+      List.map
+        (fun (Task.Pack (module T)) ->
+          (* Each task discovers its own inputs *)
+          let all_inputs =
+            match test_dir with
+            | Some dir -> T.collect ~dir ()
+            | None -> T.collect ()
+          in
+          let total_all = List.length all_inputs in
+          (* Filter out completed inputs if resuming *)
+          let inputs =
+            match loaded_checkpoint with
+            | Some checkpoint ->
+                Checkpoint.filter_remaining checkpoint all_inputs
+                  ~get_id:T.source
+            | None -> all_inputs
+          in
+          let completed_count = total_all - List.length inputs in
+          if verbose then
+            Format.printf "Running %s (%d tests, %d already completed)...\n%!"
+              T.name (List.length inputs) completed_count;
+          let task_results =
+            List.mapi
+              (fun index input ->
+                let source = T.source input in
+                if verbose then
+                  (* Show absolute progress: [completed+1/total] *)
+                  Format.printf "  [%d/%d] %s... %!"
+                    (completed_count + index + 1)
+                    total_all source;
+                (* Use no_lifecycle version - init/finish managed at coverage level *)
+                let outcome =
+                  try
+                    run_with_outcome_no_lifecycle
+                      (module T)
+                      ~sl_mode ~spec_il input
+                  with exception_value ->
+                    let error =
+                      Error.IlInterpError
+                        ( Common.Source.no_region,
+                          Printexc.to_string exception_value )
+                    in
+                    Task.compute_outcome (T.expectation input) (Error error)
+                in
+                (if verbose then
+                   match outcome with
+                   | Task.Pass _ -> Format.printf "PASS\n%!"
+                   | Task.ExpectedFail _ -> Format.printf "EXPECTED FAIL\n%!"
+                   | Task.Fail _ -> Format.printf "FAIL\n%!"
+                   | Task.UnexpectedPass _ ->
+                       Format.printf "UNEXPECTED PASS\n%!");
+                (* Track completion *)
+                all_completed_inputs := source :: !all_completed_inputs;
+                (* Periodic checkpoint save *)
+                if (index + 1) mod checkpoint_config.save_interval = 0 then
+                  save_current_checkpoint ();
+                { input; source; outcome })
+              inputs
+          in
+          { task_name = T.name; summary = summarize_outcomes task_results })
+        tasks
+    in
+    (* Final checkpoint save before instrumentation finish *)
+    save_current_checkpoint ();
+    results
   in
-
-  (* Track completed inputs across all tasks *)
-  let all_completed_inputs = ref [] in
-  (match loaded_checkpoint with
-  | Some checkpoint ->
-      all_completed_inputs := checkpoint.Checkpoint.completed_inputs;
-      Checkpoint.restore_coverage checkpoint
-  | None -> ());
-
-  let save_current_checkpoint () =
-    Checkpoint.save ~spec_files ~completed_inputs:!all_completed_inputs
-      ~output_file:checkpoint_config.output_file
-  in
-
-  let results =
-    List.map
-      (fun (Task.Pack (module T)) ->
-        (* Each task discovers its own inputs *)
-        let all_inputs =
-          match test_dir with
-          | Some dir -> T.collect ~dir ()
-          | None -> T.collect ()
-        in
-        let total_all = List.length all_inputs in
-        (* Filter out completed inputs if resuming *)
-        let inputs =
-          match loaded_checkpoint with
-          | Some checkpoint ->
-              Checkpoint.filter_remaining checkpoint all_inputs ~get_id:T.source
-          | None -> all_inputs
-        in
-        let completed_count = total_all - List.length inputs in
-        if verbose then
-          Format.printf "Running %s (%d tests, %d already completed)...\n%!"
-            T.name (List.length inputs) completed_count;
-        let task_results =
-          List.mapi
-            (fun index input ->
-              let source = T.source input in
-              if verbose then
-                (* Show absolute progress: [completed+1/total] *)
-                Format.printf "  [%d/%d] %s... %!"
-                  (completed_count + index + 1)
-                  total_all source;
-              (* Use no_lifecycle version - init/finish managed at coverage level *)
-              let outcome =
-                try
-                  run_with_outcome_no_lifecycle
-                    (module T)
-                    ~sl_mode ~spec_il input
-                with exception_value ->
-                  let error =
-                    Error.IlInterpError
-                      ( Common.Source.no_region,
-                        Printexc.to_string exception_value )
-                  in
-                  Task.compute_outcome (T.expectation input) (Error error)
-              in
-              (if verbose then
-                 match outcome with
-                 | Task.Pass _ -> Format.printf "PASS\n%!"
-                 | Task.ExpectedFail _ -> Format.printf "EXPECTED FAIL\n%!"
-                 | Task.Fail _ -> Format.printf "FAIL\n%!"
-                 | Task.UnexpectedPass _ -> Format.printf "UNEXPECTED PASS\n%!");
-              (* Track completion *)
-              all_completed_inputs := source :: !all_completed_inputs;
-              (* Periodic checkpoint save *)
-              if (index + 1) mod checkpoint_config.save_interval = 0 then
-                save_current_checkpoint ();
-              { input; source; outcome })
-            inputs
-        in
-        { task_name = T.name; summary = summarize_outcomes task_results })
-      tasks
-  in
-  (* Final checkpoint save *)
-  save_current_checkpoint ();
-  (* Finish instrumentation once for the entire coverage run *)
-  Instrumentation.Dispatcher.finish ();
-  Instrumentation.Config.close_outputs config;
-  results
+  with_instrumentation config (Instrumentation.Static.IlSpec spec_il)
+    run_coverage
 
 (* --- P4 runners --- *)
 
