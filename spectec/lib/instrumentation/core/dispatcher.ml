@@ -19,6 +19,7 @@ let set_handlers hs = handlers := hs
 (* Event dispatchers called from interpreters *)
 
 let init ~spec =
+  (* Initialize handlers *)
   if !handlers <> [] then
     List.iter (fun (module H : Handler.S) -> H.init ~spec) !handlers
 

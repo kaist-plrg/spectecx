@@ -76,6 +76,8 @@ let instr_key instr =
   (instr.at, content)
 
 module M : Instrumentation_core.Handler.S = struct
+  let static_dependencies = []
+
   let rec count_instr instr =
     State.total_instrs := !State.total_instrs + 1;
     match instr.it with

@@ -86,7 +86,11 @@ let eval_sl_run spec_sl rid values_input filename_target :
 (* Single-run wrappers that set up handlers, init, run, and finish *)
 let eval_il ?(config = Instrumentation.Config.default) spec_il rid values_input
     filename_target : (Eval_Il.Ctx.t * Il.Value.t list) pipeline_result =
+  (* Initialize Static analysis *)
   let handlers = Instrumentation.Config.to_handlers config in
+  Instrumentation_static.Static.reset_all ();
+  Instrumentation_static.Static.init_all
+    (Instrumentation_static.Static.IlSpec spec_il);
   Instrumentation.Dispatcher.set_handlers handlers;
   Instrumentation.Dispatcher.init ~spec:(Instrumentation.Handler.IlSpec spec_il);
   let result = eval_il_run spec_il rid values_input filename_target in
@@ -96,7 +100,10 @@ let eval_il ?(config = Instrumentation.Config.default) spec_il rid values_input
 
 let eval_sl ?(config = Instrumentation.Config.default) spec_sl rid values_input
     filename_target : (Eval_Sl.Ctx.t * Il.Value.t list) pipeline_result =
+  (* Initialize Static analysis *)
   let handlers = Instrumentation.Config.to_handlers config in
+  Instrumentation.Static.reset_all ();
+  Instrumentation.Static.init_all (Instrumentation.Static.SlSpec spec_sl);
   Instrumentation.Dispatcher.set_handlers handlers;
   Instrumentation.Dispatcher.init ~spec:(Instrumentation.Handler.SlSpec spec_sl);
   let result = eval_sl_run spec_sl rid values_input filename_target in
@@ -190,6 +197,8 @@ let run_suite_with_outcomes (type i) (module T : Task.S with type input = i)
     ?(verbose = false) (inputs : i list) =
   (* Initialize instrumentation once for the entire suite run *)
   let handlers = Instrumentation.Config.to_handlers config in
+  Instrumentation.Static.reset_all ();
+  Instrumentation.Static.init_all (Instrumentation.Static.IlSpec spec_il);
   Instrumentation.Dispatcher.set_handlers handlers;
   Instrumentation.Dispatcher.init ~spec:(Instrumentation.Handler.IlSpec spec_il);
   let total = List.length inputs in
@@ -251,11 +260,13 @@ type task_result = { task_name : string; summary : suite_summary }
 
 (* Run coverage across all input specs in a target with checkpoint support.
    Init/finish lifecycle is managed here - called once for the entire run. *)
-let run_target_coverage ?(config = Instrumentation.Config.default)
+let run_target_coverage ?(config = Instrumentation.Config.default) ?test_dir
     ~(checkpoint_config : Checkpoint.config) ~verbose ~sl_mode ~spec_files
     spec_il tasks =
   (* Initialize instrumentation once for the entire coverage run *)
   let handlers = Instrumentation.Config.to_handlers config in
+  Instrumentation.Static.reset_all ();
+  Instrumentation.Static.init_all (Instrumentation.Static.IlSpec spec_il);
   Instrumentation.Dispatcher.set_handlers handlers;
   Instrumentation.Dispatcher.init ~spec:(Instrumentation.Handler.IlSpec spec_il);
 
@@ -288,7 +299,11 @@ let run_target_coverage ?(config = Instrumentation.Config.default)
     List.map
       (fun (Task.Pack (module T)) ->
         (* Each task discovers its own inputs *)
-        let all_inputs = T.collect () in
+        let all_inputs =
+          match test_dir with
+          | Some dir -> T.collect ~dir ()
+          | None -> T.collect ()
+        in
         let total_all = List.length all_inputs in
         (* Filter out completed inputs if resuming *)
         let inputs =

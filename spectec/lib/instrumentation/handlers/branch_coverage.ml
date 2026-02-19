@@ -56,6 +56,8 @@ let group_by items =
   |> List.sort compare
 
 module M : Instrumentation_core.Handler.S = struct
+  let static_dependencies = []
+
   let init ~spec =
     State.reset ();
     match spec with

@@ -21,6 +21,10 @@ module Noop = Instrumentation_core.Noop
 module Output = Instrumentation_core.Output
 module Util = Instrumentation_core.Util
 
+(* Re-export static analysis modules *)
+module Static = Instrumentation_static.Static
+module Premise_uid = Instrumentation_static.Premise_uid
+
 (* Re-export handler implementations *)
 module Branch_coverage = Instrumentation_handlers.Branch_coverage
 module Node_coverage_il = Instrumentation_handlers.Node_coverage_il

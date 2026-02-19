@@ -122,13 +122,35 @@ let merge_node_il_coverage (result1 : Instrumentation.Node_coverage_il.result)
     List.iter (fun (key, count) -> add_count key count) counts2;
     Hashtbl.to_seq tbl |> List.of_seq
   in
+  (* Helper to merge test case lists by union (removing duplicates) *)
+  let merge_test_lists tests1 tests2 =
+    let tbl = Hashtbl.create 256 in
+    (* Union two test ID lists, removing duplicates *)
+    let union_test_ids existing new_ids =
+      List.fold_left
+        (fun existing test_id ->
+          if List.mem test_id existing then existing else test_id :: existing)
+        existing new_ids
+    in
+    let add_tests key test_ids =
+      let existing = Hashtbl.find_opt tbl key |> Option.value ~default:[] in
+      Hashtbl.replace tbl key (union_test_ids existing test_ids)
+    in
+    List.iter (fun (key, test_ids) -> add_tests key test_ids) tests1;
+    List.iter (fun (key, test_ids) -> add_tests key test_ids) tests2;
+    Hashtbl.to_seq tbl |> List.of_seq
+  in
   {
+    (* Use from first - should be same if spec matches *)
+    Instrumentation.Node_coverage_il.prem_to_uid = result1.prem_to_uid;
+    Instrumentation.Node_coverage_il.uid_to_prem = result1.uid_to_prem;
+    Instrumentation.Node_coverage_il.total_prems = result1.total_prems;
     Instrumentation.Node_coverage_il.prems_attempted =
       merge_counts result1.prems_attempted result2.prems_attempted;
     Instrumentation.Node_coverage_il.prems_succeeded =
       merge_counts result1.prems_succeeded result2.prems_succeeded;
-    (* Use from first - should be same if spec matches *)
-    Instrumentation.Node_coverage_il.total_prems = result1.total_prems;
+    Instrumentation.Node_coverage_il.prem_to_test =
+      merge_test_lists result1.prem_to_test result2.prem_to_test;
   }
 
 (* Merge two coverage structures.
@@ -278,6 +300,18 @@ let display_report ~spec ~(config : Instrumentation.Config.t) checkpoint =
       Instrumentation.Node_coverage_sl.make node_il_cfg;
     ]
   in
+  (* Register static dependencies from all handlers *)
+  List.iter
+    (fun (module H : Instrumentation.Handler.S) ->
+      List.iter
+        (fun (module M : Instrumentation_static.Static.S) ->
+          Instrumentation_static.Static.register (module M))
+        H.static_dependencies)
+    handlers;
+  (* Initialize Static analysis *)
+  Instrumentation_static.Static.reset_all ();
+  Instrumentation_static.Static.init_all
+    (Instrumentation_static.Static.IlSpec spec);
   Instrumentation.Dispatcher.set_handlers handlers;
   Instrumentation.Dispatcher.init ~spec:(Instrumentation.Handler.IlSpec spec);
   (* Restore state from checkpoint data *)
