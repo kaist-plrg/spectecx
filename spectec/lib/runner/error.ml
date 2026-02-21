@@ -3,11 +3,11 @@ open Common.Attempt
 
 type t =
   | ParseError of region * string
-  | ElabError of Pass.Elaborate.elaboration_error list
   | RoundtripError of region * string
-  | IlInterpError of region * string
-  | SlInterpError of region * string
-  | P4ParseError of region * string
+  | ElaborateError of Pass.Elaborate.elaboration_error list
+  | EvalIlError of region * string
+  | EvalSlError of region * string
+  | TaskParseError of region * string
   | SpecMismatchError of string * string
   | DirectoryError of string
 
@@ -32,11 +32,11 @@ let string_of_elab_errors (errors : Pass.Elaborate.elaboration_error list) :
 
 let string_of_error = function
   | ParseError (at, msg) -> string_of_error' at msg
-  | ElabError elab_errs -> string_of_elab_errors elab_errs
   | RoundtripError (at, msg) -> string_of_error' at msg
-  | IlInterpError (at, msg) -> string_of_error' at msg
-  | SlInterpError (at, msg) -> string_of_error' at msg
-  | P4ParseError (at, msg) -> string_of_error' at msg
+  | ElaborateError elab_errs -> string_of_elab_errors elab_errs
+  | EvalIlError (at, msg) -> string_of_error' at msg
+  | EvalSlError (at, msg) -> string_of_error' at msg
+  | TaskParseError (at, msg) -> string_of_error' at msg
   | SpecMismatchError (hash_expected, hash_actual) ->
       Printf.sprintf "Spec version mismatch: expected spec hash %s but got %s."
         hash_expected hash_actual

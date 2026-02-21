@@ -2,11 +2,11 @@ open Common.Source
 
 type t =
   | ParseError of region * string
-  | ElabError of Pass.Elaborate.elaboration_error list
   | RoundtripError of region * string
-  | IlInterpError of region * string
-  | SlInterpError of region * string
-  | P4ParseError of region * string
+  | ElaborateError of Pass.Elaborate.elaboration_error list
+  | EvalIlError of region * string
+  | EvalSlError of region * string
+  | TaskParseError of region * string
   | SpecMismatchError of string * string
   | DirectoryError of string
 

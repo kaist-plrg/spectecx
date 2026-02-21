@@ -1,4 +1,4 @@
 (library
  (name pass)
  (public_name spectec.pass)
- (libraries elaborate structure frontend))
+ (libraries parse elaborate structure))

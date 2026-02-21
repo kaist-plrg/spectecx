@@ -5,6 +5,7 @@ module Error = Error
 module Task = Task
 module Target = Target
 module Checkpoint = Checkpoint
+open Error
 
 type 'a result = ('a, Error.t) Stdlib.result
 
@@ -16,19 +17,19 @@ let ( let* ) = Result.bind
 
 let parse_spec_files filenames : El.spec result =
   let parse_spec_files () =
-    List.concat_map Frontend.parse_file filenames |> Result.ok
+    List.concat_map Parse.parse_file filenames |> Result.ok
   in
   try parse_spec_files ()
-  with Frontend.Error (at, msg) -> Error.ParseError (at, msg) |> Result.error
+  with Parse.Error (at, msg) -> ParseError (at, msg) |> Result.error
 
 let elaborate spec_el : Il.spec result =
   let elaborate () =
     Elaborate.elab_spec spec_el
-    |> Result.map_error (fun elab_err_list -> Error.ElabError elab_err_list)
+    |> Result.map_error (fun elab_err_list -> ElaborateError elab_err_list)
   in
   try elaborate ()
   with Elaborate.Error (at, failtraces) ->
-    Error.ElabError [ (at, failtraces) ] |> Result.error
+    ElaborateError [ (at, failtraces) ] |> Result.error
 
 let structure spec_il : Sl.spec = Structure.struct_spec spec_il
 
@@ -43,8 +44,7 @@ let eval_il_run (module T : Target.S) spec_il rid values_input filename_target :
     |> Result.ok
   in
   try T.handler run
-  with Eval_Il.Error (at, msg) ->
-    Error.IlInterpError (at, msg) |> Result.error
+  with Eval_Il.Error (at, msg) -> EvalIlError (at, msg) |> Result.error
 
 (* Core SL run function - no init/finish, used by both single and suite runners *)
 let eval_sl_run (module T : Target.S) spec_sl rid values_input filename_target :
@@ -55,8 +55,7 @@ let eval_sl_run (module T : Target.S) spec_sl rid values_input filename_target :
     |> Result.ok
   in
   try T.handler run
-  with Eval_Sl.Error (at, msg) ->
-    Error.SlInterpError (at, msg) |> Result.error
+  with Eval_Sl.Error (at, msg) -> EvalSlError (at, msg) |> Result.error
 
 (* Convert Static.spec to Handler.spec *)
 let handler_spec_of_static = function
@@ -180,7 +179,7 @@ let run_suite_with_outcomes (type i) (module T : Task.S with type input = i)
           try run_with_outcome_no_lifecycle (module T) ~sl_mode ~spec_il input
           with exception_value ->
             let error =
-              Error.IlInterpError
+              EvalIlError
                 (Common.Source.no_region, Printexc.to_string exception_value)
             in
             Task.compute_outcome (T.expectation input) (Error error)
@@ -295,7 +294,7 @@ let run_target_coverage ?(config = Instrumentation.Config.default) ?test_dir
                       ~sl_mode ~spec_il input
                   with exception_value ->
                     let error =
-                      Error.IlInterpError
+                      EvalIlError
                         ( Common.Source.no_region,
                           Printexc.to_string exception_value )
                     in
