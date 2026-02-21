@@ -13,12 +13,12 @@ let run_relation (ctx : Ctx.t) (spec : spec) (rid : id') (values : value list) :
 
 (* Entry point : Run typing rule *)
 
-let init (filename_target : string) : Ctx.t =
+let init (filename : string) (builtins : Builtins.t) : Ctx.t =
   Cache.Cache.clear !Interp.func_cache;
   Cache.Cache.clear !Interp.rule_cache;
-  Ctx.empty filename_target
+  Ctx.empty filename builtins
 
-let run_relation_fresh (spec : spec) (rid : id') (values : value list)
-    (filename_target : string) : Ctx.t * value list =
-  let ctx = init filename_target in
+let run_relation_fresh (filename : string) (builtins : Builtins.t) (spec : spec)
+    (rid : id') (values : value list) : Ctx.t * value list =
+  let ctx = init filename builtins in
   run_relation ctx spec rid values

@@ -1,4 +1,4 @@
 (library
  (name targets_p4)
  (public_name spectec.targets.p4)
- (libraries spectec.runner str))
+ (libraries spectec.runner str builtins_p4 frontend_p4))

@@ -958,7 +958,7 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
       Instrumentation.Dispatcher.notify_clause_enter ~id:id.it ~clause_idx:0
         ~at:id.at;
       let value_output =
-        Builtins.invoke id targs values_input |> unwrap_builtin
+        ctx.builtins.invoke id targs values_input |> unwrap_builtin
       in
       Instrumentation.Dispatcher.notify_clause_exit ~id:id.it ~clause_idx:0
         ~at:id.at ~success:true;
@@ -1040,7 +1040,7 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
   let result =
     let invoke_func' () =
       let* _, value_output =
-        if Builtins.is_builtin id then invoke_func_builtin ()
+        if ctx.builtins.is_builtin id then invoke_func_builtin ()
         else invoke_func_def ()
       in
       Ok value_output
@@ -1081,8 +1081,9 @@ let load_def (l : Ctx.global_loader) (def : def) : unit =
       let func = (tparams, clauses) in
       Ctx.load_func l id func
 
-let load_spec (filename : string) (spec : spec) : Ctx.t =
+let load_spec (filename : string) (builtins : Builtins.t) (spec : spec) : Ctx.t
+    =
   let l = Ctx.create_loader () in
   List.iter (load_def l) spec;
   let global_layer = Ctx.freeze l in
-  Ctx.create ~filename global_layer
+  Ctx.create ~filename builtins global_layer

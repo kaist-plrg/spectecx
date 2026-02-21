@@ -1,0 +1,19 @@
+(include_subdirs no)
+
+(library
+ (name frontend_p4)
+ (public_name spectec.targets.p4.frontend)
+ (libraries
+  spectec.common
+  spectec.lang
+  spectec.runner
+  concrete
+  core_unix
+  menhirLib))
+
+(ocamllex
+ (modules lexer))
+
+(menhir
+ (modules parser)
+ (flags --explain --table --inspection))

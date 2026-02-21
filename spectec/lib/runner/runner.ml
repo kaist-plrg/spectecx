@@ -1,6 +1,5 @@
 open Lang
 open Pass
-open Interface
 open Interp
 module Error = Error
 module Task = Task
@@ -10,31 +9,6 @@ module Checkpoint = Checkpoint
 type 'a pipeline_result = ('a, Error.t) result
 
 let ( let* ) = Result.bind
-
-module Handlers = struct
-  let il f =
-    let vid_counter = ref 0 in
-    let tid_counter = ref 0 in
-
-    let fresh_vid () =
-      let vid = !vid_counter in
-      incr vid_counter;
-      vid
-    in
-    Lang.Il.Value.GlobalVidProvider.set fresh_vid;
-
-    let fresh_tid () =
-      let tid = "FRESH__" ^ string_of_int !tid_counter in
-      incr tid_counter;
-      tid
-    in
-    Interp.Builtins.P4.Fresh.GlobalTidProvider.set fresh_tid;
-
-    f ()
-
-  (* SL interpreter uses IL handler for now *)
-  let sl = il
-end
 
 (* --- General runners --- *)
 
@@ -62,24 +36,28 @@ let structure spec_il : Sl.spec = Structure.Struct.struct_spec spec_il
 (* Interpreters *)
 
 (* Core IL run function - no init/finish, used by both single and suite runners *)
-let eval_il_run spec_il rid values_input filename_target :
+let eval_il_run (module T : Target.S) spec_il rid values_input filename_target :
     (Eval_Il.Ctx.t * Il.Value.t list) pipeline_result =
+  let builtins = Builtins.make T.builtins in
   let run () =
-    Eval_Il.Runner.run_relation_fresh spec_il rid values_input filename_target
+    Eval_Il.Runner.run_relation_fresh filename_target builtins spec_il rid
+      values_input
     |> Result.ok
   in
-  try Handlers.il run
+  try T.handler run
   with Eval_Il.Error.InterpError (at, msg) ->
     Error.IlInterpError (at, msg) |> Result.error
 
 (* Core SL run function - no init/finish, used by both single and suite runners *)
-let eval_sl_run spec_sl rid values_input filename_target :
+let eval_sl_run (module T : Target.S) spec_sl rid values_input filename_target :
     (Eval_Sl.Ctx.t * Il.Value.t list) pipeline_result =
+  let builtins = Builtins.make T.builtins in
   let run () =
-    Eval_Sl.Runner.run_relation_fresh spec_sl rid values_input filename_target
+    Eval_Sl.Runner.run_relation_fresh filename_target builtins spec_sl rid
+      values_input
     |> Result.ok
   in
-  try Handlers.sl run
+  try T.handler run
   with Eval_Sl.Error.InterpError (at, msg) ->
     Error.SlInterpError (at, msg) |> Result.error
 
@@ -101,38 +79,40 @@ let with_instrumentation config spec_type f =
   result
 
 (* Single-run wrappers that set up handlers, init, run, and finish *)
-let eval_il ?(config = Instrumentation.Config.default) spec_il rid values_input
-    filename_target : (Eval_Il.Ctx.t * Il.Value.t list) pipeline_result =
+let eval_il (module T : Target.S) ?(config = Instrumentation.Config.default)
+    spec_il rid values_input filename_target :
+    (Eval_Il.Ctx.t * Il.Value.t list) pipeline_result =
   with_instrumentation config (Instrumentation.Static.IlSpec spec_il)
-  @@ fun () -> eval_il_run spec_il rid values_input filename_target
+  @@ fun () -> eval_il_run (module T) spec_il rid values_input filename_target
 
-let eval_sl ?(config = Instrumentation.Config.default) spec_sl rid values_input
-    filename_target : (Eval_Sl.Ctx.t * Il.Value.t list) pipeline_result =
+let eval_sl (module T : Target.S) ?(config = Instrumentation.Config.default)
+    spec_sl rid values_input filename_target :
+    (Eval_Sl.Ctx.t * Il.Value.t list) pipeline_result =
   with_instrumentation config (Instrumentation.Static.SlSpec spec_sl)
-  @@ fun () -> eval_sl_run spec_sl rid values_input filename_target
+  @@ fun () -> eval_sl_run (module T) spec_sl rid values_input filename_target
 
 (* Single-run with input spec - includes full init/finish lifecycle *)
 let eval_il_with_task (type input) (module T : Task.S with type input = input)
     ?(config = Instrumentation.Config.default) spec_il (input : input) =
-  let* relation, values = T.parse ~spec:spec_il input in
-  eval_il ~config spec_il relation values (T.source input)
+  let* relation, values = T.parse_input ~spec:spec_il input in
+  eval_il (module T.Target) ~config spec_il relation values (T.source input)
 
 let eval_sl_with_task (type input) (module T : Task.S with type input = input)
     ?(config = Instrumentation.Config.default) spec_il spec_sl (input : input) =
-  let* relation, values = T.parse ~spec:spec_il input in
-  eval_sl ~config spec_sl relation values (T.source input)
+  let* relation, values = T.parse_input ~spec:spec_il input in
+  eval_sl (module T.Target) ~config spec_sl relation values (T.source input)
 
 (* Run-only versions - no init/finish, for use in batch/coverage runs *)
 let eval_il_with_task_run (type input)
     (module T : Task.S with type input = input) spec_il (input : input) =
-  let* relation, values = T.parse ~spec:spec_il input in
-  eval_il_run spec_il relation values (T.source input)
+  let* relation, values = T.parse_input ~spec:spec_il input in
+  eval_il_run (module T.Target) spec_il relation values (T.source input)
 
 let eval_sl_with_task_run (type input)
     (module T : Task.S with type input = input) spec_il spec_sl (input : input)
     =
-  let* relation, values = T.parse ~spec:spec_il input in
-  eval_sl_run spec_sl relation values (T.source input)
+  let* relation, values = T.parse_input ~spec:spec_il input in
+  eval_sl_run (module T.Target) spec_sl relation values (T.source input)
 
 (* --- Higher-level runners using expectation and test_outcome --- *)
 
@@ -141,8 +121,7 @@ let eval_sl_with_task_run (type input)
 let run_with_outcome (type i) (module T : Task.S with type input = i)
     ?(config = Instrumentation.Config.default) ~sl_mode ~spec_il (input : i) =
   let result =
-    let handler = if sl_mode then Handlers.sl else Handlers.il in
-    handler (fun () ->
+    T.Target.handler (fun () ->
         if sl_mode then
           let spec_sl = structure spec_il in
           let* _, values =
@@ -164,8 +143,7 @@ let run_with_outcome_no_lifecycle (type i)
   Instrumentation.Dispatcher.notify_test_start ~test_case_id;
   let result =
     try
-      let handler = if sl_mode then Handlers.sl else Handlers.il in
-      handler (fun () ->
+      T.Target.handler (fun () ->
           if sl_mode then
             let spec_sl = structure spec_il in
             let* _, values =
@@ -350,40 +328,3 @@ let run_target_coverage ?(config = Instrumentation.Config.default) ?test_dir
   in
   with_instrumentation config (Instrumentation.Static.IlSpec spec_il)
     run_coverage
-
-(* --- P4 runners --- *)
-
-(* P4 Parsing *)
-
-let parse_p4_file includes_p4 filename_p4 : Il.Value.t pipeline_result =
-  let parse_p4_file () =
-    P4.Parse.parse_file includes_p4 filename_p4 |> Result.ok
-  in
-  try Handlers.il parse_p4_file
-  with P4.Error.P4ParseError (at, msg) ->
-    Error.P4ParseError (at, msg) |> Result.error
-
-let parse_p4_string filename_p4 string : Il.Value.t pipeline_result =
-  let parse_p4_string () =
-    P4.Parse.parse_string filename_p4 string |> Result.ok
-  in
-  try Handlers.il parse_p4_string
-  with P4.Error.P4ParseError (at, msg) ->
-    Error.P4ParseError (at, msg) |> Result.error
-
-let parse_p4_file_with_roundtrip roundtrip filenames_spec includes_p4
-    filename_p4 : string pipeline_result =
-  let* spec_el = parse_spec_files filenames_spec in
-  let* spec_il = elaborate spec_el in
-  let* value_program = parse_p4_file includes_p4 filename_p4 in
-  let unparsed_string =
-    Format.asprintf "%a\n" (Concrete.Pp.pp_program spec_il) value_program
-  in
-  if roundtrip then
-    let* value_program_rt = parse_p4_string filename_p4 unparsed_string in
-    let eq = Il.Eq.eq_value ~dbg:true value_program value_program_rt in
-    if eq then unparsed_string |> Result.ok
-    else
-      Error.RoundtripError (Common.Source.no_region, "Roundtrip failed")
-      |> Result.error
-  else unparsed_string |> Result.ok

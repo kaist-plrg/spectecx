@@ -116,6 +116,44 @@ let make (type i) ~summary (module T : CLI_TASK with type input = i) =
        | Error e ->
            Format.printf "Error:\n  %s\n" (Runner.Error.string_of_error e))
 
+let make_parse (type i) ~summary (module T : CLI_TASK with type input = i) =
+  Core.Command.basic ~summary
+    (let open Core.Command.Let_syntax in
+     let open Core.Command.Param in
+     let%map filenames_spec =
+       flag "--spec" (listed string)
+         ~doc:"FILES spec files (default: use target spec dir)"
+     and input = T.cli_flags
+     and roundtrip = flag "-r" no_arg ~doc:" roundtrip parse/unparse" in
+     fun () ->
+       let run () =
+         let spec_files =
+           match filenames_spec with
+           | [] -> collect_spec_files T.Target.spec_dir
+           | files -> files
+         in
+         let open Runner in
+         let* spec_el = parse_spec_files spec_files in
+         let* spec_il = elaborate spec_el in
+         let* _, values = T.parse_input ~spec:spec_il input in
+         let unparsed = T.unparse ~spec:spec_il values in
+         if roundtrip then
+           let* values_rt =
+             unparsed |> T.parse_string ~spec:spec_il ~filename:(T.source input)
+           in
+           let eq = Lang.Il.Eq.eq_values ~dbg:true values values_rt in
+           if eq then Ok unparsed
+           else
+             Error
+               (Error.RoundtripError
+                  (Common.Source.no_region, "Roundtrip failed"))
+         else Ok unparsed
+       in
+       match run () with
+       | Ok s -> Format.printf "%s\n" s
+       | Error e ->
+           Format.printf "Error:\n  %s\n" (Runner.Error.string_of_error e))
+
 (* Functor to generate commands for a specific target.
    Enforces that only tasks belonging to this target can be used. *)
 module Make (Tgt : Runner.Target.S) = struct
