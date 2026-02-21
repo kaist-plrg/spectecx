@@ -1423,15 +1423,6 @@ let rec elab_def (ctx : Ctx.t) (def : def) : Ctx.t * Il.def option =
       elab_def_def ctx at id tparams args exp prems |> wrap_none
   | SepD -> ctx |> wrap_none
 
-and elab_defs (ctx : Ctx.t) (defs : def list) : Ctx.t * Il.def list =
-  List.fold_left
-    (fun (ctx, defs_il) def ->
-      let ctx, def_il_opt = elab_def ctx def in
-      match def_il_opt with
-      | Some def_il -> (ctx, defs_il @ [ def_il ])
-      | None -> (ctx, defs_il))
-    (ctx, []) defs
-
 (* Elaboration of type declarations *)
 
 and elab_syn_def (ctx : Ctx.t) (syns : (id * tparam list) list) : Ctx.t =
@@ -1698,3 +1689,9 @@ let elab_spec (spec : spec) : elab_result =
   let ctx, spec_il, errors = elab_defs_with_errors ctx spec in
   let spec_il = spec_il |> populate_rules ctx |> populate_clauses ctx in
   if errors = [] then Ok spec_il else Error errors
+
+module Fresh = Fresh
+
+type elaboration_error = Error.elaboration_error
+
+exception Error = Error.ElabError

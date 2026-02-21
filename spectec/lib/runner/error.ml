@@ -3,7 +3,7 @@ open Common.Attempt
 
 type t =
   | ParseError of region * string
-  | ElabError of Pass.Elaborate.Error.elaboration_error list
+  | ElabError of Pass.Elaborate.elaboration_error list
   | RoundtripError of region * string
   | IlInterpError of region * string
   | SlInterpError of region * string
@@ -18,8 +18,8 @@ let string_of_elab_error at failtraces : string =
   (if at = no_region then "" else string_of_region at ^ "Error:\n")
   ^ string_of_failtraces ~region_parent:at ~depth:0 failtraces
 
-let string_of_elab_errors (errors : Pass.Elaborate.Error.elaboration_error list)
-    : string =
+let string_of_elab_errors (errors : Pass.Elaborate.elaboration_error list) :
+    string =
   let errors_sorted =
     List.sort (fun (at_l, _) (at_r, _) -> compare_region at_l at_r) errors
   in

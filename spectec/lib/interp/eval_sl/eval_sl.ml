@@ -22,3 +22,7 @@ let run_relation_fresh (filename : string) (builtins : Builtins.t) (spec : spec)
     (rid : id') (values : value list) : Ctx.t * value list =
   let ctx = init filename builtins in
   run_relation ctx spec rid values
+
+module Ctx = Ctx
+
+exception Error = Error.InterpError

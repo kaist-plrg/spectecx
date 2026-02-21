@@ -2,7 +2,7 @@ open Common.Source
 
 type t =
   | ParseError of region * string
-  | ElabError of Pass.Elaborate.Error.elaboration_error list
+  | ElabError of Pass.Elaborate.elaboration_error list
   | RoundtripError of region * string
   | IlInterpError of region * string
   | SlInterpError of region * string

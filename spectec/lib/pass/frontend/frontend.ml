@@ -16,3 +16,5 @@ let parse_file file =
       ~finally:(fun () -> close_in ic)
   with Sys_error msg ->
     error (Source.region_of_file file) ("i/o error: " ^ msg)
+
+exception Error = ParseError

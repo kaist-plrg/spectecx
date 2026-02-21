@@ -4,7 +4,7 @@
  (name frontend)
  (public_name spectec.pipeline.frontend)
  (libraries spectec.common spectec.lang)
- (modules error lexer parser parse))
+ (modules error lexer parser frontend))
 
 (ocamllex
  (modules lexer))

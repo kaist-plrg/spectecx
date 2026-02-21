@@ -18,3 +18,7 @@ let run_relation_fresh (filename : string) (builtins : Builtins.t) (spec : spec)
     (rid : id') (values : value list) : Ctx.t * value list =
   init ();
   run_relation filename builtins spec rid values
+
+module Ctx = Ctx
+
+exception Error = Error.InterpError
