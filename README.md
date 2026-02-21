@@ -46,7 +46,7 @@ SpecTec-Core currently consists of three main components.
 ## P4-specific commands
 
 # parse a P4 program to an IL value (-r to do a roundtrip test)
-./spectec-core p4parse spec/*.spectec -i tests/interp/p4-tests/includes -p target/file.p4 [-r]
+./spectec-core p4 parse spec/*.spectec -i tests/interp/p4-tests/includes -p target/file.p4 [-r]
 
 # run a P4 program based on SpecTec IL/SL
 ./spectec-core p4 typecheck -i tests/interp/p4-tests/includes -p target/file.p4

@@ -37,36 +37,6 @@ let structure_command =
            Format.printf "%s\n" (Lang.Sl.Print.string_of_spec spec_sl)
        | Error e -> Format.printf "%s\n" (Runner.Error.string_of_error e))
 
-let p4parse_command =
-  Core.Command.basic ~summary:"parse a P4 program"
-    (let open Core.Command.Let_syntax in
-     let open Core.Command.Param in
-     let%map filenames = anon (sequence ("spec files" %: string))
-     and includes_target = flag "-i" (listed string) ~doc:"p4 include paths"
-     and filename_target = flag "-p" (required string) ~doc:"p4 file to parse"
-     and roundtrip =
-       flag "-r" no_arg ~doc:"perform a round-trip parse/unparse"
-     in
-     fun () ->
-       let do_roundtrip () =
-         let* rountrip_result =
-           Runner.parse_p4_file_with_roundtrip roundtrip filenames
-             includes_target filename_target
-         in
-         Ok rountrip_result
-       in
-       match (roundtrip, Runner.Handlers.il do_roundtrip) with
-       | false, Ok unparsed_string ->
-           Format.printf "Parse succeeded:\n%s\n" unparsed_string
-       | true, Ok unparsed_string ->
-           Format.printf "Roundtrip succeeded:\n%s\n" unparsed_string
-       | false, Error e ->
-           Format.printf "Parse failed:\n  %s\n"
-             (Runner.Error.string_of_error e)
-       | true, Error e ->
-           Format.printf "Roundtrip failed:\n  %s\n"
-             (Runner.Error.string_of_error e))
-
 (* Instantiate CLI commands for P4 *)
 module P4_Cmd = Cli.Command.Make (Targets_p4.P4.Target)
 
@@ -75,6 +45,9 @@ let p4_command =
   Core.Command.group ~summary:"P4 commands"
     [
       ("typecheck", Targets.P4.command);
+      ( "parse",
+        Cli.Command.make_parse ~summary:"parse a P4 program"
+          (module Targets.P4.Cli_task) );
       ("coverage", P4_Cmd.make_coverage tasks);
       ("checkpoint", P4_Cmd.make_checkpoint ());
     ]
@@ -82,10 +55,7 @@ let p4_command =
 let command =
   Core.Command.group ~summary:"SpecTec command line tools"
     [
-      ("elab", elab_command);
-      ("struct", structure_command);
-      ("p4parse", p4parse_command);
-      ("p4", p4_command);
+      ("elab", elab_command); ("struct", structure_command); ("p4", p4_command);
     ]
 
 let () = Command_unix.run ~version command

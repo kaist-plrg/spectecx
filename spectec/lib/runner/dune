@@ -8,7 +8,6 @@
   spectec.lang
   spectec.pass
   spectec.interp
-  spectec.instrumentation
-  spectec.interface)
+  spectec.instrumentation)
  (preprocess
   (pps ppx_let)))

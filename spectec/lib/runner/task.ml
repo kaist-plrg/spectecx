@@ -12,10 +12,10 @@
 
 module Il = Lang.Il
 
-type 'a pipeline_result = ('a, Error.t) result
+type 'a result = ('a, Error.t) Stdlib.result
 
-(* Re-export expectation from Target for convenience *)
-type expectation = Target.expectation = Positive | Negative
+(** Test expectation: does the test expect success or failure? *)
+type expectation = Positive | Negative
 
 (** Test outcome after considering expectation *)
 type test_outcome =
@@ -36,15 +36,26 @@ let compute_outcome expectation result =
 module type S = sig
   val name : string
 
-  (* Reference to the full Target module *)
+  (* Reference to the parent Target. *)
   module Target : Target.S
 
   type input
 
-  val parse :
-    spec:Il.spec -> input -> (string * Il.Value.t list) pipeline_result
+  (** Parse a string into IL values. *)
+  val parse_string :
+    spec:Il.spec -> filename:string -> string -> Il.Value.t list result
 
+  (** Unparse IL values back into a string for display. *)
+  val unparse : spec:Il.spec -> Il.Value.t list -> string
+
+  (** Parse input into relation name and IL values. The relation name is invoked
+      for the input. *)
+  val parse_input : spec:Il.spec -> input -> (string * Il.Value.t list) result
+
+  (** Get source identifier for tracing/errors (e.g., filename, test name) *)
   val source : input -> string
+
+  (** Get test expectation (Positive/Negative) *)
   val expectation : input -> expectation
 
   (** Collect inputs from a directory. If dir not provided, uses Target.test_dir

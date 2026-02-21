@@ -33,7 +33,7 @@ let run_with_task (type i) (module T : Runner.Task.S with type input = i)
         ~f:(fun acc input -> Map.set acc ~key:(T.source input) ~data:input)
     in
     let run filename =
-      Runner.Handlers.il (fun () ->
+      T.Target.handler (fun () ->
           match Map.find input_table filename with
           | None -> failwith ("T not found: " ^ filename)
           | Some input ->
@@ -77,9 +77,11 @@ let run_p4_typecheck ~negative ~sl_mode ~includes ~exclude_dirs ~testdir =
   let inputs =
     Targets_p4.P4.Typecheck.collect ~dir:testdir ()
     |> List.map ~f:(fun input ->
-           Targets_p4.P4.Typecheck.make ~expect:expectation ~includes
-             ~filename:(Targets_p4.P4.Typecheck.source input)
-             ())
+           {
+             Targets_p4.P4.Typecheck.includes;
+             filename = Targets_p4.P4.Typecheck.source input;
+             expect = expectation;
+           })
   in
   run_with_task
     (module Targets_p4.P4.Typecheck)

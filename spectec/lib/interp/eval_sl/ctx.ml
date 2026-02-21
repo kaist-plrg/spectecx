@@ -49,6 +49,8 @@ type local = {
 type t = {
   (* Filename of the source file *)
   filename : string;
+  (* Builtins *)
+  builtins : Builtins.t;
   (* Global layer *)
   global : global;
   (* Local layer *)
@@ -181,10 +183,10 @@ let empty_local () : local =
     venv = VEnv.empty;
   }
 
-let empty (filename : string) : t =
+let empty (filename : string) (builtins : Builtins.t) : t =
   let global = empty_global () in
   let local = empty_local () in
-  { filename; global; local }
+  { filename; builtins; global; local }
 
 (* Constructing a local context *)
 

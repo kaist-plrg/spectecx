@@ -1090,7 +1090,7 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
   (* Builtin function invocation *)
   let invoke_func_builtin () =
     let value_output =
-      Builtins.invoke id targs values_input |> unwrap_builtin
+      ctx.builtins.invoke id targs values_input |> unwrap_builtin
     in
     (ctx, value_output)
   in
@@ -1147,7 +1147,7 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
   let invoke_func' () =
     let invoke () =
       let _, v =
-        if Builtins.is_builtin id then invoke_func_builtin ()
+        if ctx.builtins.is_builtin id then invoke_func_builtin ()
         else invoke_func_def ()
       in
       Ok v

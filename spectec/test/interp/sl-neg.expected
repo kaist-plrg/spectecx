@@ -536,7 +536,7 @@ Expected typechecker failure: ../../../../../tests/interp/p4-tests/tests/p4_16_e
 
 >>> Running typechecker test on ../../../../../tests/interp/p4-tests/tests/p4_16_errors/issue3285.p4
 CRASHED (counted as failure): ../../../../../tests/interp/p4-tests/tests/p4_16_errors/issue3285.p4
-  uncaught exception: ("P4.Lexer.Error(\"signed integers must have width at least 2\")")
+  uncaught exception: ("Frontend_p4__Lexer.Error(\"signed integers must have width at least 2\")")
 
 >>> Running typechecker test on ../../../../../tests/interp/p4-tests/tests/p4_16_errors/issue3291.p4
 Excluding file: ../../../../../tests/interp/p4-tests/tests/p4_16_errors/issue3291.p4
