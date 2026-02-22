@@ -1,6 +1,6 @@
 open Lang
 open Ol.Ast
-module TDEnv = Semantics.Dynamic_Sl.Envs.TDEnv
+module TDEnv = Semantics.Dynamic.Envs.TDEnv
 open Common.Source
 
 (* Insert phantom instructions at dangling else branches,

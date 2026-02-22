@@ -1,13 +1,15 @@
 open Common.Domain
-open Semantics.Env
+open Common.Source
 open Lang.Xl
 open Lang.El
 module El = Lang.El
 module Il = Lang.Il
-open Semantics.Static
+module Hint = Semantics.Hint
+open Semantics.MakeEnv
 open Attempt
 open Error
-open Common.Source
+open Envs_elab
+module Fresh = Dataflow.Fresh
 
 (* Checks *)
 
@@ -1341,7 +1343,7 @@ and elab_rule_prem (ctx : Ctx.t) (id : id) (exp : exp) : Ctx.t * Il.prem' =
   let nottyp, inputs = Ctx.find_rel ctx id in
   let+ ctx, notexp_il = elab_exp_not ctx (NotationT nottyp) exp in
   let _, exps_il = notexp_il in
-  if Rel.Hint.is_conditional inputs exps_il then
+  if Hint.is_conditional inputs exps_il then
     let exp_il = Il.HoldE (id, notexp_il) $$ (exp.at, Il.BoolT) in
     let prem_il = Il.IfPr exp_il in
     (ctx, prem_il)
@@ -1356,7 +1358,7 @@ and elab_rule_not_prem (ctx : Ctx.t) (id : id) (exp : exp) : Ctx.t * Il.prem' =
   let+ ctx, notexp_il = elab_exp_not ctx (NotationT nottyp) exp in
   let _, exps_il = notexp_il in
   check
-    (Rel.Hint.is_conditional inputs exps_il)
+    (Hint.is_conditional inputs exps_il)
     exp.at "negated rule premises do not take inputs";
   let exp_il = Il.HoldE (id, notexp_il) $$ (exp.at, Il.BoolT) in
   let exp_il = Il.UnE (`NotOp, `BoolT, exp_il) $$ (exp.at, Il.BoolT) in
@@ -1689,8 +1691,6 @@ let elab_spec (spec : spec) : elab_result =
   let ctx, spec_il, errors = elab_defs_with_errors ctx spec in
   let spec_il = spec_il |> populate_rules ctx |> populate_clauses ctx in
   if errors = [] then Ok spec_il else Error errors
-
-module Fresh = Fresh
 
 type elaboration_error = Error.elaboration_error
 

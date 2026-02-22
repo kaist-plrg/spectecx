@@ -1,8 +1,8 @@
 open Common.Domain
-open Semantics.Env
 open Common.Source
 open Lang
 open Lang.Il
+open Semantics.MakeEnv
 
 (* Unification environment: a map from original id to its unified id *)
 
@@ -249,7 +249,7 @@ let antiunify_rules (inputs : int list) (rules : rule list) :
         let _, notexp, prems = rule.it in
         let _, exps = notexp in
         let exps_input, exps_output =
-          Semantics.Static.Rel.Hint.split_exps_without_idx inputs exps
+          Semantics.Hint.split_exps_without_idx inputs exps
         in
         let exps_input_group = exps_input_group @ [ exps_input ] in
         let exps_output_group = exps_output_group @ [ exps_output ] in

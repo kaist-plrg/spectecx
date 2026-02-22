@@ -2,8 +2,7 @@ open Common.Domain
 open Semantics.Dynamic
 module Il = Lang.Il
 module Value = Lang.Il.Value
-open Semantics.Dynamic_Sl
-open Envs
+open Envs_eval_sl
 open Lang.Sl
 open Error
 open Common.Source

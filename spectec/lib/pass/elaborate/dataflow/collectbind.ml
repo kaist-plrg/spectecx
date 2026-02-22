@@ -1,8 +1,8 @@
+open Common.Source
 open Lang
 open Lang.Il
 open Error
-open Semantics.Static.Envs
-open Common.Source
+open Envs_elab
 
 (* Collect binding identifiers,
    while enforcing the invariant that binding identifiers

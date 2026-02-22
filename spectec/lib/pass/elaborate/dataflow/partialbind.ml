@@ -1,10 +1,10 @@
 open Common.Domain
-open Semantics.Env
 open Common.Source
 open Lang
 open Lang.Il
-open Semantics.Static
+open Semantics.MakeEnv
 open Error
+open Envs_elab
 
 (* Helper for identifying singleton case *)
 

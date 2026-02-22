@@ -1,4 +1,4 @@
-open Env
+open Semantics.MakeEnv
 
 (* Environments *)
 
@@ -16,7 +16,7 @@ module TDEnv = MakeTIdMap (Typdef)
 
 (* Relation environment *)
 
-module HEnv = MakeIdMap (Rel.Hint)
+module HEnv = Semantics.HEnv
 module REnv = MakeRIdMap (Rel)
 
 (* Definition environment *)

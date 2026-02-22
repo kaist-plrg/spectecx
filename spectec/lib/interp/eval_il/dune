@@ -1,5 +1,3 @@
-(include_subdirs qualified)
-
 (library
  (name eval_il)
  (public_name spectec.interp.eval_il)
@@ -9,4 +7,5 @@
   spectec.semantics
   spectec.instrumentation
   unix
-  builtins))
+  builtins
+  envs_eval_il))

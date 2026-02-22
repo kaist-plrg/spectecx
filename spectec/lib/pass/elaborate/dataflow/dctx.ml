@@ -1,5 +1,5 @@
 open Common.Domain
-open Semantics.Static.Envs
+open Envs_elab
 
 (* Context for dataflow analysis *)
 

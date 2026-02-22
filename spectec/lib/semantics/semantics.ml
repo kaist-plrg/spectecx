@@ -1,5 +1,4 @@
-module Env = Env
-module Static = Static
+module MakeEnv = Make_env
 module Dynamic = Dynamic
-module Dynamic_Il = Il
-module Dynamic_Sl = Sl
+module Hint = Hint
+module HEnv = Make_env.MakeIdMap (Hint)

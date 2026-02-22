@@ -1,8 +1,8 @@
 open Common.Domain
-open Semantics.Env
 open Common.Source
 open Lang
 open Lang.Il
+open Semantics.MakeEnv
 open Error
 
 (* Renames for an identifier *)

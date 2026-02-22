@@ -1,7 +1,6 @@
 open Common.Domain
 open Lang.El
 module Il = Lang.Il
-open Semantics.Static
 open Envs
 open Error
 open Common.Source

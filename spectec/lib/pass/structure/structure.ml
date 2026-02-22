@@ -1,8 +1,8 @@
+open Common.Source
 open Lang
 open Lang.Il
-module HEnv = Semantics.Static.Envs.HEnv
-module TDEnv = Semantics.Dynamic_Sl.Envs.TDEnv
-open Common.Source
+module HEnv = Semantics.HEnv
+module TDEnv = Semantics.Dynamic.Envs.TDEnv
 
 (* Structuring premises *)
 

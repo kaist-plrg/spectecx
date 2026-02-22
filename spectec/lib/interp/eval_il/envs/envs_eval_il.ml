@@ -1,4 +1,6 @@
-open Env
+open Semantics.MakeEnv
+module Rel = Rel
+module Func = Func
 
 (* Environments *)
 

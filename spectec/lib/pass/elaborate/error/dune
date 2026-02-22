@@ -1,0 +1,4 @@
+(library
+ (name error)
+ (public_name spectec.pass.elaborate.error)
+ (libraries spectec.common))

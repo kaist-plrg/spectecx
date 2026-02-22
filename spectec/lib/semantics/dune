@@ -1,4 +1,4 @@
 (library
  (name semantics)
  (public_name spectec.semantics)
- (libraries env static dynamic il sl))
+ (libraries spectec.semantics.make_env dynamic))

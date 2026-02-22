@@ -1,6 +1,6 @@
 open Common.Source
 open Common.InternalError
-open Env
+open Make_env
 open Lang.Il
 open Typ
 

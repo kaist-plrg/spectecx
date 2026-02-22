@@ -1,8 +1,8 @@
+open Common.Domain
+open Common.Source
 module Il = Lang.Il
 open Ol.Ast
-open Common.Domain
-open Semantics.Env
-open Common.Source
+open Semantics.MakeEnv
 
 (* Helper for renaming identifiers in expressions and instructions. *)
 

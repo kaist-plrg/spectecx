@@ -1,4 +1,4 @@
-open Env
+open Make_env
 open Lang
 
 (* Variable environment functor *)

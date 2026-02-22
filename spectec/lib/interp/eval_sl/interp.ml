@@ -1,14 +1,14 @@
 open Common.Source
-open Semantics.Env
 open Lang.Xl
 module Il = Lang.Il
 module Value = Lang.Il.Value
 open Lang.Sl
-module Hint = Semantics.Static.Rel.Hint
+open Semantics.MakeEnv
+module Hint = Semantics.Hint
 module Typ = Semantics.Dynamic.Typ
 module Cache = Semantics.Dynamic.Cache
-open Semantics.Dynamic_Sl.Envs
-module Rel = Semantics.Dynamic_Sl.Rel
+open Envs_eval_sl
+module Rel = Rel
 open Error
 module F = Format
 

@@ -1,0 +1,4 @@
+(library
+ (name envs_elab)
+ (public_name spectec.pass.elaborate.envs)
+ (libraries spectec.semantics spectec.lang spectec.common error))

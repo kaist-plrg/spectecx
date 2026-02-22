@@ -1,0 +1,4 @@
+(library
+ (name dataflow)
+ (public_name spectec.pass.elaborate.dataflow)
+ (libraries spectec.lang spectec.semantics.make_env envs_elab error))

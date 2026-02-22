@@ -1,11 +1,10 @@
-open Semantics.Env
+open Semantics.MakeEnv
 open Lang.Xl
 open Lang.Il
-module Hint = Semantics.Static.Rel.Hint
+module Hint = Semantics.Hint
 module Typ = Semantics.Dynamic.Typ
 module Cache = Semantics.Dynamic.Cache
-module Rel = Semantics.Dynamic_Il.Rel
-open Semantics.Dynamic_Il.Envs
+open Envs_eval_il
 open Error
 open Attempt
 module F = Format

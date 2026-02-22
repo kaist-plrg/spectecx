@@ -1,0 +1,4 @@
+(library
+ (name make_env)
+ (public_name spectec.semantics.make_env)
+ (libraries spectec.common spectec.lang))

@@ -1,4 +1,0 @@
-(library
- (name static)
- (public_name spectec.semantics.static)
- (libraries spectec.common spectec.lang env))

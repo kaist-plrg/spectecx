@@ -1,9 +1,8 @@
 open Common.Domain
 open Lang
 open Il
-open Semantics.Static
 open Error
-open Envs
+open Envs_elab
 open Common.Source
 
 (* Dimension analysis :

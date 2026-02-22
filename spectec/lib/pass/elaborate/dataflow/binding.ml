@@ -2,9 +2,8 @@ open Common.Domain
 open Common.Source
 open Lang
 open Lang.Il
-open Semantics.Static
-open Semantics.Static.Rel
-open Semantics.Static.Envs
+module Hint = Semantics.Hint
+open Envs_elab
 open Error
 open Bind
 
