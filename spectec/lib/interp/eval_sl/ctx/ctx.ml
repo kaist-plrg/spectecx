@@ -1,11 +1,11 @@
 open Common.Domain
-open Semantics.Dynamic
+open Common.Source
 module Il = Lang.Il
 module Value = Lang.Il.Value
-open Envs_eval_sl
 open Lang.Sl
 open Error
-open Common.Source
+open Envs.Dynamic
+open Envs.Make
 
 (* Error *)
 
@@ -15,14 +15,26 @@ let error_undef (at : region) (kind : string) (id : string) =
 let error_dup (at : region) (kind : string) (id : string) =
   error at (Format.asprintf "%s `%s` was already defined" kind id)
 
-(* Cursor *)
+(* Environments *)
 
-type cursor = Global | Local
+(* Value environment *)
+module VEnv = VEnv
+
+(* Type definition environment *)
+module TDEnv = TDEnv
+
+(* Relation environment *)
+module REnv = MakeRIdMap (Rel)
+
+(* Definition environment *)
+module FEnv = MakeFIdMap (Func)
 
 (* Context *)
 
-(* Global layer *)
+(* Cursor *)
+type cursor = Global | Local
 
+(* Global layer *)
 type global = {
   (* Map from syntax ids to type definitions *)
   tdenv : TDEnv.t;
@@ -33,7 +45,6 @@ type global = {
 }
 
 (* Local layer *)
-
 type local = {
   (* Input values *)
   values_input : value list;

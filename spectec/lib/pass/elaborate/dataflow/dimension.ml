@@ -1,9 +1,9 @@
 open Common.Domain
+open Common.Source
 open Lang
 open Il
+open Ctx
 open Error
-open Envs_elab
-open Common.Source
 
 (* Dimension analysis :
 

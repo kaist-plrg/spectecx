@@ -1,5 +1,4 @@
 open Lang.Il
-open Envs_elab
 
 (* Entry point of dataflow analysis *)
 

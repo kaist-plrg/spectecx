@@ -3,7 +3,7 @@ open El
 open El.Print
 open Common.Source
 open Common.InternalError
-open Semantics.MakeEnv
+open Envs.Make
 
 (* Plain type *)
 

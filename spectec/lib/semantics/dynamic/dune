@@ -1,4 +1,0 @@
-(library
- (name dynamic)
- (public_name spectec.semantics.dynamic)
- (libraries spectec.common spectec.lang make_env))

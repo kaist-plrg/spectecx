@@ -3,4 +3,4 @@
 (library
  (name structure)
  (public_name spectec.pass.structure)
- (libraries spectec.semantics spectec.lang spectec.common elaborate))
+ (libraries spectec.lang spectec.common elaborate))

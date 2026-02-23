@@ -1,5 +1,5 @@
 open Common.Domain
-open Envs_elab
+open Ctx
 
 (* Context for dataflow analysis *)
 

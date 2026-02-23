@@ -1,9 +1,9 @@
 open Common.Domain
 open Common.Source
-open Lang
 open Lang.Il
-open Semantics.MakeEnv
+open Envs.Make
 open Error
+open Ctx
 
 (* Renames for an identifier *)
 

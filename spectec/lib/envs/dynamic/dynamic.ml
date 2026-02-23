@@ -1,5 +1,8 @@
 open Make_env
 open Lang
+module Typ = Typ
+module Typdef = Typdef
+module Var = Var
 
 (* Variable environment functor *)
 

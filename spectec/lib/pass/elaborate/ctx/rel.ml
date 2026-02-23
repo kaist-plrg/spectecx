@@ -1,8 +1,5 @@
 open Lang
-
-(* Input hints for rules *)
-
-module Hint = Semantics.Hint
+module Hint = Envs.Hint
 
 (* Relation *)
 

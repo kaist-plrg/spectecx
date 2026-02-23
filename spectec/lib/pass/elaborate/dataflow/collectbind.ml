@@ -1,8 +1,7 @@
 open Common.Source
-open Lang
 open Lang.Il
 open Error
-open Envs_elab
+open Ctx
 
 (* Collect binding identifiers,
    while enforcing the invariant that binding identifiers

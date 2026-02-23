@@ -1,9 +1,8 @@
 open Common.Domain
+open Common.Source
 open Lang.El
 module Il = Lang.Il
-open Envs
 open Error
-open Common.Source
 
 (* Error *)
 
@@ -12,6 +11,28 @@ let error_undef (at : region) (kind : string) (id : string) =
 
 let error_dup (at : region) (kind : string) (id : string) =
   error at (Format.asprintf "%s `%s` was already defined" kind id)
+
+open Envs.Make
+
+(* Environments *)
+
+(* Identifier type and dimension environment *)
+module VEnv = MakeIdMap (Typ)
+
+(* Plain type (EL type) environment *)
+module PTEnv = MakeIdMap (Plaintyp)
+
+(* Type definition environment *)
+module TDEnv = MakeTIdMap (Typdef)
+
+(* Hint environment *)
+module HEnv = Envs.HEnv
+
+(* Relation environment *)
+module REnv = MakeRIdMap (Rel)
+
+(* Definition environment *)
+module FEnv = MakeFIdMap (Func)
 
 (* Global counter for unique identifiers *)
 
@@ -220,3 +241,9 @@ let update_typdef (ctx : t) (tid : TId.t) (td : Typdef.t) : t =
   if not (bound_typdef ctx tid) then error_undef tid.at "type" tid.it;
   let tdenv = TDEnv.add tid td ctx.tdenv in
   { ctx with tdenv }
+
+module Plaintyp = Plaintyp
+module Typ = Typ
+module Typdef = Typdef
+module Func = Func
+module Rel = Rel

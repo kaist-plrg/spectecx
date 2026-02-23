@@ -1,5 +1,5 @@
 open Lang.Il
-module Cache = Semantics.Dynamic.Cache
+module Cache = Interp_common.Cache
 module F = Format
 open Attempt
 open Common.Source

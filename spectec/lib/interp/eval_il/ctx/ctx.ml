@@ -1,7 +1,7 @@
 open Common.Source
 open Common.Domain
-open Semantics.Dynamic
-open Envs_eval_il
+open Envs.Make
+open Envs.Dynamic
 open Lang.Il
 module Value = Lang.Il.Value
 open Error
@@ -15,14 +15,42 @@ let error_undef (at : region) (kind : string) (id : string) =
 let error_dup (at : region) (kind : string) (id : string) =
   error at (Format.asprintf "%s `%s` was already defined" kind id)
 
+(* Environment map types *)
+
+module TDEnv = TDEnv
+module VEnv = VEnv
+
+(* Global layer *)
+module Global = struct
+  (* Type definition environment *)
+  module TDEnv = MakeFrozenTIdTbl (Typdef)
+
+  (* Relation environment *)
+  module REnv = MakeFrozenRIdTbl (Rel)
+
+  (* Function environment *)
+  module FEnv = MakeFrozenFIdTbl (Func)
+end
+
+(* Local layer *)
+module Local = struct
+  (* Type definition environment *)
+  module TDEnv = TDEnv
+
+  (* Function environment *)
+  module FEnv = MakeFIdMap (Func)
+
+  (* Value environment *)
+  module VEnv = VEnv
+end
+
+(* Context *)
+
 (* Cursor *)
 
 type cursor = Global | Local
 
-(* Context *)
-
 (* Global loader (mutable, used during load phase) *)
-
 type global_loader = {
   tdenv : Global.TDEnv.loader;
   renv : Global.REnv.loader;
@@ -30,7 +58,6 @@ type global_loader = {
 }
 
 (* Global layer *)
-
 type global = {
   (* Frozen hashtable from syntax ids to type definitions *)
   tdenv : Global.TDEnv.t;
@@ -41,7 +68,6 @@ type global = {
 }
 
 (* Local layer *)
-
 type local = {
   (* Map from syntax ids to type definitions *)
   tdenv : Local.TDEnv.t;

@@ -3,12 +3,10 @@ open Lang.Xl
 module Il = Lang.Il
 module Value = Lang.Il.Value
 open Lang.Sl
-open Semantics.MakeEnv
-module Hint = Semantics.Hint
-module Typ = Semantics.Dynamic.Typ
-module Cache = Semantics.Dynamic.Cache
-open Envs_eval_sl
-module Rel = Rel
+open Envs.Make
+module Hint = Envs.Hint
+module Typ = Envs.Dynamic.Typ
+module Cache = Interp_common.Cache
 open Error
 module F = Format
 
@@ -84,7 +82,7 @@ let rec assign_exp (ctx : Ctx.t) (exp : exp) (value : value) : Ctx.t =
         List.fold_left
           (fun ctxs_rev value ->
             let ctx =
-              { ctx with local = { ctx.local with venv = VEnv.empty } }
+              { ctx with local = { ctx.local with venv = Ctx.VEnv.empty } }
             in
             let ctx = assign_exp ctx exp value in
             ctx :: ctxs_rev)
@@ -1107,7 +1105,7 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
       | [] -> []
       | targs ->
           let theta =
-            TDEnv.fold
+            Ctx.TDEnv.fold
               (fun tid typdef theta ->
                 let tparams, deftyp = typdef in
                 match (tparams, deftyp.it) with

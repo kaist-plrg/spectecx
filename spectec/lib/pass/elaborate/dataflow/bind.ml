@@ -1,9 +1,9 @@
 open Common.Domain
 open Common.Source
 open Lang.Il
-open Envs_elab
+open Envs.Make
+open Ctx
 open Error
-open Semantics.MakeEnv
 
 (* Binding occurrences of identifiers, singular or multiple (parallel) *)
 

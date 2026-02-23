@@ -4,11 +4,11 @@ open Lang.Xl
 open Lang.El
 module El = Lang.El
 module Il = Lang.Il
-module Hint = Semantics.Hint
-open Semantics.MakeEnv
+module Hint = Envs.Hint
+open Envs.Make
 open Attempt
 open Error
-open Envs_elab
+open Ctx
 module Fresh = Dataflow.Fresh
 
 (* Checks *)

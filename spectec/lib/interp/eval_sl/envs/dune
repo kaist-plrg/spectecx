@@ -1,4 +1,0 @@
-(library
- (name envs_eval_sl)
- (public_name spectec.interp.eval_sl.envs)
- (libraries spectec.semantics))

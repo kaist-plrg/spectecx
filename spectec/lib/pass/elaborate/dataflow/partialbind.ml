@@ -2,9 +2,9 @@ open Common.Domain
 open Common.Source
 open Lang
 open Lang.Il
-open Semantics.MakeEnv
+open Envs.Make
 open Error
-open Envs_elab
+open Ctx
 
 (* Helper for identifying singleton case *)
 

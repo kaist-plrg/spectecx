@@ -1,10 +1,11 @@
+(include_subdirs qualified)
+
 (library
  (name eval_sl)
  (public_name spectec.interp.eval_sl)
  (libraries
   spectec.common
   spectec.lang
-  spectec.semantics
   spectec.instrumentation
   builtins
-  envs_eval_sl))
+  interp_common))
