@@ -5,7 +5,7 @@ open Lang.Xl
 open Ol.Ast
 module Hint = Envs.Hint
 module HEnv = Envs.HEnv
-module TDEnv = Envs.Dynamic.TDEnv
+module TDEnv = Envs.Il.TDEnv
 
 (* [1] Remove redundant, trivial let aliases from the code,
 

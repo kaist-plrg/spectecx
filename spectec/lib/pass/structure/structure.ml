@@ -2,7 +2,7 @@ open Common.Source
 open Lang
 open Lang.Il
 module HEnv = Envs.HEnv
-module TDEnv = Envs.Dynamic.TDEnv
+module TDEnv = Envs.Il.TDEnv
 
 (* Structuring premises *)
 

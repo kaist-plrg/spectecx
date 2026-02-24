@@ -1,5 +1,4 @@
-open Make_env
-open Lang
+open Envs_make
 module Typ = Typ
 module Typdef = Typdef
 module Var = Var

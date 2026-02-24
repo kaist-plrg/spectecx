@@ -1,4 +1,4 @@
-open Lang.Il
+open Il
 
 (* Type definition *)
 

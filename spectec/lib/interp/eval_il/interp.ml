@@ -1,9 +1,9 @@
 open Common.Source
-open Envs.Make
 open Lang.Xl
 open Lang.Il
+open Envs.Make
 module Hint = Envs.Hint
-module Typ = Envs.Dynamic.Typ
+module Typ = Envs.Il.Typ
 module Cache = Interp_common.Cache
 open Error
 open Attempt

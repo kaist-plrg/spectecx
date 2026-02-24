@@ -1,0 +1,4 @@
+(library
+ (name envs_il)
+ (public_name spectec.envs.il)
+ (libraries spectec.lang.il envs_make))

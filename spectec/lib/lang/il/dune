@@ -1,0 +1,4 @@
+(library
+ (name il)
+ (public_name spectec.lang.il)
+ (libraries spectec.common xl el))

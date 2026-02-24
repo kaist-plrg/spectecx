@@ -4,7 +4,7 @@ module Il = Lang.Il
 module Value = Lang.Il.Value
 open Lang.Sl
 open Error
-open Envs.Dynamic
+open Envs.Il
 open Envs.Make
 
 (* Error *)

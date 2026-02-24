@@ -1,6 +1,4 @@
-(include_subdirs qualified)
-
 (library
  (name envs)
  (public_name spectec.envs)
- (libraries spectec.lang))
+ (libraries spectec.lang envs_il envs_make))

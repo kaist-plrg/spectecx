@@ -1,7 +1,7 @@
 open Common.Source
 open Common.InternalError
-open Make_env
-open Lang.Il
+open Envs_make
+open Il
 open Typ
 
 (* Substitution of type variables *)
