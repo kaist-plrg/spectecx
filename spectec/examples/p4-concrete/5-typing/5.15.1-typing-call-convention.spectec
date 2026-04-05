@@ -25,29 +25,27 @@ rule Expr_lvalue_ok/referenceExpressionIR:
   -- if direction _ DYN _ = $find_var_t(prefixedNameIR, p, TC)
   -- if direction = OUT \/ direction = INOUT
 
-rulegroup Expr_lvalue_ok/accessExpressionIR-memberAccessExpressionIR {
 
-  rule Expr_lvalue_ok/headerstack-next-last:
-    p TC |- (typedExpressionIR_base `. nameIR) `# `( _ _ )
-    -- Expr_lvalue_ok: p TC |- typedExpressionIR_base
-    ---- ;; if the base expression is a header stack
-    -- if typeIR_base = $type_of_typedExpressionIR(typedExpressionIR_base)
-    -- if typeIR `[ _ ] = $unroll_typeIR(typeIR_base)
-    ---- ;; if accessing "next" or "last"
-    -- if nameIR = "next" \/ nameIR = "last"
-    ---- ;; "next" and "last" can be only used within a parser
-    -- if (p = BLOCK /\ TC.BLOCK.KIND = PARSER)
-          \/ (p = LOCAL /\ TC.LOCAL.KIND = PARSER_STATE)
+rule Expr_lvalue_ok/headerstack-next-last:
+  p TC |- (typedExpressionIR_base `. nameIR) `# `( _ _ )
+  -- Expr_lvalue_ok: p TC |- typedExpressionIR_base
+  ---- ;; if the base expression is a header stack
+  -- if typeIR_base = $type_of_typedExpressionIR(typedExpressionIR_base)
+  -- if typeIR `[ _ ] = $unroll_typeIR(typeIR_base)
+  ---- ;; if accessing "next" or "last"
+  -- if nameIR = "next" \/ nameIR = "last"
+  ---- ;; "next" and "last" can be only used within a parser
+  -- if (p = BLOCK /\ TC.BLOCK.KIND = PARSER)
+        \/ (p = LOCAL /\ TC.LOCAL.KIND = PARSER_STATE)
 
-  rule Expr_lvalue_ok/non-headerstack:
-    p TC |- (typedExpressionIR_base `. nameIR) `# `( _ _ )
-    -- Expr_lvalue_ok: p TC |- typedExpressionIR_base
-    -- if typeIR_base = $type_of_typedExpressionIR(typedExpressionIR_base)
-    ---- ;; if the base expression is not a header stack
-    -- if typeIR_unroll = $unroll_typeIR(typeIR_base)
-    -- if ~(typeIR_unroll <: headerStackTypeIR)
+rule Expr_lvalue_ok/non-headerstack:
+  p TC |- (typedExpressionIR_base `. nameIR) `# `( _ _ )
+  -- Expr_lvalue_ok: p TC |- typedExpressionIR_base
+  -- if typeIR_base = $type_of_typedExpressionIR(typedExpressionIR_base)
+  ---- ;; if the base expression is not a header stack
+  -- if typeIR_unroll = $unroll_typeIR(typeIR_base)
+  -- if ~(typeIR_unroll <: headerStackTypeIR)
 
-}
 
 rule Expr_lvalue_ok/accessExpressionIR-indexAccessExpressionIR:
   p TC |- (typedExpressionIR_base `[ typedExpressionIR_index ]) `# `( _ _ )
@@ -75,25 +73,23 @@ rule Call_convention_expr_ok/out-inout:
 
 ;;; `EMPTY
 
-rulegroup Call_convention_expr_ok/empty {
 
-  rule Call_convention_expr_ok/action:
-    p TC ACTION |- (_ `EMPTY typeIR_param _ _) `@ typedExpressionIR_arg
+rule Call_convention_expr_ok/action:
+  p TC ACTION |- (_ `EMPTY typeIR_param _ _) `@ typedExpressionIR_arg
+               : typedExpressionIR_arg_cast
+  ---- ;; may insert implicit casts for directionless action argument
+  -- if typedExpressionIR_arg_cast
+      = $cast_unary(typedExpressionIR_arg, typeIR_param)
+
+rule Call_convention_expr_ok/non-action:
+  p TC NOACTION |- (_ `EMPTY typeIR_param _ _) `@ typedExpressionIR_arg
                  : typedExpressionIR_arg_cast
-    ---- ;; may insert implicit casts for directionless action argument
-    -- if typedExpressionIR_arg_cast
-        = $cast_unary(typedExpressionIR_arg, typeIR_param)
+  ---- ;; may insert implicit casts for directionless non-action argument
+  -- if typedExpressionIR_arg_cast
+      = $cast_unary(typedExpressionIR_arg, typeIR_param)
+  ---- ;; the argument must be compile-time known
+  -- if DYN =/= $ctk_of_typedExpressionIR(typedExpressionIR_arg)
 
-  rule Call_convention_expr_ok/non-action:
-    p TC NOACTION |- (_ `EMPTY typeIR_param _ _) `@ typedExpressionIR_arg
-                   : typedExpressionIR_arg_cast
-    ---- ;; may insert implicit casts for directionless non-action argument
-    -- if typedExpressionIR_arg_cast
-        = $cast_unary(typedExpressionIR_arg, typeIR_param)
-    ---- ;; the argument must be compile-time known
-    -- if DYN =/= $ctk_of_typedExpressionIR(typedExpressionIR_arg)
-
-}
 
 ;; syntax argumentIR
 
@@ -132,20 +128,17 @@ rule Call_convention_argument_ok/dontcare:
 ;; Calling convention (multiple arguments)
 ;;
 
-rulegroup Call_convention_ok {
 
-  rule Call_convention_ok/nil:
-    p TC actctxt |- eps `@ eps : eps
+rule Call_convention_ok/nil:
+  p TC actctxt |- eps `@ eps : eps
 
-  rule Call_convention_ok/cons:
-    p TC actctxt |- (parameterIR_h :: parameterIR_t*)
-                      `@ (argumentIR_h :: argumentIR_t*)
-                  : (argumentIR_h_cast :: argumentIR_t_cast*)
-    -- Call_convention_argument_ok:
-        p TC actctxt |- parameterIR_h `@ argumentIR_h
-                      : argumentIR_h_cast
-    -- Call_convention_ok:
-        p TC actctxt |- parameterIR_t* `@ argumentIR_t*
-                      : argumentIR_t_cast*
-
-}
+rule Call_convention_ok/cons:
+  p TC actctxt |- (parameterIR_h :: parameterIR_t*)
+                    `@ (argumentIR_h :: argumentIR_t*)
+                : (argumentIR_h_cast :: argumentIR_t_cast*)
+  -- Call_convention_argument_ok:
+      p TC actctxt |- parameterIR_h `@ argumentIR_h
+                    : argumentIR_h_cast
+  -- Call_convention_ok:
+      p TC actctxt |- parameterIR_t* `@ argumentIR_t*
+                    : argumentIR_t_cast*

@@ -36,57 +36,54 @@ def $width_of_integerTypeIR(VARBIT `< n >) = n
 
 ;;; Default
 
-tbl dec $is_defaultable_typeIR(typeIR) : bool
+dec $is_defaultable_typeIR(typeIR) : bool
   hint(prose_true %0 "can be default-initialized")
   hint(prose_false %0 "cannot be default-initialized")
-tbl def $is_defaultable_typeIR =
-  | BOOL => true
-  | ERROR => true
-  | STRING => true
-  | integerTypeIR => true
-  | TYPEDEF _ typeIR => $is_defaultable_typeIR(typeIR)
-  | TYPE _ typeIR => $is_defaultable_typeIR(typeIR)
-  | TUPLE `< typeIR* > => $forall_($is_defaultable_typeIR(typeIR)*)
-  | typeIR `[ _ ] => $is_defaultable_typeIR(typeIR)
-  | STRUCT _ `< _ > `{ (_ typeIR _ `;)* } => $forall_($is_defaultable_typeIR(typeIR)*)
-  | HEADER _ `< _ > `{ (_ typeIR _ `;)* } => $forall_($is_defaultable_typeIR(typeIR)*)
-  | HEADER_UNION _ `< _ > `{ (_ typeIR _ `;)* } => $forall_($is_defaultable_typeIR(typeIR)*)
-  | ENUM _ `{ _ } => true
-  | ENUM _ `< typeIR > `{ _ } => $is_defaultable_typeIR(typeIR)
-  | _ => false
+def $is_defaultable_typeIR(BOOL) = true
+def $is_defaultable_typeIR(ERROR) = true
+def $is_defaultable_typeIR(STRING) = true
+def $is_defaultable_typeIR(integerTypeIR) = true
+def $is_defaultable_typeIR(TYPEDEF _ typeIR) = $is_defaultable_typeIR(typeIR)
+def $is_defaultable_typeIR(TYPE _ typeIR) = $is_defaultable_typeIR(typeIR)
+def $is_defaultable_typeIR(TUPLE `< typeIR* >) = $forall_($is_defaultable_typeIR(typeIR)*)
+def $is_defaultable_typeIR(typeIR `[ _ ]) = $is_defaultable_typeIR(typeIR)
+def $is_defaultable_typeIR(STRUCT _ `< _ > `{ (_ typeIR _ `;)* }) = $forall_($is_defaultable_typeIR(typeIR)*)
+def $is_defaultable_typeIR(HEADER _ `< _ > `{ (_ typeIR _ `;)* }) = $forall_($is_defaultable_typeIR(typeIR)*)
+def $is_defaultable_typeIR(HEADER_UNION _ `< _ > `{ (_ typeIR _ `;)* }) = $forall_($is_defaultable_typeIR(typeIR)*)
+def $is_defaultable_typeIR(ENUM _ `{ _ }) = true
+def $is_defaultable_typeIR(ENUM _ `< typeIR > `{ _ }) = $is_defaultable_typeIR(typeIR)
+def $is_defaultable_typeIR(_) = false
 
 ;;; Equals
 
-tbl dec $is_equalable_typeIR(typeIR) : bool
+dec $is_equalable_typeIR(typeIR) : bool
   hint(prose_true %0 "supports equality comparison")
   hint(prose_false %0 "does not support equality comparison")
-tbl def $is_equalable_typeIR =
-  | VOID => false
-  | `` typeId => false
-  | TYPEDEF _ typeIR => $is_equalable_typeIR(typeIR)
-  | externObjectTypeIR => false
-  | parserObjectTypeIR => false
-  | controlObjectTypeIR => false
-  | packageObjectTypeIR => false
-  | tableObjectTypeIR => false
-  | DEFAULT => false
-  | sequenceTypeIR => false
-  | recordTypeIR => false
-  | HEADER_INVALID => false
-  | setTypeIR => false
-  | tableMetadataTypeIR => false
-  | _ => true
+def $is_equalable_typeIR(VOID) = false
+def $is_equalable_typeIR(`` typeId) = false
+def $is_equalable_typeIR(TYPEDEF _ typeIR) = $is_equalable_typeIR(typeIR)
+def $is_equalable_typeIR(externObjectTypeIR) = false
+def $is_equalable_typeIR(parserObjectTypeIR) = false
+def $is_equalable_typeIR(controlObjectTypeIR) = false
+def $is_equalable_typeIR(packageObjectTypeIR) = false
+def $is_equalable_typeIR(tableObjectTypeIR) = false
+def $is_equalable_typeIR(DEFAULT) = false
+def $is_equalable_typeIR(sequenceTypeIR) = false
+def $is_equalable_typeIR(recordTypeIR) = false
+def $is_equalable_typeIR(HEADER_INVALID) = false
+def $is_equalable_typeIR(setTypeIR) = false
+def $is_equalable_typeIR(tableMetadataTypeIR) = false
+def $is_equalable_typeIR(_) = true
 
 ;;; Assignable
 
-tbl dec $is_assignable_typeIR(typeIR) : bool
+dec $is_assignable_typeIR(typeIR) : bool
   hint(prose_true %0 "supports assignment")
   hint(prose_false %0 "does not support assignment")
-tbl def $is_assignable_typeIR =
-  | VOID => false
-  | STRING => false
-  | INT => false
-  | TYPEDEF _ typeIR => $is_assignable_typeIR(typeIR)
-  | objectTypeIR => false
-  | synthesizedTypeIR => false
-  | _ => true
+def $is_assignable_typeIR(VOID) = false
+def $is_assignable_typeIR(STRING) = false
+def $is_assignable_typeIR(INT) = false
+def $is_assignable_typeIR(TYPEDEF _ typeIR) = $is_assignable_typeIR(typeIR)
+def $is_assignable_typeIR(objectTypeIR) = false
+def $is_assignable_typeIR(synthesizedTypeIR) = false
+def $is_assignable_typeIR(_) = true

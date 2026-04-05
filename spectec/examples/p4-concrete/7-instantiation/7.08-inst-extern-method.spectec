@@ -40,14 +40,11 @@ rule ExternMethod_inst/abstract:
 ;; syntax externMethodPrototypeListIR
 ;;
 
-rulegroup ExternMethods_inst {
 
-  rule ExternMethods_inst/nil:
-    IC |- eps : IC
+rule ExternMethods_inst/nil:
+  IC |- eps : IC
 
-  rule ExternMethods_inst/cons:
-    IC_0 |- externMethodPrototypeIR_h :: externMethodPrototypeIR_t* : IC_2
-    -- ExternMethod_inst: IC_0 |- externMethodPrototypeIR_h : IC_1
-    -- ExternMethods_inst: IC_1 |- externMethodPrototypeIR_t* : IC_2
-
-}
+rule ExternMethods_inst/cons:
+  IC_0 |- externMethodPrototypeIR_h :: externMethodPrototypeIR_t* : IC_2
+  -- ExternMethod_inst: IC_0 |- externMethodPrototypeIR_h : IC_1
+  -- ExternMethods_inst: IC_1 |- externMethodPrototypeIR_t* : IC_2

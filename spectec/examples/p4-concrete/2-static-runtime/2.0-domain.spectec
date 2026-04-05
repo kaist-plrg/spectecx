@@ -14,12 +14,25 @@ syntax nameIR = text
 
 dec $name(name) : nameIR
   hint(prose_in "the name of" %0)
-def $name(name) = $print_<name>(name)
+def $name(`ID text) = text
+def $name(`TID text) = text
+def $name(APPLY) = "apply"
+def $name(KEY) = "key"
+def $name(ACTIONS) = "actions"
+def $name(STATE) = "state"
+def $name(ENTRIES) = "entries"
+def $name(TYPE) = "type"
+def $name(PRIORITY) = "priority"
+def $name(LIST) = "list"
 
 dec $tableCustomName(tableCustomName) : nameIR
   hint(prose_in "the name of" %0)
-def $tableCustomName(tableCustomName)
-  = $print_<tableCustomName>(tableCustomName)
+def $tableCustomName(`ID text) = text
+def $tableCustomName(`TID text) = text
+def $tableCustomName(APPLY) = "apply"
+def $tableCustomName(STATE) = "state"
+def $tableCustomName(TYPE) = "type"
+def $tableCustomName(PRIORITY) = "priority"
 
 ;;
 ;; Variable names

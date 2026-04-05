@@ -70,20 +70,18 @@ relation ControlLocalDecls_ok:
   hint(prose_in "typing" %1#", under context" %0)
   hint(prose_out "the updated context" %2 "and the typed control local declarations" %3)
 
-rulegroup ControlLocalDecls_ok {
 
-  rule ControlLocalDecls_ok/nil:
-    TC |- eps : TC eps
+rule ControlLocalDecls_ok/nil:
+  TC |- eps : TC eps
 
-  rule ControlLocalDecls_ok/cons:
-    TC_0 |- controlLocalDeclaration_h :: controlLocalDeclaration_t*
-          : TC_2 (controlLocalDeclarationIR_h :: controlLocalDeclarationIR_t*)
-    -- ControlLocalDecl_ok: TC_0 |- controlLocalDeclaration_h
-                                  : TC_1 controlLocalDeclarationIR_h
-    -- ControlLocalDecls_ok: TC_1 |- controlLocalDeclaration_t*
-                                   : TC_2 controlLocalDeclarationIR_t*
+rule ControlLocalDecls_ok/cons:
+  TC_0 |- controlLocalDeclaration_h :: controlLocalDeclaration_t*
+        : TC_2 (controlLocalDeclarationIR_h :: controlLocalDeclarationIR_t*)
+  -- ControlLocalDecl_ok: TC_0 |- controlLocalDeclaration_h
+                                : TC_1 controlLocalDeclarationIR_h
+  -- ControlLocalDecls_ok: TC_1 |- controlLocalDeclaration_t*
+                                 : TC_2 controlLocalDeclarationIR_t*
 
-}
 
 rule ControlLocalDeclList_ok:
   TC_0 |- controlLocalDeclarationList

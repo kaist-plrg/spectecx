@@ -16,71 +16,65 @@ rule Copy_in_argument_inst:
                                       : STO_1 value
   -- if IC_callee_1 = $add_var_i(p_callee, IC_callee_0, id, value)
 
-rulegroup Copy_in_inst {
 
-  rule Copy_in_inst/nil:
-    STO p_caller IC_caller eps
-     `@ p_callee IC_callee eps
-    ~> STO IC_callee
+rule Copy_in_inst/nil:
+  STO p_caller IC_caller eps
+   `@ p_callee IC_callee eps
+  ~> STO IC_callee
 
-  rule Copy_in_inst/cons:
-    STO_0 p_caller IC_caller (argumentIR_h :: argumentIR_t*)
-       `@ p_callee IC_callee_0 (id_h :: id_t*)
-    ~> STO_2 IC_callee_2
-    -- Copy_in_argument_inst:
-        STO_0 p_caller IC_caller argumentIR_h
-           `@ p_callee IC_callee_0 id_h
-        ~> STO_1 IC_callee_1
-    -- Copy_in_inst:
-        STO_1 p_caller IC_caller argumentIR_t*
-           `@ p_callee IC_callee_1 id_t*
-        ~> STO_2 IC_callee_2
+rule Copy_in_inst/cons:
+  STO_0 p_caller IC_caller (argumentIR_h :: argumentIR_t*)
+     `@ p_callee IC_callee_0 (id_h :: id_t*)
+  ~> STO_2 IC_callee_2
+  -- Copy_in_argument_inst:
+      STO_0 p_caller IC_caller argumentIR_h
+         `@ p_callee IC_callee_0 id_h
+      ~> STO_1 IC_callee_1
+  -- Copy_in_inst:
+      STO_1 p_caller IC_caller argumentIR_t*
+         `@ p_callee IC_callee_1 id_t*
+      ~> STO_2 IC_callee_2
 
-}
 
-rulegroup Copy_in_argument_inst_default {
 
-  rule Copy_in_argument_inst_default/initializerIR:
-    STO_0 p_caller IC_caller
-       `@ p_callee IC_callee_0 parameterIR
-    ~> STO_1 IC_callee_1
-    -- if _ _ _ id (`= typedExpressionIR) = parameterIR
-    -- if IC_caller_inner = $enter_path_i(IC_caller, id)
-    -- Expr_inst:
-        p_caller IC_caller_inner STO_0 |- typedExpressionIR
-                                        : STO_1 value
-    -- if IC_callee_1 = $add_var_i(p_callee, IC_callee_0, id, value)
-
-  rule Copy_in_argument_inst_default/constantInitializerIR:
-    STO p_caller IC_caller
+rule Copy_in_argument_inst_default/initializerIR:
+  STO_0 p_caller IC_caller
      `@ p_callee IC_callee_0 parameterIR
-    ~> STO IC_callee_1
-    -- if _ _ _ id (`= `VALUE value) = parameterIR
-    -- if IC_callee_1 = $add_var_i(p_callee, IC_callee_0, id, value)
+  ~> STO_1 IC_callee_1
+  -- if _ _ _ id (`= typedExpressionIR) = parameterIR
+  -- if IC_caller_inner = $enter_path_i(IC_caller, id)
+  -- Expr_inst:
+      p_caller IC_caller_inner STO_0 |- typedExpressionIR
+                                      : STO_1 value
+  -- if IC_callee_1 = $add_var_i(p_callee, IC_callee_0, id, value)
 
-}
+rule Copy_in_argument_inst_default/constantInitializerIR:
+  STO p_caller IC_caller
+   `@ p_callee IC_callee_0 parameterIR
+  ~> STO IC_callee_1
+  -- if _ _ _ id (`= `VALUE value) = parameterIR
+  -- if IC_callee_1 = $add_var_i(p_callee, IC_callee_0, id, value)
 
-rulegroup Copy_in_inst_default {
 
-  rule Copy_in_inst_default/nil:
-    STO p_caller IC_caller
-     `@ p_callee IC_callee eps
-    ~> STO IC_callee
 
-  rule Copy_in_inst_default/cons:
-    STO_0 p_caller IC_caller
-       `@ p_callee IC_callee_0 (parameterIR_h :: parameterIR_t*)
-    ~> STO_2 IC_callee_2
-    -- Copy_in_argument_inst_default:
-        STO_0 p_caller IC_caller
-           `@ p_callee IC_callee_0 parameterIR_h
-        ~> STO_1 IC_callee_1
-    -- Copy_in_inst_default:
-        STO_1 p_caller IC_caller
-           `@ p_callee IC_callee_1 parameterIR_t*
-        ~> STO_2 IC_callee_2
+rule Copy_in_inst_default/nil:
+  STO p_caller IC_caller
+   `@ p_callee IC_callee eps
+  ~> STO IC_callee
 
-}
+rule Copy_in_inst_default/cons:
+  STO_0 p_caller IC_caller
+     `@ p_callee IC_callee_0 (parameterIR_h :: parameterIR_t*)
+  ~> STO_2 IC_callee_2
+  -- Copy_in_argument_inst_default:
+      STO_0 p_caller IC_caller
+         `@ p_callee IC_callee_0 parameterIR_h
+      ~> STO_1 IC_callee_1
+  -- Copy_in_inst_default:
+      STO_1 p_caller IC_caller
+         `@ p_callee IC_callee_1 parameterIR_t*
+      ~> STO_2 IC_callee_2
+
 
 ;;
 ;; Constructor calls

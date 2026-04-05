@@ -13,20 +13,18 @@
 ;;;;; integerLiteral
 ;;;;; stringLiteral
 
-rulegroup Expr_inst/literalExpressionIR {
 
-  rule Expr_inst/booleanLiteral:
-    p IC STO |- booleanLiteral `# _ : STO boolValue
-    -- if boolValue
-        = $ite<boolValue>(booleanLiteral = TRUE, `B true, `B false)
+rule Expr_inst/booleanLiteral:
+  p IC STO |- booleanLiteral `# _ : STO boolValue
+  -- if boolValue
+      = $ite<boolValue>(booleanLiteral = TRUE, `B true, `B false)
 
-  rule Expr_inst/integerLiteral:
-    p IC STO |- integerLiteral `# _ : STO integerLiteral
+rule Expr_inst/integerLiteral:
+  p IC STO |- integerLiteral `# _ : STO integerLiteral
 
-  rule Expr_inst/stringLiteral:
-    p IC STO |- stringLiteral `# _ : STO stringLiteral
+rule Expr_inst/stringLiteral:
+  p IC STO |- stringLiteral `# _ : STO stringLiteral
 
-}
 
 ;;;; referenceExpressionIR
 ;;;; syntax referenceExpressionIR = prefixedNameIR
@@ -51,60 +49,56 @@ rule Expr_inst/unaryExpressionIR:
 ;;;; syntax binaryExpressionIR =
 ;;;;   typedExpressionIR binop typedExpressionIR
 
-rulegroup Expr_inst/binaryExpressionIR {
 
-  rule Expr_inst/non-short-circuit:
-    p IC STO_0 |- (typedExpressionIR_l binop typedExpressionIR_r) `# _
-              : STO_2 $bin_op(binop, value_l, value_r)
-    -- if ~(binop <- [ `&&, `|| ])
-    -- Expr_inst: p IC STO_0 |- typedExpressionIR_l : STO_1 value_l
-    -- Expr_inst: p IC STO_1 |- typedExpressionIR_r : STO_2 value_r
+rule Expr_inst/non-short-circuit:
+  p IC STO_0 |- (typedExpressionIR_l binop typedExpressionIR_r) `# _
+            : STO_2 $bin_op(binop, value_l, value_r)
+  -- if ~(binop <- [ `&&, `|| ])
+  -- Expr_inst: p IC STO_0 |- typedExpressionIR_l : STO_1 value_l
+  -- Expr_inst: p IC STO_1 |- typedExpressionIR_r : STO_2 value_r
 
-  rule Expr_inst/land-false:
-    p IC STO_0 |- (typedExpressionIR_l `&& typedExpressionIR_r) `# _
-              : STO_1 (`B false)
-    -- Expr_inst: p IC STO_0 |- typedExpressionIR_l : STO_1 (`B false)
+rule Expr_inst/land-false:
+  p IC STO_0 |- (typedExpressionIR_l `&& typedExpressionIR_r) `# _
+            : STO_1 (`B false)
+  -- Expr_inst: p IC STO_0 |- typedExpressionIR_l : STO_1 (`B false)
 
-  rule Expr_inst/land-true:
-    p IC STO_0 |- (typedExpressionIR_l `&& typedExpressionIR_r) `# _
-              : STO_2 value_r
-    -- Expr_inst: p IC STO_0 |- typedExpressionIR_l : STO_1 (`B true)
-    -- Expr_inst: p IC STO_1 |- typedExpressionIR_r : STO_2 value_r
+rule Expr_inst/land-true:
+  p IC STO_0 |- (typedExpressionIR_l `&& typedExpressionIR_r) `# _
+            : STO_2 value_r
+  -- Expr_inst: p IC STO_0 |- typedExpressionIR_l : STO_1 (`B true)
+  -- Expr_inst: p IC STO_1 |- typedExpressionIR_r : STO_2 value_r
 
-  rule Expr_inst/lor-true:
-    p IC STO_0 |- (typedExpressionIR_l `|| typedExpressionIR_r) `# _
-              : STO_1 (`B true)
-    -- Expr_inst: p IC STO_0 |- typedExpressionIR_l : STO_1 (`B true)
+rule Expr_inst/lor-true:
+  p IC STO_0 |- (typedExpressionIR_l `|| typedExpressionIR_r) `# _
+            : STO_1 (`B true)
+  -- Expr_inst: p IC STO_0 |- typedExpressionIR_l : STO_1 (`B true)
 
-  rule Expr_inst/lor-false:
-    p IC STO_0 |- (typedExpressionIR_l `|| typedExpressionIR_r) `# _
-              : STO_2 value_r
-    -- Expr_inst: p IC STO_0 |- typedExpressionIR_l : STO_1 (`B false)
-    -- Expr_inst: p IC STO_1 |- typedExpressionIR_r : STO_2 value_r
+rule Expr_inst/lor-false:
+  p IC STO_0 |- (typedExpressionIR_l `|| typedExpressionIR_r) `# _
+            : STO_2 value_r
+  -- Expr_inst: p IC STO_0 |- typedExpressionIR_l : STO_1 (`B false)
+  -- Expr_inst: p IC STO_1 |- typedExpressionIR_r : STO_2 value_r
 
-}
 
 ;;;; ternaryExpressionIR
 ;;;; syntax ternaryExpressionIR =
 ;;;;   typedExpressionIR `? typedExpressionIR `: typedExpressionIR
 
-rulegroup Expr_inst/ternaryExpressionIR {
 
-  rule Expr_inst/true:
-    p IC STO_0 |- (typedExpressionIR_cond `? typedExpressionIR_true
-                                          `: typedExpressionIR_false) `# _
-              : STO_2 value_true
-    -- Expr_inst: p IC STO_0 |- typedExpressionIR_cond : STO_1 (`B true)
-    -- Expr_inst: p IC STO_1 |- typedExpressionIR_true : STO_2 value_true
+rule Expr_inst/true:
+  p IC STO_0 |- (typedExpressionIR_cond `? typedExpressionIR_true
+                                        `: typedExpressionIR_false) `# _
+            : STO_2 value_true
+  -- Expr_inst: p IC STO_0 |- typedExpressionIR_cond : STO_1 (`B true)
+  -- Expr_inst: p IC STO_1 |- typedExpressionIR_true : STO_2 value_true
 
-  rule Expr_inst/false:
-    p IC STO_0 |- (typedExpressionIR_cond `? typedExpressionIR_true
-                                          `: typedExpressionIR_false) `# _
-              : STO_2 value_false
-    -- Expr_inst: p IC STO_0 |- typedExpressionIR_cond : STO_1 (`B false)
-    -- Expr_inst: p IC STO_1 |- typedExpressionIR_false : STO_2 value_false
+rule Expr_inst/false:
+  p IC STO_0 |- (typedExpressionIR_cond `? typedExpressionIR_true
+                                        `: typedExpressionIR_false) `# _
+            : STO_2 value_false
+  -- Expr_inst: p IC STO_0 |- typedExpressionIR_cond : STO_1 (`B false)
+  -- Expr_inst: p IC STO_1 |- typedExpressionIR_false : STO_2 value_false
 
-}
 
 ;;;; castExpressionIR
 ;;;; syntax castExpressionIR = `( typeIR ) typedExpressionIR
@@ -128,38 +122,34 @@ rule Expr_inst/invalidHeaderExpressionIR:
 ;;;;;; SEQ `{ typedExpressionListIR }
 ;;;;;; SEQ `{ typedExpressionListIR `, `... }
 
-rulegroup Expr_inst/sequenceExpressionIR {
 
-  rule Expr_inst/non-default:
-    p IC STO_0 |- (SEQ `{ typedExpressionListIR }) `# _
-              : STO_1 (SEQ `( value* ))
-    -- Exprs_inst: p IC STO_0 |- typedExpressionListIR : STO_1 value*
+rule Expr_inst/non-default:
+  p IC STO_0 |- (SEQ `{ typedExpressionListIR }) `# _
+            : STO_1 (SEQ `( value* ))
+  -- Exprs_inst: p IC STO_0 |- typedExpressionListIR : STO_1 value*
 
-  rule Expr_inst/default:
-    p IC STO_0 |- (SEQ `{ typedExpressionListIR `, `... }) `# _
-              : STO_1 (SEQ `( value* `, `... ))
-    -- Exprs_inst: p IC STO_0 |- typedExpressionListIR : STO_1 value*
+rule Expr_inst/default:
+  p IC STO_0 |- (SEQ `{ typedExpressionListIR `, `... }) `# _
+            : STO_1 (SEQ `( value* `, `... ))
+  -- Exprs_inst: p IC STO_0 |- typedExpressionListIR : STO_1 value*
 
-}
 
 ;;;;; recordExpressionIR
 ;;;;; syntax recordExpressionIR =
 ;;;;;; RECORD `{ namedExpressionListIR }
 ;;;;;; RECORD `{ namedExpressionListIR `, `... }
 
-rulegroup Expr_inst/recordExpressionIR {
 
-  rule Expr_inst/non-default:
-    p IC STO_0 |- (RECORD `{ (nameIR `= typedExpressionIR)* }) `# _
-              : STO_1 (RECORD `{ (value nameIR `;)* })
-    -- Exprs_inst: p IC STO_0 |- typedExpressionIR* : STO_1 value*
+rule Expr_inst/non-default:
+  p IC STO_0 |- (RECORD `{ (nameIR `= typedExpressionIR)* }) `# _
+            : STO_1 (RECORD `{ (value nameIR `;)* })
+  -- Exprs_inst: p IC STO_0 |- typedExpressionIR* : STO_1 value*
 
-  rule Expr_inst/default:
-    p IC STO_0 |- (RECORD `{ (nameIR `= typedExpressionIR)* `, `... }) `# _
-              : STO_1 (RECORD `{ (value nameIR `;)* `, `... })
-    -- Exprs_inst: p IC STO_0 |- typedExpressionIR* : STO_1 value*
+rule Expr_inst/default:
+  p IC STO_0 |- (RECORD `{ (nameIR `= typedExpressionIR)* `, `... }) `# _
+            : STO_1 (RECORD `{ (value nameIR `;)* `, `... })
+  -- Exprs_inst: p IC STO_0 |- typedExpressionIR* : STO_1 value*
 
-}
 
 ;;;; accessExpressionIR
 ;;;; syntax accessExpressionIR
@@ -178,107 +168,99 @@ rule Expr_inst/errorAccessExpressionIR:
 
 ;;;;;;; TYPE prefixedNameIR
 
-rulegroup Expr_inst/memberAccessExpressionIR-type {
 
-  rule Expr_inst/enum:
-    p IC STO |- ((TYPE prefixedNameIR) `. nameIR) `# _
-            : STO (typeId `. nameIR)
-    -- if ENUM typeId `{ _ }
-        = $find_typeDef_i(p, IC, prefixedNameIR)
+rule Expr_inst/enum:
+  p IC STO |- ((TYPE prefixedNameIR) `. nameIR) `# _
+          : STO (typeId `. nameIR)
+  -- if ENUM typeId `{ _ }
+      = $find_typeDef_i(p, IC, prefixedNameIR)
 
-  rule Expr_inst/serenum:
-    p IC STO |- ((TYPE prefixedNameIR) `. nameIR) `# _
-            : STO (typeId `. nameIR `. value)
-    -- if ENUM typeId `< _ > `{ (id_member `= value_member `;)* }
-        = $find_typeDef_i(p, IC, prefixedNameIR)
-    -- if value = $assoc_<nameIR, value>(nameIR, (id_member, value_member)*)
+rule Expr_inst/serenum:
+  p IC STO |- ((TYPE prefixedNameIR) `. nameIR) `# _
+          : STO (typeId `. nameIR `. value)
+  -- if ENUM typeId `< _ > `{ (id_member `= value_member `;)* }
+      = $find_typeDef_i(p, IC, prefixedNameIR)
+  -- if value = $assoc_<nameIR, value>(nameIR, (id_member, value_member)*)
 
-}
 
 ;;;;;;; typedExpressionIR
 
-rulegroup Expr_inst/memberAccessExpressionIR-typedExpressionIR {
 
-  rule Expr_inst/header-stack-size:
-    p IC STO |- (typedExpressionIR_base `. nameIR) `# _
-              : STO (D n_size)
-    -- if typeIR_base = $type_of_typedExpressionIR(typedExpressionIR_base)
-    -- if _ `[ n_size ] = $unroll_typeIR(typeIR_base)
-    -- if nameIR = "size"
+rule Expr_inst/header-stack-size:
+  p IC STO |- (typedExpressionIR_base `. nameIR) `# _
+            : STO (D n_size)
+  -- if typeIR_base = $type_of_typedExpressionIR(typedExpressionIR_base)
+  -- if _ `[ n_size ] = $unroll_typeIR(typeIR_base)
+  -- if nameIR = "size"
 
-  rule Expr_inst/struct:
-    p IC STO_0 |- (typedExpressionIR_base `. nameIR) `# _
-                : STO_1 value
-    -- Expr_inst: p IC STO_0 |- typedExpressionIR_base : STO_1 structValue
-    -- if STRUCT _ `{ (value_field id_field `;)* } = structValue
-    -- if value = $assoc_<id, value>(nameIR, (id_field, value_field)*)
+rule Expr_inst/struct:
+  p IC STO_0 |- (typedExpressionIR_base `. nameIR) `# _
+              : STO_1 value
+  -- Expr_inst: p IC STO_0 |- typedExpressionIR_base : STO_1 structValue
+  -- if STRUCT _ `{ (value_field id_field `;)* } = structValue
+  -- if value = $assoc_<id, value>(nameIR, (id_field, value_field)*)
 
-  rule Expr_inst/header:
-    p IC STO_0 |- (typedExpressionIR_base `. nameIR) `# _
-                : STO_1 value
-    -- Expr_inst: p IC STO_0 |- typedExpressionIR_base : STO_1 headerValue
-    -- if HEADER _ `{ _ `; (value_field id_field `;)* } = headerValue
-    -- if value = $assoc_<id, value>(nameIR, (id_field, value_field)*)
+rule Expr_inst/header:
+  p IC STO_0 |- (typedExpressionIR_base `. nameIR) `# _
+              : STO_1 value
+  -- Expr_inst: p IC STO_0 |- typedExpressionIR_base : STO_1 headerValue
+  -- if HEADER _ `{ _ `; (value_field id_field `;)* } = headerValue
+  -- if value = $assoc_<id, value>(nameIR, (id_field, value_field)*)
 
-  rule Expr_inst/header-union:
-    p IC STO_0 |- (typedExpressionIR_base `. nameIR) `# _
-                : STO_1 value
-    -- Expr_inst: p IC STO_0 |- typedExpressionIR_base : STO_1 headerUnionValue
-    -- if HEADER_UNION _ `{ (value_field id_field `;)* } = headerUnionValue
-    -- if value = $assoc_<id, value>(nameIR, (id_field, value_field)*)
+rule Expr_inst/header-union:
+  p IC STO_0 |- (typedExpressionIR_base `. nameIR) `# _
+              : STO_1 value
+  -- Expr_inst: p IC STO_0 |- typedExpressionIR_base : STO_1 headerUnionValue
+  -- if HEADER_UNION _ `{ (value_field id_field `;)* } = headerUnionValue
+  -- if value = $assoc_<id, value>(nameIR, (id_field, value_field)*)
 
-}
 
 ;;;;; indexAccessExpressionIR
 ;;;;; syntax indexAccessExpressionIR =
 ;;;;; typedExpressionIR `[ typedExpressionIR ]
 
-rulegroup Expr_inst/indexAccessExpressionIR {
 
-  rule Expr_inst/tuple:
-    p IC STO_0 |- (typedExpressionIR_base `[ typedExpressionIR_index ]) `# _
-                : STO_2 value
-    -- Expr_inst: p IC STO_0 |- typedExpressionIR_base : STO_1 value_base
-    -- Expr_inst: p IC STO_1 |- typedExpressionIR_index : STO_2 integerValue_index
-    -- if TUPLE `( value_e* ) = value_base
-    -- if n_index = $nat_of_integerValue(integerValue_index)
-    -- if $(n_index < |value_e*|)
-    -- if value = value_e*[n_index]
+rule Expr_inst/tuple:
+  p IC STO_0 |- (typedExpressionIR_base `[ typedExpressionIR_index ]) `# _
+              : STO_2 value
+  -- Expr_inst: p IC STO_0 |- typedExpressionIR_base : STO_1 value_base
+  -- Expr_inst: p IC STO_1 |- typedExpressionIR_index : STO_2 integerValue_index
+  -- if TUPLE `( value_e* ) = value_base
+  -- if n_index = $nat_of_integerValue(integerValue_index)
+  -- if $(n_index < |value_e*|)
+  -- if value = value_e*[n_index]
 
-  rule Expr_inst/indexAccessExpressionIR-stack:
-    p IC STO_0 |- (typedExpressionIR_base `[ typedExpressionIR_index ]) `# _
-                : STO_2 value
-    -- Expr_inst: p IC STO_0 |- typedExpressionIR_base : STO_1 value_base
-    -- Expr_inst: p IC STO_1 |- typedExpressionIR_index : STO_2 integerValue_index
-    -- if HEADER_STACK `[ value_e* `( _ `; _ ) ] = value_base
-    -- if n_index = $nat_of_integerValue(integerValue_index)
-    -- if $(n_index < |value_e*|)
-    -- if value = value_e*[n_index]
+rule Expr_inst/indexAccessExpressionIR-stack:
+  p IC STO_0 |- (typedExpressionIR_base `[ typedExpressionIR_index ]) `# _
+              : STO_2 value
+  -- Expr_inst: p IC STO_0 |- typedExpressionIR_base : STO_1 value_base
+  -- Expr_inst: p IC STO_1 |- typedExpressionIR_index : STO_2 integerValue_index
+  -- if HEADER_STACK `[ value_e* `( _ `; _ ) ] = value_base
+  -- if n_index = $nat_of_integerValue(integerValue_index)
+  -- if $(n_index < |value_e*|)
+  -- if value = value_e*[n_index]
 
-}
 
 ;;;;; sliceAccessExpressionIR
 ;;;;; syntax sliceAccessExpressionIR =
 ;;;;;; typedExpressionIR `[ typedExpressionIR `: typedExpressionIR ]
 ;;;;;; typedExpressionIR `[ typedExpressionIR `+: typedExpressionIR ]
 
-rulegroup Expr_inst/sliceAccessExpressionIR {
 
-  rule Expr_inst/range:
-    p IC STO_0 |- (typedExpressionIR_base `[ typedExpressionIR_hi `: typedExpressionIR_lo ]) `# _
-                : STO_3 $bitacc_range_op(value_base, value_hi, value_lo)
-    -- Expr_inst: p IC STO_0 |- typedExpressionIR_base : STO_1 value_base
-    -- Expr_inst: p IC STO_1 |- typedExpressionIR_hi : STO_2 value_hi
-    -- Expr_inst: p IC STO_2 |- typedExpressionIR_lo : STO_3 value_lo
+rule Expr_inst/range:
+  p IC STO_0 |- (typedExpressionIR_base `[ typedExpressionIR_hi `: typedExpressionIR_lo ]) `# _
+              : STO_3 $bitacc_range_op(value_base, value_hi, value_lo)
+  -- Expr_inst: p IC STO_0 |- typedExpressionIR_base : STO_1 value_base
+  -- Expr_inst: p IC STO_1 |- typedExpressionIR_hi : STO_2 value_hi
+  -- Expr_inst: p IC STO_2 |- typedExpressionIR_lo : STO_3 value_lo
 
-  rule Expr_inst/offset:
-    p IC STO_0 |- (typedExpressionIR_base `[ typedExpressionIR_l `: typedExpressionIR_w ]) `# _
-                : STO_3 $bitacc_offset_op(value_base, value_l, value_w)
-    -- Expr_inst: p IC STO_0 |- typedExpressionIR_base : STO_1 value_base
-    -- Expr_inst: p IC STO_1 |- typedExpressionIR_l : STO_2 value_l
-    -- Expr_inst: p IC STO_2 |- typedExpressionIR_w : STO_3 value_w
+rule Expr_inst/offset:
+  p IC STO_0 |- (typedExpressionIR_base `[ typedExpressionIR_l `: typedExpressionIR_w ]) `# _
+              : STO_3 $bitacc_offset_op(value_base, value_l, value_w)
+  -- Expr_inst: p IC STO_0 |- typedExpressionIR_base : STO_1 value_base
+  -- Expr_inst: p IC STO_1 |- typedExpressionIR_l : STO_2 value_l
+  -- Expr_inst: p IC STO_2 |- typedExpressionIR_w : STO_3 value_w
 
-}
 
 ;;;; callExpressionIR
 ;;;; syntax callExpressionIR
@@ -311,35 +293,33 @@ rule Expr_inst/callExpressionIR-constructor:
 ;;;;;;; typedExpressionIR `. nameIR
 ;;;;;;; TYPE prefixedNameIR `. nameIR
 
-rulegroup Expr_inst/callExpressionIR-callable {
 
-  rule Expr_inst/expression:
-    p IC STO |- ((typedExpressionIR_base `. nameIR) `< _ > `( _ )) `# _
-              : STO $sizeof(typeIR_base, nameIR)
-    -- if _ `# `( typeIR_base _ ) = typedExpressionIR_base
-    -- if nameIR <- [ "minSizeInBits", "minSizeInBytes",
-                      "maxSizeInBits", "maxSizeInBytes" ]
+rule Expr_inst/expression:
+  p IC STO |- ((typedExpressionIR_base `. nameIR) `< _ > `( _ )) `# _
+            : STO $sizeof(typeIR_base, nameIR)
+  -- if _ `# `( typeIR_base _ ) = typedExpressionIR_base
+  -- if nameIR <- [ "minSizeInBits", "minSizeInBytes",
+                    "maxSizeInBits", "maxSizeInBytes" ]
 
-  rule Expr_inst/type-monomorphic:
-    p IC STO |- ((TYPE prefixedNameIR `. nameIR) `< _ > `( _ )) `# _
-              : STO $sizeof(typeIR_base, nameIR)
-    -- if typeDefIR_base = $find_typeDef_i(p, IC, prefixedNameIR)
-    -- if $is_monomorphic_typeDefIR(typeDefIR_base)
-    -- if typeIR_base = $typeIR_of_typeDefIR(typeDefIR_base)
-    -- if nameIR <- [ "minSizeInBits", "minSizeInBytes",
-                      "maxSizeInBits", "maxSizeInBytes" ]
+rule Expr_inst/type-monomorphic:
+  p IC STO |- ((TYPE prefixedNameIR `. nameIR) `< _ > `( _ )) `# _
+            : STO $sizeof(typeIR_base, nameIR)
+  -- if typeDefIR_base = $find_typeDef_i(p, IC, prefixedNameIR)
+  -- if $is_monomorphic_typeDefIR(typeDefIR_base)
+  -- if typeIR_base = $typeIR_of_typeDefIR(typeDefIR_base)
+  -- if nameIR <- [ "minSizeInBits", "minSizeInBytes",
+                    "maxSizeInBits", "maxSizeInBytes" ]
 
-  rule Expr_inst/type-polymorphic:
-    p IC STO |- ((TYPE prefixedNameIR `. nameIR) `< _ > `( _ )) `# _
-              : STO $sizeof(typeIR_base, nameIR)
-    -- if typeDefIR_base = $find_typeDef_i(p, IC, prefixedNameIR)
-    -- if ~$is_monomorphic_typeDefIR(typeDefIR_base)
-    -- if (eps, eps) = $typeParameterListIR_of_typeDefIR(typeDefIR_base)
-    -- if typeIR_base = $typeIR_of_typeDefIR(typeDefIR_base)
-    -- if nameIR <- [ "minSizeInBits", "minSizeInBytes",
-                      "maxSizeInBits", "maxSizeInBytes" ]
+rule Expr_inst/type-polymorphic:
+  p IC STO |- ((TYPE prefixedNameIR `. nameIR) `< _ > `( _ )) `# _
+            : STO $sizeof(typeIR_base, nameIR)
+  -- if typeDefIR_base = $find_typeDef_i(p, IC, prefixedNameIR)
+  -- if ~$is_monomorphic_typeDefIR(typeDefIR_base)
+  -- if (eps, eps) = $typeParameterListIR_of_typeDefIR(typeDefIR_base)
+  -- if typeIR_base = $typeIR_of_typeDefIR(typeDefIR_base)
+  -- if nameIR <- [ "minSizeInBits", "minSizeInBytes",
+                    "maxSizeInBits", "maxSizeInBytes" ]
 
-}
 
 ;;;;;;; `( routineTargetIR )
 
@@ -365,15 +345,12 @@ rule Expr_inst/parenthesizedExpressionIR:
 ;; syntax typedExpressionListIR
 ;;
 
-rulegroup Exprs_inst {
 
-  rule Exprs_inst/nil:
-    p IC STO |- eps : STO eps
+rule Exprs_inst/nil:
+  p IC STO |- eps : STO eps
 
-  rule Exprs_inst/cons:
-    p IC STO_0 |- typedExpressionIR_h :: typedExpressionIR_t*
-                : STO_2 (value_h :: value_t*)
-    -- Expr_inst: p IC STO_0 |- typedExpressionIR_h : STO_1 value_h
-    -- Exprs_inst: p IC STO_1 |- typedExpressionIR_t* : STO_2 value_t*
-
-}
+rule Exprs_inst/cons:
+  p IC STO_0 |- typedExpressionIR_h :: typedExpressionIR_t*
+              : STO_2 (value_h :: value_t*)
+  -- Expr_inst: p IC STO_0 |- typedExpressionIR_h : STO_1 value_h
+  -- Exprs_inst: p IC STO_1 |- typedExpressionIR_t* : STO_2 value_t*

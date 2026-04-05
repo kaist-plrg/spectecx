@@ -58,20 +58,17 @@ rule ParserLocalDecl_inst/valueSetDeclarationIR:
 ;; syntax parserLocalDeclarationListIR
 ;;
 
-rulegroup ParserLocalDecls_inst {
 
-  rule ParserLocalDecls_inst/nil:
-    IC STO |- eps : IC STO eps
+rule ParserLocalDecls_inst/nil:
+  IC STO |- eps : IC STO eps
 
-  rule ParserLocalDecls_inst/cons:
-    IC_0 STO_0 |- parserLocalDeclarationIR_h :: parserLocalDeclarationIR_t*
-                : IC_2 STO_2 (parserLocalDeclarationIR_h_inst
-                              :: parserLocalDeclarationIR_t_inst*)
-    -- ParserLocalDecl_inst:
-        IC_0 STO_0 |- parserLocalDeclarationIR_h
-                    : IC_1 STO_1 parserLocalDeclarationIR_h_inst
-    -- ParserLocalDecls_inst:
-        IC_1 STO_1 |- parserLocalDeclarationIR_t*
-                    : IC_2 STO_2 parserLocalDeclarationIR_t_inst*
-
-}
+rule ParserLocalDecls_inst/cons:
+  IC_0 STO_0 |- parserLocalDeclarationIR_h :: parserLocalDeclarationIR_t*
+              : IC_2 STO_2 (parserLocalDeclarationIR_h_inst
+                            :: parserLocalDeclarationIR_t_inst*)
+  -- ParserLocalDecl_inst:
+      IC_0 STO_0 |- parserLocalDeclarationIR_h
+                  : IC_1 STO_1 parserLocalDeclarationIR_h_inst
+  -- ParserLocalDecls_inst:
+      IC_1 STO_1 |- parserLocalDeclarationIR_t*
+                  : IC_2 STO_2 parserLocalDeclarationIR_t_inst*

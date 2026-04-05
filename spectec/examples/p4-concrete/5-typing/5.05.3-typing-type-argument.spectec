@@ -36,21 +36,19 @@ rule TypeArgument_ok/nonTypeName:
 ;; syntax typeArgumentList
 ;;
 
-rulegroup TypeArguments_ok {
 
-  rule TypeArguments_ok/nil:
-    p TC |- eps : eps `# eps
+rule TypeArguments_ok/nil:
+  p TC |- eps : eps `# eps
 
-  rule TypeArguments_ok/cons:
-    p TC |- typeArgument_h :: typeArgument_t*
-          : (typeArgumentIR_h :: typeArgumentIR_t*) `# typeId_impl*
-    -- TypeArgument_ok: p TC |- typeArgument_h
-                              : typeArgumentIR_h `# typeId_impl_h*
-    -- TypeArguments_ok: p TC |- typeArgument_t*
-                               : typeArgumentIR_t* `# typeId_impl_t*
-    -- if typeId_impl* = typeId_impl_h* ++ typeId_impl_t*
+rule TypeArguments_ok/cons:
+  p TC |- typeArgument_h :: typeArgument_t*
+        : (typeArgumentIR_h :: typeArgumentIR_t*) `# typeId_impl*
+  -- TypeArgument_ok: p TC |- typeArgument_h
+                            : typeArgumentIR_h `# typeId_impl_h*
+  -- TypeArguments_ok: p TC |- typeArgument_t*
+                             : typeArgumentIR_t* `# typeId_impl_t*
+  -- if typeId_impl* = typeId_impl_h* ++ typeId_impl_t*
 
-}
 
 rule TypeArgumentList_ok:
   p TC |- typeArgumentList : typeArgumentIR* `# typeId_impl*

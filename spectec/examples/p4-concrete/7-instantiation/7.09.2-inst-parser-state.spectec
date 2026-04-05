@@ -27,17 +27,14 @@ rule ParserState_inst:
 ;; syntax parserStateListIR
 ;;
 
-rulegroup ParserStates_inst {
 
-  rule ParserStates_inst/nil:
-    IC STO |- eps : IC STO
+rule ParserStates_inst/nil:
+  IC STO |- eps : IC STO
 
-  rule ParserStates_inst/cons:
-    IC_0 STO_0 |- parserStateIR_h :: parserStateIR_t*
-                : IC_2 STO_2
-    -- ParserState_inst: IC_0 STO_0 |- parserStateIR_h
-                                     : IC_1 STO_1
-    -- ParserStates_inst: IC_1 STO_1 |- parserStateIR_t*
-                                      : IC_2 STO_2
-
-}
+rule ParserStates_inst/cons:
+  IC_0 STO_0 |- parserStateIR_h :: parserStateIR_t*
+              : IC_2 STO_2
+  -- ParserState_inst: IC_0 STO_0 |- parserStateIR_h
+                                   : IC_1 STO_1
+  -- ParserStates_inst: IC_1 STO_1 |- parserStateIR_t*
+                                    : IC_2 STO_2

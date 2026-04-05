@@ -3,7 +3,7 @@
 ;;;; of expressions/arguments that are local compile-time known
 ;;
 
-extern relation ExternFunctionCall_eval_lctk:
+relation ExternFunctionCall_eval_lctk:
   typingContext |- nameIR `( nameIR* ) ~> value
   hint(input %0 %1 %2)
   hint(testgen_ignore)

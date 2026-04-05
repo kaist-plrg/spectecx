@@ -12,13 +12,6 @@ var w : nat
 var t : text
 
 ;;
-;; Pretty-printer
-;;
-
-builtin dec $print_<X>(X) : text
-  hint(prose_in %0 "as text")
-
-;;
 ;; General bool functions
 ;;
 
