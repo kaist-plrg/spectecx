@@ -2,6 +2,13 @@ module Xl = Lang.Xl
 open Lang.Il
 open Builtins
 
+(* dec $text_to_int(text) : int *)
+
+let text_to_int ~at (text : string) : Value.t result =
+  at |> ignore;
+  let i = text |> int_of_string |> Bigint.of_int in
+  Ok (Value.int i)
+
 (* dec $int_to_text(int) : text *)
 
 let int_to_text ~at (num : num) : Value.t result =
@@ -37,9 +44,18 @@ let strip_suffix ~at (text : string) (suffix : string) : Value.t result =
     in
     Error (Error.runtime at msg)
 
+(* dec $strip_all_whitespace(text) : text *)
+
+let strip_all_whitespace ~at (text : string) : Value.t result =
+  at |> ignore;
+  let text = text |> String.split_on_char ' ' |> String.concat "" in
+  Ok (Value.text text)
+
 let builtins =
   [
+    ("text_to_int", Define.T0.a1 Arg.text text_to_int);
     ("int_to_text", Define.T0.a1 Arg.num int_to_text);
     ("strip_prefix", Define.T0.a2 Arg.text Arg.text strip_prefix);
     ("strip_suffix", Define.T0.a2 Arg.text Arg.text strip_suffix);
+    ("strip_all_whitespace", Define.T0.a1 Arg.text strip_all_whitespace);
   ]
