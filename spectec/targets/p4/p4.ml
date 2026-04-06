@@ -59,45 +59,73 @@ let is_excluded excludes path =
 (* Module-level tid_counter shared with cache as state_generation *)
 let tid_counter = ref 0
 
-(* P4 target specification *)
+(* Derive old builtin names from new: rename a few, drop new-only ones *)
+let old_builtins =
+  Builtins.builtins
+  |> List.filter_map (fun (name, def) ->
+         match name with
+         | "fresh_typeId" -> Some ("fresh_tid", def)
+         | "sum_nat" -> Some ("sum", def)
+         | "max_nat" -> Some ("max", def)
+         | "min_nat" -> Some ("min", def)
+         | "bitstr_to_int" -> Some ("to_int", def)
+         | "int_to_bitstr" -> Some ("to_bitstr", def)
+         | "text_to_int" | "strip_all_whitespace" -> None
+         | _ -> Some (name, def))
+
+(* Shared handler logic — sets up fresh VID and TID providers *)
+let handler f =
+  let vid_counter = ref 0 in
+  tid_counter := 0;
+  let fresh_vid () =
+    let vid = !vid_counter in
+    incr vid_counter;
+    vid
+  in
+  Lang.Il.Value.GlobalVidProvider.set fresh_vid;
+  let fresh_tid () =
+    let tid = "FRESH__" ^ string_of_int !tid_counter in
+    incr tid_counter;
+    tid
+  in
+  Builtins.Fresh.GlobalTidProvider.set fresh_tid;
+  f ()
+
+(* Functions/relations known to transitively call fresh_tid but safe to cache.
+   These are cached unconditionally; everything else uses the purity guard. *)
+let is_impure_func = function
+  | "subst_type" | "subst_typeDef" | "specialize_typeDef" | "canon"
+  | "free_type" | "is_nominal_typeIR" | "bound" | "gen_constraint_type"
+  | "merge_constraint" | "merge_constraint'" | "find_matchings"
+  | "nestable_struct" | "nestable_struct_in_header" | "find_map" ->
+      true
+  | _ -> false
+
+let is_impure_rel = function
+  | "Cast_expl" | "Cast_expl_canon" | "Cast_expl_canon_neq" | "Cast_impl"
+  | "Cast_impl_canon" | "Cast_impl_canon_neq" | "Type_wf" | "Type_alpha" ->
+      true
+  | _ -> false
+
+(* P4 target specification — new spec *)
 module Target : Spectec.Target.S = struct
   let name = "p4"
-  let spec_dir = "spectec/examples/p4-concrete-old"
+  let spec_dir = "spectec/examples/p4-concrete"
   let builtins = Builtins.builtins
+  let handler = handler
+  let is_impure_func = is_impure_func
+  let is_impure_rel = is_impure_rel
+  let state_version = tid_counter
+end
 
-  let handler f =
-    let vid_counter = ref 0 in
-    tid_counter := 0;
-    let fresh_vid () =
-      let vid = !vid_counter in
-      incr vid_counter;
-      vid
-    in
-    Lang.Il.Value.GlobalVidProvider.set fresh_vid;
-    let fresh_tid () =
-      let tid = "FRESH__" ^ string_of_int !tid_counter in
-      incr tid_counter;
-      tid
-    in
-    Builtins.Fresh.GlobalTidProvider.set fresh_tid;
-    f ()
-
-  (* Functions/relations known to transitively call fresh_tid but safe to cache.
-     These are cached unconditionally; everything else uses the purity guard. *)
-  let is_impure_func = function
-    | "subst_type" | "subst_typeDef" | "specialize_typeDef" | "canon"
-    | "free_type" | "is_nominal_typeIR" | "bound" | "gen_constraint_type"
-    | "merge_constraint" | "merge_constraint'" | "find_matchings"
-    | "nestable_struct" | "nestable_struct_in_header" | "find_map" ->
-        true
-    | _ -> false
-
-  let is_impure_rel = function
-    | "Cast_expl" | "Cast_expl_canon" | "Cast_expl_canon_neq" | "Cast_impl"
-    | "Cast_impl_canon" | "Cast_impl_canon_neq" | "Type_wf" | "Type_alpha" ->
-        true
-    | _ -> false
-
+(* P4 target specification — old spec *)
+module Target_old : Spectec.Target.S = struct
+  let name = "p4-old"
+  let spec_dir = "spectec/examples/p4-concrete-old"
+  let builtins = old_builtins
+  let handler = handler
+  let is_impure_func = is_impure_func
+  let is_impure_rel = is_impure_rel
   let state_version = tid_counter
 end
 
@@ -116,6 +144,45 @@ module Typecheck = struct
   }
 
   (* Collect inputs from directory, uses test_dir if not specified *)
+  let collect ?dir () =
+    let test_dir = Option.value dir ~default:test_dir in
+    let excludes = load_excludes excludes_dir in
+    collect_files_recursive ~suffix:".p4" test_dir
+    |> List.filter (fun filename -> not (is_excluded excludes filename))
+    |> List.map (fun filename ->
+           let expect =
+             if contains_substring filename "_errors" then Spectec.Task.Negative
+             else Spectec.Task.Positive
+           in
+           { includes = [ includes_dir ]; filename; expect })
+
+  let unparse = Frontend.unparse
+  let parse_string = Frontend.parse_string
+
+  let parse_input ~spec:_ { includes; filename; _ } =
+    Frontend.parse_file ~handler:Target.handler includes filename
+    |> Result.map (fun v -> ("Program_ok", [ v ]))
+
+  let source { filename; _ } = filename
+  let expectation { expect; _ } = expect
+  let format_output _values = "Typechecker succeeded"
+  let save_output _filename _values = ()
+end
+
+(* P4 Typechecker task — old spec *)
+module Typecheck_old = struct
+  let name = "typechecker"
+
+  module Target = Target_old
+
+  let test_dir = test_base_dir
+
+  type input = {
+    includes : string list;
+    filename : string;
+    expect : Spectec.Task.expectation;
+  }
+
   let collect ?dir () =
     let test_dir = Option.value dir ~default:test_dir in
     let excludes = load_excludes excludes_dir in

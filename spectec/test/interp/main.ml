@@ -62,19 +62,19 @@ let run_p4_typecheck ~negative ~sl_mode ~includes ~exclude_dirs ~testdir =
   in
   (* Prefix for dune test which runs from spectec/_build/default/test/interp *)
   let repo_root = "../../../../../" in
-  let spec_dir = repo_root ^ Targets_p4.P4.Target.spec_dir in
+  let spec_dir = repo_root ^ Targets_p4.P4.Target_old.spec_dir in
   let spec_files = Files.collect ~suffix:".spectec" spec_dir in
   let inputs =
-    Targets_p4.P4.Typecheck.collect ~dir:testdir ()
+    Targets_p4.P4.Typecheck_old.collect ~dir:testdir ()
     |> List.map ~f:(fun input ->
            {
-             Targets_p4.P4.Typecheck.includes;
-             filename = Targets_p4.P4.Typecheck.source input;
+             Targets_p4.P4.Typecheck_old.includes;
+             filename = Targets_p4.P4.Typecheck_old.source input;
              expect = expectation;
            })
   in
   run_with_task
-    (module Targets_p4.P4.Typecheck)
+    (module Targets_p4.P4.Typecheck_old)
     ~sl_mode ~spec_files ~inputs ~exclude_dirs
 
 let command =
