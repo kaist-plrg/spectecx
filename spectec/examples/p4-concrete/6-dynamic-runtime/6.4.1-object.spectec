@@ -1,0 +1,91 @@
+;;
+;; Objects
+;;
+
+;;
+;;;; Extern object
+;;;; Name of the extern object (typeId), bound type variables (theta),
+;;;; internal state (objectState) which is invisible to the P4 program,
+;;;; value environment (frame), and environment for methods (externMethodDefEnv)
+;;
+
+extern syntax objectState
+syntax externMethodDefEnv = map<callableId, externMethodDef>
+
+extern dec $init_objectState(nameIR, typeIR*, value*) : objectState
+  hint(prose_in "initialization of" %0#`<%1>#`(%2) "in the target")
+
+syntax externObject =
+  EXTERN typeId `< theta > `{ objectState frame externMethodDefEnv }
+
+;;
+;;;; Parser object
+;;;; Bound type variables (theta),
+;;;; apply parameters (parameterListIR), value environment (frame),
+;;;; local declarations (parserLocalDeclarationListIR), and state environment (stateEnv)
+;;
+
+syntax parserObject =
+  PARSER `< theta > `( parameterListIR )
+    `{ frame
+       parserLocalDeclarationListIR
+       stateEnv }
+
+;;
+;;;; Control object
+;;;; Bound type variables (theta),
+;;;; apply parameters (parameterListIR), value environment (frame),
+;;;; local declarations (controlLocalDeclarationListIR),
+;;;; routine environment for actions (actionDefEnv), and body (controlBodyIR)
+;;
+
+syntax actionDefEnv = map<callableId, actionDef>
+
+syntax controlObject =
+  CONTROL `< theta > `( parameterListIR )
+    `{ frame
+       controlLocalDeclarationListIR
+       actionDefEnv
+       controlBodyIR }
+
+;;
+;;;; Package object
+;;;; Name of the package (typeId), bound type variables (theta),
+;;;; and value environment (frame)
+;;
+
+syntax packageObject = PACKAGE `< theta > `{ frame }
+
+;;
+;;;; Table object
+;;;; Name of the table (typeId) and value environment (frame)
+;;
+
+syntax tableObjectProperty =
+  { KEYS tableKeysPropertyIR,
+    ACTIONS tableActionsPropertyIR,
+    DEFAULT_ACTION tableDefaultActionPropertyIR,
+    ENTRIES tableEntriesPropertyIR,
+    CUSTOMS tableCustomPropertyIR* }
+
+var TBL : tableObjectProperty
+
+;; (TODO) Why is frame needed here?
+syntax tableObject =
+  TABLE typeId `{ frame tableObjectProperty }
+
+;;
+;;;; Value set object
+;;;; Name of the table (typeId) and value environment (frame)
+;;
+
+syntax valueSetObject =
+  VALUE_SET `{ value* `( nat ) }
+
+syntax object =
+  | externObject
+  | parserObject
+  | controlObject
+  | packageObject
+  | tableObject
+  | valueSetObject

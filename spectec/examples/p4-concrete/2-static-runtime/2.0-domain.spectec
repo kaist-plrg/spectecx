@@ -1,0 +1,87 @@
+;;
+;; Cursor for scoping
+;;
+
+syntax cursor = GLOBAL | BLOCK | LOCAL
+
+var p : cursor
+
+;;
+;; Names
+;;
+
+syntax nameIR = text
+
+dec $name(name) : nameIR
+  hint(prose_in "the name of" %0)
+def $name(name) = $print_<name>(name)
+
+dec $tableCustomName(tableCustomName) : nameIR
+  hint(prose_in "the name of" %0)
+def $tableCustomName(tableCustomName)
+  = $print_<tableCustomName>(tableCustomName)
+
+;;
+;; Variable names
+;;
+
+syntax id = nameIR
+
+;;
+;; Type variable names
+;;
+
+syntax typeId = nameIR
+
+builtin dec $fresh_typeId() : typeId
+  hint(prose_in "a fresh type variable")
+
+dec $fresh_typeIds(nat) : typeId*
+  hint(prose_in %0 "fresh type variables")
+def $fresh_typeIds(0) = eps
+def $fresh_typeIds(n) = $fresh_typeId() :: $fresh_typeIds(n')
+  -- if n =/= 0
+  -- if n' = $(n - 1)
+
+;;
+;; Call target
+;;
+;; A pair of function name and a list of parameter names
+;;
+
+syntax callTargetId = nameIR `( id* )
+syntax callableId = callTargetId
+syntax constructorId = callTargetId
+
+dec $callableId(name, parameterList) : callableId
+  hint(prose_in "the callable identifier for" %0 `( %1 ))
+dec $callableId'(parameterList) : id*
+
+dec $constructorId(name, constructorParameterListOpt) : constructorId
+  hint(prose_in "the constructor identifier for" %0 %1)
+
+def $callableId(name, parameterList)
+  = $name(name) `( $callableId'(parameterList) )
+
+def $constructorId(name, `EMPTY) = $name(name) `( eps )
+def $constructorId(name, `( parameterList )) = $callableId(name, parameterList)
+
+def $callableId'(`EMPTY) = eps
+def $callableId'(_ _ _ name _) = $name(name)
+def $callableId'(nonEmptyParameterList `, (_ _ _ name _))
+  = $callableId'(nonEmptyParameterList) ++ [ $name(name) ]
+
+;;
+;; Object names (fully qualified paths)
+;;
+
+syntax objectId = nameIR*
+
+dec $objectId_ends_with(objectId, nameIR) : bool
+  hint(prose_true %0 "is an object name that ends with" %1)
+  hint(prose_false %0 "is an object name that does not end with" %1)
+
+def $objectId_ends_with(objectId, nameIR) = true
+  -- if nameIR :: _ = $rev_<id>(objectId)
+def $objectId_ends_with(objectId, nameIR) = false
+  -- otherwise

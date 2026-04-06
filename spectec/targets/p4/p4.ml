@@ -4,9 +4,9 @@ module Builtins = Builtins_p4
 module Frontend = Frontend_p4
 
 (* Paths are relative to the repo root (where the binary runs from) *)
-let includes_dir = "spectec/testdata/interp/p4-tests/includes"
-let excludes_dir = "spectec/testdata/interp/p4-tests/excludes"
-let test_base_dir = "spectec/testdata/interp/p4-tests/tests"
+let includes_dir = "tests/interp/p4-tests/includes"
+let excludes_dir = "tests/interp/p4-tests/excludes"
+let test_base_dir = "tests/interp/p4-tests/tests"
 
 (* Directories to skip during file collection *)
 let skip_dirs = [ "include" ]
@@ -62,7 +62,7 @@ let tid_counter = ref 0
 (* P4 target specification *)
 module Target : Spectec.Target.S = struct
   let name = "p4"
-  let spec_dir = "spectec/examples/p4-concrete"
+  let spec_dir = "spectec/examples/p4-concrete-old"
   let builtins = Builtins.builtins
 
   let handler f =

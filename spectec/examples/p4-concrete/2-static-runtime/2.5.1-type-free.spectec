@@ -1,0 +1,205 @@
+;;
+;; Free type variables
+;;
+
+syntax bound = set<typeId>
+
+var B : bound
+
+dec $free_typeIR(typeIR) : bound
+  hint(prose_in "free type identifiers in" %0)
+dec $free_typeDefIR(typeDefIR) : bound
+  hint(prose_in "free type identifiers in" %0)
+
+dec $free_parameterIR(parameterIR) : bound
+  hint(prose_in "free type identifiers in" %0)
+dec $free_callableTypeIR(callableTypeIR) : bound
+  hint(prose_in "free type identifiers in" %0)
+dec $free_callableTypeDefIR(callableTypeDefIR) : bound
+  hint(prose_in "free type identifiers in" %0)
+
+;;
+;; Free type variables in types
+;;
+
+;;; Base types
+
+def $free_typeIR(baseTypeIR) = `{ eps }
+
+;;; Named types
+
+def $free_typeIR(`` typeId) = `{ typeId }
+
+;;; Typedef types
+
+def $free_typeIR(TYPEDEF _ typeIR) = $free_typeIR(typeIR)
+
+def $free_typeIR(TYPE _ typeIR) = $free_typeIR(typeIR)
+
+;;; Data types
+
+def $free_typeIR(LIST `< typeIR >) = $free_typeIR(typeIR)
+
+def $free_typeIR(TUPLE `< typeIR* >)
+  = $unions_set<typeId>($free_typeIR(typeIR)*)
+
+def $free_typeIR(typeIR `[ _ ]) = $free_typeIR(typeIR)
+
+def $free_typeIR(STRUCT _ `< typeArgumentIR* > `{ (_ typeIR_field _ `;)* })
+  = $union_set<typeId>(
+      $unions_set<typeId>($free_typeIR(typeArgumentIR)*),
+      $unions_set<typeId>($free_typeIR(typeIR_field)*))
+
+def $free_typeIR(HEADER _ `< typeArgumentIR* > `{ (_ typeIR_field _ `;)* })
+  = $union_set<typeId>(
+      $unions_set<typeId>($free_typeIR(typeArgumentIR)*),
+      $unions_set<typeId>($free_typeIR(typeIR_field)*))
+
+def $free_typeIR(HEADER_UNION _ `< typeArgumentIR* > `{ (_ typeIR_field _ `;)* })
+  = $union_set<typeId>(
+      $unions_set<typeId>($free_typeIR(typeArgumentIR)*),
+      $unions_set<typeId>($free_typeIR(typeIR_field)*))
+
+def $free_typeIR(ENUM _ `{ _ }) = `{ eps }
+
+def $free_typeIR(ENUM _ `< typeIR > `{ _ }) = $free_typeIR(typeIR)
+
+;;; Object types
+
+def $free_typeIR(EXTERN _ `< typeArgumentIR* > `{ (_ `: externMethodTypeDefIR)* })
+  = $union_set<typeId>(
+      $unions_set<typeId>($free_typeIR(typeArgumentIR)*),
+      $unions_set<typeId>($free_callableTypeDefIR(externMethodTypeDefIR)*))
+
+def $free_typeIR(PARSER _ `< typeArgumentIR* > `( parameterIR* ))
+  = $union_set<typeId>(
+      $unions_set<typeId>($free_typeIR(typeArgumentIR)*),
+      $unions_set<typeId>($free_parameterIR(parameterIR)*))
+
+def $free_typeIR(CONTROL _ `< typeArgumentIR* > `( parameterIR* ))
+  = $union_set<typeId>(
+      $unions_set<typeId>($free_typeIR(typeArgumentIR)*),
+      $unions_set<typeId>($free_parameterIR(parameterIR)*))
+
+def $free_typeIR(PACKAGE _ `< typeArgumentIR* > `{ typeIR* })
+  = $union_set<typeId>(
+      $unions_set<typeId>($free_typeIR(typeArgumentIR)*),
+      $unions_set<typeId>($free_typeIR(typeIR)*))
+
+def $free_typeIR(TABLE _ `{ _ }) = `{ eps }
+
+;;; Synthesized types
+
+def $free_typeIR(DEFAULT) = `{ eps }
+
+def $free_typeIR(HEADER_INVALID) = `{ eps }
+
+def $free_typeIR(SEQ `< typeIR* >)
+  = $unions_set<typeId>($free_typeIR(typeIR)*)
+
+def $free_typeIR(SEQ `< typeIR* `, `... >)
+  = $unions_set<typeId>($free_typeIR(typeIR)*)
+
+def $free_typeIR(RECORD `{ (_ typeIR _ `;)* })
+  = $unions_set<typeId>($free_typeIR(typeIR)*)
+
+def $free_typeIR(RECORD `{ (_ typeIR _ `;)* `, `... })
+  = $unions_set<typeId>($free_typeIR(typeIR)*)
+
+def $free_typeIR(SET `< typeIR >)
+  = $free_typeIR(typeIR)
+
+def $free_typeIR(tableMetadataTypeIR) = `{ eps }
+
+;;
+;;;; Free type variables in type definitions
+;;
+
+def $free_typeDefIR(typeDefIR)
+  = $diff_set<typeId>(B_base, B_tparams)
+  -- if (typeParameterIR_expl*, typeParameterIR_impl*)
+      = $typeParameterListIR_of_typeDefIR(typeDefIR)
+  -- if B_tparams = `{ typeParameterIR_expl* ++ typeParameterIR_impl* }
+  -- if typeIR = $typeIR_of_typeDefIR(typeDefIR)
+  -- if B_base = $free_typeIR(typeIR)
+
+;;
+;;;; Free type varaibles in parameter types
+;;
+
+def $free_parameterIR(_ _ typeIR _ _) = $free_typeIR(typeIR)
+
+;;
+;;;; Free type variables in callable types
+;;
+
+;;; Action types
+
+def $free_callableTypeIR(_ ACTION _ `( parameterIR* ))
+  = B_params
+  -- if B_params
+      = $unions_set<typeId>($free_parameterIR(parameterIR)*)
+
+;;; Function types
+
+def $free_callableTypeIR(
+    FUNCTION _ `( parameterIR* ) `: typeIR)
+  = $union_set<typeId>(B_params, B_ret)
+  -- if B_params
+      = $unions_set<typeId>($free_parameterIR(parameterIR)*)
+  -- if B_ret = $free_typeIR(typeIR)
+
+def $free_callableTypeIR(
+    EXTERN_FUNCTION _ `( parameterIR* ) `: typeIR)
+  = $union_set<typeId>(B_params, B_ret)
+  -- if B_params
+      = $unions_set<typeId>($free_parameterIR(parameterIR)*)
+  -- if B_ret = $free_typeIR(typeIR)
+
+;;; Method types
+
+def $free_callableTypeIR(
+    BUILTIN_METHOD _ `( parameterIR* ) `: typeIR)
+  = $union_set<typeId>(B_params, B_ret)
+  -- if B_params
+      = $unions_set<typeId>($free_parameterIR(parameterIR)*)
+  -- if B_ret = $free_typeIR(typeIR)
+
+def $free_callableTypeIR(
+    EXTERN_METHOD _ `( parameterIR* ) `: typeIR)
+  = $union_set<typeId>(B_params, B_ret)
+  -- if B_params
+      = $unions_set<typeId>($free_parameterIR(parameterIR)*)
+  -- if B_ret = $free_typeIR(typeIR)
+
+def $free_callableTypeIR(
+    EXTERN_METHOD ABSTRACT _ `( parameterIR* ) `: typeIR)
+  = $union_set<typeId>(B_params, B_ret)
+  -- if B_params
+      = $unions_set<typeId>($free_parameterIR(parameterIR)*)
+  -- if B_ret = $free_typeIR(typeIR)
+
+def $free_callableTypeIR(PARSER_APPLY `( parameterIR* ))
+  = B_params
+  -- if B_params
+      = $unions_set<typeId>($free_parameterIR(parameterIR)*)
+
+def $free_callableTypeIR(CONTROL_APPLY `( parameterIR* ))
+  = B_params
+  -- if B_params
+      = $unions_set<typeId>($free_parameterIR(parameterIR)*)
+
+def $free_callableTypeIR(TABLE_APPLY `: _) = `{ eps }
+
+;;
+;;;; Free type variables in callable type definitions
+;;
+
+def $free_callableTypeDefIR(callableTypeDefIR)
+  = $diff_set<typeId>(B_base, B_tparams)
+  -- if (typeId_tparam_expl*, typeId_tparam_impl*)
+      = $typeParameterListIR_of_callableTypeDefIR(callableTypeDefIR)
+  -- if B_tparams = `{ typeId_tparam_expl* ++ typeId_tparam_impl* }
+  -- if callableTypeIR
+      = $callableTypeIR_of_callableTypeDefIR(callableTypeDefIR)
+  -- if B_base = $free_callableTypeIR(callableTypeIR)

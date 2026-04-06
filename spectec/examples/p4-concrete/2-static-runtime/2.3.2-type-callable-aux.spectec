@@ -1,0 +1,49 @@
+;;
+;; Name and default-ness of a parameter
+;;
+
+dec $id_of_parameterIR(parameterIR) : id
+  hint(prose_in "the identifier of" %0)
+def $id_of_parameterIR(_ _ _ id _) = id
+
+dec $is_default_parameterIR(parameterIR) : bool
+  hint(prose_true %0 "is a parameter with a default value")
+  hint(prose_false %0 "is a parameter without a default value")
+def $is_default_parameterIR(_ _ _ _ eps) = false
+def $is_default_parameterIR(_ _ _ _ _) = true
+  -- otherwise
+
+;;
+;; Annotations and optionality of a parameter
+;;
+
+dec $annotationList_of_parameterIR(parameterIR) : annotationList
+  hint(prose_in "the annotations of" %0)
+def $annotationList_of_parameterIR(annotationList _ _ _ _) = annotationList
+
+dec $optional_annotation_of_parameterIR(parameterIR) : bool
+  hint(prose_true %0 "is optional")
+  hint(prose_false %0 "is not optional")
+dec $optional_annotation_of_parameterIR'(annotationList) : bool
+  hint(prose_true %0 "contains an optional annotation")
+  hint(prose_false %0 "does not contain an optional annotation")
+dec $optional_annotation_of_parameterIR''(annotation) : bool
+  hint(prose_true %0 "is an optional annotation")
+  hint(prose_false %0 "is not an optional annotation")
+
+def $optional_annotation_of_parameterIR(parameterIR)
+  = $optional_annotation_of_parameterIR'(annotationList)
+  -- if annotationList = $annotationList_of_parameterIR(parameterIR)
+def $optional_annotation_of_parameterIR'(annotationList) = $exists_(b*)
+  -- if annotation* = $flatten_annotationList(annotationList)
+  -- if (b = $optional_annotation_of_parameterIR''(annotation))*
+def $optional_annotation_of_parameterIR''(`@ name) = true
+  -- if "optional" = $name(name)
+def $optional_annotation_of_parameterIR''(annotation) = false
+  -- otherwise
+
+dec $is_optional_parameterIR(parameterIR) : bool
+  hint(prose_true %0 "is an optional parameter")
+  hint(prose_false %0 "is not an optional parameter")
+def $is_optional_parameterIR(parameterIR)
+  = $optional_annotation_of_parameterIR(parameterIR)

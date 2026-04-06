@@ -1,0 +1,136 @@
+;;
+;; Control local declaration instantiation
+;;
+;; syntax controlLocalDeclarationIR
+;;
+
+;;; constantDeclarationIR
+
+rule ControlLocalDecl_inst/constantDeclarationIR:
+  IC_0 STO |- constantDeclarationIR
+            : IC_1 STO constantDeclarationIR
+  -- ConstDecl_inst:
+      BLOCK IC_0 |- constantDeclarationIR : IC_1
+
+;;; instantiationIR
+
+rule ControlLocalDecl_inst/instantiationIR:
+  IC_0 STO_0 |- instantiationIR
+              : IC_1 STO_1 constantDeclarationIR
+  -- InstDecl_inst:
+      BLOCK IC_0 STO_0 |- instantiationIR
+                        : IC_1 STO_1 constantDeclarationIR
+
+;;; variableDeclarationIR
+
+rule ControlLocalDecl_inst/variableDeclarationIR:
+  IC STO |- variableDeclarationIR
+          : IC STO variableDeclarationIR
+
+;;; actionDeclarationIR
+
+rule ControlLocalDecl_inst/actionDeclarationIR:
+  IC_0 STO |- actionDeclarationIR
+            : IC_1 STO eps
+  -- ActionDecl_inst:
+      BLOCK IC_0 |- actionDeclarationIR : IC_1
+
+;;; tableDeclarationIR
+;;; syntax tableDeclaration =
+;;;   annotationList TABLE name `{ tablePropertyList }
+
+rulegroup ControlLocalDecl_inst/tableDeclarationIR {
+
+  rule ControlLocalDecl_inst/tableDeclarationIR-no-name-annotation:
+    IC_0 STO_0 |- annotationList TABLE typeIR nameIR `{ tablePropertyListIR }
+                : IC_1 STO_2 constantDeclarationIR
+    ---- ;; initialize callee context
+    -- if IC_callee_0 = $inherit_i(BLOCK, IC_0)
+    ---- ;; create table frame
+    -- if IC_frame = $enter_i(IC_callee_0)
+    ---- ;; insantiate table properties
+    -- TableProperties_inst:
+        IC_frame STO_0 |- tablePropertyListIR
+                        : STO_1 tablePropertyListIR_inst
+    -- if TBL = $init_table(tablePropertyListIR_inst)
+    ---- ;; create table object with table frame
+    -- if frame :: _ = IC_frame.LOCAL.FRAMES
+    -- if object_table = TABLE nameIR `{ frame TBL }
+    ---- ;; use name annotation if exists
+    -- if nameIR_object
+        = $name_annotation_default(annotationList, nameIR)
+    ---- ;; bind object to store
+    -- if objectId = IC_0.PATH ++ nameIR_object
+    -- if STO_2 = $add_store(STO_1, objectId, object_table)
+    -- if eps = $name_annotation(annotationList)
+    ---- ;; add reference to object in value environment
+    -- if IC_1 = $add_var_i(BLOCK, IC_0, nameIR, REF objectId)
+    ---- ;; replace declaration with constant declaration holding the reference
+    -- if constantDeclarationIR
+        = `EMPTY CONST typeIR nameIR (`= `VALUE (REF objectId)) `;
+
+  rule ControlLocalDecl_inst/tableDeclarationIR-name-annotation:
+    IC_0 STO_0 |- annotationList TABLE typeIR nameIR `{ tablePropertyListIR }
+                : IC_1 STO_3 constantDeclarationIR
+    ---- ;; initialize callee context
+    -- if IC_callee_0 = $inherit_i(BLOCK, IC_0)
+    ---- ;; create table frame
+    -- if IC_frame = $enter_i(IC_callee_0)
+    ---- ;; insantiate table properties
+    -- TableProperties_inst:
+        IC_frame STO_0 |- tablePropertyListIR
+                        : STO_1 tablePropertyListIR_inst
+    -- if TBL = $init_table(tablePropertyListIR_inst)
+    ---- ;; create table object with table frame
+    -- if frame :: _ = IC_frame.LOCAL.FRAMES
+    -- if object_table = TABLE nameIR `{ frame TBL }
+    ---- ;; use name annotation if exists
+    -- if nameIR_object
+        = $name_annotation_default(annotationList, nameIR)
+    ---- ;; bind object to store
+    -- if objectId = IC_0.PATH ++ nameIR_object
+    -- if STO_2 = $add_store(STO_1, objectId, object_table)
+    -- if nameIR_annotation = $name_annotation(annotationList)
+    -- if objectId_annotation = IC_0.PATH ++ nameIR_annotation
+    -- if STO_3 = $add_store(STO_2, objectId_annotation, object_table)
+    ---- ;; add reference to object in value environment
+    -- if IC_1 = $add_var_i(BLOCK, IC_0, nameIR, REF objectId)
+    ---- ;; replace declaration with constant declaration holding the reference
+    -- if constantDeclarationIR
+        = `EMPTY CONST typeIR nameIR (`= `VALUE (REF objectId)) `;
+
+}
+
+;;
+;; Control local declaration list instantiation
+;;
+;; syntax controlLocalDeclarationListIR
+;;
+
+rulegroup ControlLocalDecls_inst {
+
+  rule ControlLocalDecls_inst/nil:
+    IC STO |- eps : IC STO eps
+
+  rule ControlLocalDecls_inst/cons-none:
+    IC_0 STO_0 |- controlLocalDeclarationIR_h :: controlLocalDeclarationIR_t*
+                : IC_2 STO_2 controlLocalDeclarationIR_t_inst*
+    -- ControlLocalDecl_inst:
+        IC_0 STO_0 |- controlLocalDeclarationIR_h
+                    : IC_1 STO_1 eps
+    -- ControlLocalDecls_inst:
+        IC_1 STO_1 |- controlLocalDeclarationIR_t*
+                    : IC_2 STO_2 controlLocalDeclarationIR_t_inst*
+
+  rule ControlLocalDecls_inst/cons-some:
+    IC_0 STO_0 |- controlLocalDeclarationIR_h :: controlLocalDeclarationIR_t*
+                : IC_2 STO_2 (controlLocalDeclarationIR_h_inst
+                              :: controlLocalDeclarationIR_t_inst*)
+    -- ControlLocalDecl_inst:
+        IC_0 STO_0 |- controlLocalDeclarationIR_h
+                    : IC_1 STO_1 controlLocalDeclarationIR_h_inst
+    -- ControlLocalDecls_inst:
+        IC_1 STO_1 |- controlLocalDeclarationIR_t*
+                    : IC_2 STO_2 controlLocalDeclarationIR_t_inst*
+
+}

@@ -6,14 +6,12 @@
 
 (rule
  (target elab.actual)
- (deps
-  (source_tree ../../examples/p4-concrete))
  (action
   (with-stdout-to
    %{target}
    (with-stderr-to
     elab.err
-    (run ./main.exe -s ../../../../../spectec/examples/p4-concrete)))))
+    (run ./main.exe -s ../../../../../spectec/examples/p4-concrete-old)))))
 
 (rule
  (alias runtest)

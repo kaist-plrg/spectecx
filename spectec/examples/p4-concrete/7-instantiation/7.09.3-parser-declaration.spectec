@@ -1,0 +1,77 @@
+;;
+;; Parser local declaration instantiation
+;;
+;; syntax parserLocalDeclarationIR
+;;
+
+;;; constantDeclarationIR
+
+rule ParserLocalDecl_inst/constantDeclarationIR:
+  IC_0 STO |- constantDeclarationIR
+            : IC_1 STO constantDeclarationIR
+  -- ConstDecl_inst:
+      BLOCK IC_0 |- constantDeclarationIR : IC_1
+
+;;; instantiationIR
+
+rule ParserLocalDecl_inst/instantiationIR:
+  IC_0 STO_0 |- instantiationIR
+              : IC_1 STO_1 constantDeclarationIR_inst
+  -- InstDecl_inst:
+      BLOCK IC_0 STO_0 |- instantiationIR
+                        : IC_1 STO_1 constantDeclarationIR_inst
+
+;;; variableDeclarationIR
+
+rule ParserLocalDecl_inst/variableDeclarationIR:
+  IC STO |- variableDeclarationIR
+          : IC STO variableDeclarationIR
+
+;;; valueSetDeclarationIR
+;;; syntax valueSetDeclarationIR =
+;;;   annotationList VALUE_SET `< typeIR > `( typedExpressionIR ) nameIR `;
+
+rule ParserLocalDecl_inst/valueSetDeclarationIR:
+  IC STO_0 |- annotationList VALUE_SET `< typeIR >
+                  `( typedExpressionIR_size ) nameIR `;
+            : IC STO_2 constantDeclarationIR
+  ---- ;; evaluate the size of the value set
+  -- Expr_inst:
+      BLOCK IC STO_0 |- typedExpressionIR_size
+                      : STO_1 integerValue_size
+  -- if n_size = $nat_of_integerValue(integerValue_size)
+  ---- ;; create the value set object
+  -- if typeIR_subst = $subst_type_i(BLOCK, IC, typeIR)
+  -- if valueSetObject
+      = VALUE_SET `{ eps `( n_size ) }
+  ---- ;; add the value set object to the store
+  -- if objectId = IC.PATH ++ nameIR
+  -- if STO_2 = $add_store(STO_1, objectId, valueSetObject)
+  ---- ;; create the constant declaration
+  -- if typeIR_set = SET `< typeIR >
+  -- if constantDeclarationIR
+      = `EMPTY CONST typeIR_set nameIR (`= `VALUE (REF objectId)) `;
+
+;;
+;; Parser local declaration list instantiation
+;;
+;; syntax parserLocalDeclarationListIR
+;;
+
+rulegroup ParserLocalDecls_inst {
+
+  rule ParserLocalDecls_inst/nil:
+    IC STO |- eps : IC STO eps
+
+  rule ParserLocalDecls_inst/cons:
+    IC_0 STO_0 |- parserLocalDeclarationIR_h :: parserLocalDeclarationIR_t*
+                : IC_2 STO_2 (parserLocalDeclarationIR_h_inst
+                              :: parserLocalDeclarationIR_t_inst*)
+    -- ParserLocalDecl_inst:
+        IC_0 STO_0 |- parserLocalDeclarationIR_h
+                    : IC_1 STO_1 parserLocalDeclarationIR_h_inst
+    -- ParserLocalDecls_inst:
+        IC_1 STO_1 |- parserLocalDeclarationIR_t*
+                    : IC_2 STO_2 parserLocalDeclarationIR_t_inst*
+
+}

@@ -1,0 +1,642 @@
+;;
+;; Declaration instantiation
+;;
+;; syntax declarationIR
+;;
+
+;;; constantDeclarationIR
+;;; syntax constantDeclarationIR =
+;;;   annotationList CONST typeIR nameIR initializerIR `;
+
+rule ConstDecl_inst:
+  p IC_0 |- annotationList CONST typeIR nameIR (`= `VALUE value) `;
+          : IC_1
+  -- if IC_1 = $add_var_i(p, IC_0, nameIR, value)
+
+rule Decl_inst/constantDeclarationIR:
+  IC_0 STO |- constantDeclarationIR
+            : IC_1 STO
+  -- ConstDecl_inst:
+      GLOBAL IC_0 |- constantDeclarationIR : IC_1
+
+;;; instantiationIR
+;;; syntax instantiationIR =
+;;;   annotationList typeIR `< typeArgumentListIR > `( argumentListIR )
+;;;   nameIR objectInitializerOptIR `;
+
+;; Merge value environments
+
+dec $merge_frames(frame, frame) : frame
+  hint(prose_in "the merged frame of" %0 "and" %1)
+
+def $merge_frames(frame, `{ (id `: value)* })
+  = $adds_map<id, value>(frame, id*, value*)
+
+;; Merge callable definition environments
+
+dec $merge_externMethodDefEnvs(externMethodDefEnv, callableDefEnv)
+  : externMethodDefEnv
+  hint(prose_in "the merged extern method definition environment of"
+                %0 "and" %1)
+
+def $merge_externMethodDefEnvs(externMethodDefEnv, `{ eps })
+  = externMethodDefEnv
+def $merge_externMethodDefEnvs(
+    externMethodDefEnv,
+    `{ (callableId_h `: callableDef_h) :: (callableId_t `: callableDef_t)* })
+  = $merge_externMethodDefEnvs(
+      externMethodDefEnv_post, `{ (callableId_t `: callableDef_t)* }
+    )
+  -- if FUNCTION nameIR `< typeParameterListIR >
+          `( parameterListIR ) blockStatementIR
+      = callableDef_h
+  -- if externMethodDef_h
+      = EXTERN_METHOD nameIR `< typeParameterListIR >
+          `( parameterListIR ) blockStatementIR
+  -- if externMethodDefEnv_post
+      = $update_map<callableId, externMethodDef>(
+          externMethodDefEnv, callableId_h, externMethodDef_h)
+
+relation ObjectDecl_inst:
+  instContext store |- objectDeclarationIR : instContext store
+  hint(input %0 %1 %2)
+  hint(prose_in "loading" %2 "under instantiation context" %0 "and store" %1)
+  hint(prose_out "the updated instantiation context" %3 "and store" %4)
+
+rulegroup ObjectDecl_inst {
+
+  rule ObjectDecl_inst/functionDeclarationIR:
+    IC_0 STO |- functionDeclarationIR : IC_1 STO
+    -- FuncDecl_inst:
+        BLOCK IC_0 |- functionDeclarationIR : IC_1
+
+  rule ObjectDecl_inst/instantiationIR:
+    IC_0 STO_0 |- instantiationIR
+                : IC_1 STO_1
+    -- InstDecl_inst:
+        GLOBAL IC_0 STO_0 |- instantiationIR
+                           : IC_1 STO_1 _
+
+}
+
+relation ObjectDecls_inst:
+  instContext store |- objectDeclarationListIR : instContext store
+  hint(input %0 %1 %2)
+  hint(prose_in "loading" %2 "under instantiation context" %0 "and store" %1)
+  hint(prose_out "the updated instantiation context" %3 "and store" %4)
+
+rulegroup ObjectDecls_inst {
+
+  rule ObjectDecls_inst/nil:
+    IC STO |- eps : IC STO
+
+  rule ObjectDecls_inst/cons:
+    IC_0 STO_0 |- objectDeclarationIR_h :: objectDeclarationIR_t*
+                : IC_2 STO_2
+    -- ObjectDecl_inst:
+        IC_0 STO_0 |- objectDeclarationIR_h : IC_1 STO_1
+    -- ObjectDecls_inst:
+        IC_1 STO_1 |- objectDeclarationIR_t* : IC_2 STO_2
+
+}
+
+rulegroup InstDecl_inst {
+
+  rule InstDecl_inst/extern:
+    p IC_0 STO_0 |- annotationList typeIR constructorTargetIR
+                      `( argumentListIR ) nameIR objectInitializerOptIR `;
+                  : IC_1 STO_3 constantDeclarationIR
+    ---- ;; find and instantiate constructor
+    -- if prefixedNameIR `< typeArgumentListIR >
+        = constructorTargetIR
+    -- Constructor_inst:
+        p IC_0 |- prefixedNameIR `< typeArgumentListIR > `( argumentListIR )
+                : constructorDef `< typeArgumentListIR_inst > `( `# id_default* `# id_optional* )
+    -- if IC_inner = $enter_path_i(IC_0, nameIR)
+    -- Constructor_call:
+        p IC_inner STO_0 |- constructorDef `< typeArgumentListIR_inst >
+                              `( argumentListIR `# id_default* `# id_optional* )
+                          : STO_1 object
+    ---- ;; if object is an extern
+    -- if EXTERN typeId `< theta > `{ objectState frame externMethodDefEnv } = object
+    ---- ;; initialize context for object declarations
+    -- if IC_decl = $inherit_i(GLOBAL, IC_0)
+    -- if objectDeclarationListIR
+        = $flatten_objectInitializerOptIR(objectInitializerOptIR)
+    -- ObjectDecls_inst:
+        IC_decl STO_1 |- objectDeclarationListIR : IC_decl_post STO_2
+    ---- ;; merge value environments
+    -- if frame_merged
+        = $merge_frames(frame, IC_decl_post.BLOCK.FRAME)
+    ---- ;; merge callable environments and transform functions to extern methods
+    -- if externMethodDefEnv_merged
+        = $merge_externMethodDefEnvs(externMethodDefEnv, IC_decl_post.BLOCK.CALLABLE)
+    ---- ;; create new object with merged environments
+    -- if object_merged
+        = EXTERN typeId `< theta > `{ objectState frame_merged externMethodDefEnv_merged }
+    ---- ;; add object to store
+    -- if objectId = IC_0.PATH ++ nameIR
+    -- if STO_3 = $add_store(STO_2, objectId, object_merged)
+    ---- ;; add reference to object in value environment
+    -- if IC_1 = $add_var_i(p, IC_0, nameIR, REF objectId)
+    ---- ;; replace declaration with constant declaration holding the reference
+    -- if constantDeclarationIR
+        = `EMPTY CONST typeIR nameIR (`= `VALUE (REF objectId)) `;
+
+  rule InstDecl_inst/non-extern:
+    p IC_0 STO_0 |- annotationList typeIR constructorTargetIR
+                          `( argumentListIR ) nameIR objectInitializerOptIR `;
+                     : IC_1 STO_2 constantDeclarationIR
+    ---- ;; find and instantiate constructor
+    -- if prefixedNameIR `< typeArgumentListIR >
+        = constructorTargetIR
+    -- Constructor_inst:
+        p IC_0 |- prefixedNameIR `< typeArgumentListIR > `( argumentListIR )
+                : constructorDef `< typeArgumentListIR_inst > `( `# id_default* `# id_optional* )
+    -- if nameIR' = $name_annotation_default(annotationList, nameIR)
+    -- if IC_inner = $enter_path_i(IC_0, nameIR')
+    -- Constructor_call:
+        p IC_inner STO_0 |- constructorDef `< typeArgumentListIR_inst >
+                              `( argumentListIR `# id_default* `# id_optional* )
+                          : STO_1 object
+    ---- ;; if object is not an extern
+    -- if ~(object <: externObject)
+    ---- ;; bind object to store
+    -- if objectId = IC_0.PATH ++ nameIR
+    -- if STO_2 = $add_store(STO_1, objectId, object)
+    ---- ;; add reference to object in value environment
+    -- if IC_1 = $add_var_i(p, IC_0, nameIR, REF objectId)
+    ---- ;; replace declaration with constant declaration holding the reference
+    -- if constantDeclarationIR
+        = `EMPTY CONST typeIR nameIR (`= `VALUE (REF objectId)) `;
+
+}
+
+rule Decl_inst/instantiationIR:
+  IC_0 STO_0 |- instantiationIR
+              : IC_1 STO_1
+  -- InstDecl_inst:
+      GLOBAL IC_0 STO_0 |- instantiationIR
+                         : IC_1 STO_1 _
+
+;;; functionDeclarationIR
+;;; syntax functionDeclarationIR
+;;;; annotationList functionPrototypeIR blockStatementIR
+
+rule FuncDecl_inst:
+  p IC_0 |- annotationList (typeIR nameIR
+              (`< typeParameterListIR_expl `, typeParameterListIR_impl >)
+               `( parameterListIR ))
+               blockStatementIR
+          : IC_1
+  ---- ;; bind function definition to callable environment
+  -- if callableId = $callableId_IR(nameIR, parameterListIR)
+  -- if typeParameterListIR
+      = typeParameterListIR_expl ++ typeParameterListIR_impl
+  -- if definedFunctionDef
+      = FUNCTION nameIR `< typeParameterListIR >
+          `( parameterListIR ) blockStatementIR
+  -- if IC_1 = $add_callableDef_overload_i(p, IC_0, callableId, definedFunctionDef)
+
+rule Decl_inst/functionDeclarationIR:
+  IC_0 STO |- functionDeclarationIR : IC_1 STO
+  -- FuncDecl_inst:
+      GLOBAL IC_0 |- functionDeclarationIR : IC_1
+
+;;; actionDeclarationIR
+;;; syntax actionDeclarationIR =
+;;;   annotationList ACTION nameIR `( parameterListIR ) blockStatementIR
+
+rule ActionDecl_inst:
+  p IC_0 |- annotationList ACTION nameIR `( parameterListIR ) blockStatementIR
+          : IC_1
+  ---- ;; bind action definition to callable environment
+  -- if callableId = $callableId_IR(nameIR, parameterListIR)
+  -- if actionDef = annotationList ACTION nameIR `( parameterListIR ) blockStatementIR
+  -- if IC_1 = $add_callableDef_non_overload_i(p, IC_0, callableId, actionDef)
+
+rule Decl_inst/actionDeclarationIR:
+  IC_0 STO |- actionDeclarationIR : IC_1 STO
+  -- ActionDecl_inst:
+      GLOBAL IC_0 |- actionDeclarationIR : IC_1
+
+;;; errorDeclarationIR
+;;; syntax errorDeclarationIR = ERROR `{ nameListIR }
+
+rule Decl_inst/errorDeclarationIR:
+  IC_0 STO |- ERROR `{ nameIR* } : IC_1 STO
+  ---- ;; bind errors to value environment
+  -- if (nameIR_error = $concat_text([ "error.", nameIR ]))*
+  -- if (value_error = ERROR `. nameIR)*
+  -- if IC_1 = $add_vars_i(GLOBAL, IC_0, nameIR_error*, value_error*)
+
+;;; matchKindDeclarationIR
+;;; syntax matchKindDeclarationIR = MATCH_KIND `{ nameListIR }
+
+rule Decl_inst/matchKindDeclarationIR:
+  IC_0 STO |- MATCH_KIND `{ nameIR* } : IC_1 STO
+  ---- ;; add match kinds to value environment
+  -- if (value_match_kind = MATCH_KIND `. nameIR)*
+  -- if IC_1 = $add_vars_i(GLOBAL, IC_0, nameIR*, value_match_kind*)
+
+;;; externDeclarationIR
+;;; syntax externDeclarationIR
+;;;; externFunctionDeclarationIR
+;;;; syntax externFunctionDeclarationIR
+;;;;; annotationList EXTERN functionPrototypeIR `;
+
+rule Decl_inst/externFunctionDeclarationIR:
+  IC_0 STO |- annotationList EXTERN (typeIR nameIR
+                `< typeParameterListIR_expl `, typeParameterListIR_impl >
+                `( parameterListIR )) `;
+             : IC_1 STO
+  ---- ;; bind extern function definition to callable environment
+  -- if callableId = $callableId_IR(nameIR, parameterListIR)
+  -- if typeParameterListIR
+      = typeParameterListIR_expl ++ typeParameterListIR_impl
+  -- if externFunctionDef
+      = EXTERN_FUNCTION nameIR `< typeParameterListIR > `( parameterListIR )
+  -- if IC_1 = $add_callableDef_overload_i(GLOBAL, IC_0, callableId, externFunctionDef)
+
+;;;; externObjectDeclarationIR
+
+dec $callableId_of_externMethodPrototypeIR(
+    externMethodPrototypeIR)
+  : callableId
+  hint(prose_in "the callable id of " %0)
+
+def $callableId_of_externMethodPrototypeIR(
+    _ (_ nameIR `< _ `, _ > `( parameterListIR )) `;)
+  = $callableId_IR(nameIR, parameterListIR)
+def $callableId_of_externMethodPrototypeIR(
+    _ ABSTRACT (_ nameIR `< _ `, _ > `( parameterListIR )) `;)
+  = $callableId_IR(nameIR, parameterListIR)
+
+dec $callableId_of_externConstructorPrototypeIR(
+    externConstructorPrototypeIR)
+  : callableId
+  hint(prose_in "the constructor id of " %0)
+
+def $callableId_of_externConstructorPrototypeIR(
+    _ nameIR `< `, _ > `( parameterIR* ) `;)
+  = $callableId_IR(nameIR, parameterIR*)
+
+dec $constructor_of_externConstructorPrototypeIR(
+    typeParameterListIR,
+    externMethodPrototypeListIR,
+    externConstructorPrototypeIR)
+  : constructorDef
+  hint(prose_in "the constructor definition of " %2
+                "with type parameters " %0 " and methods " %1)
+
+def $constructor_of_externConstructorPrototypeIR(
+    typeParameterListIR_expl,
+    externMethodPrototypeListIR,
+    _ nameIR `< `, typeParameterListIR_impl > `( parameterIR* ) `;)
+  = constructorDef
+  -- if typeParameterListIR
+      = typeParameterListIR_expl ++ typeParameterListIR_impl
+  -- if constructorDef
+      = EXTERN nameIR `< typeParameterListIR >
+          `( parameterIR* ) `{ externMethodPrototypeListIR }
+
+rulegroup Decl_inst/externObjectDeclarationIR {
+
+  rule Decl_inst/non-constructor:
+    IC_0 STO |- annotationList EXTERN nameIR
+                  `< typeParameterListIR `, >
+                  `{ eps externMethodPrototypeIR* }
+              : IC_2 STO
+    ---- ;; bind methods to callable environment
+    -- if (callableId_method
+        = $callableId_of_externMethodPrototypeIR(externMethodPrototypeIR))*
+    -- if (externMethodTypeDefIR
+        = $type_of_externMethodPrototypeIR(externMethodPrototypeIR))*
+    -- if externMethodTypeDefEnv
+        = `{ (callableId_method `: externMethodTypeDefIR)* }
+    ---- ;; add extern type definition to environment
+    -- if externObjectTypeDefIR
+        = EXTERN nameIR `< typeParameterListIR `, eps > externMethodTypeDefEnv
+    -- if IC_1 = $add_typeDef_i(GLOBAL, IC_0, nameIR, externObjectTypeDefIR)
+    ---- ;; if no constructor was provided, add a default constructor
+    -- if callableId_constructor = $callableId_IR(nameIR, eps)
+    -- if constructorDef
+        = EXTERN nameIR `< typeParameterListIR > `( eps )
+            `{ externMethodPrototypeIR* }
+    -- if IC_2 = $add_constructorDef_i(IC_1, callableId_constructor, constructorDef)
+
+  rule Decl_inst/constructor:
+    IC_0 STO |- annotationList EXTERN nameIR
+                  `< typeParameterListIR `, >
+                  `{ externConstructorPrototypeIR* externMethodPrototypeIR* }
+              : IC_2 STO
+    ---- ;; if constructor was provided
+    -- if externConstructorPrototypeIR* =/= eps
+    ---- ;; bind methods to callable environment
+    -- if (callableId_method
+        = $callableId_of_externMethodPrototypeIR(externMethodPrototypeIR))*
+    -- if (externMethodTypeDefIR
+        = $type_of_externMethodPrototypeIR(externMethodPrototypeIR))*
+    -- if externMethodTypeDefEnv
+        = `{ (callableId_method `: externMethodTypeDefIR)* }
+    ---- ;; add extern type definition to environment
+    -- if externObjectTypeDefIR
+        = EXTERN nameIR `< typeParameterListIR `, eps > externMethodTypeDefEnv
+    -- if IC_1 = $add_typeDef_i(GLOBAL, IC_0, nameIR, externObjectTypeDefIR)
+    ---- ;; bind extern constructors to constructor environment
+    -- if (callableId_constructor
+        = $callableId_of_externConstructorPrototypeIR(externConstructorPrototypeIR))*
+    -- if (constructorDef
+        = $constructor_of_externConstructorPrototypeIR(
+            typeParameterListIR,
+            externMethodPrototypeIR*,
+            externConstructorPrototypeIR))*
+    -- if IC_2 = $add_constructorDefs_i(IC_1, callableId_constructor*, constructorDef*)
+
+}
+
+;;; parserDeclarationIR
+;;; syntax parserDeclarationIR
+;;;   annotationList PARSER
+;;;   nameIR `< typeParameterListIR `, typeParameterListIR >
+;;;   `( parameterListIR ) `( constructorParameterListIR )
+;;;   `{ parserLocalDeclarationListIR parserStateListIR }`
+
+rule Decl_inst/parserDeclarationIR:
+  IC_0 STO |- annotationList PARSER nameIR
+                `< typeParameterListIR_expl `, typeParameterListIR_impl >
+                `( parameterListIR ) `( constructorParameterListIR )
+                `{ parserLocalDeclarationListIR parserStateListIR }
+            : IC_1 STO
+  -- if callableId = $callableId_IR(nameIR, constructorParameterListIR)
+  -- if typeParameterListIR
+      = typeParameterListIR_expl ++ typeParameterListIR_impl
+  -- if constructorDef
+      = PARSER `< typeParameterListIR >
+          `( parameterListIR ) `( constructorParameterListIR )
+          `{ parserLocalDeclarationListIR parserStateListIR }
+  -- if IC_1 = $add_constructorDef_i(IC_0, callableId, constructorDef)
+
+;;; controlDeclarationIR
+;;; syntax controlDeclarationIR =
+;;;   annotationList CONTROL
+;;;   nameIR `< typeParameterListIR `, typeParameterListIR >
+;;;  `( parameterListIR ) `( constructorParameterListIR )
+;;;  `{ controlLocalDeclarationListIR APPLY controlBodyIR }
+
+rule Decl_inst/controlDeclarationIR:
+  IC_0 STO |- annotationList CONTROL nameIR
+                `< typeParameterListIR_expl `, typeParameterListIR_impl >
+                `( parameterListIR ) `( constructorParameterListIR )
+                `{ controlLocalDeclarationListIR APPLY controlBodyIR }
+            : IC_1 STO
+  ---- ;; bind control to constructor environment
+  -- if callableId = $callableId_IR(nameIR, constructorParameterListIR)
+  -- if typeParameterListIR
+      = typeParameterListIR_expl ++ typeParameterListIR_impl
+  -- if constructorDef
+      = CONTROL `< typeParameterListIR >
+          `( parameterListIR ) `( constructorParameterListIR )
+          `{ controlLocalDeclarationListIR APPLY controlBodyIR }
+  -- if IC_1 = $add_constructorDef_i(IC_0, callableId, constructorDef)
+
+;;; typeDeclarationIR
+;;; syntax typeDeclarationIR
+
+;;;; derivedTypeDeclarationIR
+;;;; syntax derivedTypeDeclarationIR
+
+;;;;; enumTypeDeclarationIR
+;;;;; syntax enumTypeDeclarationIR
+
+;;;;;; annotationList ENUM nameIR `{ nameListIR }
+
+rule Decl_inst/enumTypeDeclarationIR-non-serializable:
+  IC_0 STO |- annotationList ENUM nameIR `{ nameIR_field* }
+            : IC_2 STO
+  ---- ;; bind fields to value environment
+  -- if (nameIR_enum_field = nameIR ++ "." ++ nameIR_field)*
+  -- if (value_enum_field = nameIR `. nameIR_field)*
+  -- if IC_1 = $add_vars_i(GLOBAL, IC_0, nameIR_enum_field*, value_enum_field*)
+  ---- ;; bind enum type to typedef environment
+  -- if enumTypeDefIR = ENUM nameIR `{ nameIR_field* }
+  -- if IC_2 = $add_typeDef_i(GLOBAL, IC_1, nameIR, enumTypeDefIR)
+
+;;;;;; annotationList ENUM typeIR nameIR `{ namedExpressionListIR }
+
+rule Decl_inst/enumTypeDeclarationIR-serializable:
+  IC_0 STO |- annotationList ENUM typeIR nameIR
+                `{ (nameIR_field `= value_field)* }
+            : IC_2 STO
+  ---- ;; bind fields to value environment
+  -- if (nameIR_serenum_field = nameIR ++ "." ++ nameIR_field)*
+  -- if (value_serenum_field = nameIR `. nameIR_field `. value_field)*
+  -- if IC_1
+      = $add_vars_i(GLOBAL, IC_0, nameIR_serenum_field*, value_serenum_field*)
+  ---- ;; bind enum type to typedef environment
+  -- if enumTypeDefIR
+      = ENUM nameIR `< typeIR > `{ (nameIR_field `= value_field `;)* }
+  -- if IC_2
+      = $add_typeDef_i(GLOBAL, IC_1, nameIR, enumTypeDefIR)
+
+;;;;; structTypeDeclarationIR
+;;;;; syntax structTypeDeclarationIR =
+;;;;;   annotationList STRUCT nameIR
+;;;;;     `< typeParameterListIR > `{ typeFieldListIR }
+
+rule Decl_inst/structTypeDeclarationIR:
+  IC_0 STO |- annotationList STRUCT nameIR
+                `< typeParameterListIR > `{ typeFieldIR* }
+            : IC_1 STO
+  ---- ;; bind struct type to typedef environment
+  -- if (annotationList_field typeIR_field nameIR_field `; = typeFieldIR)*
+  -- if structTypeDefIR
+      = STRUCT nameIR `< typeParameterListIR >
+          `{ (annotationList_field typeIR_field nameIR_field `;)* }
+  -- if IC_1 = $add_typeDef_i(GLOBAL, IC_0, nameIR, structTypeDefIR)
+
+;;;;; headerTypeDeclarationIR
+;;;;; syntax headerTypeDeclarationIR =
+;;;;;   annotationList HEADER nameIR
+;;;;;     `< typeParameterListIR > `{ typeFieldListIR }
+
+rule Decl_inst/headerTypeDeclarationIR:
+  IC_0 STO |- annotationList HEADER nameIR
+                `< typeParameterListIR > `{ typeFieldIR* }
+            : IC_1 STO
+  ---- ;; bind header type to typedef environment
+  -- if (annotationList_field typeIR_field nameIR_field `; = typeFieldIR)*
+  -- if headerTypeDefIR
+      = HEADER nameIR `< typeParameterListIR >
+          `{ (annotationList_field typeIR_field nameIR_field `;)* }
+  -- if IC_1 = $add_typeDef_i(GLOBAL, IC_0, nameIR, headerTypeDefIR)
+
+;;;;; headerUnionTypeDeclarationIR
+;;;;; syntax headerUnionTypeDeclarationIR =
+;;;;;   annotationList HEADER_UNION nameIR
+;;;;;     `< typeParameterListIR > `{ typeFieldListIR }
+
+rule Decl_inst/headerUnionTypeDeclarationIR:
+  IC_0 STO |- annotationList HEADER_UNION nameIR
+                 `< typeParameterListIR > `{ typeFieldIR* }
+             : IC_1 STO
+  ---- ;; bind header union type to typedef environment
+  -- if (annotationList_field typeIR_field nameIR_field `; = typeFieldIR)*
+  -- if headerUnionTypeDefIR
+      = HEADER_UNION nameIR `< typeParameterListIR >
+          `{ (annotationList_field typeIR_field nameIR_field `;)* }
+  -- if IC_1 = $add_typeDef_i(GLOBAL, IC_0, nameIR, headerUnionTypeDefIR)
+
+;;;; typedefDeclarationIR
+;;;; syntax typedefDeclarationIR
+
+;;;;; annotationList TYPEDEF typedefTypeIR nameIR `;
+;;;;; syntax typedefTypeIR
+
+;;;;;; typeIR
+;;;;;; derivedTypeDeclarationIR
+
+rulegroup Decl_inst/typedefDeclarationIR-typedef {
+
+  rule Decl_inst/typeIR:
+    IC_0 STO |- annotationList TYPEDEF typeIR nameIR `;
+              : IC_1 STO
+    ---- ;; bind type to typedef environment
+    -- if aliasTypeDefIR = TYPEDEF nameIR typeIR
+    -- if IC_1 = $add_typeDef_i(GLOBAL, IC_0, nameIR, aliasTypeDefIR)
+
+  rule Decl_inst/derivedTypeDeclarationIR-monomorphic:
+    IC_0 STO |- annotationList TYPEDEF derivedTypeDeclarationIR nameIR `;
+              : IC_1 STO
+    ---- ;; instantiate type declaration
+    -- Decl_inst: IC_0 $empty_store |- derivedTypeDeclarationIR
+                                     : IC_local _
+    ---- ;; diff the local and global context to get the declared type id
+    -- if `{ typeId_newtype }
+        = $diff_set<typeId>(
+            $dom_map<typeId, typeDefIR>(IC_local.GLOBAL.TYPE),
+            $dom_map<typeId, typeDefIR>(IC_0.GLOBAL.TYPE))
+    ---- ;; find the type definition
+    -- if typeDefIR
+        = $find_typeDef_i(GLOBAL, IC_local, `. typeId_newtype)
+    -- if $is_monomorphic_typeDefIR(typeDefIR)
+    -- if typeIR = $typeIR_of_typeDefIR(typeDefIR)
+    -- if aliasTypeDefIR = TYPEDEF nameIR typeIR
+    -- if IC_1 = $add_typeDef_i(GLOBAL, IC_0, nameIR, aliasTypeDefIR)
+
+  rule Decl_inst/derivedTypeDeclaration-poly:
+    IC_0 STO |- annotationList TYPEDEF derivedTypeDeclarationIR nameIR `;
+              : IC_1 STO
+    ---- ;; instantiate type declaration
+    -- Decl_inst: IC_0 $empty_store |- derivedTypeDeclarationIR
+                                     : IC_local _
+    ---- ;; diff the local and global context to get the declared type id
+    -- if `{ typeId_newtype }
+        = $diff_set<typeId>(
+            $dom_map<typeId, typeDefIR>(IC_local.GLOBAL.TYPE),
+            $dom_map<typeId, typeDefIR>(IC_0.GLOBAL.TYPE))
+    ---- ;; find the type definition
+    -- if typeDefIR
+        = $find_typeDef_i(GLOBAL, IC_local, `. typeId_newtype)
+    -- if ~$is_monomorphic_typeDefIR(typeDefIR)
+    -- if (eps, eps) = $typeParameterListIR_of_typeDefIR(typeDefIR)
+    -- if typeIR = $specialize_typeDefIR(typeDefIR, eps)
+    -- if typedefTypeIR = TYPEDEF nameIR typeIR
+    -- if IC_1 = $add_typeDef_i(GLOBAL, IC_0, nameIR, typedefTypeIR)
+
+}
+
+;;;;; annotationList TYPE typeIR nameIR `;
+
+rule Decl_inst/typedefDeclarationIR-newtype:
+  IC_0 STO |- annotationList TYPE typeIR nameIR `;
+            : IC_1 STO
+  ---- ;; bind newtype to typedef environment
+  -- if aliasTypeDefIR = TYPE nameIR typeIR
+  -- if IC_1 = $add_typeDef_i(GLOBAL, IC_0, nameIR, aliasTypeDefIR)
+
+;;;; parserTypeDeclarationIR
+;;;; syntax parserTypeDeclarationIR =
+;;;;   annotationList PARSER nameIR
+;;;;     `< typeParameterListIR `, typeParameterListIR >
+;;;;     `( parameterListIR ) `;
+
+rule Decl_inst/parserTypeDeclarationIR:
+  IC_0 STO |- annotationList PARSER nameIR
+                 `< typeParameterListIR `, typeParameterListIR_inferred >
+                 `( parameterIR* ) `;
+           : IC_1 STO
+  ---- ;; bind parser type to typedef environment
+  -- if parserObjectTypeDefIR
+      = PARSER nameIR `< typeParameterListIR `, typeParameterListIR_inferred >
+          `( parameterIR* )
+  -- if IC_1 = $add_typeDef_i(GLOBAL, IC_0, nameIR, parserObjectTypeDefIR)
+
+;;;; controlTypeDeclarationIR
+;;;; syntax controlTypeDeclarationIR =
+;;;;   annotationList CONTROL nameIR
+;;;;     `< typeParameterListIR `, typeParameterListIR >
+;;;;     `( parameterListIR ) `;
+
+rule Decl_inst/controlTypeDeclarationIR:
+  IC_0 STO |- annotationList CONTROL nameIR
+                 `< typeParameterListIR `, typeParameterListIR_inferred >
+                 `( parameterIR* ) `;
+           : IC_1 STO
+  ---- ;; bind control type to typedef environment
+  -- if controlObjectTypeDefIR
+      = CONTROL nameIR `< typeParameterListIR `, typeParameterListIR_inferred >
+          `( parameterIR* )
+  -- if IC_1 = $add_typeDef_i(GLOBAL, IC_0, nameIR, controlObjectTypeDefIR)
+
+;;;; packageTypeDeclarationIR
+;;;; syntax packageTypeDeclarationIR =
+;;;;   annotationList PACKAGE nameIR
+;;;;     `< typeParameterListIR `, typeParameterListIR >
+;;;;     `( parameterListIR ) `;
+
+rule Decl_inst/packageTypeDeclarationIR:
+  IC_0 STO |- annotationList PACKAGE nameIR
+                `< typeParameterListIR `, typeParameterListIR_inferred >
+                `( parameterIR* ) `;
+           : IC_2 STO
+  ---- ;; bind package type to typedef environment
+  -- if (_ _ typeIR _ _ = parameterIR)*
+  -- if packageObjectTypeDefIR
+      = PACKAGE nameIR `< typeParameterListIR `, typeParameterListIR_inferred > `{ typeIR* }
+  -- if IC_1 = $add_typeDef_i(GLOBAL, IC_0, nameIR, packageObjectTypeDefIR)
+  ---- ;; bind package constructor to constructor environment
+  -- if callableId = $callableId_IR(nameIR, parameterIR*)
+  -- if constructorDef
+      = PACKAGE `< typeParameterListIR ++ typeParameterListIR_inferred > `( parameterIR* )
+  -- if IC_2 = $add_constructorDef_i(IC_1, callableId, constructorDef)
+
+;;
+;; syntax declarationListIR
+;;
+
+rulegroup Decls_inst {
+
+  rule Decls_inst/nil:
+    IC STO |- eps : IC STO
+
+  rule Decls_inst/cons:
+    IC_0 STO_0 |- declarationIR_h :: declarationIR_t*
+                : IC_2 STO_2
+    -- Decl_inst: IC_0 STO_0 |- declarationIR_h : IC_1 STO_1
+    -- Decls_inst: IC_1 STO_1 |- declarationIR_t* : IC_2 STO_2
+
+}
+
+;;
+;; syntax p4programIR
+;;
+
+rule Program_inst:
+  |- p4program : IC_1.GLOBAL STO_1
+  ---- ;; type check the program
+  -- Program_ok: |- p4program : (declarationIR* `;)
+  ---- ;; instantiate the declarations
+  -- if IC_0 = $empty_instContext
+  -- if STO_0 = $empty_store
+  -- Decls_inst: IC_0 STO_0 |- declarationIR* : IC_1 STO_1

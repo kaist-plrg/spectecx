@@ -1,0 +1,95 @@
+;;
+;; Control local declaration typing
+;;
+;; syntax controlLocalDeclaration
+;;
+
+;;; constantDeclaration
+
+rule ControlLocalDecl_ok/constantDeclaration:
+  TC_0 |- constantDeclaration : TC_1 constantDeclarationIR
+  -- ConstDecl_ok:
+      BLOCK TC_0 |- constantDeclaration
+                  : TC_1 constantDeclarationIR
+
+;;; instantiation
+
+rule ControlLocalDecl_ok/instantiation:
+  TC_0 |- instantiation : TC_1 instantiationIR
+  -- InstDecl_ok:
+      BLOCK TC_0 |- instantiation
+                  : TC_1 instantiationIR
+
+;;; variableDeclaration
+
+rule ControlLocalDecl_ok/variableDeclaration:
+  TC_0 |- variableDeclaration
+        : TC_1 variableDeclarationIR
+  -- VarDecl_ok: BLOCK TC_0 |- variableDeclaration
+                               : TC_1 variableDeclarationIR
+
+;;; actionDeclaration
+
+rule ControlLocalDecl_ok/actionDeclaration:
+  TC_0 |- actionDeclaration : TC_1 actionDeclarationIR
+  -- ActionDecl_ok:
+      BLOCK TC_0 |- actionDeclaration
+                  : TC_1 actionDeclarationIR
+
+;;; tableDeclaration
+;;; syntax tableDeclaration =
+;;;   annotationList TABLE name `{ tablePropertyList }
+
+rule ControlLocalDecl_ok/tableDeclaration:
+  TC_0 |- annotationList TABLE name `{ tablePropertyList }
+       : TC_3 tableDeclarationIR
+  ---- ;; set local context
+  -- if TC_1 = TC_0 [ .LOCAL.KIND = TABLE_APPLY_METHOD ]
+  ---- ;; check table properties
+  -- if tableProperty* = $flatten_tablePropertyList(tablePropertyList)
+  -- Table_ok: TC_1 |- tableProperty* : TBLC tablePropertyIR*
+  ---- ;; update the context with synthesized table
+  -- if nameIR = $name(name)
+  -- TableType_ok: TC_1 TBLC |- name : TC_2 typeIR_table
+  -- if varTypeIR = `EMPTY typeIR_table DYN eps
+  -- if TC_3 = $add_var_t(BLOCK, TC_2, nameIR, varTypeIR)
+  ---- ;; create IR
+  -- if tableDeclarationIR
+      = annotationList TABLE typeIR_table nameIR `{ tablePropertyIR* }
+
+;;
+;; Control local declaration list typing
+;;
+;; syntax controlLocalDeclarationList
+;;
+
+relation ControlLocalDecls_ok:
+  typingContext |- controlLocalDeclaration*
+                 : typingContext controlLocalDeclarationIR*
+  hint(input %0 %1)
+  hint(prose_in "typing" %1#", under context" %0)
+  hint(prose_out "the updated context" %2 "and the typed control local declarations" %3)
+
+rulegroup ControlLocalDecls_ok {
+
+  rule ControlLocalDecls_ok/nil:
+    TC |- eps : TC eps
+
+  rule ControlLocalDecls_ok/cons:
+    TC_0 |- controlLocalDeclaration_h :: controlLocalDeclaration_t*
+          : TC_2 (controlLocalDeclarationIR_h :: controlLocalDeclarationIR_t*)
+    -- ControlLocalDecl_ok: TC_0 |- controlLocalDeclaration_h
+                                  : TC_1 controlLocalDeclarationIR_h
+    -- ControlLocalDecls_ok: TC_1 |- controlLocalDeclaration_t*
+                                   : TC_2 controlLocalDeclarationIR_t*
+
+}
+
+rule ControlLocalDeclList_ok:
+  TC_0 |- controlLocalDeclarationList
+        : TC_1 controlLocalDeclarationIR*
+  -- if controlLocalDeclaration*
+      = $flatten_controlLocalDeclarationList(controlLocalDeclarationList)
+  -- ControlLocalDecls_ok:
+      TC_0 |- controlLocalDeclaration*
+            : TC_1 controlLocalDeclarationIR*

@@ -1,0 +1,27 @@
+;;
+;; Environments
+;;
+
+;; Map from variable identifiers to values
+syntax frame = map<id, value>
+
+dec $empty_frame : frame
+def $empty_frame = $empty_map<id, value>
+
+;; Map from parser state names to parser states
+syntax stateEnv = map<id, parserStateIR>
+
+dec $empty_stateEnv() : stateEnv
+def $empty_stateEnv() = $empty_map<id, parserStateIR>
+
+;; Map from callable identifiers to callable definitions
+syntax callableDefEnv = map<callableId, callableDef>
+
+dec $empty_callableDefEnv() : callableDefEnv
+def $empty_callableDefEnv() = $empty_map<callableId, callableDef>
+
+;; Map from constructor identifiers to constructor definitions
+syntax constructorDefEnv = map<callableId, constructorDef>
+
+dec $empty_constructorDefEnv() : constructorDefEnv
+def $empty_constructorDefEnv() = $empty_map<callableId, constructorDef>

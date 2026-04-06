@@ -1,0 +1,122 @@
+;;
+;; Parser statement instantiation
+;;
+;; syntax parserStatementIR
+;;
+
+;;; constantDeclarationIR
+
+rule ParserStmt_inst/constantDeclarationIR:
+  IC_0 STO |- constantDeclarationIR
+            : IC_1 STO constantDeclarationIR
+  -- ConstDecl_inst:
+      LOCAL IC_0 |- constantDeclarationIR : IC_1
+
+;;; variableDeclarationIR
+
+rule ParserStmt_inst/variableDeclarationIR:
+  IC STO |- variableDeclarationIR
+          : IC STO variableDeclarationIR
+
+;;; emptyStatementIR
+
+rule ParserStmt_inst/emptyStatementIR:
+  IC_0 STO_0 |- emptyStatementIR
+              : IC_1 STO_1 emptyStatementIR_inst
+  -- Stmt_inst:
+      LOCAL IC_0 STO_0 |- emptyStatementIR
+                        : IC_1 STO_1 emptyStatementIR_inst
+
+;;; assignmentStatementIR
+
+rule ParserStmt_inst/assignmentStatementIR:
+  IC_0 STO_0 |- assignmentStatementIR
+              : IC_1 STO_1 assignmentStatementIR_inst
+  -- Stmt_inst:
+      LOCAL IC_0 STO_0 |- assignmentStatementIR
+                        : IC_1 STO_1 assignmentStatementIR_inst
+
+;;; callStatementIR
+
+rule ParserStmt_inst/callStatementIR:
+  IC_0 STO_0 |- callStatementIR
+              : IC_1 STO_1 callStatementIR_inst
+  -- Stmt_inst:
+      LOCAL IC_0 STO_0 |- callStatementIR
+                        : IC_1 STO_1 callStatementIR_inst
+
+;;; directApplicationStatementIR
+;;; syntax directApplicationStatementIR =
+;;;   prefixedNameIR `. APPLY `( argumentListIR ) `;
+
+rule ParserStmt_inst/directApplicationStatementIR:
+  IC STO_0 |- directApplicationStatementIR
+            : IC STO_1 parserBlockStatementIR
+  -- DirectApplicationStmt_inst:
+      LOCAL IC STO_0 |- directApplicationStatementIR
+                      : STO_1 constantDeclarationIR callStatementIR
+  -- if parserBlockStatementIR
+      = `EMPTY `{ [ constantDeclarationIR, callStatementIR ] }
+
+;;; parserBlockStatementIR
+
+rule ParserStmt_inst/parserBlockStatementIR:
+  IC_0 STO_0 |- annotationList `{ parserStatementListIR }
+              : IC_1 STO_1 parserBlockStatementIR_inst
+  ---- ;; instantiate inner statements
+  -- ParserStmts_inst:
+      IC_0 STO_0 |- parserStatementListIR
+                  : IC_1 STO_1 parserStatementListIR_inst
+  -- if parserBlockStatementIR_inst
+      = annotationList `{ parserStatementListIR_inst }
+
+;;; parserConditionalStatementIR
+;;; syntax parserConditionalStatementIR
+
+;;;; IF `( typedExpressionIR ) parserStatementIR
+;;;; IF `( typedExpressionIR ) parserStatementIR ELSE parserStatementIR
+
+rulegroup ParserStmt_inst/parserConditionalStatementIR {
+
+  rule ParserStmt_inst/non-else:
+    IC STO_0 |- IF `( typedExpressionIR_cond ) parserStatementIR_then
+              : IC STO_1 (IF `( typedExpressionIR_cond ) parserStatementIR_then_inst)
+    -- ParserStmt_inst:
+        IC STO_0 |- parserStatementIR_then
+                  : IC_then STO_1 parserStatementIR_then_inst
+
+  rule ParserStmt_inst/else:
+    IC STO_0 |- IF `( typedExpressionIR_cond ) parserStatementIR_then
+                ELSE parserStatementIR_else
+              : IC STO_2
+                  (IF `( typedExpressionIR_cond ) parserStatementIR_then_inst
+                   ELSE parserStatementIR_else_inst)
+    -- ParserStmt_inst:
+        IC STO_0 |- parserStatementIR_then
+                  : IC_then STO_1 parserStatementIR_then_inst
+    -- ParserStmt_inst:
+        IC STO_1 |- parserStatementIR_else
+                  : IC_else STO_2 parserStatementIR_else_inst
+
+}
+
+;;
+;; Parser statement list instantiation
+;;
+;; syntax parserStatementListIR
+;;
+
+rulegroup ParserStmts_inst {
+
+  rule ParserStmts_inst/nil:
+    IC STO |- eps : IC STO eps
+
+  rule ParserStmts_inst/cons:
+    IC_0 STO_0 |- parserStatementIR_h :: parserStatementIR_t*
+                : IC_2 STO_2 (parserStatementIR_h_inst :: parserStatementIR_t_inst*)
+    -- ParserStmt_inst: IC_0 STO_0 |- parserStatementIR_h
+                                    : IC_1 STO_1 parserStatementIR_h_inst
+    -- ParserStmts_inst: IC_1 STO_1 |- parserStatementIR_t*
+                                     : IC_2 STO_2 parserStatementIR_t_inst*
+
+}

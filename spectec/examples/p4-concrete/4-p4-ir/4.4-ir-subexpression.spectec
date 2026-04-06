@@ -1,0 +1,119 @@
+;;
+;; Sub-expressions
+;;
+
+dec $subexpressions_of_typedExpressionIR(typedExpressionIR)
+  : typedExpressionListIR
+  hint(prose_in "the sub-expressions of" %0)
+
+dec $subexpressions_of_typedExpressionListIR(typedExpressionListIR)
+  : typedExpressionListIR
+  hint(prose_in "the sub-expressions of" %0)
+
+dec $subexpressions_of_expressionIR(expressionIR)
+  : typedExpressionListIR
+  hint(prose_in "the sub-expressions of" %0)
+
+dec $subexpressions_of_argumentIR(argumentIR)
+  : typedExpressionListIR
+  hint(prose_in "the sub-expressions of" %0)
+
+dec $subexpressions_of_argumentListIR(argumentListIR)
+  : typedExpressionListIR
+  hint(prose_in "the sub-expressions of" %0)
+
+;;
+;; Sub-expressions of expressions
+;;
+
+def $subexpressions_of_typedExpressionIR(typedExpressionIR)
+  = typedExpressionIR :: $subexpressions_of_expressionIR(expressionIR)
+  -- if expressionIR `# _ = typedExpressionIR
+
+def $subexpressions_of_expressionIR(unop typedExpressionIR)
+  = $subexpressions_of_typedExpressionIR(typedExpressionIR)
+
+def $subexpressions_of_expressionIR(
+    typedExpressionIR_l binop typedExpressionIR_r)
+  = $subexpressions_of_typedExpressionIR(typedExpressionIR_l)
+    ++ $subexpressions_of_typedExpressionIR(typedExpressionIR_r)
+
+def $subexpressions_of_expressionIR(
+    typedExpressionIR_cond
+      `? typedExpressionIR_then `: typedExpressionIR_else)
+  = $subexpressions_of_typedExpressionIR(typedExpressionIR_cond)
+    ++ $subexpressions_of_typedExpressionIR(typedExpressionIR_then)
+    ++ $subexpressions_of_typedExpressionIR(typedExpressionIR_else)
+
+def $subexpressions_of_expressionIR(
+    `( typeIR ) typedExpressionIR)
+  = $subexpressions_of_typedExpressionIR(typedExpressionIR)
+
+def $subexpressions_of_expressionIR(
+    SEQ `{ typedExpressionListIR })
+  = $subexpressions_of_typedExpressionListIR(typedExpressionListIR)
+
+def $subexpressions_of_expressionIR(
+    SEQ `{ typedExpressionListIR `, `... })
+  = $subexpressions_of_typedExpressionListIR(typedExpressionListIR)
+
+def $subexpressions_of_expressionIR(
+    RECORD `{ (nameIR `= typedExpressionIR)* })
+  = $subexpressions_of_typedExpressionListIR(typedExpressionIR*)
+
+def $subexpressions_of_expressionIR(
+    RECORD `{ (nameIR `= typedExpressionIR)* `, `... })
+  = $subexpressions_of_typedExpressionListIR(typedExpressionIR*)
+
+def $subexpressions_of_expressionIR(
+    typedExpressionIR `. nameIR)
+  = $subexpressions_of_typedExpressionIR(typedExpressionIR)
+
+def $subexpressions_of_expressionIR(
+    typedExpressionIR_base `[ typedExpressionIR_index ])
+  = $subexpressions_of_typedExpressionIR(typedExpressionIR_base)
+    ++ $subexpressions_of_typedExpressionIR(typedExpressionIR_index)
+
+def $subexpressions_of_expressionIR(
+    typedExpressionIR_base
+      `[ typedExpressionIR_hi `: typedExpressionIR_lo ])
+  = $subexpressions_of_typedExpressionIR(typedExpressionIR_base)
+    ++ $subexpressions_of_typedExpressionIR(typedExpressionIR_hi)
+    ++ $subexpressions_of_typedExpressionIR(typedExpressionIR_lo)
+
+def $subexpressions_of_expressionIR(
+    constructorTargetIR `( argumentIR* ))
+  = $subexpressions_of_argumentListIR(argumentIR*)
+
+def $subexpressions_of_expressionIR(
+    callableTargetIR `< typeArgumentIR* > `( argumentIR* ))
+  = $subexpressions_of_argumentListIR(argumentIR*)
+
+def $subexpressions_of_expressionIR(
+    `( typedExpressionIR ))
+  = $subexpressions_of_typedExpressionIR(typedExpressionIR)
+
+def $subexpressions_of_expressionIR(_) = eps
+  -- otherwise
+
+def $subexpressions_of_typedExpressionListIR(typedExpressionIR*)
+  = $concat_<typedExpressionIR>(
+      $subexpressions_of_typedExpressionIR(typedExpressionIR)*)
+
+;;
+;; Sub-expressions of arguments
+;;
+
+def $subexpressions_of_argumentIR(typedExpressionIR)
+  = $subexpressions_of_typedExpressionIR(typedExpressionIR)
+
+def $subexpressions_of_argumentIR(
+    nameIR `= typedExpressionIR)
+  = $subexpressions_of_typedExpressionIR(typedExpressionIR)
+
+def $subexpressions_of_argumentIR(_) = eps
+  -- otherwise
+
+def $subexpressions_of_argumentListIR(argumentIR*)
+  = $concat_<typedExpressionIR>(
+      $subexpressions_of_argumentIR(argumentIR)*)

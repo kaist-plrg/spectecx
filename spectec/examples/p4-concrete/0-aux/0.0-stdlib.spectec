@@ -1,0 +1,293 @@
+;;
+;; Metavariables for int, nat, bool, and text
+;;
+
+var b : bool
+
+var i : int
+
+var n : nat
+var w : nat
+
+var t : text
+
+;;
+;; Pretty-printer
+;;
+
+builtin dec $print_<X>(X) : text
+  hint(prose_in %0 "as text")
+
+;;
+;; General bool functions
+;;
+
+dec $ite<X>(bool, X, X) : X
+  hint(prose_in %1 "if" %0 "otherwise" %2)
+def $ite<X>(true, X_t, X_f) = X_t
+def $ite<X>(false, X_t, X_f) = X_f
+
+;;
+;; General nat functions
+;;
+
+builtin dec $sum_nat(nat*) : nat
+  hint(prose_in "sum"#`( %0 ))
+
+builtin dec $max_nat(nat*) : nat
+  hint(prose_in "max"#`( %0 ))
+
+builtin dec $min_nat(nat*) : nat
+  hint(prose_in "min"#`( %0 ))
+
+;;
+;; General int functions
+;;
+
+builtin dec $sum_int(int*) : int
+  hint(prose_in "sum"#`( %0 ))
+
+builtin dec $max_int(int*) : int
+  hint(prose_in "max"#`( %0 ))
+
+builtin dec $min_int(int*) : int
+  hint(prose_in "min"#`( %0 ))
+
+;;
+;; General text functions
+;;
+
+builtin dec $text_to_int(text) : int
+builtin dec $int_to_text(int) : text
+builtin dec $split_text(text, text) : text*
+
+dec $concat_text(text*) : text
+  hint(prose_in "the concatenation of" %0)
+def $concat_text(eps) = ""
+def $concat_text(t_h :: t_t*) = t_h ++ $concat_text(t_t*)
+
+dec $join_text(text*, text) : text
+  hint(prose_in "the result of joining" %0 "with separator" %1)
+def $join_text(eps, t_sep) = ""
+def $join_text([ t_h ], t_sep) = t_h
+def $join_text(t_h1 :: t_h2 :: t_t*, t_sep)
+  = t_h1 ++ t_sep ++ $join_text(t_h2 :: t_t*, t_sep)
+
+dec $replace_text(text, text, text) : text
+  hint(prose_in "the text" %0 "with all occurrences of" %1 "replaced by" %2)
+dec $replace_text'(nat, nat, text, text, text) : text
+def $replace_text(t, t_old, t_new)
+  = $replace_text'(0, |t|, t, t_old, t_new)
+def $replace_text'(n_len, n_len, t, t_old, t_new) = t
+def $replace_text'(n, n_len, t, t_old, t_new)
+  = $replace_text'($(n + 1), n_len, t_replaced, t_old, t_new)
+  -- if $(n < n_len)
+  -- if t_replaced = $ite<text>(t[n] = t_old, t[ [n] = t_new ], t)
+
+dec $replace_text_except(text, text, text) : text
+  hint(prose_in "the text" %0 "with all occurrences of" %1 "not replaced by" %2)
+dec $replace_text_except'(nat, nat, text, text, text) : text
+def $replace_text_except(t, t_old, t_new)
+  = $replace_text_except'(0, |t|, t, t_old, t_new)
+def $replace_text_except'(n_len, n_len, t, t_old, t_new) = t
+def $replace_text_except'(n, n_len, t, t_old, t_new)
+  = $replace_text_except'($(n + 1), n_len, t_replaced, t_old, t_new)
+  -- if $(n < n_len)
+  -- if t_replaced = $ite<text>(t[n] = t_old, t, t[ [n] = t_new ])
+
+builtin dec $strip_prefix(text, text) : text
+  hint(prose_in "the text" %0 "with the prefix" %1 "removed")
+builtin dec $strip_suffix(text, text) : text
+  hint(prose_in "the text" %0 "with the suffix" %1 "removed")
+builtin dec $strip_all_whitespace(text) : text
+  hint(prose_in "the text" %0 "with all whitespace removed")
+
+dec $starts_with(text, text) : bool
+  hint(prose_in "the text" %0 "starts with" %1)
+def $starts_with(t, t_prefix) = true
+  -- if $(|t_prefix| <= |t|)
+  -- if t[0 : |t_prefix|] = t_prefix
+def $starts_with(t, t_prefix) = false
+  -- otherwise
+
+dec $ends_with(text, text) : bool
+  hint(prose_in "the text" %0 "ends with" %1)
+def $ends_with(t, t_suffix) = true
+  -- if $(|t_suffix| <= |t|)
+  -- if n_start = $(|t| - |t_suffix|)
+  -- if t[n_start : |t_suffix|] = t_suffix
+def $ends_with(t, t_suffix) = false
+  -- otherwise
+
+dec $strip_prefix_rec(text, text) : text
+  hint(prose_in "the text" %0 "with the prefix" %1 "removed many times as possible")
+def $strip_prefix_rec(t, t_prefix)
+  = $strip_prefix_rec(t_stripped, t_prefix)
+  -- if $starts_with(t, t_prefix)
+  -- if t_stripped = $strip_prefix(t, t_prefix)
+def $strip_prefix_rec(t, t_prefix) = t
+  -- if ~$starts_with(t, t_prefix)
+
+dec $strip_suffix_rec(text, text) : text
+  hint(prose_in "the text" %0 "with the suffix" %1 "removed many times as possible")
+def $strip_suffix_rec(t, t_suffix)
+  = $strip_suffix_rec(t_stripped, t_suffix)
+  -- if $ends_with(t, t_suffix)
+  -- if t_stripped = $strip_suffix(t, t_suffix)
+def $strip_suffix_rec(t, t_suffix) = t
+  -- if ~$ends_with(t, t_suffix)
+
+dec $contains(text, text) : bool
+  hint(prose_in "the text" %0 "contains" %1)
+dec $contains'(nat, nat, text, text) : bool
+def $contains(t, t_c) = $contains'(0, |t|, t, t_c)
+def $contains'(n_len, n_len, t, t_c) = false
+def $contains'(n, n_len, t, t_c) = true
+  -- if $(n < n_len)
+  -- if t[n] = t_c
+def $contains'(n, n_len, t, t_c)
+  = $contains'($(n + 1), n_len, t, t_c)
+  -- if $(n < n_len)
+  -- if t[n] =/= t_c
+
+;;
+;; General option functions
+;;
+
+dec $is_some_<X>(X?) : bool
+def $is_some_<X>(eps) = false
+def $is_some_<X>(X) = true
+
+dec $opt_as_seq_<X>(X?) : X*
+def $opt_as_seq_<X>(eps) = eps
+def $opt_as_seq_<X>(X) = [ X ]
+
+;;
+;; General sequence functions
+;;
+
+dec $exists_(bool*) : bool
+  hint(prose_true "some of" %0 "is true")
+  hint(prose_false "none of" %0 "is true")
+def $exists_(eps) = false
+def $exists_(b_h :: b_t*) = b_h \/ $exists_(b_t*)
+
+dec $forall_(bool*) : bool
+  hint(prose_true "all" %0 "are true")
+  hint(prose_false "not all" %0 "are true")
+def $forall_(eps) = true
+def $forall_(b_h :: b_t*) = b_h /\ $forall_(b_t*)
+
+dec $init_(nat) : nat*
+  hint(prose_in "the list of the first" %0 "natural numbers")
+def $init_(0) = eps
+def $init_(n) = n' :: $init_(n')
+  -- if n =/= 0
+  -- if n' = $(n - 1)
+
+dec $repeat_<X>(X, nat) : X*
+  hint(prose_in "a list of" %1 "copies of" %0)
+def $repeat_<X>(X, 0) = eps
+def $repeat_<X>(X, n) = X ++ $repeat_<X>(X, n')
+  -- if n =/= 0
+  -- if n' = $(n - 1)
+
+builtin dec $rev_<X>(X*) : X*
+  hint(prose_in "the reversal of" %0)
+
+builtin dec $concat_<X>((X*)*) : X*
+
+builtin dec $partition_<X>(X*, nat) : (X*, X*)
+
+dec $filter_<X>(X*, bool*) : X*
+  hint(prose_in %0 "filtered by" %1)
+def $filter_<X>(eps, eps) = eps
+def $filter_<X>(X_h :: X_t*, b_h :: b_t*)
+  = X_h :: $filter_<X>(X_t*, b_t*)
+  -- if b_h
+def $filter_<X>(X_h :: X_t*, b_h :: b_t*)
+  = $filter_<X>(X_t*, b_t*)
+  -- if ~b_h
+
+builtin dec $assoc_<X, Y>(X, (X, Y)*) : Y?
+  hint(prose_in "the value associated to" %0 "in" %1)
+
+builtin dec $sort_<X>((nat, X)*) : (nat, X)*
+
+builtin dec $distinct_<K>(K*) : bool
+  hint(prose_true "the elements of" %0 "are distinct")
+  hint(prose_false "the elements of" %0 "are not distinct")
+
+;;
+;; General set functions
+;;
+
+syntax set<K> = `{ K* }
+
+dec $empty_set<K> : set<K>
+def $empty_set<K> = `{ eps }
+
+dec $in_set<K>(K, set<K>) : bool
+  hint(prose_true %0 "is an element of the set" %1)
+def $in_set<K>(K, `{ K_e* }) = K <- K_e*
+
+builtin dec $intersect_set<K>(set<K>, set<K>) : set<K>
+  hint(prose_in "the intersection of the sets" %0 "and" %1)
+
+builtin dec $union_set<K>(set<K>, set<K>) : set<K>
+  hint(prose_in "the union of the sets" %0 "and" %1)
+
+builtin dec $unions_set<K>(set<K>*) : set<K>
+  hint(prose_in "the union of the sets" %0)
+
+builtin dec $diff_set<K>(set<K>, set<K>) : set<K>
+  hint(prose_in "the difference of the sets" %0 "and" %1)
+
+builtin dec $sub_set<K>(set<K>, set<K>) : bool
+  hint(prose_true %0 "is a subset of" %1)
+  hint(prose_false %0 "is not a subset of" %1)
+
+builtin dec $eq_set<K>(set<K>, set<K>) : bool
+  hint(prose_true %0 "is equal to" %1)
+  hint(prose_false %0 "is not equal to" %1)
+
+;;
+;; General map functions
+;;
+
+syntax pair<K, V> = K `: V
+
+syntax map<K, V> = set<pair<K, V>>
+
+dec $empty_map<K, V> : map<K, V>
+  hint(prose_in "an empty map")
+def $empty_map<K, V> = `{ eps }
+
+dec $dom_map<K, V>(map<K, V>) : set<K>
+  hint(prose_in "the domain of the map" %0)
+def $dom_map<K, V>(`{ (K `: V)* }) = `{ K* }
+
+dec $codom_map<K, V>(map<K, V>) : set<V>
+  hint(prose_in "the codomain of the map" %0)
+def $codom_map<K, V>(`{ (K `: V)* }) = `{ V* }
+
+builtin dec $find_map<K, V>(map<K, V>, K) : V?
+  hint(prose_in "the value of" %1 "in map" %0)
+
+builtin dec $find_maps<K, V>(map<K, V>*, K) : V?
+  hint(prose_in "the value of" %1 "in maps" %0)
+
+builtin dec $add_map<K, V>(map<K, V>, K, V) : map<K, V>
+  hint(prose_in %0 "where" %1 "to" %2 "is added")
+
+builtin dec $adds_map<K, V>(map<K, V>, K*, V*) : map<K, V>
+  hint(prose_in %0 "where each of" %1 "to" %2 "are added")
+
+builtin dec $update_map<K, V>(map<K, V>, K, V) : map<K, V>
+  hint(prose_in "the map" %0 "with the value for" %1 "is updated to" %2)
+
+dec $extend_map<K, V>(map<K, V>, map<K, V>) : map<K, V>
+def $extend_map<K, V>(`{ (K_a `: V_a)* }, `{ (K_b `: V_b)* })
+  = `{ (K_c `: V_c)* }
+  -- if `{ (K_c `: V_c)* }
+      = $adds_map<K, V>(`{ (K_a `: V_a)* }, K_b*, V_b*)

@@ -1,0 +1,1466 @@
+;;
+;; Expression typing
+;;
+;; syntax expression
+;;
+
+;;; literalExpression
+;;; syntax literalExpression
+;;;; booleanLiteral
+;;;; integerLiteral
+;;;; stringLiteral
+
+rulegroup Expr_ok/literalExpression {
+
+  rule Expr_ok/booleanLiteral:
+    p TC |- booleanLiteral : booleanLiteral `# expressionNoteIR
+    -- if expressionNoteIR = `( BOOL LCTK )
+
+  rule Expr_ok/integerLiteral-arbint:
+    p TC |- D i : (D i) `# expressionNoteIR
+    -- if expressionNoteIR = `( INT LCTK )
+
+  rule Expr_ok/integerLiteral-fixint:
+    p TC |- n S i : (n S i) `# expressionNoteIR
+    -- if expressionNoteIR = `( (INT `< n >) LCTK )
+
+  rule Expr_ok/integerLiteral-fixbit:
+    p TC |- n W i : (n W i) `# expressionNoteIR
+    -- if expressionNoteIR = `( (BIT `< n >) LCTK )
+
+  rule Expr_ok/stringLiteral:
+    p TC |- stringLiteral : stringLiteral `# expressionNoteIR
+    -- if expressionNoteIR = `( STRING LCTK )
+
+}
+
+;;; referenceExpression
+;;; syntax referenceExpression
+
+;;;; prefixedNonTypeName
+;;;; THIS
+
+rulegroup Expr_ok/referenceExpression {
+
+  rule Expr_ok/prefixedNonTypeName:
+    p TC |- prefixedNonTypeName : prefixedNameIR `# expressionNoteIR
+    -- if prefixedNameIR = $prefixedNonTypeName(prefixedNonTypeName)
+    -- if _ typeIR ctk _ = $find_var_t(prefixedNameIR, p, TC)
+    -- if expressionNoteIR = `( typeIR ctk )
+
+  rule Expr_ok/this:
+    p TC |- THIS : prefixedNameIR `# expressionNoteIR
+    -- if prefixedNameIR = `` "this"
+    -- if _ typeIR ctk _ = $find_var_t(prefixedNameIR, p, TC)
+    -- if expressionNoteIR = `( typeIR ctk )
+
+}
+
+;;; defaultExpression
+
+rule Expr_ok/defaultExpression:
+  p TC |- `... : `... `# expressionNoteIR
+  -- if expressionNoteIR = `( DEFAULT LCTK )
+
+;;; unaryExpression
+
+;;;; `!
+
+tbl dec $compat_lnot(typeIR) : bool
+tbl def $compat_lnot =
+  | BOOL => true
+  | TYPEDEF _ typeIR => $compat_lnot(typeIR)
+  | _ => false
+
+rule Expr_ok/unaryExpression-lnot:
+  p TC |- `! expression : (`! typedExpressionIR_reduced) `# expressionNoteIR
+  ---- ;; check expression
+  -- Expr_ok: p TC |- expression : typedExpressionIR
+  ---- ;; check that the type is compatible
+  ---- ;; while inserting implicit casts if necessary
+  -- if typedExpressionIR_reduced
+      = $reduce_serenum_unary(typedExpressionIR, def $compat_lnot)
+  ---- ;; create typed expression
+  -- if typeIR_reduced = $type_of_typedExpressionIR(typedExpressionIR_reduced)
+  -- if ctk_reduced = $ctk_of_typedExpressionIR(typedExpressionIR_reduced)
+  -- if expressionNoteIR = `( typeIR_reduced ctk_reduced )
+
+;;;; `~
+
+tbl dec $compat_bnot(typeIR) : bool
+tbl def $compat_bnot =
+  | INT `< _ > => true
+  | BIT `< _ > => true
+  | TYPEDEF _ typeIR => $compat_bnot(typeIR)
+  | _ => false
+
+rule Expr_ok/unaryExpression-bnot:
+  p TC |- `~ expression : (`~ typedExpressionIR_reduced) `# expressionNoteIR
+  ---- ;; check expression
+  -- Expr_ok: p TC |- expression : typedExpressionIR
+  ---- ;; check that the type is compatible
+  ---- ;; while inserting implicit casts if necessary
+  -- if typedExpressionIR_reduced
+      = $reduce_serenum_unary(typedExpressionIR, def $compat_bnot)
+  ---- ;; create typed expression
+  -- if typeIR_reduced = $type_of_typedExpressionIR(typedExpressionIR_reduced)
+  -- if ctk_reduced = $ctk_of_typedExpressionIR(typedExpressionIR_reduced)
+  -- if expressionNoteIR = `( typeIR_reduced ctk_reduced )
+
+;;;; `+ | `-
+
+tbl dec $compat_uplusminus(typeIR) : bool
+tbl def $compat_uplusminus =
+  | INT => true
+  | INT `< _ > => true
+  | BIT `< _ > => true
+  | TYPEDEF _ typeIR => $compat_uplusminus(typeIR)
+  | _ => false
+
+rule Expr_ok/unaryExpression-uplusminus:
+  p TC |- unop expression : (unop typedExpressionIR_reduced) `# expressionNoteIR
+  -- if unop = `+ \/ unop = `-
+  ---- ;; check expression
+  -- Expr_ok: p TC |- expression : typedExpressionIR
+  ---- ;; check that the type is compatible
+  ---- ;; while inserting implicit casts if necessary
+  -- if typedExpressionIR_reduced
+      = $reduce_serenum_unary(typedExpressionIR, def $compat_uplusminus)
+  ---- ;; create typed expression
+  -- if typeIR_reduced = $type_of_typedExpressionIR(typedExpressionIR_reduced)
+  -- if ctk_reduced = $ctk_of_typedExpressionIR(typedExpressionIR_reduced)
+  -- if expressionNoteIR = `( typeIR_reduced ctk_reduced )
+
+;;; binaryExpression
+
+;;;; `+ | `- | `*
+
+tbl dec $compat_plusminusmult(typeIR, typeIR) : bool
+tbl def $compat_plusminusmult =
+  | (INT, INT) => true
+  | (INT `< w_l >, INT `< w_r >) => $(w_l = w_r)
+  | (BIT `< w_l >, BIT `< w_r >) => $(w_l = w_r)
+  | (TYPEDEF _ typeIR_l, typeIR_r)
+      => $compat_plusminusmult(typeIR_l, typeIR_r)
+  | (typeIR_l, TYPEDEF _ typeIR_r)
+      => $compat_plusminusmult(typeIR_l, typeIR_r)
+  | (_, _) => false
+
+rule Expr_ok/binaryExpression-plusminusmult:
+  p TC |- expression_l binop expression_r
+        : (typedExpressionIR_l_reduced binop typedExpressionIR_r_reduced) `# expressionNoteIR
+  -- if binop <- [ `+ , `- , `* ]
+  ---- ;; check both sides
+  -- Expr_ok: p TC |- expression_l : typedExpressionIR_l
+  -- Expr_ok: p TC |- expression_r : typedExpressionIR_r
+  ---- ;; check that the types are compatible
+  ---- ;; while inserting implicit casts if necessary
+  -- if (typedExpressionIR_l_cast, typedExpressionIR_r_cast)
+        = $cast_binary(typedExpressionIR_l, typedExpressionIR_r)
+  -- if (typedExpressionIR_l_reduced, typedExpressionIR_r_reduced)
+        = $reduce_serenum_binary(
+            typedExpressionIR_l_cast,
+            typedExpressionIR_r_cast,
+            def $compat_plusminusmult
+          )
+  ---- ;; fetch annotations
+  -- if typeIR_reduced = $type_of_typedExpressionIR(typedExpressionIR_l_reduced)
+  -- if ctk_l_reduced = $ctk_of_typedExpressionIR(typedExpressionIR_l_reduced)
+  -- if ctk_r_reduced = $ctk_of_typedExpressionIR(typedExpressionIR_r_reduced)
+  ---- ;; create typed expression
+  -- if ctk_reduced = $join_ctk(ctk_l_reduced, ctk_r_reduced)
+  -- if expressionNoteIR = `( typeIR_reduced ctk_reduced )
+
+;;;; `|+| | `|-|
+
+tbl dec $compat_satplusminus(typeIR, typeIR) : bool
+tbl def $compat_satplusminus =
+  | (INT `< w_l >, INT `< w_r >) => $(w_l = w_r)
+  | (BIT `< w_l >, BIT `< w_r >) => $(w_l = w_r)
+  | (TYPEDEF _ typeIR_l, typeIR_r)
+      => $compat_satplusminus(typeIR_l, typeIR_r)
+  | (typeIR_l, TYPEDEF _ typeIR_r)
+      => $compat_satplusminus(typeIR_l, typeIR_r)
+  | (_, _) => false
+
+rule Expr_ok/binaryExpression-satplusminus:
+  p TC |- expression_l binop expression_r
+        : (typedExpressionIR_l_reduced binop typedExpressionIR_r_reduced) `# expressionNoteIR
+  -- if binop <- [ `|+| , `|-| ]
+  ---- ;; check both sides
+  -- Expr_ok: p TC |- expression_l : typedExpressionIR_l
+  -- Expr_ok: p TC |- expression_r : typedExpressionIR_r
+  ---- ;; check that the types are compatible
+  ---- ;; while inserting implicit casts if necessary
+  -- if (typedExpressionIR_l_cast, typedExpressionIR_r_cast)
+        = $cast_binary(typedExpressionIR_l, typedExpressionIR_r)
+  -- if (typedExpressionIR_l_reduced, typedExpressionIR_r_reduced)
+        = $reduce_serenum_binary(
+            typedExpressionIR_l_cast,
+            typedExpressionIR_r_cast,
+            def $compat_satplusminus
+          )
+  ---- ;; fetch annotations
+  -- if typeIR_reduced = $type_of_typedExpressionIR(typedExpressionIR_l_reduced)
+  -- if ctk_l_reduced = $ctk_of_typedExpressionIR(typedExpressionIR_l_reduced)
+  -- if ctk_r_reduced = $ctk_of_typedExpressionIR(typedExpressionIR_r_reduced)
+  ---- ;; create typed expression
+  -- if ctk_reduced = $join_ctk(ctk_l_reduced, ctk_r_reduced)
+  -- if expressionNoteIR = `( typeIR_reduced ctk_reduced )
+
+;;;; `/ | `%
+
+tbl dec $compat_divmod(typeIR, typeIR) : bool
+tbl def $compat_divmod =
+  | (INT, INT) => true
+  | (TYPEDEF _ typeIR_l, typeIR_r)
+      => $compat_divmod(typeIR_l, typeIR_r)
+  | (typeIR_l, TYPEDEF _ typeIR_r)
+      => $compat_divmod(typeIR_l, typeIR_r)
+  | (_, _) => false
+
+rulegroup Expr_ok/binaryExpression-divmod {
+
+  rule Expr_ok/rhs-lctk:
+    p TC |- expression_l binop expression_r
+          : (typedExpressionIR_l_reduced binop typedExpressionIR_r_reduced) `# expressionNoteIR
+    -- if binop <- [ `/ , `% ]
+    ---- ;; check both sides
+    -- Expr_ok: p TC |- expression_l : typedExpressionIR_l
+    -- Expr_ok: p TC |- expression_r : typedExpressionIR_r
+    ---- ;; check that the types are compatible
+    ---- ;; while inserting implicit casts if necessary
+    -- if (typedExpressionIR_l_cast, typedExpressionIR_r_cast)
+          = $cast_binary(typedExpressionIR_l, typedExpressionIR_r)
+    -- if (typedExpressionIR_l_reduced, typedExpressionIR_r_reduced)
+          = $reduce_serenum_binary(
+              typedExpressionIR_l_cast,
+              typedExpressionIR_r_cast,
+              def $compat_divmod
+            )
+    ---- ;; fetch annotations
+    -- if typeIR_reduced = $type_of_typedExpressionIR(typedExpressionIR_l_reduced)
+    -- if ctk_l_reduced = $ctk_of_typedExpressionIR(typedExpressionIR_l_reduced)
+    -- if ctk_r_reduced = $ctk_of_typedExpressionIR(typedExpressionIR_r_reduced)
+    ---- ;; check that the divisor is local compile-time known and is positive
+    -- if ctk_r_reduced = LCTK
+    -- Expr_eval_lctk: p TC |- typedExpressionIR_r_reduced ~> integerValue_r
+    -- if n_r = $nat_of_integerValue(integerValue_r)
+    -- if $(n_r > 0)
+    ---- ;; create typed expression
+    -- if ctk_reduced = $join_ctk(ctk_l_reduced, ctk_r_reduced)
+    -- if expressionNoteIR = `( typeIR_reduced ctk_reduced )
+
+  rule Expr_ok/rhs-non-lctk:
+    p TC |- expression_l binop expression_r
+          : (typedExpressionIR_l_reduced binop typedExpressionIR_r_reduced) `# expressionNoteIR
+    -- if binop <- [ `/ , `% ]
+    ---- ;; check both sides
+    -- Expr_ok: p TC |- expression_l : typedExpressionIR_l
+    -- Expr_ok: p TC |- expression_r : typedExpressionIR_r
+    ---- ;; check that the types are compatible
+    ---- ;; while inserting implicit casts if necessary
+    -- if (typedExpressionIR_l_cast, typedExpressionIR_r_cast)
+          = $cast_binary(typedExpressionIR_l, typedExpressionIR_r)
+    -- if (typedExpressionIR_l_reduced, typedExpressionIR_r_reduced)
+          = $reduce_serenum_binary(
+              typedExpressionIR_l_cast,
+              typedExpressionIR_r_cast,
+              def $compat_divmod
+            )
+    ---- ;; fetch annotations
+    -- if typeIR_reduced = $type_of_typedExpressionIR(typedExpressionIR_l_reduced)
+    -- if ctk_l_reduced = $ctk_of_typedExpressionIR(typedExpressionIR_l_reduced)
+    -- if ctk_r_reduced = $ctk_of_typedExpressionIR(typedExpressionIR_r_reduced)
+    ---- ;; check that the divisor is not local compile-time known
+    ---- ;; may be target-specific, but let it slide
+    -- if ctk_r_reduced =/= LCTK
+    ---- ;; create typed expression
+    -- if ctk_reduced = $join_ctk(ctk_l_reduced, ctk_r_reduced)
+    -- if expressionNoteIR = `( typeIR_reduced ctk_reduced )
+
+}
+
+;;;; `<< | `>>
+
+tbl dec $compat_shift(typeIR, typeIR) : bool
+tbl def $compat_shift =
+  | (INT, INT) => true
+  | (INT, INT `< _ >) => true
+  | (INT, BIT `< _ >) => true
+  | (INT `< _ >, INT) => true
+  | (INT `< _ >, INT `< _ >) => true
+  | (INT `< _ >, BIT `< _ >) => true
+  | (BIT `< _ >, INT) => true
+  | (BIT `< _ >, INT `< _ >) => true
+  | (BIT `< _ >, BIT `< _ >) => true
+  | (TYPEDEF _ typeIR_l, typeIR_r)
+      => $compat_shift(typeIR_l, typeIR_r)
+  | (typeIR_l, TYPEDEF _ typeIR_r)
+      => $compat_shift(typeIR_l, typeIR_r)
+  | (_, _) => false
+
+rulegroup Expr_ok/binaryExpression-shift {
+
+  rule Expr_ok/rhs-fixbit:
+    p TC |- expression_l binop expression_r
+          : (typedExpressionIR_l_reduced binop typedExpressionIR_r_reduced) `# expressionNoteIR
+    -- if binop <- [ `<< , `>> ]
+    ---- ;; check both sides
+    -- Expr_ok: p TC |- expression_l : typedExpressionIR_l
+    -- Expr_ok: p TC |- expression_r : typedExpressionIR_r
+    ---- ;; check that the types are compatible
+    ---- ;; while inserting implicit casts if necessary
+    -- if (typedExpressionIR_l_reduced, typedExpressionIR_r_reduced)
+          = $reduce_serenum_binary(
+              typedExpressionIR_l,
+              typedExpressionIR_r,
+              def $compat_shift)
+    ---- ;; fetch annotations
+    -- if typeIR_l_reduced = $type_of_typedExpressionIR(typedExpressionIR_l_reduced)
+    -- if ctk_l_reduced = $ctk_of_typedExpressionIR(typedExpressionIR_l_reduced)
+    -- if typeIR_r_reduced = $type_of_typedExpressionIR(typedExpressionIR_r_reduced)
+    -- if ctk_r_reduced = $ctk_of_typedExpressionIR(typedExpressionIR_r_reduced)
+    ---- ;; check that the right-hand side is fixed bit type
+    -- if BIT `< _ > = typeIR_r_reduced
+    ---- ;; check that if the left-hand side is int type,
+    ---- ;; the right-hand side is local compile-time known
+    -- if (typeIR_l_reduced = INT) => (ctk_r_reduced = LCTK)
+    ---- ;; create typed expression
+    -- if ctk_reduced = $join_ctk(ctk_l_reduced, ctk_r_reduced)
+    -- if expressionNoteIR = `( typeIR_l_reduced ctk_reduced )
+
+  rule Expr_ok/rhs-non-fixbit:
+    p TC |- expression_l binop expression_r
+          : (typedExpressionIR_l_reduced binop typedExpressionIR_r_reduced) `# expressionNoteIR
+    -- if binop <- [ `<< , `>> ]
+    ---- ;; check both sides
+    -- Expr_ok: p TC |- expression_l : typedExpressionIR_l
+    -- Expr_ok: p TC |- expression_r : typedExpressionIR_r
+    ---- ;; check that the types are compatible
+    ---- ;; while inserting implicit casts if necessary
+    -- if (typedExpressionIR_l_reduced, typedExpressionIR_r_reduced)
+          = $reduce_serenum_binary(
+              typedExpressionIR_l,
+              typedExpressionIR_r,
+              def $compat_shift)
+    ---- ;; fetch annotations
+    -- if typeIR_l_reduced = $type_of_typedExpressionIR(typedExpressionIR_l_reduced)
+    -- if ctk_l_reduced = $ctk_of_typedExpressionIR(typedExpressionIR_l_reduced)
+    -- if typeIR_r_reduced = $type_of_typedExpressionIR(typedExpressionIR_r_reduced)
+    -- if ctk_r_reduced = $ctk_of_typedExpressionIR(typedExpressionIR_r_reduced)
+    ---- ;; check that the right-hand side is local compile-time known non-negative int type
+    -- if ~(typeIR_r_reduced <: fixedBitTypeIR)
+    -- if ctk_r_reduced = LCTK
+    -- Expr_eval_lctk: p TC |- typedExpressionIR_r_reduced ~> integerValue_r
+    -- if i_r = $int_of_integerValue(integerValue_r)
+    -- if $(i_r >= 0)
+    ---- ;; create typed expression
+    -- if ctk_reduced = $join_ctk(ctk_l_reduced, ctk_r_reduced)
+    -- if expressionNoteIR = `( typeIR_l_reduced ctk_reduced )
+
+}
+
+;;;; `== | `!=
+
+rule Expr_ok/binaryExpression-equality:
+  p TC |- expression_l binop expression_r
+        : (typedExpressionIR_l_cast binop typedExpressionIR_r_cast) `# expressionNoteIR
+  -- if binop <- [ `== , `!= ]
+  ---- ;; check both sides
+  -- Expr_ok: p TC |- expression_l : typedExpressionIR_l
+  -- Expr_ok: p TC |- expression_r : typedExpressionIR_r
+  ---- ;; check that the types are compatible
+  ---- ;; while inserting implicit casts if necessary
+  -- if (typedExpressionIR_l_cast, typedExpressionIR_r_cast)
+        = $cast_binary(typedExpressionIR_l, typedExpressionIR_r)
+  ---- ;; fetch annotations
+  -- if typeIR_cast = $type_of_typedExpressionIR(typedExpressionIR_l_cast)
+  -- if ctk_l_cast = $ctk_of_typedExpressionIR(typedExpressionIR_l_cast)
+  -- if ctk_r_cast = $ctk_of_typedExpressionIR(typedExpressionIR_r_cast)
+  ---- ;; check that the type supports equality
+  -- if $is_equalable_typeIR(typeIR_cast)
+  ---- ;; create typed expression
+  -- if ctk_cast = $join_ctk(ctk_l_cast, ctk_r_cast)
+  -- if expressionNoteIR = `( BOOL ctk_cast )
+
+;;;; `<= | `>= | ``< | ``>
+
+tbl dec $compat_compare(typeIR, typeIR) : bool
+tbl def $compat_compare =
+  | (INT, INT) => true
+  | (INT `< w_l >, INT `< w_r >) => $(w_l = w_r)
+  | (BIT `< w_l >, BIT `< w_r >) => $(w_l = w_r)
+  | (TYPEDEF _ typeIR_l, typeIR_r)
+      => $compat_compare(typeIR_l, typeIR_r)
+  | (typeIR_l, TYPEDEF _ typeIR_r)
+      => $compat_compare(typeIR_l, typeIR_r)
+  | (_, _) => false
+
+rule Expr_ok/binaryExpression-comparison:
+  p TC |- expression_l binop expression_r
+        : (typedExpressionIR_l_reduced binop typedExpressionIR_r_reduced) `# expressionNoteIR
+  -- if binop <- [ `<= , `>= , ``< , ``> ]
+  ---- ;; check both sides
+  -- Expr_ok: p TC |- expression_l : typedExpressionIR_l
+  -- Expr_ok: p TC |- expression_r : typedExpressionIR_r
+  ---- ;; check that the types are compatible
+  ---- ;; while inserting implicit casts if necessary
+  -- if (typedExpressionIR_l_cast, typedExpressionIR_r_cast)
+        = $cast_binary(typedExpressionIR_l, typedExpressionIR_r)
+  -- if (typedExpressionIR_l_reduced, typedExpressionIR_r_reduced)
+        = $reduce_serenum_binary(
+            typedExpressionIR_l_cast,
+            typedExpressionIR_r_cast,
+            def $compat_compare
+          )
+  ---- ;; fetch annotations
+  -- if typeIR_reduced = $type_of_typedExpressionIR(typedExpressionIR_l_reduced)
+  -- if ctk_l_reduced = $ctk_of_typedExpressionIR(typedExpressionIR_l_reduced)
+  -- if ctk_r_reduced = $ctk_of_typedExpressionIR(typedExpressionIR_r_reduced)
+  ---- ;; create typed expression
+  -- if ctk_reduced = $join_ctk(ctk_l_reduced, ctk_r_reduced)
+  -- if expressionNoteIR = `( BOOL ctk_reduced )
+
+;;;; `& | `^ | `|
+
+tbl dec $compat_bitwise(typeIR, typeIR) : bool
+tbl def $compat_bitwise =
+  | (INT `< w_l >, INT `< w_r >) => $(w_l = w_r)
+  | (BIT `< w_l >, BIT `< w_r >) => $(w_l = w_r)
+  | (TYPEDEF _ typeIR_l, typeIR_r)
+      => $compat_bitwise(typeIR_l, typeIR_r)
+  | (typeIR_l, TYPEDEF _ typeIR_r)
+      => $compat_bitwise(typeIR_l, typeIR_r)
+  | (_, _) => false
+
+rule Expr_ok/binaryExpression-bitwise:
+  p TC |- expression_l binop expression_r
+        : (typedExpressionIR_l_reduced binop typedExpressionIR_r_reduced) `# expressionNoteIR
+  -- if binop <- [ `& , `^ , `| ]
+  ---- ;; check both sides
+  -- Expr_ok: p TC |- expression_l : typedExpressionIR_l
+  -- Expr_ok: p TC |- expression_r : typedExpressionIR_r
+  ---- ;; check that the types are compatible
+  ---- ;; while inserting implicit casts if necessary
+  -- if (typedExpressionIR_l_cast, typedExpressionIR_r_cast)
+        = $cast_binary(typedExpressionIR_l, typedExpressionIR_r)
+  -- if (typedExpressionIR_l_reduced, typedExpressionIR_r_reduced)
+        = $reduce_serenum_binary(
+            typedExpressionIR_l_cast,
+            typedExpressionIR_r_cast,
+            def $compat_bitwise
+          )
+  ---- ;; fetch annotations
+  -- if typeIR_reduced = $type_of_typedExpressionIR(typedExpressionIR_l_reduced)
+  -- if ctk_l_reduced = $ctk_of_typedExpressionIR(typedExpressionIR_l_reduced)
+  -- if ctk_r_reduced = $ctk_of_typedExpressionIR(typedExpressionIR_r_reduced)
+  ---- ;; create typed expression
+  -- if ctk_reduced = $join_ctk(ctk_l_reduced, ctk_r_reduced)
+  -- if expressionNoteIR = `( typeIR_reduced ctk_reduced )
+
+;;;; `++
+
+tbl dec $compat_concat(typeIR, typeIR) : bool
+tbl def $compat_concat =
+  | (STRING, STRING) => true
+  | (INT `< _ >, INT `< _ >) => true
+  | (INT `< _ >, BIT `< _ >) => true
+  | (BIT `< _ >, INT `< _ >) => true
+  | (BIT `< _ >, BIT `< _ >) => true
+  | (TYPEDEF _ typeIR_l, typeIR_r)
+      => $compat_concat(typeIR_l, typeIR_r)
+  | (typeIR_l, TYPEDEF _ typeIR_r)
+      => $compat_concat(typeIR_l, typeIR_r)
+  | (_, _) => false
+
+dec $result_concat(typeIR, typeIR) : typeIR
+
+def $result_concat(STRING, STRING) = STRING
+def $result_concat(INT `< w_a >, INT `< w_b >) = INT `< $(w_a + w_b) >
+def $result_concat(INT `< w_a >, BIT `< w_b >) = INT `< $(w_a + w_b) >
+def $result_concat(BIT `< w_a >, INT `< w_b >) = BIT `< $(w_a + w_b) >
+def $result_concat(BIT `< w_a >, BIT `< w_b >) = BIT `< $(w_a + w_b) >
+def $result_concat(TYPEDEF _ typeIR_l, typeIR_r)
+  = $result_concat(typeIR_l, typeIR_r)
+def $result_concat(typeIR_l, TYPEDEF _ typeIR_r)
+  = $result_concat(typeIR_l, typeIR_r)
+  -- if ~(typeIR_l <: typedefTypeIR)
+
+rule Expr_ok/binaryExpression-concat:
+  p TC |- expression_l `++ expression_r
+        : (typedExpressionIR_l_reduced `++ typedExpressionIR_r_reduced) `# expressionNoteIR
+  ---- ;; check both sides
+  -- Expr_ok: p TC |- expression_l : typedExpressionIR_l
+  -- Expr_ok: p TC |- expression_r : typedExpressionIR_r
+  ---- ;; check that the types are compatible
+  ---- ;; while inserting implicit casts if necessary
+  -- if (typedExpressionIR_l_reduced, typedExpressionIR_r_reduced)
+        = $reduce_serenum_binary(
+            typedExpressionIR_l,
+            typedExpressionIR_r,
+            def $compat_concat)
+  ---- ;; fetch annotations
+  -- if typeIR_l_reduced = $type_of_typedExpressionIR(typedExpressionIR_l_reduced)
+  -- if ctk_l_reduced = $ctk_of_typedExpressionIR(typedExpressionIR_l_reduced)
+  -- if typeIR_r_reduced = $type_of_typedExpressionIR(typedExpressionIR_r_reduced)
+  -- if ctk_r_reduced = $ctk_of_typedExpressionIR(typedExpressionIR_r_reduced)
+  ---- ;; if concatenating two strings, the two must be local compile-time known
+  -- if (typeIR_l_reduced = STRING /\ typeIR_r_reduced = STRING)
+          => (ctk_l_reduced = LCTK /\ ctk_r_reduced = LCTK)
+  ---- ;; compute the result type
+  -- if typeIR_reduced
+      = $result_concat(typeIR_l_reduced, typeIR_r_reduced)
+  ---- ;; create typed expression
+  -- if ctk_reduced = $join_ctk(ctk_l_reduced, ctk_r_reduced)
+  -- if expressionNoteIR = `( typeIR_reduced ctk_reduced )
+
+;;;; `&& | `||
+
+tbl dec $compat_logical(typeIR, typeIR) : bool
+tbl def $compat_logical =
+  | (BOOL, BOOL) => true
+  | (TYPEDEF _ typeIR_l, typeIR_r)
+      => $compat_logical(typeIR_l, typeIR_r)
+  | (typeIR_l, TYPEDEF _ typeIR_r)
+      => $compat_logical(typeIR_l, typeIR_r)
+  | (_, _) => false
+
+rule Expr_ok/binaryExpression-logical:
+  p TC |- expression_l binop expression_r
+        : (typedExpressionIR_l_reduced binop typedExpressionIR_r_reduced) `# expressionNoteIR
+  -- if binop <- [ `&&, `|| ]
+  ---- ;; check both sides
+  -- Expr_ok: p TC |- expression_l : typedExpressionIR_l
+  -- Expr_ok: p TC |- expression_r : typedExpressionIR_r
+  ---- ;; check that the types are compatible
+  ---- ;; while inserting implicit casts if necessary
+  -- if (typedExpressionIR_l_cast, typedExpressionIR_r_cast)
+        = $cast_binary(typedExpressionIR_l, typedExpressionIR_r)
+  -- if (typedExpressionIR_l_reduced, typedExpressionIR_r_reduced)
+        = $reduce_serenum_binary(
+            typedExpressionIR_l_cast,
+            typedExpressionIR_r_cast,
+            def $compat_logical)
+  ---- ;; fetch annotations
+  -- if typeIR_reduced = $type_of_typedExpressionIR(typedExpressionIR_l_reduced)
+  -- if ctk_l_reduced = $ctk_of_typedExpressionIR(typedExpressionIR_l_reduced)
+  -- if ctk_r_reduced = $ctk_of_typedExpressionIR(typedExpressionIR_r_reduced)
+  ---- ;; create typed expression
+  -- if ctk_reduced = $join_ctk(ctk_l_reduced, ctk_r_reduced)
+  -- if expressionNoteIR = `( typeIR_reduced ctk_reduced )
+
+;;; ternaryExpression
+;;; syntax ternaryExpression =
+;;;   expression `? expression `: expression
+
+rule Expr_ok/ternaryExpression:
+  p TC |- expression_cond `? expression_true `: expression_false
+        : (typedExpressionIR_cond `? typedExpressionIR_true_cast `: typedExpressionIR_false_cast)
+            `# expressionNoteIR
+  ---- ;; check condition
+  -- Expr_ok: p TC |- expression_cond : typedExpressionIR_cond
+  -- if typeIR_cond = $type_of_typedExpressionIR(typedExpressionIR_cond)
+  -- if ctk_cond = $ctk_of_typedExpressionIR(typedExpressionIR_cond)
+  -- if BOOL = $unroll_typeIR(typeIR_cond)
+  ---- ;; check both branches
+  -- Expr_ok: p TC |- expression_true : typedExpressionIR_true
+  -- Expr_ok: p TC |- expression_false : typedExpressionIR_false
+  ---- ;; check that the types are compatible for the branches
+  -- if (typedExpressionIR_true_cast, typedExpressionIR_false_cast)
+        = $cast_binary(typedExpressionIR_true, typedExpressionIR_false)
+  ---- ;; fetch annotations
+  -- if typeIR_cast = $type_of_typedExpressionIR(typedExpressionIR_true_cast)
+  -- if ctk_true_cast = $ctk_of_typedExpressionIR(typedExpressionIR_true_cast)
+  -- if ctk_false_cast = $ctk_of_typedExpressionIR(typedExpressionIR_false_cast)
+  ---- ;; if both branches are arbitrary integer types,
+  ---- ;; then the condition must be compile-time known
+  -- if (typeIR_cast = INT) => (ctk_cond =/= DYN)
+  ---- ;; create typed expression
+  -- if ctk = $joins_ctk([ ctk_cond, ctk_true_cast, ctk_false_cast ])
+  -- if expressionNoteIR = `( typeIR_cast ctk )
+
+;;; castExpression
+;;; syntax castExpression = `( type ) expression
+
+rule Expr_ok/castExpression:
+  p TC |- `( type_t ) expression
+        : (`( typeIR_t ) typedExpressionIR) `# expressionNoteIR
+  ---- ;; check target type
+  -- Type_ok: p TC |- type_t : typeIR_t `# eps
+  -- Type_wf: $bound(p, TC) |- typeIR_t
+  ---- ;; check expression
+  -- Expr_ok: p TC |- expression : typedExpressionIR
+  ---- ;; fetch annotation
+  -- if typeIR = $type_of_typedExpressionIR(typedExpressionIR)
+  -- if ctk = $ctk_of_typedExpressionIR(typedExpressionIR)
+  ---- ;; check that explicit cast is defined
+  -- Cast_expl: typeIR -> typeIR_t
+  ---- ;; create typed expression
+  -- if expressionNoteIR = `( typeIR_t ctk )
+
+;;; dataExpression
+;;; syntax dataExpression
+
+;;;; invalidHeaderExpression
+;;;; syntax invalidHeaderExpression = `{#}
+
+rule Expr_ok/invalidHeaderExpression:
+  p TC |- `{#} : `{#} `# expressionNoteIR
+  -- if expressionNoteIR = `( HEADER_INVALID LCTK )
+
+;;;; sequenceOrRecordExpression
+;;;; syntax sequenceOrRecordExpression
+;;;; = `{ dataElementExpression trailingCommaOpt }
+;;;;; syntax sequenceOrRecordElementExpression
+
+;;;;; sequenceElementExpression
+;;;;; syntax sequenceElementExpression = expressionList
+
+rulegroup Expr_ok/sequenceExpression {
+
+  rule Expr_ok/non-default:
+    p TC |- `{ expressionList _ }
+          : (SEQ `{ typedExpressionIR_e* }) `# expressionNoteIR
+    ---- ;; if ... is not used
+    -- if expression_e* = $flatten_expressionList(expressionList)
+    -- if ~(`... <- expression_e*)
+    ---- ;; check each expression
+    -- (Expr_ok: p TC |- expression_e : typedExpressionIR_e)*
+    ---- ;; fetch annotations
+    -- if (typeIR_e = $type_of_typedExpressionIR(typedExpressionIR_e))*
+    -- if (ctk_e = $ctk_of_typedExpressionIR(typedExpressionIR_e))*
+    ---- ;; create typed expression
+    -- if typeIR = SEQ `< typeIR_e* >
+    -- if ctk = $joins_ctk(ctk_e*)
+    -- if expressionNoteIR = `( typeIR ctk )
+
+  rule Expr_ok/default:
+    p TC |- `{ expressionList _ }
+          : (SEQ `{ typedExpressionIR_e_h* `, `... }) `# expressionNoteIR
+    ---- ;; if ... is used, it must be the last element
+    -- if expression_e* = $flatten_expressionList(expressionList)
+    -- if `... <- expression_e*
+    -- if `... :: expression_e_h_rev* = $rev_<expression>(expression_e*)
+    -- if expression_e_h* = $rev_<expression>(expression_e_h_rev*)
+    -- if ~(`... <- expression_e_h*)
+    ---- ;; check each expression
+    -- (Expr_ok: p TC |- expression_e_h : typedExpressionIR_e_h)*
+    ---- ;; fetch annotations
+    -- if (typeIR_e_h = $type_of_typedExpressionIR(typedExpressionIR_e_h))*
+    -- if (ctk_e_h = $ctk_of_typedExpressionIR(typedExpressionIR_e_h))*
+    ---- ;; create typed expression
+    -- if typeIR = SEQ `< typeIR_e_h* `, `... >
+    -- if ctk = $joins_ctk(ctk_e_h*)
+    -- if expressionNoteIR = `( typeIR ctk )
+
+}
+
+;;;;; recordElementExpression
+;;;;; syntax recordElementExpression
+
+;;;;;; name `= expression
+;;;;;; name `= expression `, `...
+;;;;;; name `= expression `, namedExpressionList
+;;;;;; name `= expression `, namedExpressionList `, `...
+
+rulegroup Expr_ok/recordExpression {
+
+  rule Expr_ok/single-non-default:
+    p TC |- `{ (name_f `= expression_f) _ }
+          : (RECORD `{ (nameIR_f `= typedExpressionIR_f) })
+              `# expressionNoteIR
+    -- if nameIR_f = $name(name_f)
+    ---- ;; check expression
+    -- Expr_ok: p TC |- expression_f : typedExpressionIR_f
+    ---- ;; fetch annotation
+    -- if typeIR_f = $type_of_typedExpressionIR(typedExpressionIR_f)
+    -- if ctk_f = $ctk_of_typedExpressionIR(typedExpressionIR_f)
+    ---- ;; create typed expression
+    -- if typeIR = RECORD `{ (`EMPTY typeIR_f nameIR_f `;) }
+    -- if expressionNoteIR = `( typeIR ctk_f )
+
+  rule Expr_ok/single-default:
+    p TC |- `{ (name_f `= expression_f `, `...) _ }
+          : (RECORD `{ (nameIR_f `= typedExpressionIR_f) `, `... })
+              `# expressionNoteIR
+    -- if nameIR_f = $name(name_f)
+    ---- ;; check expression
+    -- Expr_ok: p TC |- expression_f : typedExpressionIR_f
+    ---- ;; fetch annotation
+    -- if typeIR_f = $type_of_typedExpressionIR(typedExpressionIR_f)
+    -- if ctk_f = $ctk_of_typedExpressionIR(typedExpressionIR_f)
+    ---- ;; create typed expression
+    -- if typeIR = RECORD `{ (`EMPTY typeIR_f nameIR_f `;) `, `... }
+    -- if expressionNoteIR = `( typeIR ctk_f )
+
+  rule Expr_ok/multiple-non-default:
+    p TC |- `{ (name_f_h `= expression_f_h `, namedExpressionList_t) _ }
+          : (RECORD `{ (nameIR_f `= typedExpressionIR_f)* })
+              `# expressionNoteIR
+    -- if (name_f_t `= expression_f_t)*
+        = $flatten_namedExpressionList(namedExpressionList_t)
+    -- if name_f* = name_f_h :: name_f_t*
+    -- if (nameIR_f = $name(name_f))*
+    -- if expression_f* = expression_f_h :: expression_f_t*
+    ---- ;; check expressions
+    -- (Expr_ok: p TC |- expression_f : typedExpressionIR_f)*
+    ---- ;; fetch annotations
+    -- if (typeIR_f = $type_of_typedExpressionIR(typedExpressionIR_f))*
+    -- if (ctk_f = $ctk_of_typedExpressionIR(typedExpressionIR_f))*
+    ---- ;; create typed expression
+    -- if typeIR = RECORD `{ (`EMPTY typeIR_f nameIR_f `;)* }
+    -- if ctk = $joins_ctk(ctk_f*)
+    -- if expressionNoteIR = `( typeIR ctk )
+
+  rule Expr_ok/multiple-default:
+    p TC |- `{ (name_f_h `= expression_f_h `, namedExpressionList_t `, `...) _ }
+         : (RECORD `{ (nameIR_f `= typedExpressionIR_f)* `, `... })
+           `# expressionNoteIR
+    -- if (name_f_t `= expression_f_t)*
+        = $flatten_namedExpressionList(namedExpressionList_t)
+    -- if name_f* = name_f_h :: name_f_t*
+    -- if (nameIR_f = $name(name_f))*
+    -- if expression_f* = expression_f_h :: expression_f_t*
+    ---- ;; check expressions
+    -- (Expr_ok: p TC |- expression_f : typedExpressionIR_f)*
+    ---- ;; fetch annotations
+    -- if (typeIR_f = $type_of_typedExpressionIR(typedExpressionIR_f))*
+    -- if (ctk_f = $ctk_of_typedExpressionIR(typedExpressionIR_f))*
+    ---- ;; create typed expression
+    -- if typeIR = RECORD `{ (`EMPTY typeIR_f nameIR_f `;)* `, `... }
+    -- if ctk = $joins_ctk(ctk_f*)
+    -- if expressionNoteIR = `( typeIR ctk )
+
+}
+
+;;; accessExpression
+;;; syntax accessExpression
+
+;;;; errorAccessExpression
+;;;; syntax errorAccessExpression = ERROR `. member
+
+rule Expr_ok/errorAccessExpression:
+  p TC |- ERROR `. member : (ERROR `. nameIR) `# expressionNoteIR
+  ---- ;; check that error member is defined
+  -- if nameIR = $name(member)
+  -- if nameIR_error = "error." ++ nameIR
+  -- if ERROR `. nameIR = $find_var_value_t(`` nameIR_error, p, TC)
+  ---- ;; create typed expression
+  -- if expressionNoteIR = `( ERROR LCTK )
+
+;;;; memberAccessExpression
+;;;; syntax memberAccessExpression = memberAccessBase `. member
+;;;;; syntax memberAccessBase
+
+;;;;;; prefixedTypeName
+
+rulegroup Expr_ok/memberAccessExpression-type {
+
+  rule Expr_ok/enum:
+    p TC |- prefixedTypeName_base `. member
+          : ((TYPE prefixedNameIR_base) `. nameIR) `# expressionNoteIR
+    ---- ;; find the type
+    -- if prefixedNameIR_base = $prefixedTypeName(prefixedTypeName_base)
+    -- if typeDefIR_base = $find_typeDef_t(p, TC, prefixedNameIR_base)
+    -- if $is_monomorphic_typeDefIR(typeDefIR_base)
+    -- if typeIR_base = $typeIR_of_typeDefIR(typeDefIR_base)
+    ---- ;; check that the type is an enum
+    -- if ENUM _ `{ nameIR_field* } = $unroll_typeIR(typeIR_base)
+    ---- ;; check that the member is defined
+    -- if nameIR = $name(member)
+    -- if nameIR <- nameIR_field*
+    ---- ;; create typed expression
+    -- if expressionNoteIR = `( typeIR_base LCTK )
+
+  rule Expr_ok/serenum:
+    p TC |- prefixedTypeName_base `. member
+         : ((TYPE prefixedNameIR_base) `. nameIR) `# expressionNoteIR
+    ---- ;; find the type
+    -- if prefixedNameIR_base = $prefixedTypeName(prefixedTypeName_base)
+    -- if typeDefIR_base = $find_typeDef_t(p, TC, prefixedNameIR_base)
+    -- if $is_monomorphic_typeDefIR(typeDefIR_base)
+    -- if typeIR_base = $typeIR_of_typeDefIR(typeDefIR_base)
+    ---- ;; check that the type is a serializable enum
+    -- if ENUM _ `< _ > `{ (nameIR_field `= _ `;)* } = $unroll_typeIR(typeIR_base)
+    ---- ;; check that the member is defined
+    -- if nameIR = $name(member)
+    -- if nameIR <- nameIR_field*
+    ---- ;; create typed expression
+    -- if expressionNoteIR = `( typeIR_base LCTK )
+
+}
+
+;;;;;; expression
+
+rulegroup Expr_ok/memberAccessExpression-expression {
+
+  rule Expr_ok/headerStack-size:
+    p TC |- expression_base `. member
+          : (typedExpressionIR_base `. "size") `# expressionNoteIR
+    ---- ;; check expression
+    -- Expr_ok: p TC |- expression_base : typedExpressionIR_base
+    ---- ;; fetch annotation
+    -- if typeIR_base = $type_of_typedExpressionIR(typedExpressionIR_base)
+    ---- ;; check that the expression is a header stack
+    -- if typeIR `[ n_size ] = $unroll_typeIR(typeIR_base)
+    ---- ;; check that member is "size"
+    -- if "size" = $name(member)
+    ---- ;; create typed expression
+    -- if expressionNoteIR = `( (BIT `< 32 >) LCTK )
+
+  rule Expr_ok/headerStack-lastIndex:
+    p TC |- expression_base `. member
+          : (typedExpressionIR_base `. "lastIndex") `# expressionNoteIR
+    ---- ;; check expression
+    -- Expr_ok: p TC |- expression_base : typedExpressionIR_base
+    ---- ;; fetch annotation
+    -- if typeIR_base = $type_of_typedExpressionIR(typedExpressionIR_base)
+    ---- ;; check that the expression is a header stack
+    -- if typeIR `[ n_size ] = $unroll_typeIR(typeIR_base)
+    ---- ;; check that member is "lastIndex"
+    -- if "lastIndex" = $name(member)
+    ---- ;; "lastIndex" can be only used within a parser
+    -- if (p = BLOCK /\ TC.BLOCK.KIND = PARSER)
+          \/ (p = LOCAL /\ TC.LOCAL.KIND = PARSER_STATE)
+    ---- ;; create typed expression
+    -- if expressionNoteIR = `( (BIT `< 32 >) DYN )
+
+  rule Expr_ok/headerStack-last:
+    p TC |- expression_base `. member
+          : (typedExpressionIR_base `. "last") `# expressionNoteIR
+    ---- ;; check expression
+    -- Expr_ok: p TC |- expression_base : typedExpressionIR_base
+    ---- ;; fetch annotation
+    -- if typeIR_base = $type_of_typedExpressionIR(typedExpressionIR_base)
+    ---- ;; check that the expression is a header stack
+    -- if typeIR `[ n_size ] = $unroll_typeIR(typeIR_base)
+    ---- ;; check that member is "last"
+    -- if "last" = $name(member)
+    ---- ;; "last" can be only used within a parser
+    -- if (p = BLOCK /\ TC.BLOCK.KIND = PARSER)
+          \/ (p = LOCAL /\ TC.LOCAL.KIND = PARSER_STATE)
+    ---- ;; create typed expression
+    -- if expressionNoteIR = `( typeIR DYN )
+
+  rule Expr_ok/headerStack-next:
+    p TC |- expression_base `. member
+          : (typedExpressionIR_base `. "next") `# expressionNoteIR
+    ---- ;; check expression
+    -- Expr_ok: p TC |- expression_base : typedExpressionIR_base
+    ---- ;; fetch annotation
+    -- if typeIR_base = $type_of_typedExpressionIR(typedExpressionIR_base)
+    ---- ;; check that the expression is a header stack
+    -- if typeIR `[ n_size ] = $unroll_typeIR(typeIR_base)
+    ---- ;; check that member is "next"
+    -- if "next" = $name(member)
+    ---- ;; "next" can be only used within a parser
+    -- if (p = BLOCK /\ TC.BLOCK.KIND = PARSER)
+          \/ (p = LOCAL /\ TC.LOCAL.KIND = PARSER_STATE)
+    ---- ;; create typed expression
+    -- if expressionNoteIR = `( typeIR DYN )
+
+  rule Expr_ok/struct:
+    p TC |- expression_base `. member
+          : (typedExpressionIR_base `. nameIR) `# expressionNoteIR
+    ---- ;; check expression
+    -- Expr_ok: p TC |- expression_base : typedExpressionIR_base
+    ---- ;; fetch annotation
+    -- if typeIR_base = $type_of_typedExpressionIR(typedExpressionIR_base)
+    -- if ctk_base = $ctk_of_typedExpressionIR(typedExpressionIR_base)
+    ---- ;; check that the expression is a struct
+    -- if STRUCT _ `< _ > `{ (_ typeIR_f nameIR_f `;)* }
+        = $unroll_typeIR(typeIR_base)
+    ---- ;; find the field
+    -- if nameIR = $name(member)
+    -- if typeIR = $assoc_<nameIR, typeIR>(nameIR, (nameIR_f, typeIR_f)*)
+    ---- ;; create typed expression
+    -- if expressionNoteIR = `( typeIR ctk_base )
+
+  rule Expr_ok/header:
+    p TC |- expression_base `. member
+          : (typedExpressionIR_base `. nameIR) `# expressionNoteIR
+    ---- ;; check expression
+    -- Expr_ok: p TC |- expression_base : typedExpressionIR_base
+    ---- ;; fetch annotation
+    -- if typeIR_base = $type_of_typedExpressionIR(typedExpressionIR_base)
+    -- if ctk_base = $ctk_of_typedExpressionIR(typedExpressionIR_base)
+    ---- ;; check that the expression is a header
+    -- if HEADER _ `< _ > `{ (_ typeIR_f nameIR_f `;)* }
+        = $unroll_typeIR(typeIR_base)
+    ---- ;; find the field
+    -- if nameIR = $name(member)
+    -- if typeIR = $assoc_<nameIR, typeIR>(nameIR, (nameIR_f, typeIR_f)*)
+    ---- ;; create typed expression
+    -- if expressionNoteIR = `( typeIR ctk_base )
+
+  rule Expr_ok/header-union:
+    p TC |- expression_base `. member
+          : (typedExpressionIR_base `. nameIR) `# expressionNoteIR
+    ---- ;; check expression
+    -- Expr_ok: p TC |- expression_base : typedExpressionIR_base
+    ---- ;; fetch annotation
+    -- if typeIR_base = $type_of_typedExpressionIR(typedExpressionIR_base)
+    -- if ctk_base = $ctk_of_typedExpressionIR(typedExpressionIR_base)
+    ---- ;; check that the expression is a header union
+    -- if HEADER_UNION _ `< _ > `{ (_ typeIR_f nameIR_f `;)* }
+        = $unroll_typeIR(typeIR_base)
+    ---- ;; find the field
+    -- if nameIR = $name(member)
+    -- if typeIR = $assoc_<nameIR, typeIR>(nameIR, (nameIR_f, typeIR_f)*)
+    ---- ;; create typed expression
+    -- if expressionNoteIR = `( typeIR ctk_base )
+
+  rule Expr_ok/table-struct-hit:
+    p TC |- expression_base `. member
+          : (typedExpressionIR_base `. nameIR) `# expressionNoteIR
+    ---- ;; check expression
+    -- Expr_ok: p TC |- expression_base : typedExpressionIR_base
+    ---- ;; fetch annotation
+    -- if typeIR_base = $type_of_typedExpressionIR(typedExpressionIR_base)
+    ---- ;; check that the expression is a table struct
+    -- if TABLE_STRUCT _ `{ HIT boolTypeIR `; MISS _ `; ACTION_RUN _ `; }
+        = $unroll_typeIR(typeIR_base)
+    ---- ;; check member
+    -- if nameIR = $name(member)
+    -- if nameIR = "hit"
+    ---- ;; create typed expression
+    -- if expressionNoteIR = `( boolTypeIR DYN )
+
+  rule Expr_ok/table-struct-miss:
+    p TC |- expression_base `. member
+          : (typedExpressionIR_base `. nameIR) `# expressionNoteIR
+    ---- ;; check expression
+    -- Expr_ok: p TC |- expression_base : typedExpressionIR_base
+    ---- ;; fetch annotation
+    -- if typeIR_base = $type_of_typedExpressionIR(typedExpressionIR_base)
+    ---- ;; check that the expression is a table struct
+    -- if TABLE_STRUCT _ `{ HIT _ `; MISS boolTypeIR `; ACTION_RUN _ `; }
+        = $unroll_typeIR(typeIR_base)
+    ---- ;; check member
+    -- if nameIR = $name(member)
+    -- if nameIR = "miss"
+    ---- ;; create typed expression
+    -- if expressionNoteIR = `( boolTypeIR DYN )
+
+  rule Expr_ok/table-struct-action_run:
+    p TC |- expression_base `. member
+          : (typedExpressionIR_base `. nameIR) `# expressionNoteIR
+    ---- ;; check expression
+    -- Expr_ok: p TC |- expression_base : typedExpressionIR_base
+    ---- ;; fetch annotation
+    -- if typeIR_base = $type_of_typedExpressionIR(typedExpressionIR_base)
+    ---- ;; check that the expression is a table struct
+    -- if TABLE_STRUCT _ `{ HIT _ `; MISS _ `; ACTION_RUN tableMetadataEnumTypeIR `; }
+        = $unroll_typeIR(typeIR_base)
+    ---- ;; check member
+    -- if nameIR = $name(member)
+    -- if nameIR = "action_run"
+    ---- ;; create typed expression
+    -- if expressionNoteIR = `( tableMetadataEnumTypeIR DYN )
+
+}
+
+;;;; indexAccessExpression
+;;;; syntax indexAccessExpression =
+;;;;; expression `[ expression ]
+
+tbl dec $compat_array_index(typeIR) : bool
+  hint(prose_true %0 "can be used as an array index")
+  hint(prose_false %0 "cannot be used as an array index")
+tbl def $compat_array_index =
+  | INT => true
+  | INT `< _ > => true
+  | BIT `< _ > => true
+  | TYPEDEF _ typeIR
+      => $compat_array_index(typeIR)
+  | _ => false
+
+rulegroup Expr_ok/indexAccessExpression {
+
+  rule Expr_ok/tuple:
+    p TC |- expression_base `[ expression_index ]
+          : (typedExpressionIR_base `[ typedExpressionIR_index_reduced ])
+              `# expressionNoteIR
+    ---- ;; check expressions
+    -- Expr_ok: p TC |- expression_base : typedExpressionIR_base
+    -- Expr_ok: p TC |- expression_index : typedExpressionIR_index
+    ---- ;; fetch annotations
+    -- if typeIR_base = $type_of_typedExpressionIR(typedExpressionIR_base)
+    -- if ctk_base = $ctk_of_typedExpressionIR(typedExpressionIR_base)
+    -- if typeIR_index = $type_of_typedExpressionIR(typedExpressionIR_index)
+    -- if ctk_index = $ctk_of_typedExpressionIR(typedExpressionIR_index)
+    ---- ;; check that the index is compatible
+    ---- ;; while inserting implicit casts if necessary
+    -- if typedExpressionIR_index_reduced
+        = $reduce_serenum_unary(
+            typedExpressionIR_index,
+            def $compat_array_index
+          )
+    ---- ;; check that the base expression is a tuple
+    ---- ;; then, index must be local compile-time known and in range
+    -- if TUPLE `< typeIR_e* > = $unroll_typeIR(typeIR_base)
+    -- if ctk_index = LCTK
+    -- Expr_eval_lctk: p TC |- typedExpressionIR_index_reduced ~> integerValue_index
+    -- if n_index = $nat_of_integerValue(integerValue_index)
+    -- if $(n_index < |typeIR_e*|)
+    ---- ;; create typed expression
+    -- if expressionNoteIR = `( typeIR_e*[n_index] ctk_base )
+
+  rule Expr_ok/headerStack-lctk:
+    p TC |- expression_base `[ expression_index ]
+          : (typedExpressionIR_base `[ typedExpressionIR_index_reduced ])
+              `# expressionNoteIR
+    ---- ;; check expressions
+    -- Expr_ok: p TC |- expression_base : typedExpressionIR_base
+    -- Expr_ok: p TC |- expression_index : typedExpressionIR_index
+    ---- ;; fetch annotations
+    -- if typeIR_base = $type_of_typedExpressionIR(typedExpressionIR_base)
+    -- if ctk_base = $ctk_of_typedExpressionIR(typedExpressionIR_base)
+    -- if typeIR_index = $type_of_typedExpressionIR(typedExpressionIR_index)
+    -- if ctk_index = $ctk_of_typedExpressionIR(typedExpressionIR_index)
+    ---- ;; check that the index is compatible
+    ---- ;; while inserting implicit casts if necessary
+    -- if typedExpressionIR_index_reduced
+        = $reduce_serenum_unary(
+            typedExpressionIR_index,
+            def $compat_array_index)
+    ---- ;; check that the base expression is a stack
+    ---- ;; if the index is local compile-time known, then it must be in range
+    -- if typeIR `[ n_size ] = $unroll_typeIR(typeIR_base)
+    -- if ctk_index = LCTK
+    -- Expr_eval_lctk: p TC |- typedExpressionIR_index_reduced ~> integerValue_index
+    -- if n_index = $nat_of_integerValue(integerValue_index)
+    -- if $(n_index < n_size)
+    ---- ;; create typed expression
+    -- if expressionNoteIR = `( typeIR ctk_base )
+
+  rule Expr_ok/headerStack-non-lctk:
+    p TC |- expression_base `[ expression_index ]
+          : (typedExpressionIR_base `[ typedExpressionIR_index_reduced ])
+              `# expressionNoteIR
+    ---- ;; check expressions
+    -- Expr_ok: p TC |- expression_base : typedExpressionIR_base
+    -- Expr_ok: p TC |- expression_index : typedExpressionIR_index
+    ---- ;; fetch annotations
+    -- if typeIR_base = $type_of_typedExpressionIR(typedExpressionIR_base)
+    -- if ctk_base = $ctk_of_typedExpressionIR(typedExpressionIR_base)
+    -- if typeIR_index = $type_of_typedExpressionIR(typedExpressionIR_index)
+    -- if ctk_index = $ctk_of_typedExpressionIR(typedExpressionIR_index)
+    ---- ;; check that the index is compatible
+    ---- ;; while inserting implicit casts if necessary
+    -- if typedExpressionIR_index_reduced
+        = $reduce_serenum_unary(
+            typedExpressionIR_index,
+            def $compat_array_index)
+    ---- ;; check that the base expression is a stack
+    ---- ;; if the index is not local compile-time known, no range check is done
+    -- if typeIR `[ n_size ] = $unroll_typeIR(typeIR_base)
+    -- if ctk_index =/= LCTK
+    ---- ;; create typed expression
+    -- if ctk = $join_ctk(ctk_base, ctk_index)
+    -- if expressionNoteIR = `( typeIR ctk )
+
+}
+
+;;;; sliceAccessExpression
+;;;; syntax sliceAccessExpression
+;;;;; expression `[ expression `: expression ]
+
+tbl dec $compat_bitslice_base(typeIR) : bool
+  hint(prose_true %0 "can be used as a bitslice base")
+  hint(prose_false %0 "cannot be used as a bitslice base")
+tbl def $compat_bitslice_base =
+  | INT => true
+  | INT `< w > => $(w > 0)
+  | BIT `< _ > => true
+  | TYPEDEF _ typeIR
+      => $compat_bitslice_base(typeIR)
+  | _ => false
+
+tbl dec $compat_bitslice_range_index(typeIR) : bool
+  hint(prose_true %0 "can be used as a bitslice range index")
+  hint(prose_false %0 "cannot be used as a bitslice range index")
+tbl def $compat_bitslice_range_index =
+  | INT => true
+  | INT `< _ > => true
+  | BIT `< _ > => true
+  | TYPEDEF _ typeIR
+      => $compat_bitslice_range_index(typeIR)
+  | _ => false
+
+tbl dec $compat_bitslice_offset_index(typeIR) : bool
+  hint(prose_true %0 "can be used as an bitslice offset")
+  hint(prose_false %0 "cannot be used as an bitslice offset")
+tbl def $compat_bitslice_offset_index =
+  | INT => true
+  | INT `< _ > => true
+  | BIT `< _ > => true
+  | TYPEDEF _ typeIR
+      => $compat_bitslice_offset_index(typeIR)
+  | _ => false
+
+tbl dec $compat_bitslice_offset_width(typeIR) : bool
+  hint(prose_true %0 "can be used as an bitslice width")
+  hint(prose_false %0 "cannot be used as an bitslice width")
+tbl def $compat_bitslice_offset_width =
+  | INT => true
+  | INT `< _ > => true
+  | BIT `< _ > => true
+  | TYPEDEF _ typeIR
+      => $compat_bitslice_offset_width(typeIR)
+  | _ => false
+
+dec $is_valid_bitslice(typeIR, nat, nat) : bool
+  hint(prose_true %0 `[ %1 `: %2 ] "is a valid bitslice")
+  hint(prose_false %0 `[ %1 `: %2 ] "is not a valid bitslice")
+
+def $is_valid_bitslice(INT, n_lo, n_hi) = $(n_lo <= n_hi)
+def $is_valid_bitslice(INT `< w >, n_lo, n_hi)
+  = $(n_lo <= n_hi) /\ $(n_hi <= w) /\ $(w_slice <= w)
+  -- if w_slice = $(n_hi - n_lo + 1)
+def $is_valid_bitslice(BIT `< w >, n_lo, n_hi)
+  = $(n_lo <= n_hi) /\ $(n_hi <= w) /\ $(w_slice <= w)
+  -- if w_slice = $(n_hi - n_lo + 1)
+def $is_valid_bitslice(TYPEDEF _ typeIR, n_lo, n_hi)
+  = $is_valid_bitslice(typeIR, n_lo, n_hi)
+def $is_valid_bitslice(_, _, _) = false
+  -- otherwise
+
+rule Expr_ok/sliceAccessExpression-range:
+  p TC |- expression_base `[ expression_hi `: expression_lo ]
+        : (typedExpressionIR_base
+            `[ typedExpressionIR_hi_reduced `: typedExpressionIR_lo_reduced ])
+            `# expressionNoteIR
+  ---- ;; check expressions
+  -- Expr_ok: p TC |- expression_base : typedExpressionIR_base
+  -- Expr_ok: p TC |- expression_hi : typedExpressionIR_hi
+  -- Expr_ok: p TC |- expression_lo : typedExpressionIR_lo
+  ---- ;; check that the base expression is compatible
+  ---- ;; while inserting implicit casts if necessary
+  -- if typedExpressionIR_base_reduced
+      = $reduce_serenum_unary(
+          typedExpressionIR_base,
+          def $compat_bitslice_base)
+  ---- ;; fetch base annotation
+  -- if typeIR_base_reduced = $type_of_typedExpressionIR(typedExpressionIR_base_reduced)
+  -- if ctk_base_reduced = $ctk_of_typedExpressionIR(typedExpressionIR_base_reduced)
+  ---- ;; check that the indices are compatible
+  ---- ;; while inserting implicit casts if necessary
+  -- if typedExpressionIR_hi_reduced
+      = $reduce_serenum_unary(
+          typedExpressionIR_hi,
+          def $compat_bitslice_range_index)
+  -- if typedExpressionIR_lo_reduced
+      = $reduce_serenum_unary(
+          typedExpressionIR_lo,
+          def $compat_bitslice_range_index)
+  ---- ;; fetch index annotations
+  -- if typeIR_hi_reduced = $type_of_typedExpressionIR(typedExpressionIR_hi_reduced)
+  -- if ctk_hi_reduced = $ctk_of_typedExpressionIR(typedExpressionIR_hi_reduced)
+  -- if typeIR_lo_reduced = $type_of_typedExpressionIR(typedExpressionIR_lo_reduced)
+  -- if ctk_lo_reduced = $ctk_of_typedExpressionIR(typedExpressionIR_lo_reduced)
+  ---- ;; check that the indices are local compile-time known
+  -- if ctk_hi_reduced = LCTK
+  -- Expr_eval_lctk: p TC |- typedExpressionIR_hi_reduced ~> integerValue_hi
+  -- if n_hi = $nat_of_integerValue(integerValue_hi)
+  -- if ctk_lo_reduced = LCTK
+  -- Expr_eval_lctk: p TC |- typedExpressionIR_lo_reduced ~> integerValue_lo
+  -- if n_lo = $nat_of_integerValue(integerValue_lo)
+  ---- ;; check that the slice is valid
+  -- if $is_valid_bitslice(typeIR_base_reduced, n_lo, n_hi)
+  ---- ;; create typed expression
+  -- if n_slice = $(n_hi - n_lo + 1)
+  -- if typeIR = BIT `< n_slice >
+  -- if expressionNoteIR = `( typeIR ctk_base_reduced )
+
+;;;;; expression `[ expression `+: expression ]
+
+rulegroup Expr_ok/sliceAccessExpression-offset {
+
+  rule Expr_ok/lo-lctk:
+    p TC |- expression_base `[ expression_l `+: expression_w ]
+          : (typedExpressionIR_base
+              `[ typedExpressionIR_l_reduced `+: typedExpressionIR_w_reduced ])
+              `# expressionNoteIR
+    ---- ;; check expressions
+    -- Expr_ok: p TC |- expression_base : typedExpressionIR_base
+    -- Expr_ok: p TC |- expression_l : typedExpressionIR_l
+    -- Expr_ok: p TC |- expression_w : typedExpressionIR_w
+    ---- ;; check that the base expression is compatible
+    ---- ;; while inserting implicit casts if necessary
+    -- if typedExpressionIR_base_reduced
+        = $reduce_serenum_unary(
+            typedExpressionIR_base,
+            def $compat_bitslice_base)
+    ---- ;; fetch base annotation
+    -- if typeIR_base_reduced = $type_of_typedExpressionIR(typedExpressionIR_base_reduced)
+    -- if ctk_base_reduced = $ctk_of_typedExpressionIR(typedExpressionIR_base_reduced)
+    ---- ;; check that index and width are compatible
+    ---- ;; while inserting implicit casts if necessary
+    -- if typedExpressionIR_l_reduced
+        = $reduce_serenum_unary(
+            typedExpressionIR_l,
+            def $compat_bitslice_offset_index)
+    -- if typedExpressionIR_w_reduced
+        = $reduce_serenum_unary(
+            typedExpressionIR_w,
+            def $compat_bitslice_offset_width)
+    ---- ;; fetch annotations
+    -- if typeIR_l_reduced = $type_of_typedExpressionIR(typedExpressionIR_l_reduced)
+    -- if ctk_l_reduced = $ctk_of_typedExpressionIR(typedExpressionIR_l_reduced)
+    -- if typeIR_w_reduced = $type_of_typedExpressionIR(typedExpressionIR_w_reduced)
+    -- if ctk_w_reduced = $ctk_of_typedExpressionIR(typedExpressionIR_w_reduced)
+    ---- ;; if offset is local compile-time known, it must be non-negative
+    -- if ctk_l_reduced = LCTK
+    -- Expr_eval_lctk: p TC |- typedExpressionIR_l_reduced ~> integerValue_l
+    -- if n_l = $nat_of_integerValue(integerValue_l)
+    ---- ;; check that the width is local compile-time known
+    -- if ctk_w_reduced = LCTK
+    -- Expr_eval_lctk: p TC |- typedExpressionIR_w_reduced ~> integerValue_w
+    -- if n_w = $nat_of_integerValue(integerValue_w)
+    -- if n_h = $(n_w + n_l - 1)
+    -- if $is_valid_bitslice(typeIR_base_reduced, n_l, n_h)
+    ---- ;; create typed expression
+    -- if typeIR = BIT `< n_w >
+    -- if expressionNoteIR = `( typeIR ctk_base_reduced )
+
+  rule Expr_ok/lo-non-lctk:
+    p TC |- expression_base `[ expression_l `+: expression_w ]
+          : (typedExpressionIR_base
+              `[ typedExpressionIR_l_reduced `+: typedExpressionIR_w_reduced ])
+              `# expressionNoteIR
+    ---- ;; check expressions
+    -- Expr_ok: p TC |- expression_base : typedExpressionIR_base
+    -- Expr_ok: p TC |- expression_l : typedExpressionIR_l
+    -- Expr_ok: p TC |- expression_w : typedExpressionIR_w
+    ---- ;; check that the base expression is compatible
+    ---- ;; while inserting implicit casts if necessary
+    -- if typedExpressionIR_base_reduced
+        = $reduce_serenum_unary(
+            typedExpressionIR_base,
+            def $compat_bitslice_base)
+    ---- ;; fetch base annotation
+    -- if typeIR_base_reduced = $type_of_typedExpressionIR(typedExpressionIR_base_reduced)
+    -- if ctk_base_reduced = $ctk_of_typedExpressionIR(typedExpressionIR_base_reduced)
+    ---- ;; check that index and width are compatible
+    ---- ;; while inserting implicit casts if necessary
+    -- if typedExpressionIR_l_reduced
+        = $reduce_serenum_unary(
+            typedExpressionIR_l,
+            def $compat_bitslice_offset_index)
+    -- if typedExpressionIR_w_reduced
+        = $reduce_serenum_unary(
+            typedExpressionIR_w,
+            def $compat_bitslice_offset_width)
+    ---- ;; fetch annotations
+    -- if typeIR_l_reduced = $type_of_typedExpressionIR(typedExpressionIR_l_reduced)
+    -- if ctk_l_reduced = $ctk_of_typedExpressionIR(typedExpressionIR_l_reduced)
+    -- if typeIR_w_reduced = $type_of_typedExpressionIR(typedExpressionIR_w_reduced)
+    -- if ctk_w_reduced = $ctk_of_typedExpressionIR(typedExpressionIR_w_reduced)
+    ---- ;; if offset is not local compile-time known, it must be a bit type
+    -- if ctk_l_reduced =/= LCTK
+    -- if BIT `< _ > = typeIR_l_reduced
+    ---- ;; check that the width is local compile-time known
+    -- if ctk_w_reduced = LCTK
+    -- Expr_eval_lctk: p TC |- typedExpressionIR_w_reduced ~> integerValue_w
+    -- if n_w = $nat_of_integerValue(integerValue_w)
+    ---- ;; create typed expression
+    -- if typeIR = BIT `< n_w >
+    -- if expressionNoteIR = `( typeIR ctk_base_reduced )
+
+}
+;;; callExpression
+;;; syntax callExpression
+
+;;;; callTarget `( argumentList )
+;;;; callableTarget `< realTypeArgumentList > `( argumentList )
+
+rulegroup Expr_ok/callExpression-callable {
+
+  rule Expr_ok/non-typeArgumentList-static_assert:
+    p TC |- callableTarget `( argumentList )
+          : literalExpressionIR `# expressionNoteIR
+    ---- ;; check callable target
+    -- CallableTarget_ok: p TC |- callableTarget : callableTargetIR
+    ---- ;; check arguments
+    -- ArgumentList_ok:
+        p TC |- argumentList : argumentIR*
+    ---- ;; check callable
+    -- CallableType_ok:
+        p TC |- callableTargetIR `< eps > `( argumentIR* )
+             : callableTypeIR `< `# typeId_infer* > `( `# id_default* `# id_optional* )
+    ---- ;; check calling convention
+    -- Call_ok:
+        p TC |- callableTypeIR `< eps `# typeId_infer* >
+                  `( argumentIR* `# id_default* `# id_optional* )
+              : typeIR_ret `< typeArgumentIR_inferred* > `( argumentIR_cast* )
+    ---- ;; call must not return void on expression level
+    -- if typeIR_ret =/= VOID
+    ---- ;; check whether the call is static
+    -- if ctk = $is_static_callableTypeIR(callableTypeIR)
+    -- if $is_static_assert_callableTypeIR(callableTypeIR)
+    ---- ;; create IR
+    -- if callExpressionIR
+        = callableTargetIR `< typeArgumentIR_inferred* > `( argumentIR_cast* )
+    -- if expressionNoteIR = `( typeIR_ret ctk )
+    -- Expr_eval_lctk:
+        p TC |- (callExpressionIR `# expressionNoteIR) ~> (`B true)
+    -- if literalExpressionIR = TRUE
+
+  rule Expr_ok/non-typeArgumentList:
+    p TC |- callableTarget `( argumentList )
+          : callExpressionIR `# expressionNoteIR
+    ---- ;; check callable target
+    -- CallableTarget_ok: p TC |- callableTarget : callableTargetIR
+    ---- ;; check arguments
+    -- ArgumentList_ok:
+        p TC |- argumentList : argumentIR*
+    ---- ;; check callable
+    -- CallableType_ok:
+        p TC |- callableTargetIR `< eps > `( argumentIR* )
+              : callableTypeIR `< `# typeId_infer* > `( `# id_default* `# id_optional* )
+    ---- ;; check calling convention
+    -- Call_ok:
+        p TC |- callableTypeIR `< eps `# typeId_infer* >
+                  `( argumentIR* `# id_default* `# id_optional* )
+              : typeIR_ret `< typeArgumentIR_inferred* > `( argumentIR_cast* )
+    ---- ;; call must not return void on expression level
+    -- if typeIR_ret =/= VOID
+    ---- ;; check whether the call is static
+    -- if ctk = $is_static_callableTypeIR(callableTypeIR)
+    -- if ~$is_static_assert_callableTypeIR(callableTypeIR)
+    ---- ;; create IR
+    -- if callExpressionIR
+        = callableTargetIR `< typeArgumentIR_inferred* > `( argumentIR_cast* )
+    -- if expressionNoteIR = `( typeIR_ret ctk )
+
+  rule Expr_ok/typeArgumentList:
+    p TC |- callableTarget `< realTypeArgumentList > `( argumentList )
+          : callExpressionIR `# expressionNoteIR
+    ---- ;; check callable target
+    -- CallableTarget_ok: p TC |- callableTarget : callableTargetIR
+    ---- ;; check type arguments
+    -- if realTypeArgument* = $flatten_realTypeArgumentList(realTypeArgumentList)
+    -- TypeArguments_ok:
+        p TC |- realTypeArgument* : typeArgumentIR* `# typeId_impl*
+    ---- ;; check arguments
+    -- ArgumentList_ok:
+        p TC |- argumentList : argumentIR*
+    ---- ;; check callable
+    -- CallableType_ok:
+        p TC |- callableTargetIR `< typeArgumentIR* > `( argumentIR* )
+              : callableTypeIR `< `# typeId_inserted* > `( `# id_default* `# id_optional* )
+    ---- ;; check calling convention
+    -- if typeId_infer* = typeId_impl* ++ typeId_inserted*
+    -- Call_ok:
+        p TC |- callableTypeIR `< typeArgumentIR* `# typeId_infer* >
+                  `( argumentIR* `# id_default* `# id_optional* )
+              : typeIR_ret `< typeArgumentIR_inferred* > `( argumentIR_cast* )
+    ---- ;; call must not return void on expression level
+    -- if typeIR_ret =/= VOID
+    ---- ;; check whether the call is static
+    -- if ctk = $is_static_callableTypeIR(callableTypeIR)
+    ---- ;; create IR
+    -- if callExpressionIR
+        = callableTargetIR `< typeArgumentIR_inferred* > `( argumentIR_cast* )
+    -- if expressionNoteIR = `( typeIR_ret ctk )
+
+}
+
+;;;;;; constructorTarget
+;;;;;; syntax constructorTarget = namedType
+;;;;;; syntax namedType
+
+dec $is_concrete_extern_object(typeIR) : bool
+  hint(prose_true %0 "is an extern object type without abstract methods")
+  hint(prose_false %0 "is not an extern object type without abstract methods")
+dec $is_concrete_extern_object'(typeIR) : bool
+dec $is_concrete_extern_object''(externMethodTypeDefIR) : bool
+
+def $is_concrete_extern_object(typeIR)
+    = $is_concrete_extern_object'($unroll_typeIR(typeIR))
+
+def $is_concrete_extern_object'(typeIR) = true
+  -- if ~(typeIR <: externObjectTypeIR)
+def $is_concrete_extern_object'(
+    EXTERN _ `< _ > `{ (_ `: externMethodTypeDefIR)* })
+  = true
+  -- if ($is_concrete_extern_object''(externMethodTypeDefIR))*
+def $is_concrete_extern_object'(typeIR) = false
+  -- otherwise
+
+def $is_concrete_extern_object''(
+    EXTERN_METHOD _ `< _ `, _ > `( _ ) `: _)
+  = true
+def $is_concrete_extern_object''(externMethodTypeDefIR) = false
+  -- otherwise
+
+;;;;;;; prefixedTypeName
+;;;;;;; specializedType
+
+rulegroup Expr_ok/callExpression-constructor {
+
+  rule Expr_ok/prefixedTypeName:
+    p TC |- prefixedTypeName `( argumentList )
+          : callExpressionIR `# expressionNoteIR
+    ---- ;; check arguments
+    -- ArgumentList_ok:
+        p TC |- argumentList : argumentIR*
+    ---- ;; check constructor type
+    -- if prefixedNameIR = $prefixedTypeName(prefixedTypeName)
+    -- if constructorTargetIR = prefixedNameIR `< eps >
+    -- ConstructorType_ok: p TC |- constructorTargetIR `( argumentIR* )
+                                 : constructorTypeIR `< `# typeId_impl* >
+                                    `( `# id_default* `# id_optional* )
+    ---- ;; check instantiation convention
+    -- Inst_ok:
+        p TC ANON |- constructorTypeIR `< eps `# typeId_impl* >
+                      `( argumentIR* `# id_default* `# id_optional* )
+                   : typeIR_object `< typeArgumentIR_inferred* > `( argumentIR_cast* )
+    ---- ;; constructed object may not contain an abstract method
+    -- if $is_concrete_extern_object(typeIR_object)
+    ---- ;; create IR
+    -- if callExpressionIR
+        = (prefixedNameIR `< typeArgumentIR_inferred* >) `( argumentIR_cast* )
+    -- if expressionNoteIR = `( typeIR_object CTK )
+
+  rule Expr_ok/specializedType:
+    p TC |- (prefixedTypeName `< typeArgumentList >) `( argumentList )
+          : callExpressionIR `# expressionNoteIR
+    ---- ;; check type arguments
+    -- TypeArgumentList_ok:
+        p TC |- typeArgumentList : typeArgumentIR* `# typeId_impl*
+    ---- ;; check arguments
+    -- ArgumentList_ok:
+        p TC |- argumentList : argumentIR*
+    ---- ;; check constructor type
+    -- if prefixedNameIR = $prefixedTypeName(prefixedTypeName)
+    -- if constructorTargetIR = prefixedNameIR `< typeArgumentIR* >
+    -- ConstructorType_ok:
+        p TC |- constructorTargetIR `( argumentIR* )
+              : constructorTypeIR `< `# typeId_inserted* > `( `# id_default* `# id_optional* )
+    ---- ;; check instantiation convention
+    -- if typeId_infer* = typeId_impl* ++ typeId_inserted*
+    -- Inst_ok:
+        p TC ANON |- constructorTypeIR `< typeArgumentIR* `# typeId_infer* >
+                      `( argumentIR* `# id_default* `# id_optional* )
+                   : typeIR_object `< typeArgumentIR_inferred* > `( argumentIR_cast* )
+    ---- ;; constructed object may not contain an abstract method
+    -- if $is_concrete_extern_object(typeIR_object)
+    ---- ;; create IR
+    -- if callExpressionIR
+        = (prefixedNameIR `< typeArgumentIR_inferred* >) `( argumentIR_cast* )
+    -- if expressionNoteIR = `( typeIR_object CTK )
+
+}
+
+;;; parenthesizedExpression
+;;; syntax parenthesizedExpression = `( expression )
+
+rule Expr_ok/parenthesizedExpression:
+  p TC |- `( expression ) : (`( typedExpressionIR )) `# expressionNoteIR
+  -- Expr_ok: p TC |- expression : typedExpressionIR
+  -- if typeIR = $type_of_typedExpressionIR(typedExpressionIR)
+  -- if ctk = $ctk_of_typedExpressionIR(typedExpressionIR)
+  -- if expressionNoteIR = `( typeIR ctk )

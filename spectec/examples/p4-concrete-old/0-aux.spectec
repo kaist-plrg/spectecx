@@ -1,0 +1,107 @@
+;;
+;; Metavariables for int, nat, bool, and text
+;;
+
+var b : bool
+
+var i : int
+
+var n : nat
+var w : nat
+
+var t : text
+
+;;
+;; General nat functions
+;;
+
+builtin dec $sum(nat*) : nat
+
+builtin dec $max(nat*) : nat
+
+builtin dec $min(nat*) : nat
+
+;;
+;; General text functions
+;;
+
+builtin dec $int_to_text(int) : text
+
+dec $concat_text(text*) : text
+def $concat_text(eps) = ""
+def $concat_text(t_h :: t_t*) = t_h ++ $concat_text(t_t*)
+
+builtin dec $strip_prefix(text, text) : text
+builtin dec $strip_suffix(text, text) : text
+
+;;
+;; General sequence functions
+;;
+
+dec $init_(nat) : nat*
+def $init_(0) = eps
+def $init_(n) = $(n - 1) :: $init_($(n - 1))
+  -- otherwise
+
+dec $repeat_<X>(X, nat) : X*
+def $repeat_<X>(X, 0) = eps
+def $repeat_<X>(X, n) = X ++ $repeat_<X>(X, $(n - 1))
+  -- otherwise
+
+builtin dec $rev_<X>(X*) : X*
+
+builtin dec $concat_<X>((X*)*) : X*
+
+builtin dec $partition_<X>(X*, nat) : (X*, X*)
+
+builtin dec $assoc_<X, Y>(X, (X, Y)*) : Y?
+
+builtin dec $distinct_<K>(K*) : bool
+
+;;
+;; General set functions
+;;
+
+syntax set<K> = `{ K* }
+
+dec $empty_set<K> : set<K>
+def $empty_set<K> = `{ eps }
+
+dec $in_set<K>(K, set<K>) : bool
+def $in_set<K>(K, `{ K_e* }) = K <- K_e*
+
+builtin dec $intersect_set<K>(set<K>, set<K>) : set<K>
+
+builtin dec $union_set<K>(set<K>, set<K>) : set<K>
+
+builtin dec $unions_set<K>(set<K>*) : set<K>
+
+builtin dec $diff_set<K>(set<K>, set<K>) : set<K>
+
+builtin dec $sub_set<K>(set<K>, set<K>) : bool
+
+builtin dec $eq_set<K>(set<K>, set<K>) : bool
+
+;;
+;; General map functions
+;;
+
+syntax pair<K, V> = K `: V
+
+syntax map<K, V> = set<pair<K, V>>
+
+dec $empty_map<K, V> : map<K, V>
+def $empty_map<K, V> = `{ eps }
+
+dec $dom_map<K, V>(map<K, V>) : set<K>
+def $dom_map<K, V>(`{ (K `: V)* }) = `{ K* }
+
+builtin dec $find_map<K, V>(map<K, V>, K) : V?
+
+builtin dec $find_maps<K, V>(map<K, V>*, K) : V?
+
+builtin dec $add_map<K, V>(map<K, V>, K, V) : map<K, V>
+
+builtin dec $adds_map<K, V>(map<K, V>, K*, V*) : map<K, V>
+
+builtin dec $update_map<K, V>(map<K, V>, K, V) : map<K, V>

@@ -1,0 +1,33 @@
+;;
+;; Store
+;;
+
+;; Map from object identifiers to objects
+
+syntax store = map<objectId, object>
+
+var STO : store
+
+dec $empty_store : store
+  hint(prose_in "an empty store")
+def $empty_store = store
+  -- if store = $empty_map<objectId, object>
+
+;;
+;; Adder
+;;
+
+dec $add_store(store, objectId, object) : store
+  hint(prose_in %0 "where" %1 "to" %2 "is added")
+def $add_store(store, objectId, object)
+  = store'
+  -- if store' = $add_map<objectId, object>(store, objectId, object)
+
+;;
+;; Finder
+;;
+
+dec $find_store(store, objectId) : object
+  hint(prose_in "the object" %1 "in" %0)
+def $find_store(store, objectId) = object
+  -- if object = $find_map<objectId, object>(store, objectId)

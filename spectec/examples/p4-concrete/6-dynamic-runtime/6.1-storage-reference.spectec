@@ -1,0 +1,10 @@
+;;
+;; Storage references, represented by l-values
+;;
+
+syntax storageReference =
+  | referenceExpressionIR
+  | storageReference `. nameIR
+  | storageReference `[ value ]
+  | storageReference `[ value `: value ]
+  | storageReference `[ value `+: value ]

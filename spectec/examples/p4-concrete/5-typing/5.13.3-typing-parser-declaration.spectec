@@ -1,0 +1,88 @@
+;;
+;; Parser local declaration typing
+;;
+;; syntax parserLocalDeclaration
+;;
+
+;;; constantDeclaration
+
+rule ParserLocalDecl_ok/constantDeclaration:
+  TC_0 |- constantDeclaration
+        : TC_1 constantDeclarationIR
+  -- ConstDecl_ok: BLOCK TC_0 |- constantDeclaration
+                               : TC_1 constantDeclarationIR
+
+;;; instantiation
+
+rule ParserLocalDecl_ok/instantiation:
+  TC_0 |- instantiation
+        : TC_1 instantiationIR
+  -- InstDecl_ok: BLOCK TC_0 |- instantiation
+                              : TC_1 instantiationIR
+
+;;; variableDeclaration
+
+rule ParserLocalDecl_ok/variableDeclaration:
+  TC_0 |- variableDeclaration
+        : TC_1 variableDeclarationIR
+  -- VarDecl_ok: BLOCK TC_0 |- variableDeclaration
+                               : TC_1 variableDeclarationIR
+
+;;; valueSetDeclaration
+;;; syntax valueSetDeclaration =
+;;;   annotationList VALUE_SET `< valueSetType > `( expression ) name `;
+
+rule ParserLocalDecl_ok/valueSetDeclaration:
+  TC_0 |- annotationList VALUE_SET `< valueSetType > `( expression ) name `;
+       : TC_1 valueSetDeclarationIR
+  ---- ;; check type
+  -- Type_ok: BLOCK TC_0 |- valueSetType : typeIR `# eps
+  ---- ;; check that the type can be embedded in a set
+  -- Type_wf: $bound(BLOCK, TC_0) |- SET `< typeIR >
+  ---- ;; check expression
+  -- Expr_ok: BLOCK TC_0 |- expression : typedExpressionIR
+  ---- ;; check that the expression is compile-time known
+  -- if DYN =/= $ctk_of_typedExpressionIR(typedExpressionIR)
+  ---- ;; add the value set to the context
+  -- if nameIR = $name(name)
+  -- if varTypeIR = `EMPTY (SET `< typeIR >) CTK eps
+  -- if TC_1 = $add_var_t(BLOCK, TC_0, nameIR, varTypeIR)
+  ---- ;; create IR
+  -- if valueSetDeclarationIR
+      = annotationList VALUE_SET `< typeIR > `( typedExpressionIR ) nameIR `;
+
+;;
+;; Parser local declaration list typing
+;;
+;; syntax parserLocalDeclarationList
+;;
+
+relation ParserLocalDecls_ok:
+  typingContext |- parserLocalDeclaration*
+                 : typingContext parserLocalDeclarationIR*
+  hint(input %0 %1)
+  hint(prose_in "typing" %1#", under context" %0)
+  hint(prose_out "the updated context" %2 "and the typed parser local declarations" %3)
+
+rulegroup ParserLocalDecls_ok {
+
+  rule ParserLocalDecls_ok/nil:
+    TC |- eps : TC eps
+
+  rule ParserLocalDecls_ok/cons:
+    TC_0 |- parserLocalDeclaration_h :: parserLocalDeclaration_t*
+         : TC_2 (parserLocalDeclarationIR_h :: parserLocalDeclarationIR_t*)
+    -- ParserLocalDecl_ok: TC_0 |- parserLocalDeclaration_h
+                                 : TC_1 parserLocalDeclarationIR_h
+    -- ParserLocalDecls_ok: TC_1 |- parserLocalDeclaration_t*
+                                  : TC_2 parserLocalDeclarationIR_t*
+
+}
+
+rule ParserLocalDeclList_ok:
+  TC_0 |- parserLocalDeclarationList
+       : TC_1 parserLocalDeclarationIR*
+  -- if parserLocalDeclaration*
+      = $flatten_parserLocalDeclarationList(parserLocalDeclarationList)
+  -- ParserLocalDecls_ok: TC_0 |- parserLocalDeclaration*
+                                : TC_1 parserLocalDeclarationIR*
