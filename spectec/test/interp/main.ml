@@ -56,26 +56,43 @@ let run_with_task (type i) (module T : Spectec.Task.S with type input = i)
         (Spectec.Error.string_of_error err)
 
 (** P4 Typecheck test - uses P4_Target.spec_dir *)
-let run_p4_typecheck ~negative ~sl_mode ~includes ~exclude_dirs ~testdir =
+let run_p4_typecheck ~p4_old ~negative ~sl_mode ~includes ~exclude_dirs ~testdir
+    =
   let expectation =
     if negative then Spectec.Task.Negative else Spectec.Task.Positive
   in
   (* Prefix for dune test which runs from spectec/_build/default/test/interp *)
   let repo_root = "../../../../../" in
-  let spec_dir = repo_root ^ Targets_p4.P4.Target_old.spec_dir in
-  let spec_files = Files.collect ~suffix:".spectec" spec_dir in
-  let inputs =
-    Targets_p4.P4.Typecheck_old.collect ~dir:testdir ()
-    |> List.map ~f:(fun input ->
-           {
-             Targets_p4.P4.Typecheck_old.includes;
-             filename = Targets_p4.P4.Typecheck_old.source input;
-             expect = expectation;
-           })
-  in
-  run_with_task
-    (module Targets_p4.P4.Typecheck_old)
-    ~sl_mode ~spec_files ~inputs ~exclude_dirs
+  if p4_old then
+    let spec_dir = repo_root ^ Targets_p4.P4.Target_old.spec_dir in
+    let spec_files = Files.collect ~suffix:".spectec" spec_dir in
+    let inputs =
+      Targets_p4.P4.Typecheck_old.collect ~dir:testdir ()
+      |> List.map ~f:(fun input ->
+             {
+               Targets_p4.P4.Typecheck_old.includes;
+               filename = Targets_p4.P4.Typecheck_old.source input;
+               expect = expectation;
+             })
+    in
+    run_with_task
+      (module Targets_p4.P4.Typecheck_old)
+      ~sl_mode ~spec_files ~inputs ~exclude_dirs
+  else
+    let spec_dir = repo_root ^ Targets_p4.P4.Target.spec_dir in
+    let spec_files = Files.collect ~suffix:".spectec" spec_dir in
+    let inputs =
+      Targets_p4.P4.Typecheck.collect ~dir:testdir ()
+      |> List.map ~f:(fun input ->
+             {
+               Targets_p4.P4.Typecheck.includes;
+               filename = Targets_p4.P4.Typecheck.source input;
+               expect = expectation;
+             })
+    in
+    run_with_task
+      (module Targets_p4.P4.Typecheck)
+      ~sl_mode ~spec_files ~inputs ~exclude_dirs
 
 let command =
   Command.basic ~summary:"run interpreter typing test (IL or SL)"
@@ -86,7 +103,9 @@ let command =
   and exclude_dirs = flag "-e" (listed string) ~doc:"DIR exclude paths"
   and testdir = flag "-d" (required string) ~doc:"DIR test directory"
   and negative = flag "-neg" no_arg ~doc:" expect failures (negative mode)"
-  and sl_mode = flag "--sl" no_arg ~doc:" use SL interpreter (default: IL)" in
-  fun () -> run_p4_typecheck ~negative ~sl_mode ~includes ~exclude_dirs ~testdir
+  and sl_mode = flag "--sl" no_arg ~doc:" use SL interpreter (default: IL)"
+  and p4_old = flag "--p4-old" no_arg ~doc:" use p4-old target (default: p4)" in
+  fun () ->
+    run_p4_typecheck ~p4_old ~negative ~sl_mode ~includes ~exclude_dirs ~testdir
 
 let () = Command_unix.run command
