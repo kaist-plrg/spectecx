@@ -1,0 +1,9 @@
+(executable
+ (name main)
+ (modules main)
+ (libraries spectec))
+
+(cram
+ (deps
+  %{exe:main.exe}
+  (glob_files *.spectec)))

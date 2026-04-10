@@ -1,0 +1,3 @@
+;; References a syntax type `nope` that was never declared.
+
+syntax wrapper = wrap nope
