@@ -80,9 +80,15 @@ and string_of_typfield typfield =
 and string_of_typfields sep typfields =
   String.concat sep (List.map string_of_typfield typfields)
 
+and string_of_typorigin typorigin =
+  let id, targs = typorigin.it in
+  "(from " ^ string_of_typid id ^ string_of_targs targs ^ ")"
+
 and string_of_typcase typcase =
-  let nottyp, hints = typcase in
-  string_of_nottyp nottyp ^ string_of_hints hints
+  let nottyp, typorigin, hints = typcase in
+  string_of_nottyp nottyp ^ " "
+  ^ string_of_typorigin typorigin
+  ^ string_of_hints hints
 
 and string_of_typcases sep typcases =
   String.concat sep (List.map string_of_typcase typcases)

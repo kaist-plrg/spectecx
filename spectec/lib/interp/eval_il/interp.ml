@@ -226,7 +226,7 @@ let rec subtyp (ctx : Ctx.t) (typ : typ) (value : value) : bool =
       | VariantT typcases, CaseV (mixop_v, values_inner) ->
           List.exists
             (fun typcase ->
-              let nottyp, _hints = typcase in
+              let nottyp, _, _ = typcase in
               let mixop_t, typs_inner = nottyp.it in
               let typs_inner = List.map (Typ.subst_typ theta) typs_inner in
               Mixop.eq mixop_t mixop_v && subtyps ctx typs_inner values_inner)

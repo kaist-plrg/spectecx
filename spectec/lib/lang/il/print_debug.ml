@@ -80,7 +80,7 @@ and string_of_typfields sep typfields =
   String.concat sep (List.map string_of_typfield typfields)
 
 and string_of_typcase typcase =
-  let nottyp, _hints = typcase in
+  let nottyp, _, _ = typcase in
   string_of_nottyp nottyp
 
 and string_of_typcases sep typcases =

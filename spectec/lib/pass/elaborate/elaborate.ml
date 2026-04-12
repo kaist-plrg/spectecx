@@ -142,8 +142,8 @@ and sub_plaintyp' (ctx : Ctx.t) (plaintyp_a : plaintyp) (plaintyp_b : plaintyp)
       let kind_b = Plaintyp.kind_plaintyp ctx.tdenv plaintyp_b in
       match (kind_a, kind_b) with
       | Variant typcases_a, Variant typcases_b ->
-          let nottyps_a = List.map fst typcases_a |> List.map fst in
-          let nottyps_b = List.map fst typcases_b |> List.map fst in
+          let nottyps_a = List.map (fun ((n, _), _) -> n) typcases_a in
+          let nottyps_b = List.map (fun ((n, _), _) -> n) typcases_b in
           List.for_all
             (fun nottyp_a -> List.exists (equiv_nottyp ctx nottyp_a) nottyps_b)
             nottyps_a
@@ -312,9 +312,10 @@ and expand_typcase (ctx : Ctx.t) (plaintyp : plaintyp) (typcase : typcase) :
       | _ -> error plaintyp.at "cannot extend a non-variant type")
   | NotationT nottyp -> [ ((nottyp, hints), plaintyp) ]
 
-and elab_typcase (ctx : Ctx.t) (typcase : nottyp * hint list) : Il.typcase =
+and elab_typcase (ctx : Ctx.t) (typorigin_il : Il.typorigin)
+    (typcase : nottyp * hint list) : Il.typcase =
   let nottyp, hints = typcase in
-  (elab_nottyp ctx (NotationT nottyp), elab_hints ctx hints)
+  (elab_nottyp ctx (NotationT nottyp), typorigin_il, elab_hints ctx hints)
 
 and elab_deftyp_variant (ctx : Ctx.t) (at : region) (id : id)
     (tparams : tparam list) (typcases : typcase list) : Typdef.t * Il.deftyp =
@@ -324,9 +325,22 @@ and elab_deftyp_variant (ctx : Ctx.t) (at : region) (id : id)
     in
     VarT (id, targs) $ no_region
   in
+  let typorigin_il =
+    let targs_il =
+      List.map (fun tparam -> Il.VarT (tparam, []) $ tparam.at) tparams
+    in
+    (id, targs_il) $ id.at
+  in
   let typcases = List.concat_map (expand_typcase ctx plaintyp) typcases in
-  let typcases_il = typcases |> List.map fst |> List.map (elab_typcase ctx) in
-  let mixops = typcases_il |> List.map fst |> List.map it |> List.map fst in
+  let typcases_il =
+    typcases |> List.map fst |> List.map (elab_typcase ctx typorigin_il)
+  in
+  let mixops =
+    typcases_il
+    |> List.map (fun (nottyp_il, _, _) ->
+           let mixop, _ = nottyp_il.it in
+           mixop)
+  in
   let mixop_groups = groupby Mixop.eq mixops in
   let mixop_duplicates =
     List.filter (fun mixop_group -> List.length mixop_group > 1) mixop_groups
