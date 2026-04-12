@@ -232,39 +232,25 @@ and elab_plaintyp' (ctx : Ctx.t) (plaintyp : plaintyp') : Il.typ' =
 and elab_nottyp (ctx : Ctx.t) (typ : typ) : Il.nottyp =
   match typ with
   | PlainT plaintyp ->
-      let mixop = [ []; [] ] in
       let typ_il = elab_plaintyp ctx plaintyp in
-      (mixop, [ typ_il ]) $ plaintyp.at
+      (Mixop.Arg, [ typ_il ]) $ plaintyp.at
   | NotationT nottyp -> (
       match nottyp.it with
-      | AtomT atom ->
-          let mixop = [ [ atom ] ] in
-          let typs_il = [] in
-          (mixop, typs_il) $ nottyp.at
-      | SeqT [] ->
-          let mixop = [ [] ] in
-          let typs_il = [] in
-          (mixop, typs_il) $ nottyp.at
-      | SeqT (typ :: typs) ->
-          let mixop_h, typs_il_h = elab_nottyp ctx typ |> it in
-          let mixop_t, typs_il_t =
-            elab_nottyp ctx (NotationT (SeqT typs $ nottyp.at)) |> it
-          in
-          let mixop = Mixop.merge mixop_h mixop_t in
-          let typs_il = typs_il_h @ typs_il_t in
-          (mixop, typs_il) $ nottyp.at
+      | AtomT atom -> (Mixop.Atom atom, []) $ nottyp.at
+      | SeqT [] -> (Mixop.Seq [], []) $ nottyp.at
+      | SeqT typs ->
+          let parts = List.map (fun typ -> elab_nottyp ctx typ |> it) typs in
+          let mixops = List.map fst parts in
+          let typs_il = List.concat_map snd parts in
+          (Mixop.Seq mixops, typs_il) $ nottyp.at
       | InfixT (typ_l, atom, typ_r) ->
           let mixop_l, typs_il_l = elab_nottyp ctx typ_l |> it in
           let mixop_r, typs_il_r = elab_nottyp ctx typ_r |> it in
-          let mixop_l = Mixop.merge mixop_l [ [ atom ] ] in
-          let mixop = Mixop.merge mixop_l mixop_r in
-          let typs_il = typs_il_l @ typs_il_r in
-          (mixop, typs_il) $ nottyp.at
+          (Mixop.Infix (mixop_l, atom, mixop_r), typs_il_l @ typs_il_r)
+          $ nottyp.at
       | BrackT (atom_l, typ, atom_r) ->
           let mixop, typs_il = elab_nottyp ctx typ |> it in
-          let mixop_l = Mixop.merge [ [ atom_l ] ] mixop in
-          let mixop = Mixop.merge mixop_l [ [ atom_r ] ] in
-          (mixop, typs_il) $ nottyp.at)
+          (Mixop.Brack (atom_l, mixop, atom_r), typs_il) $ nottyp.at)
 
 (* Elaboration of definition types *)
 
@@ -1096,24 +1082,15 @@ and elab_exp_not (ctx : Ctx.t) (typ : typ) (exp : exp) :
     (Ctx.t * Il.notexp) attempt =
   match typ with
   | PlainT plaintyp ->
-      let mixop = [ []; [] ] in
       let* ctx, exp_il = elab_exp ctx plaintyp exp in
-      let notexp_il = (mixop, [ exp_il ]) in
-      Ok (ctx, notexp_il)
+      Ok (ctx, (Mixop.Arg, [ exp_il ]))
   | NotationT nottyp -> (
       match (nottyp.it, exp.it) with
       | _, ParenE exp -> elab_exp_not ctx typ exp
       | AtomT atom_t, AtomE atom_e when atom_t.it <> atom_e.it ->
           fail_elab_not exp.at "atom does not match"
-      | AtomT atom_t, AtomE _ ->
-          let mixop = [ [ atom_t ] ] in
-          let notexp_il = (mixop, []) in
-          Ok (ctx, notexp_il)
-      | SeqT [], SeqE [] ->
-          let mixop = [ [] ] in
-          let exps_il = [] in
-          let notexp_il = (mixop, exps_il) in
-          Ok (ctx, notexp_il)
+      | AtomT atom_t, AtomE _ -> Ok (ctx, (Mixop.Atom atom_t, []))
+      | SeqT [], SeqE [] -> Ok (ctx, (Mixop.Seq [], []))
       | SeqT (typ :: typs), SeqE (exp :: exps) ->
           let* ctx, (mixop_h, exps_il_h) = elab_exp_not ctx typ exp in
           let* ctx, (mixop_t, exps_il_t) =
@@ -1121,10 +1098,8 @@ and elab_exp_not (ctx : Ctx.t) (typ : typ) (exp : exp) :
               (NotationT (SeqT typs $ nottyp.at))
               (SeqE exps $ exp.at)
           in
-          let mixop = Mixop.merge mixop_h mixop_t in
-          let exps_il = exps_il_h @ exps_il_t in
-          let notexp_il = (mixop, exps_il) in
-          Ok (ctx, notexp_il)
+          let mixop = Mixop.Seq [ mixop_h; mixop_t ] in
+          Ok (ctx, (mixop, exps_il_h @ exps_il_t))
       | SeqT (_ :: _), SeqE [] -> fail_elab_not exp.at "omitted sequence tail"
       | SeqT [], SeqE (_ :: _) -> fail_elab_not exp.at "expression is not empty"
       | InfixT (_, atom_t, _), InfixE (_, atom_e, _) when atom_t.it <> atom_e.it
@@ -1133,20 +1108,15 @@ and elab_exp_not (ctx : Ctx.t) (typ : typ) (exp : exp) :
       | InfixT (typ_l, atom_t, typ_r), InfixE (exp_l, _, exp_r) ->
           let* ctx, (mixop_l, exps_il_l) = elab_exp_not ctx typ_l exp_l in
           let* ctx, (mixop_r, exps_il_r) = elab_exp_not ctx typ_r exp_r in
-          let mixop_l = Mixop.merge mixop_l [ [ atom_t ] ] in
-          let mixop = Mixop.merge mixop_l mixop_r in
-          let exps_il = exps_il_l @ exps_il_r in
-          let notexp_il = (mixop, exps_il) in
-          Ok (ctx, notexp_il)
+          let mixop = Mixop.Infix (mixop_l, atom_t, mixop_r) in
+          Ok (ctx, (mixop, exps_il_l @ exps_il_r))
       | BrackT (atom_t_l, _, atom_t_r), BrackE (atom_e_l, _, atom_e_r)
         when atom_t_l.it <> atom_e_l.it || atom_t_r.it <> atom_e_r.it ->
           fail_elab_not exp.at "atoms do not match"
       | BrackT (atom_t_l, typ, atom_t_r), BrackE (_, exp, _) ->
           let* ctx, (mixop, exps_il) = elab_exp_not ctx typ exp in
-          let mixop_l = Mixop.merge [ [ atom_t_l ] ] mixop in
-          let mixop = Mixop.merge mixop_l [ [ atom_t_r ] ] in
-          let notexp_il = (mixop, exps_il) in
-          Ok (ctx, notexp_il)
+          let mixop = Mixop.Brack (atom_t_l, mixop, atom_t_r) in
+          Ok (ctx, (mixop, exps_il))
       | _ -> fail_elab_not exp.at "expression does not match notation")
 
 (* Elaboration of struct expressions *)

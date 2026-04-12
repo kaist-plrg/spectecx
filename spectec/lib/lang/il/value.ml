@@ -76,13 +76,18 @@ module MakeWithVid (VidProvider : VidProvider) = struct
       | `Int i -> 1 +! Bigint.hash i
     in
 
-    let hash_mixop (mixop : Xl.Mixop.t) : int =
-      List.fold_left
-        (fun hash atoms ->
-          List.fold_left
-            (fun hash atom -> hash +! hash_atom atom.Common.Source.it)
-            hash atoms)
-        2 mixop
+    let rec hash_mixop (mixop : Xl.Mixop.t) : int =
+      match mixop with
+      | Arg -> 0
+      | Atom atom -> 1 +! hash_atom atom.Common.Source.it
+      | Brack (al, m, ar) ->
+          2
+          +! hash_atom al.Common.Source.it
+          +! hash_mixop m
+          +! hash_atom ar.Common.Source.it
+      | Infix (ml, a, mr) ->
+          3 +! hash_mixop ml +! hash_atom a.Common.Source.it +! hash_mixop mr
+      | Seq ms -> List.fold_left (fun h m -> h +! hash_mixop m) 4 ms
     in
     match v with
     | BoolV b -> 0 +! Hashtbl.hash b
