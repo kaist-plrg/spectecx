@@ -120,12 +120,8 @@ and string_of_exps sep exps = String.concat sep (List.map string_of_exp exps)
 
 and string_of_notexp notexp =
   let mixop, exps = notexp in
-  let len = List.length mixop + List.length exps in
-  List.init len (fun idx ->
-      if idx mod 2 = 0 then idx / 2 |> List.nth mixop |> string_of_atoms
-      else idx / 2 |> List.nth exps |> string_of_exp)
-  |> List.filter_map (fun str -> if str = "" then None else Some str)
-  |> String.concat " "
+  let sexps = List.map string_of_exp exps in
+  Xl.Mixop.assemble ~string_of_atom mixop sexps
 
 and string_of_iterexp (iter, _) = Il.Print.string_of_iter iter
 

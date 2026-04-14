@@ -60,12 +60,8 @@ and string_of_typs sep typs = String.concat sep (List.map string_of_typ typs)
 
 and string_of_nottyp nottyp =
   let mixop, typs = nottyp.it in
-  let len = List.length mixop + List.length typs in
-  List.init len (fun idx ->
-      if idx mod 2 = 0 then idx / 2 |> List.nth mixop |> string_of_atoms
-      else idx / 2 |> List.nth typs |> string_of_typ)
-  |> List.filter_map (fun str -> if str = "" then None else Some str)
-  |> String.concat " "
+  let styps = List.map string_of_typ typs in
+  Mixop.assemble ~string_of_atom mixop styps
 
 and string_of_deftyp deftyp =
   match deftyp.it with
@@ -75,14 +71,20 @@ and string_of_deftyp deftyp =
 
 and string_of_typfield typfield =
   let atom, typ = typfield in
-  string_of_nottyp (([ [ atom ]; [] ], [ typ ]) $ no_region)
+  string_of_atom atom ^ " " ^ string_of_typ typ
 
 and string_of_typfields sep typfields =
   String.concat sep (List.map string_of_typfield typfields)
 
+and string_of_typorigin typorigin =
+  let id, targs = typorigin.it in
+  "(from " ^ string_of_typid id ^ string_of_targs targs ^ ")"
+
 and string_of_typcase typcase =
-  let nottyp, hints = typcase in
-  string_of_nottyp nottyp ^ string_of_hints hints
+  let nottyp, typorigin, hints = typcase in
+  string_of_nottyp nottyp ^ " "
+  ^ string_of_typorigin typorigin
+  ^ string_of_hints hints
 
 and string_of_typcases sep typcases =
   String.concat sep (List.map string_of_typcase typcases)
@@ -132,12 +134,8 @@ and string_of_value ?(short = false) ?(level = 0) value =
 
 and string_of_notval ?(level = 0) notval =
   let mixop, values = notval in
-  let len = List.length mixop + List.length values in
-  List.init len (fun idx ->
-      if idx mod 2 = 0 then idx / 2 |> List.nth mixop |> string_of_atoms
-      else idx / 2 |> List.nth values |> string_of_value ~level)
-  |> List.filter_map (fun str -> if str = "" then None else Some str)
-  |> String.concat " "
+  let svalues = List.map (string_of_value ~level:(level + 1)) values in
+  Mixop.assemble ~string_of_atom mixop svalues
 
 (* Operators *)
 
@@ -204,12 +202,8 @@ and string_of_exps sep exps = String.concat sep (List.map string_of_exp exps)
 
 and string_of_notexp notexp =
   let mixop, exps = notexp in
-  let len = List.length mixop + List.length exps in
-  List.init len (fun idx ->
-      if idx mod 2 = 0 then idx / 2 |> List.nth mixop |> string_of_atoms
-      else idx / 2 |> List.nth exps |> string_of_exp)
-  |> List.filter_map (fun str -> if str = "" then None else Some str)
-  |> String.concat " "
+  let sexps = List.map string_of_exp exps in
+  Mixop.assemble ~string_of_atom mixop sexps
 
 and string_of_iterexp iterexp =
   let iter, vars = iterexp in

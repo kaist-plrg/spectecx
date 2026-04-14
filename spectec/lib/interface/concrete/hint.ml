@@ -9,7 +9,7 @@ let hintid = "print"
 (* Types *)
 
 let hints_of_typcase hmap (id : id) (typcase : typcase) : hmap =
-  let nottyp, hints = typcase in
+  let nottyp, _, hints = typcase in
   match List.find_opt (fun hint -> hint.hintid.it = hintid) hints with
   | Some hint ->
       let hint = (nottyp, hint.hintexp) in

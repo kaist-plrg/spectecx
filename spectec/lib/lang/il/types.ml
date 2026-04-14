@@ -66,7 +66,9 @@ and deftyp' =
   | VariantT of typcase list
 
 and typfield = atom * typ
-and typcase = nottyp * hint list
+and typorigin = typorigin' Common.Source.phrase
+and typorigin' = id * targ list
+and typcase = nottyp * typorigin * hint list
 
 (* Values *)
 

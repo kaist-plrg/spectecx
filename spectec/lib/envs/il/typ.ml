@@ -37,3 +37,33 @@ and subst_targ (theta : theta) (targ : t) : t = subst_typ theta targ
 
 and subst_targs (theta : theta) (targs : t list) : t list =
   List.map (subst_targ theta) targs
+
+let subst_nottyp (theta : theta) (nottyp : nottyp) : nottyp =
+  let mixop, typs = nottyp.it in
+  let typs = subst_typs theta typs in
+  (mixop, typs) $ nottyp.at
+
+let subst_typorigin (theta : theta) (typorigin : typorigin) : typorigin =
+  let id, targs = typorigin.it in
+  let targs = subst_targs theta targs in
+  (id, targs) $ typorigin.at
+
+let subst_typcase (theta : theta) (typcase : typcase) : typcase =
+  let nottyp, typorigin, hints = typcase in
+  let nottyp = subst_nottyp theta nottyp in
+  let typorigin = subst_typorigin theta typorigin in
+  (nottyp, typorigin, hints)
+
+let rec subst_param (theta : theta) (param : param) : param =
+  match param.it with
+  | ExpP typ ->
+      let typ = subst_typ theta typ in
+      ExpP typ $ param.at
+  (* (TODO) Capture-avoiding substitution *)
+  | DefP (id, tparams, params, typ) ->
+      let params = subst_params theta params in
+      let typ = subst_typ theta typ in
+      DefP (id, tparams, params, typ) $ param.at
+
+and subst_params (theta : theta) (params : param list) : param list =
+  List.map (subst_param theta) params

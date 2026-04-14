@@ -13,16 +13,16 @@ module F = Format
 
 let id_of_name (value : value) : string =
   match flatten_case_v' value with
-  | "identifier", [ [ "`ID" ]; [] ], [ TextV s ] -> s
-  | "nonTypeName", [ [ "APPLY" ] ], [] -> "apply"
-  | "nonTypeName", [ [ "KEY" ] ], [] -> "key"
-  | "nonTypeName", [ [ "ACTIONS" ] ], [] -> "actions"
-  | "nonTypeName", [ [ "STATE" ] ], [] -> "state"
-  | "nonTypeName", [ [ "ENTRIES" ] ], [] -> "entries"
-  | "nonTypeName", [ [ "TYPE" ] ], [] -> "type"
-  | "nonTypeName", [ [ "PRIORITY" ] ], [] -> "priority"
-  | "name", [ [ "LIST" ] ], [] -> "list"
-  | "typeIdentifier", [ [ "`TID" ]; [] ], [ TextV s ] -> s
+  | "identifier", [ "`ID" ], [ TextV s ] -> s
+  | "nonTypeName", [ "APPLY" ], [] -> "apply"
+  | "nonTypeName", [ "KEY" ], [] -> "key"
+  | "nonTypeName", [ "ACTIONS" ], [] -> "actions"
+  | "nonTypeName", [ "STATE" ], [] -> "state"
+  | "nonTypeName", [ "ENTRIES" ], [] -> "entries"
+  | "nonTypeName", [ "TYPE" ], [] -> "type"
+  | "nonTypeName", [ "PRIORITY" ], [] -> "priority"
+  | "name", [ "LIST" ], [] -> "list"
+  | "typeIdentifier", [ "`TID" ], [ TextV s ] -> s
   | _ ->
       failwith
         (Printf.sprintf "Invalid name structure %s: %s "
@@ -31,8 +31,7 @@ let id_of_name (value : value) : string =
 
 let id_of_function_prototype (v : value) : string =
   match flatten_case_v v with
-  | "functionPrototype", [ []; []; []; [ "(" ]; [ ")" ] ], [ _; name; _; _ ] ->
-      id_of_name name
+  | "functionPrototype", [ "("; ")" ], [ _; name; _; _ ] -> id_of_name name
   | _ ->
       failwith
         (Printf.sprintf "Invalid functionPrototype: %s"
@@ -40,68 +39,42 @@ let id_of_function_prototype (v : value) : string =
 
 let id_of_declaration (decl : value) : string =
   match flatten_case_v decl with
-  | ( "constantDeclaration",
-      [ []; [ "CONST" ]; []; []; [ ";" ] ],
-      [ _; _; name; _ ] ) ->
+  | "constantDeclaration", [ "CONST"; ";" ], [ _; _; name; _ ] ->
       id_of_name name
-  | "instantiation", [ []; []; [ "(" ]; [ ")" ]; [ ";" ] ], [ _; _; _; name ] ->
-      id_of_name name
-  | ( "instantiation",
-      [ []; []; [ "(" ]; [ ")" ]; []; [ ";" ] ],
-      [ _; _; _; name; _ ] ) ->
-      id_of_name name
-  | "functionDeclaration", [ []; []; []; [] ], [ _; functionPrototype; _ ] ->
+  | "instantiation", [ "("; ")"; ";" ], [ _; _; _; name ] -> id_of_name name
+  | "instantiation", [ "("; ")"; ";" ], [ _; _; _; name; _ ] -> id_of_name name
+  | "functionDeclaration", [], [ _; functionPrototype; _ ] ->
       id_of_function_prototype functionPrototype
-  | ( "actionDeclaration",
-      [ []; [ "ACTION" ]; [ "(" ]; [ ")" ]; [] ],
-      [ _; name; _; _ ] ) ->
+  | "actionDeclaration", [ "ACTION"; "("; ")" ], [ _; name; _; _ ] ->
       id_of_name name
   | "errorDeclaration", _, _ -> failwith "errorDeclaration: no name"
   | "matchKindDeclaration", _, _ -> failwith "matchKindDeclaration: no name"
-  | ( "externFunctionDeclaration",
-      [ []; [ "EXTERN" ]; [ ";" ] ],
-      [ _; functionPrototype ] ) ->
+  | "externFunctionDeclaration", [ "EXTERN"; ";" ], [ _; functionPrototype ] ->
       id_of_function_prototype functionPrototype
-  | ( "externObjectDeclaration",
-      [ []; [ "EXTERN" ]; []; [ "{" ]; [ "}" ] ],
-      [ _; nonTypeName; _; _ ] ) ->
+  | "externObjectDeclaration", [ "EXTERN"; "{"; "}" ], [ _; nonTypeName; _; _ ]
+    ->
       id_of_name nonTypeName
   | ( "parserDeclaration",
-      [ []; [ "PARSER" ]; []; [ "(" ]; [ ")" ]; [ "{" ]; []; [ "}" ] ],
+      [ "PARSER"; "("; ")"; "{"; "}" ],
       [ _; name; _; _; _; _; _ ] )
   | ( "controlDeclaration",
-      [ []; [ "CONTROL" ]; []; [ "(" ]; [ ")" ]; [ "{" ]; [ "APPLY" ]; [ "}" ] ],
+      [ "CONTROL"; "("; ")"; "{"; "APPLY"; "}" ],
       [ _; name; _; _; _; _; _ ] )
-  | ( "enumTypeDeclaration",
-      [ []; [ "ENUM" ]; [ "{" ]; []; [ "}" ] ],
-      [ _; name; _; _ ] )
-  | ( "enumTypeDeclaration",
-      [ []; [ "ENUM" ]; []; [ "{" ]; []; [ "}" ] ],
-      [ _; _; name; _; _ ] )
-  | ( "structTypeDeclaration",
-      [ []; [ "STRUCT" ]; []; [ "{" ]; [ "}" ] ],
-      [ _; name; _; _ ] )
-  | ( "headerTypeDeclaration",
-      [ []; [ "HEADER" ]; []; [ "{" ]; [ "}" ] ],
-      [ _; name; _; _ ] )
+  | "enumTypeDeclaration", [ "ENUM"; "{"; "}" ], [ _; name; _; _ ]
+  | "enumTypeDeclaration", [ "ENUM"; "{"; "}" ], [ _; _; name; _; _ ]
+  | "structTypeDeclaration", [ "STRUCT"; "{"; "}" ], [ _; name; _; _ ]
+  | "headerTypeDeclaration", [ "HEADER"; "{"; "}" ], [ _; name; _; _ ]
   | ( "headerUnionTypeDeclaration",
-      [ []; [ "HEADER_UNION" ]; []; [ "{" ]; [ "}" ] ],
+      [ "HEADER_UNION"; "{"; "}" ],
       [ _; name; _; _ ] )
-  | "typedefDeclaration", [ []; [ "TYPEDEF" ]; []; [ ";" ] ], [ _; _; name ]
-  | "typedefDeclaration", [ []; [ "TYPE" ]; []; [ ";" ] ], [ _; _; name ]
-  | ( "parserTypeDeclaration",
-      [ []; [ "PARSER" ]; []; [ "(" ]; [ ")"; ";" ] ],
-      [ _; name; _; _ ] )
-  | ( "controlTypeDeclaration",
-      [ []; [ "CONTROL" ]; []; [ "(" ]; [ ")"; ";" ] ],
-      [ _; name; _; _ ] )
-  | ( "packageTypeDeclaration",
-      [ []; [ "PACKAGE" ]; []; [ "(" ]; [ ")"; ";" ] ],
-      [ _; name; _; _ ] ) ->
+  | "typedefDeclaration", [ "TYPEDEF"; ";" ], [ _; _; name ]
+  | "typedefDeclaration", [ "TYPE"; ";" ], [ _; _; name ]
+  | "parserTypeDeclaration", [ "PARSER"; "("; ")"; ";" ], [ _; name; _; _ ]
+  | "controlTypeDeclaration", [ "CONTROL"; "("; ")"; ";" ], [ _; name; _; _ ]
+  | "packageTypeDeclaration", [ "PACKAGE"; "("; ")"; ";" ], [ _; name; _; _ ] ->
       id_of_name name
   (* not a variant of declaration *)
-  | "tableDeclaration", [ []; [ "TABLE" ]; [ "{" ]; [ "}" ] ], [ _; name; _ ] ->
-      id_of_name name
+  | "tableDeclaration", [ "TABLE"; "{"; "}" ], [ _; name; _ ] -> id_of_name name
   | _ ->
       failwith
         (Printf.sprintf "Invalid declaration structure: %s"
@@ -111,17 +84,16 @@ let id_of_declaration (decl : value) : string =
 
 let id_of_parameter (v : value) : string =
   match flatten_case_v v with
-  | "parameter", [ []; []; []; []; [] ], [ _; _; _; name ] -> id_of_name name
-  | "parameter", [ []; []; []; []; []; [] ], [ _; _; _; name; _ ] ->
-      id_of_name name
+  | "parameter", [], [ _; _; _; name ] -> id_of_name name
+  | "parameter", [], [ _; _; _; name; _ ] -> id_of_name name
   | _ -> failwith "@id_of_parameter: invalid CaseV"
 
 (* Type parameter extraction *)
 
 let has_type_params (v : value) : bool =
   match flatten_case_v v with
-  | "typeParameterListOpt", [ [ "`EMPTY" ] ], [] -> false
-  | "typeParameterListOpt", [ [ "<" ]; [ ">" ] ], [ _ ] -> true
+  | "typeParameterListOpt", [ "`EMPTY" ], [] -> false
+  | "typeParameterListOpt", [ "<"; ">" ], [ _ ] -> true
   | "typeParameterListOpt", _, _ ->
       failwith
         (F.asprintf "@has_type_params: ill-formed typeParameterListOpt:\n%a"
@@ -135,9 +107,7 @@ let has_type_params (v : value) : bool =
 
 let has_type_params_function_prototype (v : value) : bool =
   match flatten_case_v v with
-  | ( "functionPrototype",
-      [ []; []; []; [ "(" ]; [ ")" ] ],
-      [ _; _; typeParameterListOpt; _ ] ) ->
+  | "functionPrototype", [ "("; ")" ], [ _; _; typeParameterListOpt; _ ] ->
       has_type_params typeParameterListOpt
   | _ ->
       failwith
@@ -147,18 +117,16 @@ let has_type_params_function_prototype (v : value) : bool =
 let has_type_params_declaration (decl : value) : bool =
   match flatten_case_v decl with
   | "constantDeclaration", _, _ | "instantiation", _, _ -> false
-  | "functionDeclaration", [ []; []; []; [] ], [ _; functionPrototype; _ ] ->
+  | "functionDeclaration", [], [ _; functionPrototype; _ ] ->
       has_type_params_function_prototype functionPrototype
   | "actionDeclaration", _, _
   | "errorDeclaration", _, _
   | "matchKindDeclaration", _, _ ->
       false
-  | ( "externFunctionDeclaration",
-      [ []; [ "EXTERN" ]; [ ";" ] ],
-      [ _; functionPrototype ] ) ->
+  | "externFunctionDeclaration", [ "EXTERN"; ";" ], [ _; functionPrototype ] ->
       has_type_params_function_prototype functionPrototype
   | ( "externObjectDeclaration",
-      [ []; [ "EXTERN" ]; []; [ "{" ]; [ "}" ] ],
+      [ "EXTERN"; "{"; "}" ],
       [ _; _; typeParameterListOpt; _ ] ) ->
       has_type_params typeParameterListOpt
   | "parserDeclaration", _, _
@@ -166,24 +134,24 @@ let has_type_params_declaration (decl : value) : bool =
   | "enumTypeDeclaration", _, _ ->
       false
   | ( "structTypeDeclaration",
-      [ []; [ "STRUCT" ]; []; [ "{" ]; [ "}" ] ],
+      [ "STRUCT"; "{"; "}" ],
       [ _; _; typeParameterListOpt; _ ] )
   | ( "headerTypeDeclaration",
-      [ []; [ "HEADER" ]; []; [ "{" ]; [ "}" ] ],
+      [ "HEADER"; "{"; "}" ],
       [ _; _; typeParameterListOpt; _ ] )
   | ( "headerUnionTypeDeclaration",
-      [ []; [ "HEADER_UNION" ]; []; [ "{" ]; [ "}" ] ],
+      [ "HEADER_UNION"; "{"; "}" ],
       [ _; _; typeParameterListOpt; _ ] ) ->
       has_type_params typeParameterListOpt
   | "typedefDeclaration", _, _ -> false
   | ( "parserTypeDeclaration",
-      [ []; [ "PARSER" ]; []; [ "(" ]; [ ")"; ";" ] ],
+      [ "PARSER"; "("; ")"; ";" ],
       [ _; _; typeParameterListOpt; _ ] )
   | ( "controlTypeDeclaration",
-      [ []; [ "CONTROL" ]; []; [ "(" ]; [ ")"; ";" ] ],
+      [ "CONTROL"; "("; ")"; ";" ],
       [ _; _; typeParameterListOpt; _ ] )
   | ( "packageTypeDeclaration",
-      [ []; [ "PACKAGE" ]; []; [ "(" ]; [ ")"; ";" ] ],
+      [ "PACKAGE"; "("; ")"; ";" ],
       [ _; _; typeParameterListOpt; _ ] ) ->
       has_type_params typeParameterListOpt
   | _ ->

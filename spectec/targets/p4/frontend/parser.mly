@@ -10,7 +10,7 @@
 
   let rec declare_vars_of_il (v: value) : unit =
     match flatten_case_v v with
-    | "nameList", [ []; [","]; [] ], [ v_nameList; v_name ] ->
+    | "nameList", [","], [ v_nameList; v_name ] ->
         declare_vars_of_il v_nameList;
         declare_var_of_il v_name false
     | "identifier", _, _ 
@@ -27,7 +27,7 @@
 
   let rec declare_types_of_il (v: value) : unit =
     match flatten_case_v v with
-    | "typeParameterList", [ []; [","]; [] ], [ v_tpList; v_name ] ->
+    | "typeParameterList", [","], [ v_tpList; v_name ] ->
         declare_types_of_il v_tpList;
         declare_type_of_il v_name false
     | "identifier", _, _ 
@@ -391,7 +391,7 @@ typeOrVoid:
   (* From Petr4: HACK for generic return type *)
 	| id = identifier
     { match flatten_case_v id with
-      | "identifier", [ ["`ID"]; [] ], [ value_text ]  ->
+      | "identifier", ["`ID"], [ value_text ]  ->
         [ Term "`TID"; NT value_text ] #@ "typeIdentifier"
       | _ -> failwith "@typeOrVoid: expected identifier" }
 ;

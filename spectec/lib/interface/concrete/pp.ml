@@ -123,13 +123,11 @@ and pp_hint_case_v' (hmap : hmap) (cur : int) (exp : El.exp)
 and pp_default_case_v (hmap : hmap) fmt (value : value) : unit =
   match value.it with
   | CaseV (mixop, values) ->
-      let len = List.length mixop + List.length values in
-      List.init len (fun idx ->
-          if idx mod 2 = 0 then
-            idx / 2 |> List.nth mixop |> F.asprintf "%a" pp_atoms
-          else idx / 2 |> List.nth values |> F.asprintf "%a" (pp_value hmap))
-      |> List.filter (fun str -> str <> "")
-      |> String.concat " " |> F.fprintf fmt "%s"
+      let svalues =
+        List.map (fun v -> F.asprintf "%a" (pp_value hmap) v) values
+      in
+      let string_of_atom atom = F.asprintf "%a" pp_atom atom in
+      Mixop.assemble ~string_of_atom mixop svalues |> F.fprintf fmt "%s"
   | _ -> failwith "@pp_default_case_v: Expected CaseV value"
 
 (* OptV *)

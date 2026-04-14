@@ -15,7 +15,12 @@ let value_of_set (typ_key : typ) (set : set) : value =
   let value_elements = VSet.elements set |> Value.list typ_key in
   let value =
     let typ = Typ.var "set" [ typ_key ] in
-    ( [ [ Atom.LBrace $ no_region ]; [ Atom.RBrace $ no_region ] ],
+    ( Mixop.Seq
+        [
+          Mixop.Atom (Atom.LBrace $ no_region);
+          Mixop.Arg;
+          Mixop.Atom (Atom.RBrace $ no_region);
+        ],
       [ value_elements ] )
     |> Value.Make.case typ
   in

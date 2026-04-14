@@ -74,16 +74,24 @@ module VMap = Map.Make (Value)
 let colon_pair : (Value.t * Value.t) t =
  fun at v ->
   match v.it with
-  | CaseV ([ []; [ { it = Atom.Colon; _ } ]; [] ], [ k; v ]) -> Ok (k, v)
+  | CaseV (mixop, [ k; v ])
+    when Mixop.eq mixop
+           (Seq [ Arg; Atom (Atom.Colon $ Common.Source.no_region); Arg ]) ->
+      Ok (k, v)
   | _ -> Error (type_err at "Expected a 'k:v' pair" v)
 
 (** Parses a map value into an OCaml VMap.t *)
 let map : Value.t VMap.t t =
  fun at v ->
   match v.it with
-  | CaseV
-      ( [ [ { it = Atom.LBrace; _ } ]; [ { it = Atom.RBrace; _ } ] ],
-        [ pair_list_val ] ) ->
+  | CaseV (mixop, [ pair_list_val ])
+    when Mixop.eq mixop
+           (Seq
+              [
+                Atom (Atom.LBrace $ Common.Source.no_region);
+                Arg;
+                Atom (Atom.RBrace $ Common.Source.no_region);
+              ]) ->
       let* pairs = (list_of colon_pair) at pair_list_val in
       Ok (VMap.of_list pairs)
   | _ -> Error (type_err at "Expected a map value" v)
