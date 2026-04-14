@@ -1,6 +1,5 @@
 open Common.Domain
 open Common.Source
-open Lang
 open Lang.Il
 open Envs.Make
 open Error
@@ -9,21 +8,18 @@ open Ctx
 (* Helper for identifying singleton case *)
 
 let rec is_singleton_case (dctx : Dctx.t) (typ : typ) : bool =
-  typ |> Plaintyp.of_internal_typ |> is_singleton_case' dctx
-
-and is_singleton_case' (dctx : Dctx.t) (plaintyp : El.plaintyp) : bool =
-  match plaintyp.it with
+  match typ.it with
   | VarT (tid, targs) -> (
       let td = Dctx.find_typdef dctx tid in
       match td with
-      | Defined (tparams, typdef) -> (
-          match typdef with
-          | `Plain plaintyp ->
+      | Defined (tparams, deftyp) -> (
+          match deftyp.it with
+          | PlainT typ ->
               let theta = List.combine tparams targs |> TIdMap.of_list in
-              let plaintyp = Plaintyp.subst_plaintyp theta plaintyp in
-              is_singleton_case' dctx plaintyp
-          | `Struct _ -> false
-          | `Variant cases -> List.length cases = 1)
+              let typ = Envs.Il.Typ.subst_typ theta typ in
+              is_singleton_case dctx typ
+          | StructT _ -> false
+          | VariantT cases -> List.length cases = 1)
       | _ -> false)
   | _ -> false
 

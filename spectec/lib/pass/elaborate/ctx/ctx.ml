@@ -3,6 +3,7 @@ open Common.Source
 open Lang.El
 module Il = Lang.Il
 open Error
+open Envs.Make
 
 (* Error *)
 
@@ -12,15 +13,19 @@ let error_undef (at : region) (kind : string) (id : string) =
 let error_dup (at : region) (kind : string) (id : string) =
   error at (Format.asprintf "%s `%s` was already defined" kind id)
 
-open Envs.Make
-
 (* Environments *)
 
 (* Identifier type and dimension environment *)
 module VEnv = MakeIdMap (Typ)
 
-(* Plain type (EL type) environment *)
-module PTEnv = MakeIdMap (Plaintyp)
+(* Meta-variable type environment (IL types) *)
+module MetaTyp = struct
+  type t = Il.typ
+
+  let to_string = Il.Print.string_of_typ
+end
+
+module MEnv = MakeIdMap (MetaTyp)
 
 (* Type definition environment *)
 module TDEnv = MakeTIdMap (Typdef)
@@ -53,8 +58,8 @@ type t = {
   venv : VEnv.t;
   (* Map from syntax ids to type definitions *)
   tdenv : TDEnv.t;
-  (* Map from meta-variable ids to types *)
-  menv : PTEnv.t;
+  (* Map from meta-type ids to meta-types *)
+  menv : MEnv.t;
   (* Map from relation ids to relations *)
   renv : REnv.t;
   (* Map from function ids to functions *)
@@ -68,26 +73,22 @@ let empty : t =
     frees = IdSet.empty;
     venv = VEnv.empty;
     tdenv = TDEnv.empty;
-    menv = PTEnv.empty;
+    menv = MEnv.empty;
     renv = REnv.empty;
     fenv = FEnv.empty;
   }
 
 let init () : t =
   let menv =
-    PTEnv.empty
-    |> PTEnv.add ("bool" $ no_region) (BoolT $ no_region)
-    |> PTEnv.add ("nat" $ no_region) (NumT `NatT $ no_region)
-    |> PTEnv.add ("int" $ no_region) (NumT `IntT $ no_region)
-    |> PTEnv.add ("text" $ no_region) (TextT $ no_region)
+    MEnv.empty
+    |> MEnv.add ("bool" $ no_region) (Il.BoolT $ no_region)
+    |> MEnv.add ("nat" $ no_region) (Il.NumT `NatT $ no_region)
+    |> MEnv.add ("int" $ no_region) (Il.NumT `IntT $ no_region)
+    |> MEnv.add ("text" $ no_region) (Il.TextT $ no_region)
   in
   { empty with menv }
 
 (* Finders *)
-
-(* Finders for variables *)
-
-let bound_var (ctx : t) (id : Id.t) : bool = VEnv.mem id ctx.venv
 
 (* Finders for type definitions *)
 
@@ -104,12 +105,12 @@ let bound_typdef (ctx : t) (tid : TId.t) : bool =
 
 (* Finders for meta-variables *)
 
-let find_metavar_opt (ctx : t) (tid : TId.t) : Plaintyp.t option =
-  TDEnv.find_opt tid ctx.menv
+let find_metavar_opt (ctx : t) (tid : TId.t) : Il.typ option =
+  MEnv.find_opt tid ctx.menv
 
-let find_metavar (ctx : t) (tid : TId.t) : Plaintyp.t =
+let find_metavar (ctx : t) (tid : TId.t) : Il.typ =
   match find_metavar_opt ctx tid with
-  | Some plaintyp -> plaintyp
+  | Some typ -> typ
   | None -> error_undef tid.at "meta-variable" tid.it
 
 let bound_metavar (ctx : t) (tid : TId.t) : bool =
@@ -117,11 +118,11 @@ let bound_metavar (ctx : t) (tid : TId.t) : bool =
 
 (* Finders for rules *)
 
-let find_rel_opt (ctx : t) (rid : RId.t) : (nottyp * int list) option =
+let find_rel_opt (ctx : t) (rid : RId.t) : (Il.nottyp * int list) option =
   REnv.find_opt rid ctx.renv
   |> Option.map (fun (nottyp, inputs, _) -> (nottyp, inputs))
 
-let find_rel (ctx : t) (rid : RId.t) : nottyp * int list =
+let find_rel (ctx : t) (rid : RId.t) : Il.nottyp * int list =
   match find_rel_opt ctx rid with
   | Some (nottyp, inputs) -> (nottyp, inputs)
   | None -> error_undef rid.at "relation" rid.it
@@ -140,14 +141,14 @@ let find_rules (ctx : t) (rid : RId.t) : Il.rule list =
 (* Finders for definitions *)
 
 let find_defined_dec_opt (ctx : t) (fid : FId.t) :
-    (tparam list * param list * plaintyp * Il.clause list) option =
+    (Il.tparam list * Il.param list * Il.typ * Il.clause list) option =
   match FEnv.find_opt fid ctx.fenv with
-  | Some (Func.Defined (tparams, params, plaintyp, clauses)) ->
-      Some (tparams, params, plaintyp, clauses)
+  | Some (Func.Defined (tparams, params, typ, clauses)) ->
+      Some (tparams, params, typ, clauses)
   | Some (Func.Builtin _) | None -> None
 
 let find_defined_dec (ctx : t) (fid : FId.t) :
-    tparam list * param list * plaintyp * Il.clause list =
+    Il.tparam list * Il.param list * Il.typ * Il.clause list =
   match find_defined_dec_opt ctx fid with
   | Some result -> result
   | None -> error_undef fid.at "defined dec" fid.it
@@ -156,15 +157,15 @@ let bound_defined_dec (ctx : t) (fid : FId.t) : bool =
   find_defined_dec_opt ctx fid |> Option.is_some
 
 let find_dec_signature_opt (ctx : t) (fid : FId.t) :
-    (tparam list * param list * plaintyp) option =
+    (Il.tparam list * Il.param list * Il.typ) option =
   FEnv.find_opt fid ctx.fenv
   |> Option.map (function
-         | Func.Builtin (tparams, params, plaintyp)
-         | Func.Defined (tparams, params, plaintyp, _)
-         -> (tparams, params, plaintyp))
+         | Func.Builtin (tparams, params, typ)
+         | Func.Defined (tparams, params, typ, _)
+         -> (tparams, params, typ))
 
 let find_dec_signature (ctx : t) (fid : FId.t) :
-    tparam list * param list * plaintyp =
+    Il.tparam list * Il.param list * Il.typ =
   match find_dec_signature_opt ctx fid with
   | Some result -> result
   | None -> error_undef fid.at "dec" fid.it
@@ -183,22 +184,11 @@ let add_free (ctx : t) (id : Id.t) : t =
 let add_frees (ctx : t) (ids : IdSet.t) : t =
   ids |> IdSet.elements |> List.fold_left (fun ctx id -> add_free ctx id) ctx
 
-(* Adders for variables *)
-
-let add_var (ctx : t) (var : Id.t * Typ.t) : t =
-  let id, typ = var in
-  if bound_var ctx id then error_dup id.at "variable" id.it;
-  let venv = VEnv.add id typ ctx.venv in
-  { ctx with venv }
-
-let add_vars (ctx : t) (vars : (Id.t * Typ.t) list) : t =
-  List.fold_left add_var ctx vars
-
 (* Adders for meta-variables *)
 
-let add_metavar (ctx : t) (tid : TId.t) (plaintyp : Plaintyp.t) : t =
+let add_metavar (ctx : t) (tid : TId.t) (typ : Il.typ) : t =
   if bound_metavar ctx tid then error_dup tid.at "meta-variable" tid.it;
-  let menv = PTEnv.add tid plaintyp ctx.menv in
+  let menv = MEnv.add tid typ ctx.menv in
   { ctx with menv }
 
 (* Adders for type definitions *)
@@ -210,14 +200,15 @@ let add_typdef (ctx : t) (tid : TId.t) (td : Typdef.t) : t =
 
 let add_tparam (ctx : t) (tparam : tparam) : t =
   let ctx = add_typdef ctx tparam Typdef.Param in
-  add_metavar ctx tparam (VarT (tparam, []) $ tparam.at)
+  add_metavar ctx tparam (Il.VarT (tparam, []) $ tparam.at)
 
 let add_tparams (ctx : t) (tparams : tparam list) : t =
   List.fold_left add_tparam ctx tparams
 
 (* Adders for rules *)
 
-let add_rel (ctx : t) (rid : RId.t) (nottyp : nottyp) (inputs : int list) : t =
+let add_rel (ctx : t) (rid : RId.t) (nottyp : Il.nottyp) (inputs : int list) : t
+    =
   if bound_rel ctx rid then error_dup rid.at "relation" rid.it;
   let rel = (nottyp, inputs, []) in
   let renv = REnv.add rid rel ctx.renv in
@@ -232,25 +223,25 @@ let add_rule (ctx : t) (rid : RId.t) (rule : Il.rule) : t =
 
 (* Adders for definitions *)
 
-let add_builtin_dec (ctx : t) (fid : FId.t) (tparams : tparam list)
-    (params : param list) (plaintyp : plaintyp) : t =
+let add_builtin_dec (ctx : t) (fid : FId.t) (tparams : Il.tparam list)
+    (params : Il.param list) (typ : Il.typ) : t =
   if bound_dec ctx fid then error_dup fid.at "dec" fid.it;
-  let func = Func.Builtin (tparams, params, plaintyp) in
+  let func = Func.Builtin (tparams, params, typ) in
   let fenv = FEnv.add fid func ctx.fenv in
   { ctx with fenv }
 
-let add_defined_dec (ctx : t) (fid : FId.t) (tparams : tparam list)
-    (params : param list) (plaintyp : plaintyp) : t =
+let add_defined_dec (ctx : t) (fid : FId.t) (tparams : Il.tparam list)
+    (params : Il.param list) (typ : Il.typ) : t =
   if bound_dec ctx fid then error_dup fid.at "dec" fid.it;
-  let func = Func.Defined (tparams, params, plaintyp, []) in
+  let func = Func.Defined (tparams, params, typ, []) in
   let fenv = FEnv.add fid func ctx.fenv in
   { ctx with fenv }
 
 let add_defined_clause (ctx : t) (fid : FId.t) (clause : Il.clause) : t =
   if not (bound_defined_dec ctx fid) then
     error_undef clause.at "defined dec" fid.it;
-  let tparams, params, plaintyp, clauses = find_defined_dec ctx fid in
-  let func = Func.Defined (tparams, params, plaintyp, clauses @ [ clause ]) in
+  let tparams, params, typ, clauses = find_defined_dec ctx fid in
+  let func = Func.Defined (tparams, params, typ, clauses @ [ clause ]) in
   let fenv = FEnv.add fid func ctx.fenv in
   { ctx with fenv }
 
@@ -261,7 +252,6 @@ let update_typdef (ctx : t) (tid : TId.t) (td : Typdef.t) : t =
   let tdenv = TDEnv.add tid td ctx.tdenv in
   { ctx with tdenv }
 
-module Plaintyp = Plaintyp
 module Typ = Typ
 module Typdef = Typdef
 module Func = Func
