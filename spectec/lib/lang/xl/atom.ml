@@ -133,23 +133,18 @@ let string_of_atom = function
   | Tick -> "`"
   | DoubleQuote -> "\""
   | Underscore -> "_"
-  | Arrow -> "->"
-  | TickArrow -> "->"
+  | Arrow | TickArrow -> "->"
   | ArrowSub -> "->_"
   | DoubleArrow -> "=>"
   | DoubleArrowSub -> "=>_"
   | DoubleArrowLong -> "==>"
   | SqArrow -> "~>"
   | SqArrowStar -> "~>*"
-  | Dot -> "."
-  | TickDot -> "."
-  | Dot2 -> ".."
-  | TickDot2 -> ".."
-  | Dot3 -> "..."
-  | TickDot3 -> "..."
+  | Dot | TickDot -> "."
+  | Dot2 | TickDot2 -> ".."
+  | Dot3 | TickDot3 -> "..."
   | Comma -> ","
-  | Semicolon -> ";"
-  | TickSemicolon -> ";"
+  | Semicolon | TickSemicolon -> ";"
   | Colon -> ":"
   | TickColon -> ":"
   | Hash -> "#"
@@ -160,27 +155,21 @@ let string_of_atom = function
   | BangEq -> "!="
   | Tilde -> "~"
   | Tilde2 -> "~~"
-  | LAngle -> "<"
-  | TickLAngle -> "<"
+  | LAngle | TickLAngle -> "<"
   | LAngle2 -> "<<"
   | LAngleEq -> "<="
   | LAngle2Eq -> "<<="
-  | RAngle -> ">"
-  | TickRAngle -> ">"
+  | RAngle | TickRAngle -> ">"
   | RAngle2 -> ">>"
   | RAngleEq -> ">="
   | RAngle2Eq -> ">>="
   | LParen -> "("
   | RParen -> ")"
-  | LBrack -> "["
-  | TickLBrack -> "["
-  | RBrack -> "]"
-  | TickRBrack -> "]"
-  | LBrace -> "{"
-  | TickLBrace -> "{"
+  | LBrack | TickLBrack -> "["
+  | RBrack | TickRBrack -> "]"
+  | LBrace | TickLBrace -> "{"
   | LBraceHashRBrace -> "{#}"
-  | RBrace -> "}"
-  | TickRBrace -> "}"
+  | RBrace | TickRBrace -> "}"
   | Plus -> "+"
   | Plus2 -> "++"
   | PlusEq -> "+="
@@ -224,3 +213,87 @@ let string_of_atom_exact : t -> string = function
   | TickLBrace -> "``{"
   | TickRBrace -> "``}"
   | a -> string_of_atom a
+
+(* NOTE: ".", ":", and ";" map to TickDot, TickColon, and TickSemicolon
+   rather than Dot, Colon, and Semicolon. This is because the helper is
+   used by user-facing parsers. *)
+let of_string : string -> t = function
+  | "<:" -> Sub
+  | ":>" -> Sup
+  | "|-" -> Turnstile
+  | "-|" -> Tilesturn
+  | "`" -> Tick
+  | "\"" -> DoubleQuote
+  | "_" -> Underscore
+  | "->" -> Arrow
+  | "`->" -> TickArrow
+  | "->_" -> ArrowSub
+  | "=>" -> DoubleArrow
+  | "=>_" -> DoubleArrowSub
+  | "~>" -> SqArrow
+  | "~>*" -> SqArrowStar
+  | "." | "`." -> TickDot
+  | ".." | "`.." -> TickDot2
+  | "..." | "`..." -> TickDot3
+  | "," -> Comma
+  | ";" | "`;" -> TickSemicolon
+  | ":" | "`:" -> TickColon
+  | "#" -> Hash
+  | "$" -> Dollar
+  | "@" -> At
+  | "?" -> Quest
+  | "!" -> Bang
+  | "!=" -> BangEq
+  | "~" -> Tilde
+  | "~~" -> Tilde2
+  | "<" -> LAngle
+  | "<<" -> LAngle2
+  | "<=" -> LAngleEq
+  | "<<=" -> LAngle2Eq
+  | ">" -> RAngle
+  | ">>" -> RAngle2
+  | ">=" -> RAngleEq
+  | ">>=" -> RAngle2Eq
+  | "(" -> LParen
+  | ")" -> RParen
+  | "[" -> LBrack
+  | "]" -> RBrack
+  | "{" -> LBrace
+  | "{#}" -> LBraceHashRBrace
+  | "}" -> RBrace
+  | "``<" -> TickLAngle
+  | "``>" -> TickRAngle
+  | "``[" -> TickLBrack
+  | "``]" -> TickRBrack
+  | "``{" -> TickLBrace
+  | "``}" -> TickRBrace
+  | "+" -> Plus
+  | "++" -> Plus2
+  | "+=" -> PlusEq
+  | "-" -> Minus
+  | "-=" -> MinusEq
+  | "*" -> Star
+  | "*=" -> StarEq
+  | "/" -> Slash
+  | "/=" -> SlashEq
+  | "\\" -> Backslash
+  | "%" -> Percent
+  | "%=" -> PercentEq
+  | "=" -> Eq
+  | "==" -> Eq2
+  | "&" -> Amp
+  | "&&" -> Amp2
+  | "&&&" -> Amp3
+  | "&=" -> AmpEq
+  | "^" -> Up
+  | "^=" -> UpEq
+  | "|" -> Bar
+  | "||" -> Bar2
+  | "|=" -> BarEq
+  | "|+|" -> SPlus
+  | "|+|=" -> SPlusEq
+  | "|-|" -> SMinus
+  | "|-|=" -> SMinusEq
+  | s when String.length s > 0 && s.[0] = '`' ->
+      SilentAtom (String.sub s 1 (String.length s - 1))
+  | s -> Atom s

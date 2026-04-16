@@ -5,7 +5,6 @@ include module type of Types
 module Mixfix : module type of Mixfix
 module Eq : module type of Eq
 module Free : module type of Free
-module Utils : module type of Utils
 module Print : module type of Print
 module Print_debug : module type of Print_debug
 

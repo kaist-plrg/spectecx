@@ -2,7 +2,6 @@ include Types
 module Mixfix = Mixfix
 module Print = Print
 module Eq = Eq
-module Utils = Utils
 module Print_debug = Print_debug
 module Free = Free
 
