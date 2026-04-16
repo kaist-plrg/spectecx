@@ -88,10 +88,14 @@ and parallelize_if_disjunctions (instrs : instr list) : instr list =
 let matchify_exp_eq_terminal (exp : exp) : exp =
   let at, note = (exp.at, exp.note) in
   match exp.it with
-  | CmpE (`EqOp, _, exp_l, { it = CaseE (mixop, []); _ }) ->
-      Il.MatchE (exp_l, CaseP mixop) $$ (at, note)
-  | CmpE (`NeOp, _, exp_l, { it = CaseE (mixop, []); _ }) ->
-      let exp = Il.MatchE (exp_l, CaseP mixop) $$ (at, note) in
+  | CmpE (`EqOp, _, exp_l, { it = CaseE notexp; _ })
+    when Il.Mixfix.args notexp = [] ->
+      Il.MatchE (exp_l, CaseP (Il.Mixfix.to_mixop notexp)) $$ (at, note)
+  | CmpE (`NeOp, _, exp_l, { it = CaseE notexp; _ })
+    when Il.Mixfix.args notexp = [] ->
+      let exp =
+        Il.MatchE (exp_l, CaseP (Il.Mixfix.to_mixop notexp)) $$ (at, note)
+      in
       Il.UnE (`NotOp, `BoolT, exp) $$ (at, note)
   | _ -> exp
 
@@ -162,7 +166,7 @@ module Bind = struct
   let init_rule_bind (henv : HEnv.t) (id : id) (notexp : notexp)
       (iterexps : iterexp list) : t =
     let exps_l, exps_r =
-      let _, exps = notexp in
+      let exps = Il.Mixfix.args notexp in
       let inputs = HEnv.find id henv in
       Hint.split_exps_without_idx inputs exps
     in
@@ -189,9 +193,10 @@ module Bind = struct
         in
         Some rename
     | TupleE exps, TupleE exps_target -> collapse_exps rename exps exps_target
-    | CaseE (mixop, exps), CaseE (mixop_target, exps_target)
-      when Sl.Eq.eq_mixop mixop mixop_target ->
-        collapse_exps rename exps exps_target
+    | CaseE notexp, CaseE notexp_target
+      when Il.Mixfix.eq_mixop notexp notexp_target ->
+        collapse_exps rename (Il.Mixfix.args notexp)
+          (Il.Mixfix.args notexp_target)
     | StrE expfields, StrE expfields_target ->
         let atoms, exps = List.split expfields in
         let atoms_target, exps_target = List.split expfields_target in
@@ -419,9 +424,7 @@ let rec typ_as_variant (tdenv : TDEnv.t) (typ : typ) : mixop list option =
       | VariantT typcases ->
           let mixops =
             typcases
-            |> List.map (fun (nottyp, _, _) ->
-                   let mixop, _ = nottyp.it in
-                   mixop)
+            |> List.map (fun (nottyp, _, _) -> Il.Mixfix.to_mixop nottyp.it)
           in
           Some mixops
       | _ -> None)
@@ -443,8 +446,9 @@ let rec distinct_exp_literal (exp_a : exp) (exp_b : exp) : bool =
   | TupleE exps_a, TupleE exps_b ->
       assert (List.length exps_a = List.length exps_b);
       List.exists2 distinct_exp_literal exps_a exps_b
-  | CaseE (mixop_a, []), CaseE (mixop_b, []) ->
-      not (Il.Mixop.eq mixop_a mixop_b)
+  | CaseE notexp_a, CaseE notexp_b
+    when Il.Mixfix.args notexp_a = [] && Il.Mixfix.args notexp_b = [] ->
+      not (Il.Mixfix.eq_mixop notexp_a notexp_b)
   | ListE exps_a, ListE exps_b when List.length exps_a = List.length exps_b ->
       List.exists2 distinct_exp_literal exps_a exps_b
   | ListE _, ListE _ -> true
@@ -456,7 +460,11 @@ let overlap_typ (tdenv : TDEnv.t) (exp : exp) (typ_a : typ) (typ_b : typ) :
   let guard_b = SubG typ_b in
   match (typ_as_variant tdenv typ_a, typ_as_variant tdenv typ_b) with
   | Some mixops_a, Some mixops_b ->
-      let module Set = Set.Make (Il.Mixop) in
+      let module Set = Set.Make (struct
+        type t = Il.Mixfix.mixop
+
+        let compare = Il.Mixfix.compare_mixop
+      end) in
       let mixops_a = Set.of_list mixops_a in
       let mixops_b = Set.of_list mixops_b in
       if Set.equal mixops_a mixops_b then Identical
@@ -657,12 +665,9 @@ and merge_identical_if_hold' (id_target : id) (notexp_target : notexp)
   match instrs with
   | ({ it = IfHoldI (id, notexp, iterexps, instrs_then); _ } as instr_h)
     :: instrs_t ->
-      let mixop_target, exps_target = notexp_target in
-      let mixop, exps = notexp in
       if
         Sl.Eq.eq_id id id_target
-        && Sl.Eq.eq_mixop mixop mixop_target
-        && Sl.Eq.eq_exps exps exps_target
+        && Il.Mixfix.eq ~eq_arg:Sl.Eq.eq_exp notexp notexp_target
         && Sl.Eq.eq_iterexps iterexps iterexps_target
       then
         let instrs_leftover = instrs_leftover @ instrs_t in
@@ -1012,7 +1017,11 @@ and totalize_case_analysis' (tdenv : TDEnv.t) (instr : instr) : instr =
       in
       match find_variant_case_analysis tdenv cases with
       | Some mixops_case ->
-          let module Set = Set.Make (Il.Mixop) in
+          let module Set = Set.Make (struct
+            type t = Il.Mixfix.mixop
+
+            let compare = Il.Mixfix.compare_mixop
+          end) in
           let mixops_total =
             let typ = exp.note $ exp.at in
             typ |> typ_as_variant tdenv |> Option.get

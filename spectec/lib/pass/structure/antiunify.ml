@@ -27,9 +27,11 @@ let rec populate_exp_template (uenv : UEnv.t) (exp_template : exp) (exp : exp) :
         [ prem ]
     | TupleE exps_template, TupleE exps ->
         populate_exps_templates uenv exps_template exps
-    | CaseE (mixop_template, exps_template), CaseE (mixop, exps)
-      when Il.Eq.eq_mixop mixop_template mixop ->
-        populate_exps_templates uenv exps_template exps
+    | CaseE notexp_template, CaseE notexp
+      when Il.Mixfix.eq_mixop notexp_template notexp ->
+        populate_exps_templates uenv
+          (Il.Mixfix.args notexp_template)
+          (Il.Mixfix.args notexp)
     | ( IterE (exp_template, (iter_template, vars_template)),
         IterE (exp, (iter, vars)) )
       when Il.Eq.eq_iter iter_template iter ->
@@ -89,13 +91,16 @@ let rec antiunify_exp (frees : IdSet.t) (uenv : UEnv.t) (exp_template : exp)
         in
         let exp_template = TupleE exps_template $$ (at, note) in
         (frees, uenv, exp_template)
-    | CaseE (mixop_template, exps_template), CaseE (mixop, exps)
-      when Il.Eq.eq_mixop mixop_template mixop ->
+    | CaseE notexp_template, CaseE notexp
+      when Il.Mixfix.eq_mixop notexp_template notexp ->
+        let exps_template = Il.Mixfix.args notexp_template in
+        let exps = Il.Mixfix.args notexp in
         let frees, uenv, exps_template =
           antiunify_exps frees uenv exps_template exps
         in
+        let mixop = Il.Mixfix.to_mixop notexp_template in
         let exp_template =
-          CaseE (mixop_template, exps_template) $$ (at, note)
+          CaseE (Il.Mixfix.fill mixop exps_template) $$ (at, note)
         in
         (frees, uenv, exp_template)
     | ( IterE (exp_template, (iter_template, vars_template)),
@@ -247,9 +252,8 @@ let antiunify_rules (inputs : int list) (rules : rule list) :
     List.fold_left
       (fun (exps_input_group, exps_output_group, prems_group, frees) rule ->
         let _, notexp, prems = rule.it in
-        let _, exps = notexp in
         let exps_input, exps_output =
-          Envs.Hint.split_exps_without_idx inputs exps
+          Envs.Hint.split_exps_without_idx inputs (Il.Mixfix.args notexp)
         in
         let exps_input_group = exps_input_group @ [ exps_input ] in
         let exps_output_group = exps_output_group @ [ exps_output ] in

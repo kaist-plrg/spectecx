@@ -119,9 +119,8 @@ let rec string_of_exp exp =
 and string_of_exps sep exps = String.concat sep (List.map string_of_exp exps)
 
 and string_of_notexp notexp =
-  let mixop, exps = notexp in
-  let sexps = List.map string_of_exp exps in
-  Il.Mixop.assemble ~string_of_atom mixop sexps
+  Il.Mixfix.render ~pad_brackets:true ~string_of_atom
+    ~string_of_arg:string_of_exp notexp
 
 and string_of_iterexp (iter, _) = Il.Print.string_of_iter iter
 

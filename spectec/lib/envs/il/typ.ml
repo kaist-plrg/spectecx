@@ -39,9 +39,7 @@ and subst_targs (theta : theta) (targs : t list) : t list =
   List.map (subst_targ theta) targs
 
 let subst_nottyp (theta : theta) (nottyp : nottyp) : nottyp =
-  let mixop, typs = nottyp.it in
-  let typs = subst_typs theta typs in
-  (mixop, typs) $ nottyp.at
+  Mixfix.map (subst_typ theta) nottyp.it $ nottyp.at
 
 let subst_typorigin (theta : theta) (typorigin : typorigin) : typorigin =
   let id, targs = typorigin.it in

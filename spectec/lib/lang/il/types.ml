@@ -23,7 +23,7 @@ and atom' = Atom.t
 
 (* Mixfix operators *)
 
-type mixop = Mixop.t
+type mixop = Mixfix.mixop
 
 (* Iterators *)
 
@@ -57,7 +57,7 @@ and targ' = typ'
 type var = id * typ * iter list
 
 type nottyp = nottyp' phrase
-and nottyp' = mixop * typ list
+and nottyp' = typ Mixfix.t
 
 and deftyp = deftyp' phrase
 and deftyp' =
@@ -88,7 +88,7 @@ and value' =
   | FuncV of id
 
 and valuefield = atom * value
-and valuecase = mixop * value list
+and valuecase = value Mixfix.t
 
 (* Operators *)
 
@@ -129,7 +129,7 @@ and exp' =
   | CallE of id * targ list * arg list    (* $id`<` targ* `>``(` arg* `)` *)
   | IterE of exp * iterexp                (* exp iterexp *)
 
-and notexp = mixop * exp list
+and notexp = exp Mixfix.t
 and iterexp = iter * var list
 
 (* Patterns *)

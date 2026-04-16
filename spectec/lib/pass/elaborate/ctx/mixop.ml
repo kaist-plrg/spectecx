@@ -3,7 +3,7 @@ module Atom = Xl.Atom
 
 (* Elaboration-time mixop: a tree representation used while building up
    mixfix operators from the EL surface syntax. Converted to the flat IL
-   [Il.Mixop.t] form via [to_il] at the end of elaboration. *)
+   [Il.Mixfix.mixop] form via [to_il] at the end of elaboration. *)
 
 type atom = Atom.t phrase
 
@@ -39,8 +39,8 @@ let rec to_string (mixop : t) : string =
 
    Each [parse_*] returns the parsed node and the unconsumed mixemes. *)
 
-let of_il (mixemes : Lang.Il.Mixop.t) : t =
-  let module M = Lang.Il.Mixop in
+let of_il (mixemes : Lang.Il.Mixfix.mixop) : t =
+  let module M = Lang.Il.Mixfix in
   let bracket_matches l r =
     match Atom.closer_of l with Some p -> p = r | None -> false
   in
@@ -74,7 +74,7 @@ let of_il (mixemes : Lang.Il.Mixop.t) : t =
     (tree, mixemes)
   and parse_primary_opt mixemes =
     match mixemes with
-    | M.Arg :: tail -> Some (Arg, tail)
+    | M.Arg () :: tail -> Some (Arg, tail)
     | M.Atom atom :: tail -> (
         match Atom.kind atom.it with
         | Atom.Plain -> Some (Atom atom, tail)
@@ -97,23 +97,23 @@ let of_il (mixemes : Lang.Il.Mixop.t) : t =
       Error.error atom.at
         (Format.asprintf "stray mixfix atom `%s`"
            (Atom.string_of_atom_exact atom.it))
-  | M.Arg :: _ -> Error.error no_region "stray argument marker in mixop"
+  | M.Arg () :: _ -> Error.error no_region "stray argument marker in mixop"
 
 (* Conversion to the flat IL representation *)
 
-let to_il (mixop : t) : Lang.Il.Mixop.t =
-  let rec flatten (mixop : t) (mixemes_rev : Lang.Il.Mixop.t) : Lang.Il.Mixop.t
-      =
+let to_il (mixop : t) : Lang.Il.Mixfix.mixop =
+  let rec flatten (mixop : t) (mixemes_rev : Lang.Il.Mixfix.mixop) :
+      Lang.Il.Mixfix.mixop =
     match mixop with
-    | Arg -> Lang.Il.Mixop.Arg :: mixemes_rev
-    | Atom atom -> Lang.Il.Mixop.Atom atom :: mixemes_rev
+    | Arg -> Lang.Il.Mixfix.Arg () :: mixemes_rev
+    | Atom atom -> Lang.Il.Mixfix.Atom atom :: mixemes_rev
     | Brack (atom_left, inner, atom_right) ->
-        let mixemes_rev = Lang.Il.Mixop.Atom atom_left :: mixemes_rev in
+        let mixemes_rev = Lang.Il.Mixfix.Atom atom_left :: mixemes_rev in
         let mixemes_rev = flatten inner mixemes_rev in
-        Lang.Il.Mixop.Atom atom_right :: mixemes_rev
+        Lang.Il.Mixfix.Atom atom_right :: mixemes_rev
     | Infix (mixop_left, atom, mixop_right) ->
         let mixemes_rev = flatten mixop_left mixemes_rev in
-        let mixemes_rev = Lang.Il.Mixop.Atom atom :: mixemes_rev in
+        let mixemes_rev = Lang.Il.Mixfix.Atom atom :: mixemes_rev in
         flatten mixop_right mixemes_rev
     | Seq parts ->
         List.fold_left

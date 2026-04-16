@@ -31,18 +31,16 @@ and eq_instr (instr_a : instr) (instr_b : instr) : bool =
       Sl.Eq.eq_exp exp_cond_a exp_cond_b
       && Sl.Eq.eq_iterexps iterexps_a iterexps_b
       && eq_instrs instrs_then_a instrs_then_b
-  | ( IfHoldI (id_a, (mixop_a, exps_a), iterexps_a, instrs_then_a),
-      IfHoldI (id_b, (mixop_b, exps_b), iterexps_b, instrs_then_b) ) ->
+  | ( IfHoldI (id_a, notexp_a, iterexps_a, instrs_then_a),
+      IfHoldI (id_b, notexp_b, iterexps_b, instrs_then_b) ) ->
       Sl.Eq.eq_id id_a id_b
-      && Sl.Eq.eq_mixop mixop_a mixop_b
-      && Sl.Eq.eq_exps exps_a exps_b
+      && Il.Mixfix.eq ~eq_arg:Sl.Eq.eq_exp notexp_a notexp_b
       && Sl.Eq.eq_iterexps iterexps_a iterexps_b
       && eq_instrs instrs_then_a instrs_then_b
-  | ( IfNotHoldI (id_a, (mixop_a, exps_a), iterexps_a, instrs_then_a),
-      IfNotHoldI (id_b, (mixop_b, exps_b), iterexps_b, instrs_then_b) ) ->
+  | ( IfNotHoldI (id_a, notexp_a, iterexps_a, instrs_then_a),
+      IfNotHoldI (id_b, notexp_b, iterexps_b, instrs_then_b) ) ->
       Sl.Eq.eq_id id_a id_b
-      && Sl.Eq.eq_mixop mixop_a mixop_b
-      && Sl.Eq.eq_exps exps_a exps_b
+      && Il.Mixfix.eq ~eq_arg:Sl.Eq.eq_exp notexp_a notexp_b
       && Sl.Eq.eq_iterexps iterexps_a iterexps_b
       && eq_instrs instrs_then_a instrs_then_b
   | CaseI (exp_a, cases_a, total_a), CaseI (exp_b, cases_b, total_b) ->
@@ -52,11 +50,9 @@ and eq_instr (instr_a : instr) (instr_b : instr) : bool =
       Sl.Eq.eq_exp exp_l_a exp_l_b
       && Sl.Eq.eq_exp exp_r_a exp_r_b
       && Sl.Eq.eq_iterexps iterexps_a iterexps_b
-  | ( RuleI (id_a, (mixop_a, exps_a), iterexps_a),
-      RuleI (id_b, (mixop_b, exps_b), iterexps_b) ) ->
+  | RuleI (id_a, notexp_a, iterexps_a), RuleI (id_b, notexp_b, iterexps_b) ->
       Sl.Eq.eq_id id_a id_b
-      && Sl.Eq.eq_mixop mixop_a mixop_b
-      && Sl.Eq.eq_exps exps_a exps_b
+      && Il.Mixfix.eq ~eq_arg:Sl.Eq.eq_exp notexp_a notexp_b
       && Sl.Eq.eq_iterexps iterexps_a iterexps_b
   | ResultI exps_a, ResultI exps_b -> Sl.Eq.eq_exps exps_a exps_b
   | ReturnI exp_a, ReturnI exp_b -> Sl.Eq.eq_exp exp_a exp_b
