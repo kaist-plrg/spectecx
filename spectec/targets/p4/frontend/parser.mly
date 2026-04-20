@@ -493,8 +493,8 @@ namedExpressionList:
   | r_angle R_ANGLE_SHIFT { [ Term ">>" ] #@ "binop" }
   | LE { [ Term "<=" ] #@ "binop" }
   | GE { [ Term ">=" ] #@ "binop" }
-  | l_angle { [ Term "<" ] #@ "binop" }
-  | r_angle { [ Term ">" ] #@ "binop" }
+  | l_angle { [ Term "``<" ] #@ "binop" }
+  | r_angle { [ Term "``>" ] #@ "binop" }
   | NE { [ Term "!=" ] #@ "binop" }
   | EQ { [ Term "==" ] #@ "binop" }
   | BIT_AND { [ Term "&" ] #@ "binop" }
@@ -1642,17 +1642,17 @@ annotationToken:
 	| COMPLEMENT
     { [ Term "~" ] #@ "annotationToken" }
 	| L_BRACKET
-    { [ Term "[" ] #@ "annotationToken" }
+    { [ Term "``[" ] #@ "annotationToken" }
 	| R_BRACKET
-    { [ Term "]" ] #@ "annotationToken" }
+    { [ Term "``]" ] #@ "annotationToken" }
 	| L_BRACE
-    { [ Term "{" ] #@ "annotationToken" }
+    { [ Term "``{" ] #@ "annotationToken" }
 	| R_BRACE
-    { [ Term "}" ] #@ "annotationToken" }
+    { [ Term "``}" ] #@ "annotationToken" }
 	| L_ANGLE
-    { [ Term "<" ] #@ "annotationToken" }
+    { [ Term "``<" ] #@ "annotationToken" }
 	| R_ANGLE
-    { [ Term ">" ] #@ "annotationToken" }
+    { [ Term "``>" ] #@ "annotationToken" }
 	| NOT
     { [ Term "!" ] #@ "annotationToken" }
 	| COLON

@@ -15,7 +15,8 @@ let value_of_map (typ_key : typ) (typ_value : typ) (map : map) : value =
   let value_of_tuple ((value_key, value_value) : value * value) : value =
     let value =
       let typ = Typ.var "pair" [ typ_key; typ_value ] in
-      ( Mixop.Seq [ Mixop.Arg; Mixop.Atom (Atom.Colon $ no_region); Mixop.Arg ],
+      ( Mixop.Seq
+          [ Mixop.Arg; Mixop.Atom (Atom.TickColon $ no_region); Mixop.Arg ],
         [ value_key; value_value ] )
       |> Value.Make.case typ
     in

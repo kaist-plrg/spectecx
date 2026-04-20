@@ -76,7 +76,8 @@ let colon_pair : (Value.t * Value.t) t =
   match v.it with
   | CaseV (mixop, [ k; v ])
     when Mixop.eq mixop
-           (Seq [ Arg; Atom (Atom.Colon $ Common.Source.no_region); Arg ]) ->
+           (Seq [ Arg; Atom (Atom.TickColon $ Common.Source.no_region); Arg ])
+    ->
       Ok (k, v)
   | _ -> Error (type_err at "Expected a 'k:v' pair" v)
 

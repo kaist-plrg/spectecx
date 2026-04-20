@@ -4,6 +4,9 @@ open Common.Source
 
 (* convert string to atom *)
 
+(* NOTE: ".", ":", and ";" map to TickDot, TickColon, and TickSemicolon
+   rather than Dot, Colon, and Semicolon. This is because the helper is
+   used by user-facing parsers. *)
 let wrap_atom (s : string) : atom =
   match s with
   | "<:" -> Sub $ no_region
@@ -14,17 +17,18 @@ let wrap_atom (s : string) : atom =
   | "\"" -> DoubleQuote $ no_region
   | "_" -> Underscore $ no_region
   | "->" -> Arrow $ no_region
+  | "`->" -> TickArrow $ no_region
   | "->_" -> ArrowSub $ no_region
   | "=>" -> DoubleArrow $ no_region
   | "=>_" -> DoubleArrowSub $ no_region
   | "~>" -> SqArrow $ no_region
   | "~>*" -> SqArrowStar $ no_region
-  | "." -> Dot $ no_region
-  | ".." -> Dot2 $ no_region
-  | "..." -> Dot3 $ no_region
+  | "." | "`." -> TickDot $ no_region
+  | ".." | "`.." -> TickDot2 $ no_region
+  | "..." | "`..." -> TickDot3 $ no_region
   | "," -> Comma $ no_region
-  | ";" -> Semicolon $ no_region
-  | ":" -> Colon $ no_region
+  | ";" | "`;" -> TickSemicolon $ no_region
+  | ":" | "`:" -> TickColon $ no_region
   | "#" -> Hash $ no_region
   | "$" -> Dollar $ no_region
   | "@" -> At $ no_region
@@ -48,6 +52,12 @@ let wrap_atom (s : string) : atom =
   | "{" -> LBrace $ no_region
   | "{#}" -> LBraceHashRBrace $ no_region
   | "}" -> RBrace $ no_region
+  | "``<" -> TickLAngle $ no_region
+  | "``>" -> TickRAngle $ no_region
+  | "``[" -> TickLBrack $ no_region
+  | "``]" -> TickRBrack $ no_region
+  | "``{" -> TickLBrace $ no_region
+  | "``}" -> TickRBrace $ no_region
   | "+" -> Plus $ no_region
   | "++" -> Plus2 $ no_region
   | "+=" -> PlusEq $ no_region
