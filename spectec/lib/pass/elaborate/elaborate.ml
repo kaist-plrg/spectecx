@@ -90,7 +90,7 @@ module Types = struct
       (nottyp_b : Il.nottyp) : bool =
     let mixop_a, typs_a = nottyp_a.it in
     let mixop_b, typs_b = nottyp_b.it in
-    Mixop.eq mixop_a mixop_b
+    Il.Mixop.eq mixop_a mixop_b
     && List.length typs_a = List.length typs_b
     && List.for_all2 (equiv_typ tdenv) typs_a typs_b
 
@@ -259,24 +259,25 @@ and elab_nottyp (ctx : Ctx.t) (typ : typ) : Il.nottyp =
   match typ with
   | PlainT plaintyp ->
       let typ_il = elab_plaintyp ctx plaintyp in
-      (Mixop.Arg, [ typ_il ]) $ plaintyp.at
+      ([ Il.Mixop.Arg ], [ typ_il ]) $ plaintyp.at
   | NotationT nottyp -> (
       match nottyp.it with
-      | AtomT atom -> (Mixop.Atom atom, []) $ nottyp.at
-      | SeqT [] -> (Mixop.Seq [], []) $ nottyp.at
+      | AtomT atom -> ([ Il.Mixop.Atom atom ], []) $ nottyp.at
+      | SeqT [] -> ([], []) $ nottyp.at
       | SeqT typs ->
           let parts = List.map (fun typ -> elab_nottyp ctx typ |> it) typs in
-          let mixops = List.map fst parts in
+          let mixop_il = List.concat_map fst parts in
           let typs_il = List.concat_map snd parts in
-          (Mixop.Seq mixops, typs_il) $ nottyp.at
+          (mixop_il, typs_il) $ nottyp.at
       | InfixT (typ_l, atom, typ_r) ->
           let mixop_l, typs_il_l = elab_nottyp ctx typ_l |> it in
           let mixop_r, typs_il_r = elab_nottyp ctx typ_r |> it in
-          (Mixop.Infix (mixop_l, atom, mixop_r), typs_il_l @ typs_il_r)
+          (mixop_l @ [ Il.Mixop.Atom atom ] @ mixop_r, typs_il_l @ typs_il_r)
           $ nottyp.at
       | BrackT (atom_l, typ, atom_r) ->
           let mixop, typs_il = elab_nottyp ctx typ |> it in
-          (Mixop.Brack (atom_l, mixop, atom_r), typs_il) $ nottyp.at)
+          ([ Il.Mixop.Atom atom_l ] @ mixop @ [ Il.Mixop.Atom atom_r ], typs_il)
+          $ nottyp.at)
 
 (* Elaboration of definition types *)
 
@@ -357,7 +358,7 @@ and elab_deftyp_variant (ctx : Ctx.t) (at : region) (id : id)
            let mixop, _ = nottyp_il.it in
            mixop)
   in
-  let mixop_groups = groupby Mixop.eq mixops in
+  let mixop_groups = groupby Il.Mixop.eq mixops in
   let mixop_duplicates =
     List.filter (fun mixop_group -> List.length mixop_group > 1) mixop_groups
   in
@@ -367,7 +368,7 @@ and elab_deftyp_variant (ctx : Ctx.t) (at : region) (id : id)
     ("variant cases are ambiguous: "
     ^ String.concat ", "
         (List.map
-           (fun mixop_group -> Mixop.string_of_mixop (List.hd mixop_group))
+           (fun mixop_group -> Il.Mixop.string_of_mixop (List.hd mixop_group))
            mixop_duplicates));
   let deftyp_il = Il.VariantT typcases_il $ at in
   let td = Typdef.Defined (tparams, deftyp_il) in
@@ -1163,7 +1164,8 @@ and fail_elab_not (at : region) (msg : string) : (Ctx.t * Il.notexp) attempt =
 and elab_exp_not (ctx : Ctx.t) (nottyp_il : Il.nottyp) (exp : exp) :
     (Ctx.t * Il.notexp) attempt =
   let mixop, typs_il = nottyp_il.it in
-  let* ctx, typs_il, exps_il = elab_exp_not_inner ctx mixop typs_il exp in
+  let mixop_el = Mixop.of_il mixop in
+  let* ctx, typs_il, exps_il = elab_exp_not_inner ctx mixop_el typs_il exp in
   match typs_il with
   | [] ->
       let notexp_il = (mixop, exps_il) in

@@ -1,4 +1,5 @@
 include Types
+module Mixop = Mixop
 module Print = Print
 module Eq = Eq
 module Utils = Utils

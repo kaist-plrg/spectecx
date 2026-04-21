@@ -5,6 +5,7 @@ module Hint = Envs.Hint
 open Error
 open Ctx
 open Bind
+module Mixop = Lang.Il.Mixop
 
 (* Binding analysis :
 

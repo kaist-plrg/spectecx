@@ -443,7 +443,8 @@ let rec distinct_exp_literal (exp_a : exp) (exp_b : exp) : bool =
   | TupleE exps_a, TupleE exps_b ->
       assert (List.length exps_a = List.length exps_b);
       List.exists2 distinct_exp_literal exps_a exps_b
-  | CaseE (mixop_a, []), CaseE (mixop_b, []) -> not (Mixop.eq mixop_a mixop_b)
+  | CaseE (mixop_a, []), CaseE (mixop_b, []) ->
+      not (Il.Mixop.eq mixop_a mixop_b)
   | ListE exps_a, ListE exps_b when List.length exps_a = List.length exps_b ->
       List.exists2 distinct_exp_literal exps_a exps_b
   | ListE _, ListE _ -> true
@@ -455,7 +456,7 @@ let overlap_typ (tdenv : TDEnv.t) (exp : exp) (typ_a : typ) (typ_b : typ) :
   let guard_b = SubG typ_b in
   match (typ_as_variant tdenv typ_a, typ_as_variant tdenv typ_b) with
   | Some mixops_a, Some mixops_b ->
-      let module Set = Set.Make (Mixop) in
+      let module Set = Set.Make (Il.Mixop) in
       let mixops_a = Set.of_list mixops_a in
       let mixops_b = Set.of_list mixops_b in
       if Set.equal mixops_a mixops_b then Identical
@@ -1011,7 +1012,7 @@ and totalize_case_analysis' (tdenv : TDEnv.t) (instr : instr) : instr =
       in
       match find_variant_case_analysis tdenv cases with
       | Some mixops_case ->
-          let module Set = Set.Make (Mixop) in
+          let module Set = Set.Make (Il.Mixop) in
           let mixops_total =
             let typ = exp.note $ exp.at in
             typ |> typ_as_variant tdenv |> Option.get

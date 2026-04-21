@@ -4,6 +4,7 @@ open Lang.Il
 open Envs.Make
 open Error
 open Ctx
+module Mixop = Lang.Il.Mixop
 
 (* Helper for identifying singleton case *)
 

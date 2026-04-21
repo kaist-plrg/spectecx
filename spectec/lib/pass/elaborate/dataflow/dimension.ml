@@ -4,6 +4,7 @@ open Lang
 open Il
 open Ctx
 open Error
+module Mixop = Lang.Il.Mixop
 
 (* Dimension analysis :
 

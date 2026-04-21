@@ -2,6 +2,7 @@
     after elaboration. *)
 
 include module type of Types
+module Mixop : module type of Mixop
 module Eq : module type of Eq
 module Free : module type of Free
 module Utils : module type of Utils

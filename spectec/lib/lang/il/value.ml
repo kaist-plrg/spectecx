@@ -26,7 +26,7 @@ let rec compare (value_l : t) (value_r : t) =
       let cmp_atoms = List.compare Xl.Atom.compare atoms_l atoms_r in
       if cmp_atoms <> 0 then cmp_atoms else compares values_l values_r
   | CaseV (mixop_l, values_l), CaseV (mixop_r, values_r) ->
-      let cmp_mixop = Xl.Mixop.compare mixop_l mixop_r in
+      let cmp_mixop = Mixop.compare mixop_l mixop_r in
       if cmp_mixop <> 0 then cmp_mixop else compares values_l values_r
   | TupleV values_l, TupleV values_r -> compares values_l values_r
   | OptV value_opt_l, OptV value_opt_r -> (
@@ -76,18 +76,13 @@ module MakeWithVid (VidProvider : VidProvider) = struct
       | `Int i -> 1 +! Bigint.hash i
     in
 
-    let rec hash_mixop (mixop : Xl.Mixop.t) : int =
-      match mixop with
-      | Arg -> 0
-      | Atom atom -> 1 +! hash_atom atom.Common.Source.it
-      | Brack (al, m, ar) ->
-          2
-          +! hash_atom al.Common.Source.it
-          +! hash_mixop m
-          +! hash_atom ar.Common.Source.it
-      | Infix (ml, a, mr) ->
-          3 +! hash_mixop ml +! hash_atom a.Common.Source.it +! hash_mixop mr
-      | Seq ms -> List.fold_left (fun h m -> h +! hash_mixop m) 4 ms
+    let hash_mixop (mixop : Mixop.t) : int =
+      List.fold_left
+        (fun h p ->
+          match p with
+          | Mixop.Arg -> h +! 0
+          | Mixop.Atom atom -> h +! 1 +! hash_atom atom.Common.Source.it)
+        0 mixop
     in
     match v with
     | BoolV b -> 0 +! Hashtbl.hash b

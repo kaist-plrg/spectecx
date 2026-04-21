@@ -1,6 +1,7 @@
 open Common.Source
 open Lang.Xl
 module Il = Lang.Il
+module Mixop = Lang.Il.Mixop
 module Value = Lang.Il.Value
 open Lang.Sl
 open Envs.Make

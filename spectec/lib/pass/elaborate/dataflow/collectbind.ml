@@ -2,6 +2,7 @@ open Common.Source
 open Lang.Il
 open Error
 open Ctx
+module Mixop = Lang.Il.Mixop
 
 (* Collect binding identifiers,
    while enforcing the invariant that binding identifiers

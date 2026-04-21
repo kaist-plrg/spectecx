@@ -2,6 +2,7 @@ open Lang.Il
 open Lang.Xl
 open Common.Source
 open Error
+open Il.Mixop
 
 let ( let* ) = Result.bind
 
@@ -76,8 +77,7 @@ let colon_pair : (Value.t * Value.t) t =
   match v.it with
   | CaseV (mixop, [ k; v ])
     when Mixop.eq mixop
-           (Seq [ Arg; Atom (Atom.TickColon $ Common.Source.no_region); Arg ])
-    ->
+           [ Arg; Atom (Atom.TickColon $ Common.Source.no_region); Arg ] ->
       Ok (k, v)
   | _ -> Error (type_err at "Expected a 'k:v' pair" v)
 
@@ -87,12 +87,11 @@ let map : Value.t VMap.t t =
   match v.it with
   | CaseV (mixop, [ pair_list_val ])
     when Mixop.eq mixop
-           (Seq
-              [
-                Atom (Atom.LBrace $ Common.Source.no_region);
-                Arg;
-                Atom (Atom.RBrace $ Common.Source.no_region);
-              ]) ->
+           [
+             Atom (Atom.LBrace $ Common.Source.no_region);
+             Arg;
+             Atom (Atom.RBrace $ Common.Source.no_region);
+           ] ->
       let* pairs = (list_of colon_pair) at pair_list_val in
       Ok (VMap.of_list pairs)
   | _ -> Error (type_err at "Expected a map value" v)

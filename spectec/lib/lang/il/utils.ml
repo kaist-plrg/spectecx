@@ -100,13 +100,10 @@ let iter_t (i : iter) (t : typ') : typ' = IterT (t $ no_region, i)
 type symbol = NT of value | Term of string
 
 let case_v (vs : symbol list) : value' =
-  let rec build = function
-    | [] -> []
-    | Term s :: rest -> Xl.Mixop.Atom (wrap_atom s) :: build rest
-    | NT _ :: rest -> Xl.Mixop.Arg :: build rest
-  in
-  let mixop =
-    match build vs with [ single ] -> single | parts -> Xl.Mixop.Seq parts
+  let mixop : Mixop.t =
+    List.map
+      (function Term s -> Mixop.Atom (wrap_atom s) | NT _ -> Mixop.Arg)
+      vs
   in
   let values =
     vs |> List.filter_map (function NT v -> Some v | Term _ -> None)
@@ -128,7 +125,7 @@ let flatten_case_v (value : value) : string * string list * value list =
   match (value.it, value.note.typ) with
   | CaseV (mixop, values), VarT (id, _) ->
       let atoms =
-        Xl.Mixop.atoms mixop |> List.map (fun a -> string_of_atom a.it)
+        Mixop.atoms mixop |> List.map (fun a -> string_of_atom a.it)
       in
       (id.it, atoms, values)
   | _ -> failwith "Expected a CaseV value"
