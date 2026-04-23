@@ -4,6 +4,7 @@ open Lang
 open Il
 open Ctx
 open Error
+module Mixop = Lang.Il.Mixfix
 
 (* Dimension analysis :
 
@@ -82,9 +83,9 @@ let rec annotate_exp (bounds : VEnv.t) (exp : exp) : VEnv.t * exp =
       let exp = TupleE exps $$ (at, note) in
       (occurs, exp)
   | CaseE notexp ->
-      let mixop, exps = notexp in
+      let mixop, exps = Mixop.split notexp in
       let occurs, exps = annotate_exps bounds exps in
-      let notexp = (mixop, exps) in
+      let notexp = Mixop.fill mixop exps in
       let exp = CaseE notexp $$ (at, note) in
       (occurs, exp)
   | StrE expfields ->
@@ -236,9 +237,9 @@ and annotate_prem (binds : VEnv.t) (bounds : VEnv.t) (prem : prem) :
   let at = prem.at in
   match prem.it with
   | RulePr (id, notexp) ->
-      let mixop, exps = notexp in
+      let mixop, exps = Mixop.split notexp in
       let occurs, exps = annotate_exps bounds exps in
-      let notexp = (mixop, exps) in
+      let notexp = Mixop.fill mixop exps in
       let prem = RulePr (id, notexp) $ at in
       (occurs, prem)
   | IfPr exp ->
@@ -246,15 +247,15 @@ and annotate_prem (binds : VEnv.t) (bounds : VEnv.t) (prem : prem) :
       let prem = IfPr exp $ at in
       (occurs, prem)
   | IfHoldPr (id, notexp) ->
-      let mixop, exps = notexp in
+      let mixop, exps = Mixop.split notexp in
       let occurs, exps = annotate_exps bounds exps in
-      let notexp = (mixop, exps) in
+      let notexp = Mixop.fill mixop exps in
       let prem = IfHoldPr (id, notexp) $ at in
       (occurs, prem)
   | IfNotHoldPr (id, notexp) ->
-      let mixop, exps = notexp in
+      let mixop, exps = Mixop.split notexp in
       let occurs, exps = annotate_exps bounds exps in
-      let notexp = (mixop, exps) in
+      let notexp = Mixop.fill mixop exps in
       let prem = IfNotHoldPr (id, notexp) $ at in
       (occurs, prem)
   | ElsePr -> (empty, prem)

@@ -6,7 +6,7 @@
  *)
 
 open Lang.Il
-open Lang.Il.Utils
+open Lang.Il.Value
 module F = Format
 
 (* Identifier extraction *)

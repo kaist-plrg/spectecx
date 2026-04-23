@@ -1,12 +1,9 @@
 open Lang
 
-[@@@ocamlformat "disable"]
-
 type t =
   | Param
   | Defining of Il.tparam list
   | Defined of Il.tparam list * Il.deftyp
-[@@@ocamlformat "enable"]
 
 let to_string = function
   | Param -> "Param"

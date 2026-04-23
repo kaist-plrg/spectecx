@@ -4,6 +4,7 @@ open Lang.Il
 open Envs.Make
 open Error
 open Ctx
+module Mixop = Lang.Il.Mixfix
 
 (* Helper for identifying singleton case *)
 
@@ -79,9 +80,10 @@ let gen_prem_bound (dctx : Dctx.t) (to_ : To.t) (exp_from : exp)
   let exp_cond =
     let exp_l = To.as_exp to_ in
     match exp_from.it with
-    | CaseE (mixop, [])
-      when not (is_singleton_case dctx (exp_from.note $ exp_from.at)) ->
-        MatchE (exp_l, CaseP mixop) $$ (exp_from.at, BoolT)
+    | CaseE notexp
+      when Mixop.args notexp = []
+           && not (is_singleton_case dctx (exp_from.note $ exp_from.at)) ->
+        MatchE (exp_l, CaseP (Mixop.to_mixop notexp)) $$ (exp_from.at, BoolT)
     | OptE (Some _) -> MatchE (exp_l, OptP `Some) $$ (exp_from.at, BoolT)
     | OptE None -> MatchE (exp_l, OptP `None) $$ (exp_from.at, BoolT)
     | ListE [] -> MatchE (exp_l, ListP `Nil) $$ (exp_from.at, BoolT)
@@ -199,7 +201,7 @@ let rename_exp_bind_sub (dctx : Dctx.t) (renv : REnv.t) (typ_sub : typ)
 
 let check_upcast_terminal (exp : exp) : bool =
   match exp.it with
-  | UpCastE (_, { it = CaseE (_, []); _ }) -> true
+  | UpCastE (_, { it = CaseE notexp; _ }) when Mixop.args notexp = [] -> true
   | _ -> false
 
 let rec rename_exp (dctx : Dctx.t) (binds : IdSet.t) (renv : REnv.t) (exp : exp)
@@ -238,13 +240,15 @@ and rename_exp_bind (dctx : Dctx.t) (binds : IdSet.t) (renv : REnv.t)
       let dctx, renv, exps = rename_exps dctx binds renv exps in
       let exp = TupleE exps $$ (at, note) in
       (dctx, renv, exp)
-  | CaseE (mixop, exps) when is_singleton_case dctx (note $ at) ->
+  | CaseE notexp when is_singleton_case dctx (note $ at) ->
+      let mixop, exps = Mixop.split notexp in
       let dctx, renv, exps = rename_exps dctx binds renv exps in
-      let exp = CaseE (mixop, exps) $$ (at, note) in
+      let exp = CaseE (Mixop.fill mixop exps) $$ (at, note) in
       (dctx, renv, exp)
-  | CaseE (mixop, exps) ->
+  | CaseE notexp ->
+      let mixop, exps = Mixop.split notexp in
       let dctx, renv, exps = rename_exps dctx binds renv exps in
-      let exp_renamed = CaseE (mixop, exps) $$ (at, note) in
+      let exp_renamed = CaseE (Mixop.fill mixop exps) $$ (at, note) in
       rename_exp_bind_match dctx renv (CaseP mixop) exp_renamed
   | StrE expfields ->
       let atoms, exps = List.split expfields in

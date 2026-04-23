@@ -18,7 +18,7 @@ open Lexing
 open Context
 open Lang
 open Il
-open Utils
+open Il.Value
 open Parser
 module F = Format
 
@@ -103,7 +103,7 @@ let strip_prefix s =
 
 let parse_int n _info =
   let i = Bigint.of_string (sanitize n) in
-  NumV (`Int i) |> Value.make_val (NumT `IntT)
+  NumV (`Int i) |> make_val (NumT `IntT)
 
 let parse_width_int s n _info =
   let l_s = String.length s in
@@ -117,22 +117,22 @@ let parse_width_int s n _info =
       then raise (Error "signed integers must have width at least 2")
       else 
         let value_width =
-          NumV (`Nat w) |> Value.make_val (NumT `NatT)
+          NumV (`Nat w) |> make_val (NumT `NatT)
         in
         let value_int =
-          NumV (`Int i) |> Value.make_val (NumT `IntT)
+          NumV (`Int i) |> make_val (NumT `IntT)
         in
-        [ NT value_width; Term "S"; NT value_int ]
-        |> case_v |> Value.make_val (var_t "number")
+        [ arg value_width; atom "S"; arg value_int ]
+        |> case_v ~var:"number"
     | "w" ->
       let value_width =
-        NumV (`Nat w) |> Value.make_val (NumT `NatT)
+        NumV (`Nat w) |> make_val (NumT `NatT)
       in
       let value_int =
-        NumV (`Int i) |> Value.make_val (NumT `IntT)
+        NumV (`Int i) |> make_val (NumT `IntT)
       in
-      [ NT value_width; Term "W"; NT value_int ]
-      |> case_v |> Value.make_val (var_t "number")
+      [ arg value_width; atom "W"; arg value_int ]
+      |> case_v ~var:"number"
     | _ ->
       raise (Error "Illegal integer constant")
 }
@@ -161,7 +161,7 @@ rule tokenize = parse
       { let str, end_info = (string lexbuf) in
         debug_token ("\"" ^ str ^ "\"");
         end_info |> ignore;
-        let value = Il.Value.text str in
+        let value = text str in
         STRING_LITERAL value
       }
   | whitespace
@@ -291,9 +291,9 @@ rule tokenize = parse
   | "_"
       { debug_token "_"; DONTCARE (info lexbuf) }
   | name
-      { let text = Lexing.lexeme lexbuf in
-        debug_token text;
-        let value = Value.text text in
+      { let s = Lexing.lexeme lexbuf in
+        debug_token s;
+        let value = text s in
         NAME value }
   | "<="
       { debug_token "<="; LE (info lexbuf) }
@@ -400,9 +400,9 @@ rule tokenize = parse
   | eof
       { debug_token "EOF"; END (info lexbuf) }
   | _
-      { let text = lexeme lexbuf in
-        debug_token text;
-        let value = Value.text text in
+      { let s = lexeme lexbuf in
+        debug_token s;
+        let value = text s in
         UNEXPECTED_TOKEN value }
       
 and string = parse
@@ -500,7 +500,7 @@ let rec lexer (lexbuf:lexbuf): token =
         lexer_state := SRegular;
         lexer lexbuf
       | NAME value as token ->
-        let text = Value.get_text value in
+        let text = get_text value in
         lexer_state := SIdent (text, SRegular);
         token          
       | token -> 
@@ -510,7 +510,7 @@ let rec lexer (lexbuf:lexbuf): token =
     | SRegular ->
       begin match tokenize lexbuf with
       | NAME value as token ->
-        let text = Value.get_text value in
+        let text = get_text value in
         lexer_state := SIdent (text, SRegular);
         token
       | PRAGMA _ as token ->
@@ -529,7 +529,7 @@ let rec lexer (lexbuf:lexbuf): token =
       begin match tokenize lexbuf with
       | L_ANGLE info -> L_ANGLE_ARGS info
       | NAME value as token ->
-        let text = Value.get_text value in
+        let text = get_text value in
         lexer_state := SIdent (text, SRegular);
         token
       | PRAGMA _ as token ->
@@ -549,7 +549,7 @@ let rec lexer (lexbuf:lexbuf): token =
          lexer_state := SRegular;
          token
       | NAME value as token ->
-         let text = Value.get_text value in
+         let text = get_text value in
          lexer_state := SIdent(text, SPragma);
          token
       | token -> token

@@ -1,7 +1,7 @@
 open Common.Source
 open Lang
 open Il
-open Il.Utils
+open Il.Value
 open Xl
 open Hint
 module F = Format
@@ -67,7 +67,7 @@ and pp_case_v (hmap : hmap) fmt (value : value) : unit =
   let id, _, values = flatten_case_v value in
   let matches_hint nottyp value =
     match value.it with
-    | CaseV (mixop, _) -> Eq.eq_mixop (fst nottyp.it) mixop
+    | CaseV valuecase -> Mixfix.eq_mixop nottyp.it valuecase
     | _ -> false
   in
   let find_hint id value =
@@ -122,12 +122,11 @@ and pp_hint_case_v' (hmap : hmap) (cur : int) (exp : El.exp)
 
 and pp_default_case_v (hmap : hmap) fmt (value : value) : unit =
   match value.it with
-  | CaseV (mixop, values) ->
-      let svalues =
-        List.map (fun v -> F.asprintf "%a" (pp_value hmap) v) values
-      in
+  | CaseV valuecase ->
       let string_of_atom atom = F.asprintf "%a" pp_atom atom in
-      Mixop.assemble ~string_of_atom mixop svalues |> F.fprintf fmt "%s"
+      let string_of_value v = F.asprintf "%a" (pp_value hmap) v in
+      Mixfix.render ~string_of_atom ~string_of_arg:string_of_value valuecase
+      |> F.fprintf fmt "%s"
   | _ -> failwith "@pp_default_case_v: Expected CaseV value"
 
 (* OptV *)

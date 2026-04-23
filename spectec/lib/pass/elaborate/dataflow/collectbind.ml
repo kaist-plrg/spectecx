@@ -2,6 +2,7 @@ open Common.Source
 open Lang.Il
 open Error
 open Ctx
+module Mixop = Lang.Il.Mixfix
 
 (* Collect binding identifiers,
    while enforcing the invariant that binding identifiers
@@ -52,7 +53,7 @@ let rec collect_exp (dctx : Dctx.t) (exp : exp) : Bind.BEnv.t =
       collect_noninvertible exp.at "match check operator" binds;
       Bind.BEnv.empty
   | TupleE exps -> collect_exps dctx exps
-  | CaseE notexp -> notexp |> snd |> collect_exps dctx
+  | CaseE notexp -> notexp |> Mixop.args |> collect_exps dctx
   | StrE expfields -> expfields |> List.map snd |> collect_exps dctx
   | OptE exp_opt ->
       exp_opt

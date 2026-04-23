@@ -16,7 +16,7 @@ let eq_atoms (atoms_a : atom list) (atoms_b : atom list) : bool =
 (* Mixfix operators *)
 
 let eq_mixop (mixop_a : mixop) (mixop_b : mixop) : bool =
-  Mixop.eq mixop_a mixop_b
+  Mixfix.eq_mixop mixop_a mixop_b
 
 (* Iterators *)
 
@@ -87,8 +87,8 @@ and eq_value ?(dbg = false) (value_a : value) (value_b : value) : bool =
              (fun (atom_a, value_a) (atom_b, value_b) ->
                eq_atom atom_a atom_b && eq_value ~dbg value_a value_b)
              valuefields_a valuefields_b
-    | CaseV (mixop_a, values_a), CaseV (mixop_b, values_b) ->
-        eq_mixop mixop_a mixop_b && eq_values ~dbg values_a values_b
+    | CaseV valuecase_a, CaseV valuecase_b ->
+        Mixfix.eq ~eq_arg:eq_value valuecase_a valuecase_b
     | TupleV values_a, TupleV values_b -> eq_values ~dbg values_a values_b
     | OptV (Some v_a), OptV (Some v_b) -> eq_value ~dbg v_a v_b
     | OptV None, OptV None -> true
@@ -132,8 +132,7 @@ and eq_exp (exp_a : exp) (exp_b : exp) : bool =
   | MatchE (exp_a, pattern_a), MatchE (exp_b, pattern_b) ->
       eq_exp exp_a exp_b && eq_pattern pattern_a pattern_b
   | TupleE exps_a, TupleE exps_b -> eq_exps exps_a exps_b
-  | CaseE (mixop_a, exps_a), CaseE (mixop_b, exps_b) ->
-      eq_mixop mixop_a mixop_b && eq_exps exps_a exps_b
+  | CaseE ne_a, CaseE ne_b -> Mixfix.eq ~eq_arg:eq_exp ne_a ne_b
   | StrE expfields_a, StrE expfields_b ->
       List.length expfields_a = List.length expfields_b
       && List.for_all2

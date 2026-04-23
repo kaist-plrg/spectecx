@@ -1,6 +1,7 @@
 open Common.Source
 open Lang.Xl
 module Il = Lang.Il
+module Mixop = Lang.Il.Mixfix
 module Value = Lang.Il.Value
 open Lang.Sl
 open Envs.Make
@@ -26,8 +27,9 @@ let rec assign_exp (ctx : Ctx.t) (exp : exp) (value : value) : Ctx.t =
   | TupleE exps_inner, TupleV values_inner ->
       let ctx = assign_exps ctx exps_inner values_inner in
       ctx
-  | CaseE notexp, CaseV (_mixop_value, values_inner) ->
-      let _mixop_exp, exps_inner = notexp in
+  | CaseE notexp, CaseV valuecase ->
+      let exps_inner = Mixop.args notexp in
+      let values_inner = Mixop.args valuecase in
       let ctx = assign_exps ctx exps_inner values_inner in
       ctx
   | OptE exp_opt, OptV value_opt -> (
@@ -232,13 +234,13 @@ let rec subtyp (ctx : Ctx.t) (typ : typ) (value : value) : bool =
       | PlainT typ, _ ->
           let typ = Typ.subst_typ theta typ in
           subtyp ctx typ value
-      | VariantT typcases, CaseV (mixop_v, values_inner) ->
+      | VariantT typcases, CaseV valuecase ->
           List.exists
             (fun typcase ->
               let nottyp, _, _ = typcase in
-              let mixop_t, typs_inner = nottyp.it in
-              let typs_inner = List.map (Typ.subst_typ theta) typs_inner in
-              Mixop.eq mixop_t mixop_v && subtyps ctx typs_inner values_inner)
+              let nottyp' = Mixop.map (Typ.subst_typ theta) nottyp.it in
+              Mixop.eq_mixop nottyp' valuecase
+              && subtyps ctx (Mixop.args nottyp') (Mixop.args valuecase))
             typcases
       | _ -> true)
   | TupleT typs -> (
@@ -418,7 +420,7 @@ and eval_match_exp (note : typ') (ctx : Ctx.t) (exp : exp) (pattern : pattern) :
   let ctx, value = eval_exp ctx exp in
   let matches =
     match (pattern, value.it) with
-    | CaseP mixop_p, CaseV (mixop_v, _) -> Mixop.eq mixop_p mixop_v
+    | CaseP mixop_p, CaseV valuecase -> Mixop.eq_mixop mixop_p valuecase
     | ListP listpattern, ListV values -> (
         let len_v = List.length values in
         match listpattern with
@@ -444,9 +446,9 @@ and eval_tuple_exp (note : typ') (ctx : Ctx.t) (exps : exp list) : Ctx.t * value
 
 and eval_case_exp (note : typ') (ctx : Ctx.t) (notexp : notexp) : Ctx.t * value
     =
-  let mixop, exps = notexp in
+  let mixop, exps = Mixop.split notexp in
   let ctx, values = eval_exps ctx exps in
-  let value_res = Value.Make.case note (mixop, values) in
+  let value_res = Value.Make.case note (Mixop.fill mixop values) in
   (ctx, value_res)
 
 (* Struct expression evaluation *)
@@ -986,8 +988,7 @@ and eval_if_hold_instr (ctx : Ctx.t) (id : id) (notexp : notexp)
   let eval_if_hold_cond_iter ctx id notexp iterexps =
     let rec eval_if_hold_cond_iter' ctx id notexp iterexps =
       let eval_if_hold_cond ctx id notexp =
-        let _, exps_input = notexp in
-        let ctx, values_input = eval_exps ctx exps_input in
+        let ctx, values_input = eval_exps ctx (Mixop.args notexp) in
         let ctx, hold =
           match invoke_rel ctx id values_input with
           | Some (ctx, _) -> (ctx, true)
@@ -1042,8 +1043,7 @@ and eval_if_not_hold_instr (ctx : Ctx.t) (id : id) (notexp : notexp)
   let eval_if_not_hold_cond_iter ctx id notexp iterexps =
     let rec eval_if_not_hold_cond_iter' ctx id notexp iterexps =
       let eval_if_not_hold_cond ctx id notexp =
-        let _, exps_input = notexp in
-        let ctx, values_input = eval_exps ctx exps_input in
+        let ctx, values_input = eval_exps ctx (Mixop.args notexp) in
         let ctx, nothold =
           match invoke_rel ctx id values_input with
           | Some (ctx, _) -> (ctx, false)
@@ -1283,8 +1283,7 @@ and eval_rule_instr (ctx : Ctx.t) (id : id) (notexp : notexp)
         let rel = Ctx.find_rel Local ctx id in
         let exps_input, exps_output =
           let inputs, _, _ = rel in
-          let _, exps = notexp in
-          Hint.split_exps_without_idx inputs exps
+          Hint.split_exps_without_idx inputs (Mixop.args notexp)
         in
         let ctx, values_input = eval_exps ctx exps_input in
         let ctx, values_output =

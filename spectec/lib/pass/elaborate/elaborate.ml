@@ -88,11 +88,7 @@ module Types = struct
 
   and equiv_nottyp (tdenv : Ctx.TDEnv.t) (nottyp_a : Il.nottyp)
       (nottyp_b : Il.nottyp) : bool =
-    let mixop_a, typs_a = nottyp_a.it in
-    let mixop_b, typs_b = nottyp_b.it in
-    Mixop.eq mixop_a mixop_b
-    && List.length typs_a = List.length typs_b
-    && List.for_all2 (equiv_typ tdenv) typs_a typs_b
+    Il.Mixfix.eq ~eq_arg:(equiv_typ tdenv) nottyp_a.it nottyp_b.it
 
   and equiv_param (tdenv : Ctx.TDEnv.t) (param_a : Il.param)
       (param_b : Il.param) : bool =
@@ -259,24 +255,36 @@ and elab_nottyp (ctx : Ctx.t) (typ : typ) : Il.nottyp =
   match typ with
   | PlainT plaintyp ->
       let typ_il = elab_plaintyp ctx plaintyp in
-      (Mixop.Arg, [ typ_il ]) $ plaintyp.at
+      [ Il.Mixfix.Arg typ_il ] $ plaintyp.at
   | NotationT nottyp -> (
       match nottyp.it with
-      | AtomT atom -> (Mixop.Atom atom, []) $ nottyp.at
-      | SeqT [] -> (Mixop.Seq [], []) $ nottyp.at
+      | AtomT atom -> [ Il.Mixfix.Atom atom ] $ nottyp.at
+      | SeqT [] -> [] $ nottyp.at
       | SeqT typs ->
-          let parts = List.map (fun typ -> elab_nottyp ctx typ |> it) typs in
-          let mixops = List.map fst parts in
+          let parts =
+            List.map
+              (fun typ -> elab_nottyp ctx typ |> it |> Il.Mixfix.split)
+              typs
+          in
+          let mixop_il = List.concat_map fst parts in
           let typs_il = List.concat_map snd parts in
-          (Mixop.Seq mixops, typs_il) $ nottyp.at
+          Il.Mixfix.fill mixop_il typs_il $ nottyp.at
       | InfixT (typ_l, atom, typ_r) ->
-          let mixop_l, typs_il_l = elab_nottyp ctx typ_l |> it in
-          let mixop_r, typs_il_r = elab_nottyp ctx typ_r |> it in
-          (Mixop.Infix (mixop_l, atom, mixop_r), typs_il_l @ typs_il_r)
-          $ nottyp.at
+          let mixop_il_l, typs_il_l =
+            Il.Mixfix.split (elab_nottyp ctx typ_l).it
+          in
+          let mixop_il_r, typs_il_r =
+            Il.Mixfix.split (elab_nottyp ctx typ_r).it
+          in
+          let mixop_il = mixop_il_l @ [ Il.Mixfix.Atom atom ] @ mixop_il_r in
+          let typs_il = typs_il_l @ typs_il_r in
+          Il.Mixfix.fill mixop_il typs_il $ nottyp.at
       | BrackT (atom_l, typ, atom_r) ->
-          let mixop, typs_il = elab_nottyp ctx typ |> it in
-          (Mixop.Brack (atom_l, mixop, atom_r), typs_il) $ nottyp.at)
+          let mixop, typs_il = Il.Mixfix.split (elab_nottyp ctx typ).it in
+          let mixop_il =
+            [ Il.Mixfix.Atom atom_l ] @ mixop @ [ Il.Mixfix.Atom atom_r ]
+          in
+          Il.Mixfix.fill mixop_il typs_il $ nottyp.at)
 
 (* Elaboration of definition types *)
 
@@ -351,13 +359,11 @@ and elab_deftyp_variant (ctx : Ctx.t) (at : region) (id : id)
     (id, targs_il) $ id.at
   in
   let typcases_il = List.concat_map (elab_typcase ctx typorigin_il) typcases in
-  let mixops =
+  let mixops_il =
     typcases_il
-    |> List.map (fun (nottyp_il, _, _) ->
-           let mixop, _ = nottyp_il.it in
-           mixop)
+    |> List.map (fun (nottyp_il, _, _) -> Il.Mixfix.to_mixop nottyp_il.it)
   in
-  let mixop_groups = groupby Mixop.eq mixops in
+  let mixop_groups = groupby Il.Mixfix.eq_mixop mixops_il in
   let mixop_duplicates =
     List.filter (fun mixop_group -> List.length mixop_group > 1) mixop_groups
   in
@@ -367,7 +373,7 @@ and elab_deftyp_variant (ctx : Ctx.t) (at : region) (id : id)
     ("variant cases are ambiguous: "
     ^ String.concat ", "
         (List.map
-           (fun mixop_group -> Mixop.string_of_mixop (List.hd mixop_group))
+           (fun mixop_group -> Il.Mixfix.to_string (List.hd mixop_group))
            mixop_duplicates));
   let deftyp_il = Il.VariantT typcases_il $ at in
   let td = Typdef.Defined (tparams, deftyp_il) in
@@ -1162,11 +1168,12 @@ and fail_elab_not (at : region) (msg : string) : (Ctx.t * Il.notexp) attempt =
 
 and elab_exp_not (ctx : Ctx.t) (nottyp_il : Il.nottyp) (exp : exp) :
     (Ctx.t * Il.notexp) attempt =
-  let mixop, typs_il = nottyp_il.it in
-  let* ctx, typs_il, exps_il = elab_exp_not_inner ctx mixop typs_il exp in
+  let mixop, typs_il = Il.Mixfix.split nottyp_il.it in
+  let mixop_el = Mixop.of_il mixop in
+  let* ctx, typs_il, exps_il = elab_exp_not_inner ctx mixop_el typs_il exp in
   match typs_il with
   | [] ->
-      let notexp_il = (mixop, exps_il) in
+      let notexp_il = Il.Mixfix.fill mixop exps_il in
       Ok (ctx, notexp_il)
   | _ -> fail_elab_not exp.at "too few arguments"
 
@@ -1443,7 +1450,7 @@ and elab_var_prem (ctx : Ctx.t) (id : id) (plaintyp : plaintyp) : Ctx.t =
 and elab_rule_prem (ctx : Ctx.t) (id : id) (exp : exp) : Ctx.t * Il.prem' =
   let nottyp_il, inputs = Ctx.find_rel ctx id in
   let+ ctx, notexp_il = elab_exp_not ctx nottyp_il exp in
-  let _, exps_il = notexp_il in
+  let exps_il = Il.Mixfix.args notexp_il in
   if Hint.is_conditional inputs exps_il then
     let prem_il = Il.IfHoldPr (id, notexp_il) in
     (ctx, prem_il)
@@ -1456,7 +1463,7 @@ and elab_rule_prem (ctx : Ctx.t) (id : id) (exp : exp) : Ctx.t * Il.prem' =
 and elab_rule_not_prem (ctx : Ctx.t) (id : id) (exp : exp) : Ctx.t * Il.prem' =
   let nottyp_il, inputs = Ctx.find_rel ctx id in
   let+ ctx, notexp_il = elab_exp_not ctx nottyp_il exp in
-  let _, exps_il = notexp_il in
+  let exps_il = Il.Mixfix.args notexp_il in
   check
     (Hint.is_conditional inputs exps_il)
     exp.at "negated rule premises do not take inputs";
@@ -1601,7 +1608,7 @@ and fetch_rel_input_hint' (len : int) (hintexp : exp) : int list option =
 
 and fetch_rel_input_hint (at : region) (nottyp_il : Il.nottyp)
     (hints : hint list) : int list =
-  let len = nottyp_il.it |> snd |> List.length in
+  let len = nottyp_il.it |> Il.Mixfix.args |> List.length in
   let hint_input_default = List.init len Fun.id in
   let hint_input =
     List.find_map
@@ -1663,7 +1670,7 @@ and elab_rule_def (ctx : Ctx.t) (at : region) (id_rel : id) (id_rule : id)
     El.Free.free_id_def def |> Ctx.add_frees ctx_local
   in
   let+ ctx_local, notexp_il = elab_exp_not ctx_local nottyp_il exp in
-  let mixop, exps_il = notexp_il in
+  let mixop, exps_il = Il.Mixfix.split notexp_il in
   let exps_il_input, exps_il_output =
     exps_il
     |> List.mapi (fun idx exp -> (idx, exp))
@@ -1681,7 +1688,7 @@ and elab_rule_def (ctx : Ctx.t) (at : region) (id_rel : id) (id_rule : id)
       |> List.sort (fun (idx_a, _) (idx_b, _) -> compare idx_a idx_b)
       |> List.map snd
     in
-    (mixop, exps_il)
+    Il.Mixfix.fill mixop exps_il
   in
   let rule = (id_rule, notexp_il, prems_il) $ at in
   Ctx.add_rule ctx id_rel rule

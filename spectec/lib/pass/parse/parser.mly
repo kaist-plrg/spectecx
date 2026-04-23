@@ -200,14 +200,14 @@ atom_escape :
   | TICK_TICK { Atom.Tick }
   | TICK_DOUBLE_QUOTE { Atom.DoubleQuote }
   | TICK_UNDERSCORE { Atom.Underscore }
-  | TICK_ARROW { Atom.Arrow }
+  | TICK_ARROW { Atom.TickArrow }
   | TICK_DOUBLE_ARROW { Atom.DoubleArrow }
-  | TICK_DOT { Atom.Dot }
-  | TICK_DOT2 { Atom.Dot2 }
-  | TICK_DOT3 { Atom.Dot3 }
+  | TICK_DOT { Atom.TickDot }
+  | TICK_DOT2 { Atom.TickDot2 }
+  | TICK_DOT3 { Atom.TickDot3 }
   | TICK_COMMA { Atom.Comma }
-  | TICK_SEMICOLON { Atom.Semicolon }
-  | TICK_COLON { Atom.Colon }
+  | TICK_SEMICOLON { Atom.TickSemicolon }
+  | TICK_COLON { Atom.TickColon }
   | TICK_HASH { Atom.Hash }
   | TICK_DOLLAR { Atom.Dollar }
   | TICK_AT { Atom.At }
@@ -215,19 +215,19 @@ atom_escape :
   | TICK_BANG { Atom.Bang }
   | TICK_BANG_EQ { Atom.BangEq }
   | TICK_TILDE { Atom.Tilde }
-  | TICK2_LANGLE { Atom.LAngle }
+  | TICK2_LANGLE { Atom.TickLAngle }
   | TICK_LANGLE2 { Atom.LAngle2 }
   | TICK_LANGLE_EQ { Atom.LAngleEq }
   | TICK_LANGLE2_EQ { Atom.LAngle2Eq }
-  | TICK2_RANGLE { Atom.RAngle }
+  | TICK2_RANGLE { Atom.TickRAngle }
   | TICK_RANGLE2 { Atom.RAngle2 }
   | TICK_RANGLE_EQ { Atom.RAngleEq }
   | TICK_RANGLE2_EQ { Atom.RAngle2Eq }
-  | TICK2_LBRACK { Atom.LBrack }
-  | TICK2_RBRACK { Atom.RBrack }
-  | TICK2_LBRACE { Atom.LBrace }
+  | TICK2_LBRACK { Atom.TickLBrack }
+  | TICK2_RBRACK { Atom.TickRBrack }
+  | TICK2_LBRACE { Atom.TickLBrace }
   | TICK_LBRACE_HASH_RBRACE { Atom.LBraceHashRBrace }
-  | TICK2_RBRACE { Atom.RBrace }
+  | TICK2_RBRACE { Atom.TickRBrace }
   | TICK_PLUS { Atom.Plus }
   | TICK_PLUS2 { Atom.Plus2 }
   | TICK_PLUS_EQ { Atom.PlusEq }

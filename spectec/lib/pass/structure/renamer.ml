@@ -59,9 +59,9 @@ let rec rename_exp (rename : t) (exp : exp) : exp =
   | TupleE exps ->
       let exps = List.map (rename_exp rename) exps in
       Il.TupleE exps $$ (at, note)
-  | CaseE (mixop, exps) ->
-      let exps = List.map (rename_exp rename) exps in
-      Il.CaseE (mixop, exps) $$ (at, note)
+  | CaseE notexp ->
+      let notexp = Il.Mixfix.map (rename_exp rename) notexp in
+      Il.CaseE notexp $$ (at, note)
   | StrE expfields ->
       let atoms, exps = List.split expfields in
       let exps = List.map (rename_exp rename) exps in
@@ -163,16 +163,16 @@ and rename_instr (rename : t) (instr : instr) : instr =
       let iterexps = List.map (rename_iterexp rename) iterexps in
       let instrs_then = List.map (rename_instr rename) instrs_then in
       IfI (exp_cond, iterexps, instrs_then) $ at
-  | IfHoldI (id, (mixop, exps), iterexps, instrs_then) ->
-      let exps = List.map (rename_exp rename) exps in
+  | IfHoldI (id, notexp, iterexps, instrs_then) ->
+      let notexp = Il.Mixfix.map (rename_exp rename) notexp in
       let iterexps = List.map (rename_iterexp rename) iterexps in
       let instrs_then = List.map (rename_instr rename) instrs_then in
-      IfHoldI (id, (mixop, exps), iterexps, instrs_then) $ at
-  | IfNotHoldI (id, (mixop, exps), iterexps, instrs_then) ->
-      let exps = List.map (rename_exp rename) exps in
+      IfHoldI (id, notexp, iterexps, instrs_then) $ at
+  | IfNotHoldI (id, notexp, iterexps, instrs_then) ->
+      let notexp = Il.Mixfix.map (rename_exp rename) notexp in
       let iterexps = List.map (rename_iterexp rename) iterexps in
       let instrs_then = List.map (rename_instr rename) instrs_then in
-      IfNotHoldI (id, (mixop, exps), iterexps, instrs_then) $ at
+      IfNotHoldI (id, notexp, iterexps, instrs_then) $ at
   | CaseI (exp, cases, total) ->
       let exp = rename_exp rename exp in
       let cases = List.map (rename_case rename) cases in
@@ -185,10 +185,10 @@ and rename_instr (rename : t) (instr : instr) : instr =
       let exp_r = rename_exp rename exp_r in
       let iterexps = List.map (rename_iterexp rename) iterexps in
       LetI (exp_l, exp_r, iterexps) $ at
-  | RuleI (id_rel, (mixop, exps), iterexps) ->
-      let exps = List.map (rename_exp rename) exps in
+  | RuleI (id_rel, notexp, iterexps) ->
+      let notexp = Il.Mixfix.map (rename_exp rename) notexp in
       let iterexps = List.map (rename_iterexp rename) iterexps in
-      RuleI (id_rel, (mixop, exps), iterexps) $ at
+      RuleI (id_rel, notexp, iterexps) $ at
   | ResultI exps ->
       let exps = List.map (rename_exp rename) exps in
       ResultI exps $ at

@@ -95,10 +95,10 @@ and eq_pathcond (pathcond_a : pathcond) (pathcond_b : pathcond) : bool =
   | ExistsC (pathcond_a, iterexps_a), ExistsC (pathcond_b, iterexps_b) ->
       eq_pathcond pathcond_a pathcond_b && eq_iterexps iterexps_a iterexps_b
   | PlainC exp_a, PlainC exp_b -> eq_exp exp_a exp_b
-  | HoldC (id_a, (mixop_a, exps_a)), HoldC (id_b, (mixop_b, exps_b)) ->
-      eq_id id_a id_b && eq_mixop mixop_a mixop_b && eq_exps exps_a exps_b
-  | NotHoldC (id_a, (mixop_a, exps_a)), NotHoldC (id_b, (mixop_b, exps_b)) ->
-      eq_id id_a id_b && eq_mixop mixop_a mixop_b && eq_exps exps_a exps_b
+  | HoldC (id_a, ne_a), HoldC (id_b, ne_b) ->
+      eq_id id_a id_b && Il.Mixfix.eq ~eq_arg:eq_exp ne_a ne_b
+  | NotHoldC (id_a, ne_a), NotHoldC (id_b, ne_b) ->
+      eq_id id_a id_b && Il.Mixfix.eq ~eq_arg:eq_exp ne_a ne_b
   | _ -> false
 
 and eq_pathconds (pathconds_a : pathcond list) (pathconds_b : pathcond list) :
@@ -136,18 +136,17 @@ and eq_instr (instr_a : instr) (instr_b : instr) : bool =
       && eq_iterexps iterexps_a iterexps_b
       && eq_instrs instrs_then_a instrs_then_b
       && eq_phantom_opt phantom_opt_a phantom_opt_b
-  | ( IfHoldI (id_a, (mixop_a, exps_a), iterexps_a, instrs_then_a, phantom_opt_a),
-      IfHoldI (id_b, (mixop_b, exps_b), iterexps_b, instrs_then_b, phantom_opt_b)
-    ) ->
-      eq_id id_a id_b && eq_mixop mixop_a mixop_b && eq_exps exps_a exps_b
+  | ( IfHoldI (id_a, ne_a, iterexps_a, instrs_then_a, phantom_opt_a),
+      IfHoldI (id_b, ne_b, iterexps_b, instrs_then_b, phantom_opt_b) ) ->
+      eq_id id_a id_b
+      && Il.Mixfix.eq ~eq_arg:eq_exp ne_a ne_b
       && eq_iterexps iterexps_a iterexps_b
       && eq_instrs instrs_then_a instrs_then_b
       && eq_phantom_opt phantom_opt_a phantom_opt_b
-  | ( IfNotHoldI
-        (id_a, (mixop_a, exps_a), iterexps_a, instrs_then_a, phantom_opt_a),
-      IfNotHoldI
-        (id_b, (mixop_b, exps_b), iterexps_b, instrs_then_b, phantom_opt_b) ) ->
-      eq_id id_a id_b && eq_mixop mixop_a mixop_b && eq_exps exps_a exps_b
+  | ( IfNotHoldI (id_a, ne_a, iterexps_a, instrs_then_a, phantom_opt_a),
+      IfNotHoldI (id_b, ne_b, iterexps_b, instrs_then_b, phantom_opt_b) ) ->
+      eq_id id_a id_b
+      && Il.Mixfix.eq ~eq_arg:eq_exp ne_a ne_b
       && eq_iterexps iterexps_a iterexps_b
       && eq_instrs instrs_then_a instrs_then_b
       && eq_phantom_opt phantom_opt_a phantom_opt_b
@@ -159,9 +158,9 @@ and eq_instr (instr_a : instr) (instr_b : instr) : bool =
   | LetI (exp_l_a, exp_r_a, iterexps_a), LetI (exp_l_b, exp_r_b, iterexps_b) ->
       eq_exp exp_l_a exp_l_b && eq_exp exp_r_a exp_r_b
       && eq_iterexps iterexps_a iterexps_b
-  | ( RuleI (id_a, (mixop_a, exps_a), iterexps_a),
-      RuleI (id_b, (mixop_b, exps_b), iterexps_b) ) ->
-      eq_id id_a id_b && eq_mixop mixop_a mixop_b && eq_exps exps_a exps_b
+  | RuleI (id_a, ne_a, iterexps_a), RuleI (id_b, ne_b, iterexps_b) ->
+      eq_id id_a id_b
+      && Il.Mixfix.eq ~eq_arg:eq_exp ne_a ne_b
       && eq_iterexps iterexps_a iterexps_b
   | ResultI exps_a, ResultI exps_b -> eq_exps exps_a exps_b
   | ReturnI exp_a, ReturnI exp_b -> eq_exp exp_a exp_b

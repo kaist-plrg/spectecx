@@ -25,9 +25,7 @@ let rec compare (value_l : t) (value_r : t) =
       let atoms_r, values_r = List.split fields_r in
       let cmp_atoms = List.compare Xl.Atom.compare atoms_l atoms_r in
       if cmp_atoms <> 0 then cmp_atoms else compares values_l values_r
-  | CaseV (mixop_l, values_l), CaseV (mixop_r, values_r) ->
-      let cmp_mixop = Xl.Mixop.compare mixop_l mixop_r in
-      if cmp_mixop <> 0 then cmp_mixop else compares values_l values_r
+  | CaseV vc_l, CaseV vc_r -> Mixfix.compare ~compare_arg:compare vc_l vc_r
   | TupleV values_l, TupleV values_r -> compares values_l values_r
   | OptV value_opt_l, OptV value_opt_r -> (
       match (value_opt_l, value_opt_r) with
@@ -76,19 +74,6 @@ module MakeWithVid (VidProvider : VidProvider) = struct
       | `Int i -> 1 +! Bigint.hash i
     in
 
-    let rec hash_mixop (mixop : Xl.Mixop.t) : int =
-      match mixop with
-      | Arg -> 0
-      | Atom atom -> 1 +! hash_atom atom.Common.Source.it
-      | Brack (al, m, ar) ->
-          2
-          +! hash_atom al.Common.Source.it
-          +! hash_mixop m
-          +! hash_atom ar.Common.Source.it
-      | Infix (ml, a, mr) ->
-          3 +! hash_mixop ml +! hash_atom a.Common.Source.it +! hash_mixop mr
-      | Seq ms -> List.fold_left (fun h m -> h +! hash_mixop m) 4 ms
-    in
     match v with
     | BoolV b -> 0 +! Hashtbl.hash b
     | NumV n -> 1 +! hash_num n
@@ -98,9 +83,13 @@ module MakeWithVid (VidProvider : VidProvider) = struct
           (fun hash (atom, v) ->
             hash +! (hash_atom atom.Common.Source.it +! v.note.vhash))
           3 fields
-    | CaseV (mixop, values) ->
-        let base_hash = 4 +! hash_mixop mixop in
-        List.fold_left (fun hash v -> hash +! v.note.vhash) base_hash values
+    | CaseV vc ->
+        List.fold_left
+          (fun h p ->
+            match p with
+            | Mixfix.Arg v -> h +! v.note.vhash
+            | Mixfix.Atom atom -> h +! 1 +! hash_atom atom.Common.Source.it)
+          4 vc
     | TupleV values ->
         List.fold_left (fun hash v -> hash +! v.note.vhash) 5 values
     | OptV None -> 6
@@ -131,9 +120,7 @@ module MakeWithVid (VidProvider : VidProvider) = struct
 
     let opt (t' : typ') (v : t option) : t = make_val t' (OptV v)
     let list (t' : typ') (vs : t list) : t = make_val t' (ListV vs)
-
-    let case (t' : typ') (cases : mixop * value list) : t =
-      make_val t' (CaseV cases)
+    let case (t' : typ') (vc : valuecase) : t = make_val t' (CaseV vc)
   end
 
   (* Re-export other functions that need vid *)
@@ -196,3 +183,33 @@ let tuple (vs : t list) : t =
 
 let opt (typ : typ) (v : t option) : t = OptV v |> make_val (Typ.opt typ)
 let list (typ : typ) (vs : t list) : t = ListV vs |> make_val (Typ.list typ)
+
+(* CaseV construction helpers *)
+
+let atom ?(at = no_region) (s : string) : t Mixfix.mixeme =
+  Mixfix.Atom (Xl.Atom.of_string s $ at)
+
+let arg (v : t) : t Mixfix.mixeme = Mixfix.Arg v
+
+let case_v ~(var : string) (mixemes : t Mixfix.t) : t =
+  CaseV mixemes |> make_val (Typ.var var [])
+
+let id_of_case_v (v : t) : string =
+  match (v.it, v.note.typ) with
+  | CaseV _, VarT (id, _) -> id.it
+  | _ -> failwith "not a case value"
+
+let flatten_case_v (value : t) : string * string list * t list =
+  match (value.it, value.note.typ) with
+  | CaseV valuecase, VarT (id, _) ->
+      let shape, values = Mixfix.split valuecase in
+      let atoms =
+        Mixfix.atoms shape
+        |> List.map (fun a -> Xl.Atom.string_of_atom a.Common.Source.it)
+      in
+      (id.it, atoms, values)
+  | _ -> failwith "Expected a CaseV value"
+
+let flatten_case_v' (value : t) : string * string list * value' list =
+  let id, atoms, values = flatten_case_v value in
+  (id, atoms, List.map (fun (v : t) -> v.it) values)

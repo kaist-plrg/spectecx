@@ -19,8 +19,9 @@ let rec assign_exp (ctx : Ctx.t) (exp : exp) (value : value) : Ctx.t =
       let ctx = Ctx.add_value ctx (id, []) value in
       ctx
   | TupleE exps, TupleV values -> assign_exps ctx exps values
-  | CaseE notexp, CaseV (_mixop_value, values) ->
-      let _mixop_exp, exps = notexp in
+  | CaseE notexp, CaseV valuecase ->
+      let exps = Mixfix.args notexp in
+      let values = Mixfix.args valuecase in
       assign_exps ctx exps values
   | OptE exp_opt, OptV value_opt -> (
       match (exp_opt, value_opt) with
@@ -223,13 +224,14 @@ let rec subtyp (ctx : Ctx.t) (typ : typ) (value : value) : bool =
       | PlainT typ, _ ->
           let typ = Typ.subst_typ theta typ in
           subtyp ctx typ value
-      | VariantT typcases, CaseV (mixop_v, values_inner) ->
+      | VariantT typcases, CaseV valuecase ->
           List.exists
             (fun typcase ->
               let nottyp, _, _ = typcase in
-              let mixop_t, typs_inner = nottyp.it in
-              let typs_inner = List.map (Typ.subst_typ theta) typs_inner in
-              Mixop.eq mixop_t mixop_v && subtyps ctx typs_inner values_inner)
+              Mixfix.eq_mixop nottyp.it valuecase
+              && subtyps ctx
+                   (List.map (Typ.subst_typ theta) (Mixfix.args nottyp.it))
+                   (Mixfix.args valuecase))
             typcases
       | _ -> true)
   | TupleT typs -> (
@@ -409,7 +411,7 @@ and eval_match_exp (note : typ') (ctx : Ctx.t) (exp : exp) (pattern : pattern) :
   let ctx, value = eval_exp ctx exp in
   let matches =
     match (pattern, value.it) with
-    | CaseP mixop_p, CaseV (mixop_v, _) -> Mixop.eq mixop_p mixop_v
+    | CaseP mixop_p, CaseV valuecase -> Mixfix.eq_mixop mixop_p valuecase
     | ListP listpattern, ListV values -> (
         let len_v = List.length values in
         match listpattern with
@@ -435,9 +437,9 @@ and eval_tuple_exp (note : typ') (ctx : Ctx.t) (exps : exp list) : Ctx.t * value
 
 and eval_case_exp (note : typ') (ctx : Ctx.t) (notexp : notexp) : Ctx.t * value
     =
-  let mixop, exps = notexp in
+  let mixop, exps = Mixfix.split notexp in
   let ctx, values = eval_exps ctx exps in
-  let value_res = Value.Make.case note (mixop, values) in
+  let value_res = Value.Make.case note (Mixfix.fill mixop values) in
   (ctx, value_res)
 
 (* Struct expression evaluation *)
@@ -876,8 +878,7 @@ and eval_prem (ctx : Ctx.t) (prem : prem) : Ctx.t attempt =
     let rel = Ctx.find_rel ctx id in
     let exps_input, exps_output =
       let inputs, _ = rel in
-      let _, exps = notexp in
-      Hint.split_exps_without_idx inputs exps
+      Hint.split_exps_without_idx inputs (Mixfix.args notexp)
     in
     let ctx, values_input = eval_exps ctx exps_input in
     let* ctx, values_output = invoke_rel ctx id values_input in
@@ -893,15 +894,13 @@ and eval_prem (ctx : Ctx.t) (prem : prem) : Ctx.t attempt =
         (F.asprintf "condition %s was not met" (Print.string_of_exp exp_cond))
   in
   let eval_if_hold_prem ctx id notexp =
-    let _, exps_input = notexp in
-    let ctx, values_input = eval_exps ctx exps_input in
+    let ctx, values_input = eval_exps ctx (Mixfix.args notexp) in
     match invoke_rel ctx id values_input with
     | Ok _ -> Ok ctx
     | Error _ -> fail id.at (F.asprintf "condition hold %s was not met" id.it)
   in
   let eval_if_not_hold_prem ctx id notexp =
-    let _, exps_input = notexp in
-    let ctx, values_input = eval_exps ctx exps_input in
+    let ctx, values_input = eval_exps ctx (Mixfix.args notexp) in
     match invoke_rel ctx id values_input with
     | Ok _ -> fail id.at (F.asprintf "condition not-hold %s was not met" id.it)
     | Error _ -> Ok ctx
@@ -1093,8 +1092,7 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
   let match_rule ctx inputs rule values_input =
     let _, notexp, prems = rule.it in
     let exps_input, exps_output =
-      let _, exps = notexp in
-      Hint.split_exps_without_idx inputs exps
+      Hint.split_exps_without_idx inputs (Mixfix.args notexp)
     in
     check
       (List.length exps_input = List.length values_input)

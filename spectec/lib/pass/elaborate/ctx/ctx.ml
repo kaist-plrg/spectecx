@@ -124,7 +124,7 @@ let find_rel_opt (ctx : t) (rid : RId.t) : (Il.nottyp * int list) option =
 
 let find_rel (ctx : t) (rid : RId.t) : Il.nottyp * int list =
   match find_rel_opt ctx rid with
-  | Some (nottyp, inputs) -> (nottyp, inputs)
+  | Some result -> result
   | None -> error_undef rid.at "relation" rid.it
 
 let bound_rel (ctx : t) (rid : RId.t) : bool =
@@ -256,3 +256,4 @@ module Typ = Typ
 module Typdef = Typdef
 module Func = Func
 module Rel = Rel
+module Mixop = Mixop

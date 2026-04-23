@@ -1,7 +1,7 @@
 %{
   open Lang.Il
+  open Lang.Il.Value
   open Context
-  open Lang.Il.Utils
   open Extract
 
   let declare_var_of_il (v: value) (b: bool) : unit =
@@ -220,15 +220,15 @@ int:
 (* Misc *)
 trailingCommaOpt:
 	| (* empty *)
-    { [ Term "`EMPTY" ] #@ "trailingCommaOpt" }
+    { [ atom "`EMPTY" ] |> case_v ~var:"trailingCommaOpt" }
 	| COMMA
-    { [ Term "," ] #@ "trailingCommaOpt" }
+    { [ atom "," ] |> case_v ~var:"trailingCommaOpt" }
 ;
 
 (* Numbers *)
 number:
 	| int = int
-    { [ Term "D"; NT int ] #@ "number" }
+    { [ atom "D"; arg int ] |> case_v ~var:"number" }
 (* Processed by lexer *)
 	| number = NUMBER
     { fst number }
@@ -237,36 +237,36 @@ number:
 (* Strings *)
 stringLiteral:
 	| text = STRING_LITERAL
-    { [ Term (Char.escaped '"'); NT text; Term (Char.escaped '"') ] #@ "stringLiteral"}
+    { [ atom (Char.escaped '"'); arg text; atom (Char.escaped '"') ] |> case_v ~var:"stringLiteral"}
 ;
 
 (* Names *)
 identifier:
 	| text = NAME IDENTIFIER
-    { [ Term "`ID"; NT text ] #@ "identifier" }
+    { [ atom "`ID"; arg text ] |> case_v ~var:"identifier" }
 ;
 
 typeIdentifier:
 	| text = NAME TYPENAME
-    { [ Term "`TID"; NT text ] #@ "typeIdentifier" }
+    { [ atom "`TID"; arg text ] |> case_v ~var:"typeIdentifier" }
 ;
 
 (* >> Non-type names *)
 nonTypeName:
 	| id = identifier { id }
-	| APPLY { [ Term "APPLY" ] #@ "nonTypeName" }
-	| KEY { [ Term "KEY" ] #@ "nonTypeName" }
-	| ACTIONS { [ Term "ACTIONS" ] #@ "nonTypeName" }
-	| STATE { [ Term "STATE" ] #@ "nonTypeName" }
-	| ENTRIES { [ Term "ENTRIES" ] #@ "nonTypeName" }
-	| TYPE { [ Term "TYPE" ] #@ "nonTypeName" }
-	| PRIORITY { [ Term "PRIORITY" ] #@ "nonTypeName" }
+	| APPLY { [ atom "APPLY" ] |> case_v ~var:"nonTypeName" }
+	| KEY { [ atom "KEY" ] |> case_v ~var:"nonTypeName" }
+	| ACTIONS { [ atom "ACTIONS" ] |> case_v ~var:"nonTypeName" }
+	| STATE { [ atom "STATE" ] |> case_v ~var:"nonTypeName" }
+	| ENTRIES { [ atom "ENTRIES" ] |> case_v ~var:"nonTypeName" }
+	| TYPE { [ atom "TYPE" ] |> case_v ~var:"nonTypeName" }
+	| PRIORITY { [ atom "PRIORITY" ] |> case_v ~var:"nonTypeName" }
 ;
 
 prefixedNonTypeName:
 	| n = nonTypeName { n }
 	| DOT go_toplevel n = nonTypeName go_local
-    { [ Term "`ID"; Term "."; NT n ] #@ "prefixedNonTypeName" }
+    { [ atom "`ID"; atom "."; arg n ] |> case_v ~var:"prefixedNonTypeName" }
 ;
 
 (* >> Type names *)
@@ -277,17 +277,17 @@ typeName:
 prefixedTypeName:
 	| n = typeName { n }
 	| DOT go_toplevel tid = typeName go_local
-		{ [ Term "`TID"; Term "."; NT tid ] #@ "prefixedType" }
+		{ [ atom "`TID"; atom "."; arg tid ] |> case_v ~var:"prefixedType" }
 ;
 
 (* >> Table custom property names *)
 tableCustomName:
 	| id = identifier { id }
 	| tid = typeIdentifier { tid }
-	| APPLY { [ Term "APPLY" ] #@ "tableCustomName" }
-	| STATE { [ Term "STATE" ] #@ "tableCustomName" }
-	| TYPE { [ Term "TYPE" ] #@ "tableCustomName" }
-	| PRIORITY { [ Term "PRIORITY" ] #@ "tableCustomName" }
+	| APPLY { [ atom "APPLY" ] |> case_v ~var:"tableCustomName" }
+	| STATE { [ atom "STATE" ] |> case_v ~var:"tableCustomName" }
+	| TYPE { [ atom "TYPE" ] |> case_v ~var:"tableCustomName" }
+	| PRIORITY { [ atom "PRIORITY" ] |> case_v ~var:"tableCustomName" }
 ;
 
 (* >> Names *)
@@ -295,14 +295,14 @@ name:
 	| n = nonTypeName
 	| n = typeName
     { n }
-	| LIST { [ Term "LIST" ] #@ "name" }
+	| LIST { [ atom "LIST" ] |> case_v ~var:"name" }
 ;
 
 nameList:
 	| n = name { n }
 	| ns = nameList COMMA n = name
-    { [ NT ns; Term ","; NT n ]
-      #@ "nameList" }
+    { [ arg ns; atom ","; arg n ]
+      |> case_v ~var:"nameList" }
 ;
 
 member:
@@ -312,43 +312,43 @@ member:
 
 (* Directions *)
 direction:
-	| (* empty *) { [ Term "`EMPTY" ] #@ "direction" }
-	| IN { [ Term "IN" ] #@ "direction" }
-	| OUT { [ Term "OUT" ] #@ "direction" }
-	| INOUT { [ Term "INOUT" ] #@ "direction" }
+	| (* empty *) { [ atom "`EMPTY" ] |> case_v ~var:"direction" }
+	| IN { [ atom "IN" ] |> case_v ~var:"direction" }
+	| OUT { [ atom "OUT" ] |> case_v ~var:"direction" }
+	| INOUT { [ atom "INOUT" ] |> case_v ~var:"direction" }
 ;
 
 (* Types *)
 (* >> Base types *)
 baseType:
-	| BOOL { [ Term "BOOL" ] #@ "baseType" }
-	| MATCH_KIND { [ Term "MATCH_KIND" ] #@ "baseType" }
-	| ERROR { [ Term "ERROR" ] #@ "baseType" }
-	| BIT { [ Term "BIT" ] #@ "baseType" }
-	| STRING { [ Term "STRING" ] #@ "baseType"}
+	| BOOL { [ atom "BOOL" ] |> case_v ~var:"baseType" }
+	| MATCH_KIND { [ atom "MATCH_KIND" ] |> case_v ~var:"baseType" }
+	| ERROR { [ atom "ERROR" ] |> case_v ~var:"baseType" }
+	| BIT { [ atom "BIT" ] |> case_v ~var:"baseType" }
+	| STRING { [ atom "STRING" ] |> case_v ~var:"baseType"}
 	| INT
-    { [ Term "INT" ] #@ "baseType" }
+    { [ atom "INT" ] |> case_v ~var:"baseType" }
 	| BIT l_angle v = int r_angle
-    { [ Term "BIT"; Term "<"; NT v; Term ">" ]
-      #@ "baseType" }
+    { [ atom "BIT"; atom "<"; arg v; atom ">" ]
+      |> case_v ~var:"baseType" }
 	| INT l_angle v = int r_angle
-    { [ Term "INT"; Term "<"; NT v; Term ">" ]
-      #@ "baseType" }
+    { [ atom "INT"; atom "<"; arg v; atom ">" ]
+      |> case_v ~var:"baseType" }
 	| VARBIT l_angle v = int r_angle
-    { [ Term "VARBIT"; Term "<"; NT v; Term ">" ] #@ "baseType" }
+    { [ atom "VARBIT"; atom "<"; arg v; atom ">" ] |> case_v ~var:"baseType" }
 	| BIT l_angle L_PAREN e = expression R_PAREN r_angle
-    { [ Term "BIT"; Term "<"; Term "("; NT e; Term ")"; Term ">" ] #@ "baseType" }
+    { [ atom "BIT"; atom "<"; atom "("; arg e; atom ")"; atom ">" ] |> case_v ~var:"baseType" }
 	| INT l_angle L_PAREN e = expression R_PAREN r_angle
-    { [ Term "INT"; Term "<"; Term "("; NT e; Term ")"; Term ">" ]
-      #@ "baseType" }
+    { [ atom "INT"; atom "<"; atom "("; arg e; atom ")"; atom ">" ]
+      |> case_v ~var:"baseType" }
 	| VARBIT l_angle L_PAREN e = expression R_PAREN r_angle
-    { [ Term "VARBIT"; Term "<"; Term "("; NT e; Term ")"; Term ">" ] #@ "baseType" }
+    { [ atom "VARBIT"; atom "<"; atom "("; arg e; atom ")"; atom ">" ] |> case_v ~var:"baseType" }
 ;
 
 (* >> Named types *)
 specializedType:
   | n = prefixedTypeName l_angle tal = typeArgumentList r_angle
-    { [ NT n; Term "<"; NT tal; Term ">" ] #@ "specializedType" }
+    { [ arg n; atom "<"; arg tal; atom ">" ] |> case_v ~var:"specializedType" }
 ;
 
 namedType:
@@ -360,19 +360,19 @@ namedType:
 (* >> Header stack types *)
 headerStackType:
   | t = namedType L_BRACKET e = expression R_BRACKET
-    { [ NT t; Term "["; NT e; Term "]" ] #@ "headerStackType" }
+    { [ arg t; atom "["; arg e; atom "]" ] |> case_v ~var:"headerStackType" }
 ;
 
 (* >> List types *)
 listType:
   | LIST l_angle targ = typeArgument r_angle
-    { [ Term "LIST"; Term "<"; NT targ; Term ">" ] #@ "listType" }
+    { [ atom "LIST"; atom "<"; arg targ; atom ">" ] |> case_v ~var:"listType" }
 ;
 
 (* >> Tuple types *)
 tupleType:
 	| TUPLE l_angle targs = typeArgumentList r_angle
-    { [ Term "TUPLE"; Term "<"; NT targs; Term ">" ] #@ "tupleType" }
+    { [ atom "TUPLE"; atom "<"; arg targs; atom ">" ] |> case_v ~var:"tupleType" }
 ;
 
 (* >> Types *)
@@ -387,12 +387,12 @@ typeRef:
 
 typeOrVoid:
 	| t = typeRef { t }
-	| VOID { [ Term "VOID" ] #@ "typeOrVoid" }
+	| VOID { [ atom "VOID" ] |> case_v ~var:"typeOrVoid" }
   (* From Petr4: HACK for generic return type *)
 	| id = identifier
     { match flatten_case_v id with
       | "identifier", ["`ID"], [ value_text ]  ->
-        [ Term "`TID"; NT value_text ] #@ "typeIdentifier"
+        [ atom "`TID"; arg value_text ] |> case_v ~var:"typeIdentifier"
       | _ -> failwith "@typeOrVoid: expected identifier" }
 ;
 
@@ -403,56 +403,56 @@ typeParameter:
 typeParameterList:
 	| tp = typeParameter { tp }
 	| tps = typeParameterList COMMA tp = typeParameter
-    { [ NT tps; Term ","; NT tp ] #@ "typeParameterList" }
+    { [ arg tps; atom ","; arg tp ] |> case_v ~var:"typeParameterList" }
 ;
 
 typeParameterListOpt:
-	| (* empty *) { [ Term "`EMPTY" ] #@ "typeParameterListOpt" }
+	| (* empty *) { [ atom "`EMPTY" ] |> case_v ~var:"typeParameterListOpt" }
 	| l_angle tps = typeParameterList r_angle
     { declare_types_of_il tps;
-      [ Term "<"; NT tps; Term ">" ] #@ "typeParameterListOpt" }
+      [ atom "<"; arg tps; atom ">" ] |> case_v ~var:"typeParameterListOpt" }
 ;
 
 (* Parameters *)
 parameter:
 	| al = annotationList dir = direction t = typeRef n = name i = initializerOpt
 		{ declare_var_of_il n false;
-      [ NT al; NT dir; NT t; NT n; NT i ] #@ "parameter" }
+      [ arg al; arg dir; arg t; arg n; arg i ] |> case_v ~var:"parameter" }
 ;
 
 nonEmptyParameterList:
 	| p = parameter { p }
 	| ps = nonEmptyParameterList COMMA p = parameter
-    { [ NT ps; Term ","; NT p ] #@ "nonEmptyParameterList" }
+    { [ arg ps; atom ","; arg p ] |> case_v ~var:"nonEmptyParameterList" }
 ;
 
 parameterList:
-	| (* empty *) { [ Term "`EMPTY" ] #@ "parameterList" }
+	| (* empty *) { [ atom "`EMPTY" ] |> case_v ~var:"parameterList" }
 	| ps = nonEmptyParameterList { ps }
 ;
 
 (* Constructor parameters *)
 constructorParameterListOpt:
-	| (* empty *) { [ Term "`EMPTY" ] #@ "constructorParameterListOpt" }
+	| (* empty *) { [ atom "`EMPTY" ] |> case_v ~var:"constructorParameterListOpt" }
 	| L_PAREN ps = parameterList R_PAREN
-    { [ Term "("; NT ps; Term ")" ] #@ "constructorParameterListOpt" }
+    { [ atom "("; arg ps; atom ")" ] |> case_v ~var:"constructorParameterListOpt" }
 ;
 
 (* Expression key-value pairs *)
 namedExpression:
-	| n = name ASSIGN e = expression { [ NT n; Term "="; NT e ] #@ "namedExpression" }
+	| n = name ASSIGN e = expression { [ arg n; atom "="; arg e ] |> case_v ~var:"namedExpression" }
 ;
 
 namedExpressionList:
 	| e = namedExpression { e }
-	| es = namedExpressionList COMMA e = namedExpression { [ NT es; Term ","; NT e ] #@ "namedExpressionList" }
+	| es = namedExpressionList COMMA e = namedExpression { [ arg es; atom ","; arg e ] |> case_v ~var:"namedExpressionList" }
 ;
 
 (* Expressions *)
 (* >> Literal expressions *)
 %inline literalExpression:
-	| TRUE { [ Term "TRUE" ] #@ "literalExpression" }
-	| FALSE { [ Term "FALSE" ] #@ "literalExpression" }
+	| TRUE { [ atom "TRUE" ] |> case_v ~var:"literalExpression" }
+	| FALSE { [ atom "FALSE" ] |> case_v ~var:"literalExpression" }
 	| num = number { num }
 	| str = stringLiteral { str }
 ;
@@ -460,100 +460,100 @@ namedExpressionList:
 (* >> Reference expressions *)
 %inline referenceExpression:
 	| n = prefixedNonTypeName { n }
-	| THIS { [ Term "THIS" ] #@ "referenceExpression" }
+	| THIS { [ atom "THIS" ] |> case_v ~var:"referenceExpression" }
 ;
 
 (* >> Default expressions *)
 %inline defaultExpression:
-	| DOTS { [ Term "..." ] #@ "defaultExpression" }
+	| DOTS { [ atom "..." ] |> case_v ~var:"defaultExpression" }
 ;
 
 (* >> Unary, binary, and ternary expressions *)
 %inline unop: 
-	| NOT { [ Term "!" ] #@ "unop" }
-	| COMPLEMENT { [ Term "~" ] #@ "unop" }
-	| MINUS { [ Term "-" ] #@ "unop" }
-	| PLUS { [ Term "+" ] #@ "unop" }
+	| NOT { [ atom "!" ] |> case_v ~var:"unop" }
+	| COMPLEMENT { [ atom "~" ] |> case_v ~var:"unop" }
+	| MINUS { [ atom "-" ] |> case_v ~var:"unop" }
+	| PLUS { [ atom "+" ] |> case_v ~var:"unop" }
 ;
 
 %inline unaryExpression:
 	| o = unop e = expression %prec PREFIX
-		{ [ NT o; NT e ] #@ "unaryExpression" }
+		{ [ arg o; arg e ] |> case_v ~var:"unaryExpression" }
 ;
 
 %inline binop:
-  | MUL { [ Term "*" ] #@ "binop" }
-  | DIV { [ Term "/" ] #@ "binop" }
-  | MOD { [ Term "%" ] #@ "binop" }
-  | PLUS { [ Term "+" ] #@ "binop" }
-  | PLUS_SAT { [ Term "|+|" ] #@ "binop" }
-  | MINUS { [ Term "-" ] #@ "binop" }
-  | MINUS_SAT { [ Term "|-|" ] #@ "binop" }
-  | SHL { [ Term "<<" ] #@ "binop" }
-  | r_angle R_ANGLE_SHIFT { [ Term ">>" ] #@ "binop" }
-  | LE { [ Term "<=" ] #@ "binop" }
-  | GE { [ Term ">=" ] #@ "binop" }
-  | l_angle { [ Term "<" ] #@ "binop" }
-  | r_angle { [ Term ">" ] #@ "binop" }
-  | NE { [ Term "!=" ] #@ "binop" }
-  | EQ { [ Term "==" ] #@ "binop" }
-  | BIT_AND { [ Term "&" ] #@ "binop" }
-  | BIT_XOR { [ Term "^" ] #@ "binop" }
-  | BIT_OR { [ Term "|" ] #@ "binop" }
-  | PLUSPLUS { [ Term "++" ] #@ "binop" }
-  | AND { [ Term "&&" ] #@ "binop" }
-  | OR { [ Term "||" ] #@ "binop" }
+  | MUL { [ atom "*" ] |> case_v ~var:"binop" }
+  | DIV { [ atom "/" ] |> case_v ~var:"binop" }
+  | MOD { [ atom "%" ] |> case_v ~var:"binop" }
+  | PLUS { [ atom "+" ] |> case_v ~var:"binop" }
+  | PLUS_SAT { [ atom "|+|" ] |> case_v ~var:"binop" }
+  | MINUS { [ atom "-" ] |> case_v ~var:"binop" }
+  | MINUS_SAT { [ atom "|-|" ] |> case_v ~var:"binop" }
+  | SHL { [ atom "<<" ] |> case_v ~var:"binop" }
+  | r_angle R_ANGLE_SHIFT { [ atom ">>" ] |> case_v ~var:"binop" }
+  | LE { [ atom "<=" ] |> case_v ~var:"binop" }
+  | GE { [ atom ">=" ] |> case_v ~var:"binop" }
+  | l_angle { [ atom "``<" ] |> case_v ~var:"binop" }
+  | r_angle { [ atom "``>" ] |> case_v ~var:"binop" }
+  | NE { [ atom "!=" ] |> case_v ~var:"binop" }
+  | EQ { [ atom "==" ] |> case_v ~var:"binop" }
+  | BIT_AND { [ atom "&" ] |> case_v ~var:"binop" }
+  | BIT_XOR { [ atom "^" ] |> case_v ~var:"binop" }
+  | BIT_OR { [ atom "|" ] |> case_v ~var:"binop" }
+  | PLUSPLUS { [ atom "++" ] |> case_v ~var:"binop" }
+  | AND { [ atom "&&" ] |> case_v ~var:"binop" }
+  | OR { [ atom "||" ] |> case_v ~var:"binop" }
 ;
 
 %inline binaryExpression:
 	| l = expression o = binop r = expression
-		{ [ NT l; NT o; NT r ] #@ "binaryExpression" }
+		{ [ arg l; arg o; arg r ] |> case_v ~var:"binaryExpression" }
 ;
 
 %inline binaryExpressionNonBrace:
 	| l = expressionNonBrace o = binop r = expression
-		{ [ NT l; NT o; NT r ] #@ "binaryExpressionNonBrace" }
+		{ [ arg l; arg o; arg r ] |> case_v ~var:"binaryExpressionNonBrace" }
 ;
 
 %inline ternaryExpression:
 	| c = expression QUESTION t = expression COLON f = expression
-		{ [ NT c; Term "?"; NT t; Term ":"; NT f ] #@ "ternaryExpression" }
+		{ [ arg c; atom "?"; arg t; atom ":"; arg f ] |> case_v ~var:"ternaryExpression" }
 ;
 
 %inline ternaryExpressionNonBrace:
 	| c = expressionNonBrace QUESTION t = expression COLON f = expression
-		{ [ NT c; Term "?"; NT t; Term ":"; NT f ] #@ "ternaryExpressionNonBrace" }
+		{ [ arg c; atom "?"; arg t; atom ":"; arg f ] |> case_v ~var:"ternaryExpressionNonBrace" }
 ;
 
 (* >> Cast expressions *)
 %inline castExpression:
 	| L_PAREN t = typeRef R_PAREN e = expression %prec PREFIX
-    { [ Term "("; NT t; Term ")"; NT e ] #@ "castExpression" }
+    { [ atom "("; arg t; atom ")"; arg e ] |> case_v ~var:"castExpression" }
 ;
 
 (* >> Data (aggregate) expressions *)
 %inline dataExpression:
-	| INVALID { [ Term "{#}" ] #@ "dataExpression" }
+	| INVALID { [ atom "{#}" ] |> case_v ~var:"dataExpression" }
 	| L_BRACE e = dataElementExpression c = trailingCommaOpt R_BRACE
-    { [ Term "{"; NT e; NT c; Term "}" ] #@ "dataExpression" }
+    { [ atom "{"; arg e; arg c; atom "}" ] |> case_v ~var:"dataExpression" }
 ;
 
 (* >> Member and index access expressions *)
 %inline errorAccessExpression:
 	| ERROR DOT m = member
-		{ [ Term "ERROR"; Term "."; NT m ] #@ "errorAccessExpression" }
+		{ [ atom "ERROR"; atom "."; arg m ] |> case_v ~var:"errorAccessExpression" }
 ;
 
 %inline memberAccessExpression:
 	| e = memberAccessBase DOT m = member %prec DOT
-		{ [ NT e; Term "."; NT m ] #@ "memberAccessExpression" }
+		{ [ arg e; atom "."; arg m ] |> case_v ~var:"memberAccessExpression" }
 ;
 
 %inline indexAccessExpression:
 	| a = expression L_BRACKET i = expression R_BRACKET
-		{ [ NT a; Term "["; NT i; Term "]" ] #@ "indexAccessExpression" }
+		{ [ arg a; atom "["; arg i; atom "]" ] |> case_v ~var:"indexAccessExpression" }
 	| a = expression L_BRACKET h = expression COLON l = expression R_BRACKET
-		{ [ NT a; Term "["; NT h; Term ":"; NT l; Term "]" ] #@ "indexAccessExpression" }
+		{ [ arg a; atom "["; arg h; atom ":"; arg l; atom "]" ] |> case_v ~var:"indexAccessExpression" }
 ;
 
 %inline accessExpression:
@@ -565,14 +565,14 @@ namedExpressionList:
 
 %inline memberAccessExpressionNonBrace:
 	| e = memberAccessBaseNonBrace DOT m = member %prec DOT
-		{ [ NT e; Term "."; NT m ] #@ "memberAccessExpressionNonBrace" }
+		{ [ arg e; atom "."; arg m ] |> case_v ~var:"memberAccessExpressionNonBrace" }
 ;
 
 %inline indexAccessExpressionNonBrace:
 	| a = expressionNonBrace L_BRACKET i = expression R_BRACKET
-		{ [ NT a; Term "["; NT i; Term "]" ] #@ "indexAccessExpressionNonBrace" }
+		{ [ arg a; atom "["; arg i; atom "]" ] |> case_v ~var:"indexAccessExpressionNonBrace" }
 	| a = expressionNonBrace L_BRACKET h = expression COLON l = expression R_BRACKET
-		{ [ NT a; Term "["; NT h; Term ":"; NT l; Term "]" ] #@ "indexAccessExpressionNonBrace" }
+		{ [ arg a; atom "["; arg h; atom ":"; arg l; atom "]" ] |> case_v ~var:"indexAccessExpressionNonBrace" }
 ;
 
 %inline accessExpressionNonBrace:
@@ -599,10 +599,10 @@ namedExpressionList:
 
 %inline callExpression:
 	| t = callTarget L_PAREN args = argumentList R_PAREN
-		{ [ NT t; Term "("; NT args; Term ")" ] #@ "callExpression" }
+		{ [ arg t; atom "("; arg args; atom ")" ] |> case_v ~var:"callExpression" }
 	| t = routineTarget l_angle targs = realTypeArgumentList r_angle L_PAREN args = argumentList R_PAREN
-		{ [ NT t; Term "<"; NT targs; Term ">"; Term "("; NT args; Term ")" ]
-      #@ "callExpression" }
+		{ [ arg t; atom "<"; arg targs; atom ">"; atom "("; arg args; atom ")" ]
+      |> case_v ~var:"callExpression" }
 ;
 
 %inline routineTargetNonBrace:
@@ -617,16 +617,16 @@ namedExpressionList:
 
 %inline callExpressionNonBrace:
 	| t = callTargetNonBrace L_PAREN args = argumentList R_PAREN
-		{ [ NT t; Term "("; NT args; Term ")" ] #@ "callExpressionNonBrace" }
+		{ [ arg t; atom "("; arg args; atom ")" ] |> case_v ~var:"callExpressionNonBrace" }
 	| t = routineTargetNonBrace l_angle targs = realTypeArgumentList r_angle L_PAREN args = argumentList R_PAREN
-		{ [ NT t; Term "<"; NT targs; Term ">"; Term "("; NT args; Term ")" ]
-      #@ "callExpressionNonBrace" }
+		{ [ arg t; atom "<"; arg targs; atom ">"; atom "("; arg args; atom ")" ]
+      |> case_v ~var:"callExpressionNonBrace" }
 
 (* >> Parenthesized Expressions *)
 
 %inline parenthesizedExpression:
 	| L_PAREN e = expression R_PAREN
-		{ [ Term "("; NT e; Term ")" ] #@ "parenthesizedExpression" }
+		{ [ atom "("; arg e; atom ")" ] |> case_v ~var:"parenthesizedExpression" }
 ;
 
 (* >> Expressions *)
@@ -646,10 +646,10 @@ expression:
 ;
 
 expressionList:
-	| (* empty *) { [ Term "`EMPTY" ] #@ "expressionList" }
+	| (* empty *) { [ atom "`EMPTY" ] |> case_v ~var:"expressionList" }
 	| e = expression { e }
 	| el = expressionList COMMA e = expression
-		{ [ NT el; Term ","; NT e ] #@ "expressionList" }
+		{ [ arg el; atom ","; arg e ] |> case_v ~var:"expressionList" }
 ;
 
 %inline memberAccessBase:
@@ -664,17 +664,17 @@ expressionList:
 
 %inline recordElementExpression:
   | n = name ASSIGN e = expression
-    { [ NT n; Term "="; NT e ]
-      #@ "recordElementExpression" }
+    { [ arg n; atom "="; arg e ]
+      |> case_v ~var:"recordElementExpression" }
   | n = name ASSIGN e = expression COMMA DOTS
-    { [ NT n; Term "="; NT e; Term ","; Term "..." ]
-      #@ "recordElementExpression" }
+    { [ arg n; atom "="; arg e; atom ","; atom "..." ]
+      |> case_v ~var:"recordElementExpression" }
 	| n = name ASSIGN e = expression COMMA el = namedExpressionList
-    { [ NT n; Term "="; NT e; Term ","; NT el ]
-      #@ "recordElementExpression" }
+    { [ arg n; atom "="; arg e; atom ","; arg el ]
+      |> case_v ~var:"recordElementExpression" }
   | n = name ASSIGN e = expression COMMA el = namedExpressionList COMMA DOTS
-    { [ NT n; Term "="; NT e; Term ","; NT el; Term ","; Term "..." ]
-      #@ "recordElementExpression" }
+    { [ arg n; atom "="; arg e; atom ","; arg el; atom ","; atom "..." ]
+      |> case_v ~var:"recordElementExpression" }
 ;
 
 %inline dataElementExpression:
@@ -707,32 +707,32 @@ expressionNonBrace:
 simpleKeysetExpression:
 	| e = expression { e }
 	| b = expression MASK m = expression
-    { [ NT b; Term "&&&"; NT m ] #@ "simpleKeysetExpression" }
+    { [ arg b; atom "&&&"; arg m ] |> case_v ~var:"simpleKeysetExpression" }
 	| l = expression RANGE h = expression
-    { [ NT l; Term ".."; NT h ] #@ "simpleKeysetExpression" }
+    { [ arg l; atom ".."; arg h ] |> case_v ~var:"simpleKeysetExpression" }
 	| DEFAULT
-    { [ Term "DEFAULT" ] #@ "simpleKeysetExpression" }
+    { [ atom "DEFAULT" ] |> case_v ~var:"simpleKeysetExpression" }
 	| DONTCARE
-    { [ Term "_" ] #@ "simpleKeysetExpression" }
+    { [ atom "_" ] |> case_v ~var:"simpleKeysetExpression" }
 ;
 
 simpleKeysetExpressionList:
 	| e = simpleKeysetExpression { e }
 	| el = simpleKeysetExpressionList COMMA e = simpleKeysetExpression
-    { [ NT el; Term ","; NT e ] #@ "simpleKeysetExpressionList" }
+    { [ arg el; atom ","; arg e ] |> case_v ~var:"simpleKeysetExpressionList" }
 ;
 
 tupleKeysetExpression:
 	| L_PAREN b = expression MASK m = expression R_PAREN
-		{ [ Term "("; NT b; Term "&&&"; NT m; Term ")" ] #@ "tupleKeysetExpression" }
+		{ [ atom "("; arg b; atom "&&&"; arg m; atom ")" ] |> case_v ~var:"tupleKeysetExpression" }
 	| L_PAREN l = expression RANGE h = expression R_PAREN
-		{ [ Term "("; NT l; Term ".."; NT h; Term ")" ] #@ "tupleKeysetExpression" }
+		{ [ atom "("; arg l; atom ".."; arg h; atom ")" ] |> case_v ~var:"tupleKeysetExpression" }
 	| L_PAREN DEFAULT R_PAREN
-		{ [ Term "("; Term "DEFAULT"; Term ")" ] #@ "tupleKeysetExpression" }
+		{ [ atom "("; atom "DEFAULT"; atom ")" ] |> case_v ~var:"tupleKeysetExpression" }
 	| L_PAREN DONTCARE R_PAREN
-		{ [ Term "("; Term "_"; Term ")" ] #@ "tupleKeysetExpression" }
+		{ [ atom "("; atom "_"; atom ")" ] |> case_v ~var:"tupleKeysetExpression" }
 	| L_PAREN e = simpleKeysetExpression COMMA es = simpleKeysetExpressionList R_PAREN
-		{ [ Term "("; NT e; Term ","; NT es; Term ")" ] #@ "tupleKeysetExpression" }
+		{ [ atom "("; arg e; atom ","; arg es; atom ")" ] |> case_v ~var:"tupleKeysetExpression" }
 ;
 
 keysetExpression:
@@ -745,15 +745,15 @@ keysetExpression:
 realTypeArgument:
 	| t = typeRef { t }
 	| VOID
-    { [ Term "VOID" ] #@ "realTypeArgument" }
+    { [ atom "VOID" ] |> case_v ~var:"realTypeArgument" }
 	| DONTCARE
-    { [ Term "_" ] #@ "realTypeArgument" }
+    { [ atom "_" ] |> case_v ~var:"realTypeArgument" }
 ;
 
 realTypeArgumentList:
 	| targ = realTypeArgument { targ }
 	| targs = realTypeArgumentList COMMA targ = realTypeArgument
-    { [ NT targs; Term ","; NT targ ] #@ "realTypeArgumentList" }
+    { [ arg targs; atom ","; arg targ ] |> case_v ~var:"realTypeArgumentList" }
 ;
 
 typeArgument:
@@ -761,37 +761,37 @@ typeArgument:
 	| t = nonTypeName 
 		{ t }
 	| VOID
-    { [ Term "VOID" ] #@ "typeArgument" }
+    { [ atom "VOID" ] |> case_v ~var:"typeArgument" }
 	| DONTCARE
-    { [ Term "_" ] #@ "typeArgument" }
+    { [ atom "_" ] |> case_v ~var:"typeArgument" }
 ;
 
 typeArgumentList:
-	| (* empty *) { [ Term "`EMPTY" ] #@ "typeArgumentList" }
+	| (* empty *) { [ atom "`EMPTY" ] |> case_v ~var:"typeArgumentList" }
 	| targ = typeArgument { targ }
 	| targs = typeArgumentList COMMA targ = typeArgument
-    { [ NT targs; Term ","; NT targ ] #@ "typeArgumentList" }
+    { [ arg targs; atom ","; arg targ ] |> case_v ~var:"typeArgumentList" }
 ;
 
 (* Arguments *)
 argument:
 	| e = expression { e }
 	| n = name ASSIGN e = expression 
-		{ [ NT n; Term "="; NT e ] #@ "argument" }
+		{ [ arg n; atom "="; arg e ] |> case_v ~var:"argument" }
 	| name = name ASSIGN DONTCARE
-		{ [ NT name; Term "="; Term "_" ] #@ "argument" }
+		{ [ arg name; atom "="; atom "_" ] |> case_v ~var:"argument" }
 	| DONTCARE
-		{ [ Term "_" ] #@ "argument" }
+		{ [ atom "_" ] |> case_v ~var:"argument" }
 ;
 
 argumentListNonEmpty:
-	| arg = argument { arg }
-	| args = argumentListNonEmpty COMMA arg = argument
-    { [ NT args; Term ","; NT arg ] #@ "argumentListNonEmpty" }
+	| a = argument { a }
+	| args = argumentListNonEmpty COMMA a = argument
+    { [ arg args; atom ","; arg a ] |> case_v ~var:"argumentListNonEmpty" }
 ;
 
 argumentList:
-	| (* empty *) { [ Term "`EMPTY" ] #@ "argumentList" }
+	| (* empty *) { [ atom "`EMPTY" ] |> case_v ~var:"argumentList" }
 	| args = argumentListNonEmpty { args }
 ;
 
@@ -799,71 +799,71 @@ argumentList:
 lvalue:
 	| e = referenceExpression { e }
 	| lv = lvalue DOT m = member %prec DOT
-		{ [ NT lv; Term "."; NT m ] #@ "lvalue" }
+		{ [ arg lv; atom "."; arg m ] |> case_v ~var:"lvalue" }
 	| lv = lvalue L_BRACKET i = expression R_BRACKET
-		{ [ NT lv; Term "["; NT i; Term "]" ] #@ "lvalue" }
+		{ [ arg lv; atom "["; arg i; atom "]" ] |> case_v ~var:"lvalue" }
 	| lv = lvalue L_BRACKET h = expression COLON l = expression R_BRACKET
-		{ [ NT lv; Term "["; NT h; Term ":"; NT l; Term "]" ] #@ "lvalue" }
+		{ [ arg lv; atom "["; arg h; atom ":"; arg l; atom "]" ] |> case_v ~var:"lvalue" }
 	| L_PAREN lv = lvalue R_PAREN
-		{ [ Term "("; NT lv; Term ")" ] #@ "lvalue" }
+		{ [ atom "("; arg lv; atom ")" ] |> case_v ~var:"lvalue" }
 ;
 
 (* Statements *)
 (* >> Empty statements *)
 emptyStatement:
-	| SEMICOLON { [ Term ";" ] #@ "emptyStatement" }
+	| SEMICOLON { [ atom ";" ] |> case_v ~var:"emptyStatement" }
 ;
 
 (* >> Assignment statements *)
 assignop:
-	| ASSIGN { [ Term "=" ] #@ "assignop" }
-	| PLUS_ASSIGN { [ Term "+=" ] #@ "assignop" }
-	| PLUS_SAT_ASSIGN { [ Term "|+|=" ] #@ "assignop" }
-	| MINUS_ASSIGN { [ Term "-=" ] #@ "assignop" }
-	| MINUS_SAT_ASSIGN { [ Term "|-|=" ] #@ "assignop" }
-	| MUL_ASSIGN { [ Term "*=" ] #@ "assignop" }
-	| DIV_ASSIGN { [ Term "/=" ] #@ "assignop" }
-	| MOD_ASSIGN { [ Term "%=" ] #@ "assignop" }
-	| SHL_ASSIGN { [ Term "<<=" ] #@ "assignop" }
-	| SHR_ASSIGN { [ Term ">>=" ] #@ "assignop" }
-	| BIT_AND_ASSIGN { [ Term "&=" ] #@ "assignop" }
-	| BIT_XOR_ASSIGN { [ Term "^=" ] #@ "assignop" }
-	| BIT_OR_ASSIGN { [ Term "|=" ] #@ "assignop" }
+	| ASSIGN { [ atom "=" ] |> case_v ~var:"assignop" }
+	| PLUS_ASSIGN { [ atom "+=" ] |> case_v ~var:"assignop" }
+	| PLUS_SAT_ASSIGN { [ atom "|+|=" ] |> case_v ~var:"assignop" }
+	| MINUS_ASSIGN { [ atom "-=" ] |> case_v ~var:"assignop" }
+	| MINUS_SAT_ASSIGN { [ atom "|-|=" ] |> case_v ~var:"assignop" }
+	| MUL_ASSIGN { [ atom "*=" ] |> case_v ~var:"assignop" }
+	| DIV_ASSIGN { [ atom "/=" ] |> case_v ~var:"assignop" }
+	| MOD_ASSIGN { [ atom "%=" ] |> case_v ~var:"assignop" }
+	| SHL_ASSIGN { [ atom "<<=" ] |> case_v ~var:"assignop" }
+	| SHR_ASSIGN { [ atom ">>=" ] |> case_v ~var:"assignop" }
+	| BIT_AND_ASSIGN { [ atom "&=" ] |> case_v ~var:"assignop" }
+	| BIT_XOR_ASSIGN { [ atom "^=" ] |> case_v ~var:"assignop" }
+	| BIT_OR_ASSIGN { [ atom "|=" ] |> case_v ~var:"assignop" }
 ;
 
 assignmentStatement:
 	| lv = lvalue o = assignop e = expression SEMICOLON
-		{ [ NT lv; NT o; NT e; Term ";" ] #@ "assignmentStatement" }
+		{ [ arg lv; arg o; arg e; atom ";" ] |> case_v ~var:"assignmentStatement" }
 ;
 
 (* >> Call statements *)
 callStatement:
 	| lv = lvalue L_PAREN args = argumentList R_PAREN SEMICOLON
-		{ [ NT lv; Term "("; NT args; Term ")"; Term ";" ] #@ "callStatement" }
+		{ [ arg lv; atom "("; arg args; atom ")"; atom ";" ] |> case_v ~var:"callStatement" }
 	| lv = lvalue l_angle targs = typeArgumentList r_angle L_PAREN args = argumentList R_PAREN SEMICOLON
-		{ [ NT lv; Term "<"; NT targs; Term ">"; Term "("; NT args; Term ")"; Term ";" ]
-      #@ "callStatement" }
+		{ [ arg lv; atom "<"; arg targs; atom ">"; atom "("; arg args; atom ")"; atom ";" ]
+      |> case_v ~var:"callStatement" }
 ;
 
 (* >> Direct application statements *)
 directApplicationStatement:
 	| t = namedType DOT APPLY L_PAREN args = argumentList R_PAREN SEMICOLON
-    { [ NT t; Term "."; Term "APPLY"; Term "("; NT args; Term ")"; Term ";" ]
-      #@ "directApplicationStatement" }
+    { [ arg t; atom "."; atom "APPLY"; atom "("; arg args; atom ")"; atom ";" ]
+      |> case_v ~var:"directApplicationStatement" }
 ;
 
 (* >> Return statements *)
 returnStatement:
 	| RETURN SEMICOLON
-    { [ Term "RETURN"; Term ";" ] #@ "returnStatement" }
+    { [ atom "RETURN"; atom ";" ] |> case_v ~var:"returnStatement" }
 	| RETURN e = expression SEMICOLON
-    { [ Term "RETURN"; NT e; Term ";" ] #@ "returnStatement" }
+    { [ atom "RETURN"; arg e; atom ";" ] |> case_v ~var:"returnStatement" }
 ;
 
 (* >> Exit statements *)
 exitStatement:
 	| EXIT SEMICOLON
-    { [ Term "EXIT"; Term ";" ] #@ "exitStatement" }
+    { [ atom "EXIT"; atom ";" ] |> case_v ~var:"exitStatement" }
 ;
 
 (* >> Block statements *)
@@ -872,40 +872,40 @@ blockStatement:
   push_scope
   sl = blockElementStatementList R_BRACE
   pop_scope
-		{ [ NT al; Term "{"; NT sl; Term "}" ] #@ "blockStatement" }
+		{ [ arg al; atom "{"; arg sl; atom "}" ] |> case_v ~var:"blockStatement" }
 ;
 
 (* >> Conditional statements *)
 conditionalStatement:
 	| IF L_PAREN c = expression R_PAREN t = statement %prec THEN
-    { [ Term "IF"; Term "("; NT c; Term ")"; NT t ]
-      #@ "conditionalStatement" }
+    { [ atom "IF"; atom "("; arg c; atom ")"; arg t ]
+      |> case_v ~var:"conditionalStatement" }
 	| IF L_PAREN c = expression R_PAREN t = statement ELSE f = statement
-    { [ Term "IF"; Term "("; NT c; Term ")"; NT t; Term "ELSE"; NT f ]
-      #@ "conditionalStatement" }
+    { [ atom "IF"; atom "("; arg c; atom ")"; arg t; atom "ELSE"; arg f ]
+      |> case_v ~var:"conditionalStatement" }
 ;
 
 (* >> For statements *)
 forInitStatement:
 	| al = annotationList t = typeRef n = name i = initializerOpt
-		{ [ NT al; NT t; NT n; NT i ] #@ "forInitStatement" }
+		{ [ arg al; arg t; arg n; arg i ] |> case_v ~var:"forInitStatement" }
 	| lv = lvalue L_PAREN args = argumentList R_PAREN
-		{ [ NT lv; Term "("; NT args; Term ")" ] #@ "forInitStatement" }
+		{ [ arg lv; atom "("; arg args; atom ")" ] |> case_v ~var:"forInitStatement" }
 	| lv = lvalue l_angle targs = typeArgumentList r_angle L_PAREN args = argumentList R_PAREN
-		{ [ NT lv; Term "<"; NT targs; Term ">"; Term "("; NT args; Term ")" ]
-      #@ "forInitStatement" }
+		{ [ arg lv; atom "<"; arg targs; atom ">"; atom "("; arg args; atom ")" ]
+      |> case_v ~var:"forInitStatement" }
 	| lv = lvalue o = assignop e = expression
-		{ [ NT lv; NT o; NT e ] #@ "forInitStatement" }
+		{ [ arg lv; arg o; arg e ] |> case_v ~var:"forInitStatement" }
 ;
 
 forInitStatementListNonEmpty:
 	| s = forInitStatement { s }
 	| sl = forInitStatementListNonEmpty COMMA s = forInitStatement
-    { [ NT sl; Term ","; NT s ] #@ "forInitStatementListNonEmpty" }
+    { [ arg sl; atom ","; arg s ] |> case_v ~var:"forInitStatementListNonEmpty" }
 ;
 
 forInitStatementList:
-	| (* empty *) { [ Term "`EMPTY" ] #@ "forInitStatementList" }
+	| (* empty *) { [ atom "`EMPTY" ] |> case_v ~var:"forInitStatementList" }
 	| sl = forInitStatementListNonEmpty { sl }
 ;
 
@@ -916,70 +916,70 @@ forUpdateStatement:
 forUpdateStatementListNonEmpty:
 	| s = forUpdateStatement { s }
 	| sl = forUpdateStatementListNonEmpty COMMA s = forUpdateStatement
-    { [ NT sl; Term ","; NT s ] #@ "forUpdateStatementListNonEmpty" }
+    { [ arg sl; atom ","; arg s ] |> case_v ~var:"forUpdateStatementListNonEmpty" }
 ;
 
 forUpdateStatementList:
-	| (* empty *) { [ Term "`EMPTY" ] #@ "forUpdateStatementList" }
+	| (* empty *) { [ atom "`EMPTY" ] |> case_v ~var:"forUpdateStatementList" }
 	| sl = forUpdateStatementListNonEmpty { sl }
 ;
 
 forCollectionExpression:
 	| e = expression { e }
 	| l = expression RANGE h = expression
-    { [ NT l; Term ".."; NT h ] #@ "forCollectionExpr" }
+    { [ arg l; atom ".."; arg h ] |> case_v ~var:"forCollectionExpr" }
 ;
 
 forStatement:
   | al = annotationList FOR L_PAREN il = forInitStatementList SEMICOLON c = expression SEMICOLON ul = forUpdateStatementList R_PAREN b = statement
-		{ [ NT al; Term "FOR"; Term "("; NT il; Term ";"; NT c; Term ";"; NT ul; Term ")"; NT b ]
-      #@ "forStatement" }
+		{ [ arg al; atom "FOR"; atom "("; arg il; atom ";"; arg c; atom ";"; arg ul; atom ")"; arg b ]
+      |> case_v ~var:"forStatement" }
   | al = annotationList FOR L_PAREN
     t = typeRef n = name IN e = forCollectionExpression R_PAREN b = statement
-    { [ NT al; Term "FOR"; Term "("; NT t; NT n; Term "IN"; NT e; Term ")"; NT b ]
-      #@ "forStatement" }
+    { [ arg al; atom "FOR"; atom "("; arg t; arg n; atom "IN"; arg e; atom ")"; arg b ]
+      |> case_v ~var:"forStatement" }
   | al = annotationList FOR L_PAREN
     al_in = annotationList t = typeRef n = name IN e = forCollectionExpression R_PAREN b = statement
-    { [ NT al; Term "FOR"; Term "("; NT al_in; NT t; NT n; Term "IN"; NT e; Term ")"; NT b ]
-      #@ "forStatement" }
+    { [ arg al; atom "FOR"; atom "("; arg al_in; arg t; arg n; atom "IN"; arg e; atom ")"; arg b ]
+      |> case_v ~var:"forStatement" }
 ;
 
 (* >> Switch statements *)
 switchLabel:
   | DEFAULT
-    { [ Term "DEFAULT" ] #@ "switchLabel" }
+    { [ atom "DEFAULT" ] |> case_v ~var:"switchLabel" }
   | e = expressionNonBrace
     { e }
 ;
 
 switchCase:
   | l = switchLabel COLON s = blockStatement
-    { [ NT l; Term ":"; NT s ] #@ "switchCase" }
+    { [ arg l; atom ":"; arg s ] |> case_v ~var:"switchCase" }
   | l = switchLabel COLON
-    { [ NT l; Term ":" ] #@ "switchCase" }
+    { [ arg l; atom ":" ] |> case_v ~var:"switchCase" }
 ;
 
 switchCaseList:
   | (* empty *)
-    { [ Term "`EMPTY" ] #@ "switchCaseList" }
+    { [ atom "`EMPTY" ] |> case_v ~var:"switchCaseList" }
   | cs = switchCaseList c = switchCase
-    { [ NT cs; NT c ] #@ "switchCaseList" }
+    { [ arg cs; arg c ] |> case_v ~var:"switchCaseList" }
 ;
 
 switchStatement:
   | SWITCH L_PAREN e = expression R_PAREN L_BRACE cs = switchCaseList R_BRACE
-    { [ Term "SWITCH"; Term "("; NT e; Term ")"; Term "{"; NT cs; Term "}" ]
-      #@ "switchStatement" }
+    { [ atom "SWITCH"; atom "("; arg e; atom ")"; atom "{"; arg cs; atom "}" ]
+      |> case_v ~var:"switchStatement" }
 
 (* >> Break and continue statements *)
 breakStatement:
   | BREAK SEMICOLON
-    { [ Term "BREAK"; Term ";" ] #@ "breakStatement" }
+    { [ atom "BREAK"; atom ";" ] |> case_v ~var:"breakStatement" }
 ;
 
 continueStatement:
   | CONTINUE SEMICOLON
-    { [ Term "CONTINUE"; Term ";" ] #@ "continueStatement" }
+    { [ atom "CONTINUE"; atom ";" ] |> case_v ~var:"continueStatement" }
 ;
 
 (* >> Statements *)
@@ -1005,24 +1005,24 @@ statement:
 (* initializer -> initialValue due to reserved word in OCaml *)
 initialValue:
 	| ASSIGN e = expression
-		{ [ Term "="; NT e ] #@ "initializer" }
+		{ [ atom "="; arg e ] |> case_v ~var:"initializer" }
 ;
 
 constantDeclaration:
   | al = annotationList CONST t = typeRef n = name i = initialValue SEMICOLON
-    { [ NT al; Term "CONST"; NT t; NT n; NT i; Term ";" ] #@ "constantDeclaration" }
+    { [ arg al; atom "CONST"; arg t; arg n; arg i; atom ";" ] |> case_v ~var:"constantDeclaration" }
 ;
 
 initializerOpt:
 	| (* empty *)
-		{ [ Term "`EMPTY" ] #@ "initializerOpt" }
+		{ [ atom "`EMPTY" ] |> case_v ~var:"initializerOpt" }
 	| i = initialValue { i }
 ;
 
 variableDeclaration:
   | al = annotationList t = typeRef n = name i = initializerOpt SEMICOLON
     { declare_var_of_il n false;
-      [ NT al; NT t; NT n; NT i; Term ";" ] #@ "variableDeclaration" }
+      [ arg al; arg t; arg n; arg i; atom ";" ] |> case_v ~var:"variableDeclaration" }
 ;
 
 blockElementStatement:
@@ -1034,9 +1034,9 @@ blockElementStatement:
 
 blockElementStatementList:
   | (* empty *)
-    { [ Term "`EMPTY" ] #@ "blockElementStatementList" }
+    { [ atom "`EMPTY" ] |> case_v ~var:"blockElementStatementList" }
   | sl = blockElementStatementList s = blockElementStatement
-    { [ NT sl; NT s ] #@ "blockElementStatementList" }
+    { [ arg sl; arg s ] |> case_v ~var:"blockElementStatementList" }
 ;
 
 (* >> Function declarations *)
@@ -1044,35 +1044,35 @@ functionPrototype:
 	| t = typeOrVoid n = name push_scope
   tpl = typeParameterListOpt
   L_PAREN pl = parameterList R_PAREN
-    { [ NT t; NT n; NT tpl; Term "("; NT pl; Term ")" ]
-      #@ "functionPrototype" }
+    { [ arg t; arg n; arg tpl; atom "("; arg pl; atom ")" ]
+      |> case_v ~var:"functionPrototype" }
 ;
 
 functionDeclaration:
 	| al = annotationList p = functionPrototype b = blockStatement pop_scope
-    { [ NT al; NT p; NT b ] #@ "functionDeclaration" }
+    { [ arg al; arg p; arg b ] |> case_v ~var:"functionDeclaration" }
 ;
 
 (* >> Action declarations *)
 actionDeclaration: 
   | al = annotationList ACTION n = name L_PAREN pl = parameterList R_PAREN s = blockStatement
-    { [ NT al; Term "ACTION"; NT n; Term "("; NT pl; Term ")"; NT s ]
-      #@ "actionDeclaration" }
+    { [ arg al; atom "ACTION"; arg n; atom "("; arg pl; atom ")"; arg s ]
+      |> case_v ~var:"actionDeclaration" }
 ;
 
 (* >> Instantiations *)
 objectInitializer:
 	| ASSIGN L_BRACE ds = objectDeclarationList R_BRACE
-    { [ Term "="; Term "{"; NT ds; Term "}" ] #@ "objectInitializer" }
+    { [ atom "="; atom "{"; arg ds; atom "}" ] |> case_v ~var:"objectInitializer" }
 ;
 
 instantiation:
 	| al = annotationList t = typeRef L_PAREN args = argumentList R_PAREN n = name SEMICOLON
-    { [ NT al; NT t; Term "("; NT args; Term ")"; NT n; Term ";" ]
-      #@ "instantiation" }
+    { [ arg al; arg t; atom "("; arg args; atom ")"; arg n; atom ";" ]
+      |> case_v ~var:"instantiation" }
 	| al = annotationList t = typeRef L_PAREN args = argumentList R_PAREN n = name i = objectInitializer SEMICOLON
-    { [ NT al; NT t; Term "("; NT args; Term ")"; NT n; NT i; Term ";" ]
-      #@ "instantiation" }
+    { [ arg al; arg t; atom "("; arg args; atom ")"; arg n; arg i; atom ";" ]
+      |> case_v ~var:"instantiation" }
 ;
 
 objectDeclaration:
@@ -1082,23 +1082,23 @@ objectDeclaration:
 ;
 
 objectDeclarationList:
-	| (* empty *) { [ Term "`EMPTY" ] #@ "objectDeclarationList" }
+	| (* empty *) { [ atom "`EMPTY" ] |> case_v ~var:"objectDeclarationList" }
 	| ds = objectDeclarationList d = objectDeclaration
-    { [ NT ds; NT d ] #@ "objectDeclarationList" }
+    { [ arg ds; arg d ] |> case_v ~var:"objectDeclarationList" }
 ;
 
 (* >> Error declarations *)
 errorDeclaration:
 	| ERROR L_BRACE nl = nameList R_BRACE
     { declare_vars_of_il nl;
-      [ Term "ERROR"; Term "{"; NT nl; Term "}" ] #@ "errorDeclaration" }
+      [ atom "ERROR"; atom "{"; arg nl; atom "}" ] |> case_v ~var:"errorDeclaration" }
 ;
 
 (* >> Match kind declarations *)
 matchKindDeclaration:
 	| MATCH_KIND L_BRACE nl = nameList c = trailingCommaOpt R_BRACE
     { declare_vars_of_il nl;
-      [ Term "MATCH_KIND"; Term "{"; NT nl; NT c; Term "}" ] #@ "matchKindDeclaration" }
+      [ atom "MATCH_KIND"; atom "{"; arg nl; arg c; atom "}" ] |> case_v ~var:"matchKindDeclaration" }
 ;
 
 (* >> Derived type declarations *)
@@ -1106,45 +1106,45 @@ matchKindDeclaration:
 enumTypeDeclaration:
   | al = annotationList ENUM n = name L_BRACE
     nl = nameList c = trailingCommaOpt R_BRACE
-    { [ NT al; Term "ENUM"; NT n; Term "{"; NT nl; NT c; Term "}" ]
-      #@ "enumTypeDeclaration" }
+    { [ arg al; atom "ENUM"; arg n; atom "{"; arg nl; arg c; atom "}" ]
+      |> case_v ~var:"enumTypeDeclaration" }
   | al = annotationList ENUM t = typeRef n = name L_BRACE
     el = namedExpressionList c = trailingCommaOpt R_BRACE
-    { [ NT al; Term "ENUM"; NT t; NT n; Term "{"; NT el; NT c; Term "}" ]
-      #@ "enumTypeDeclaration" }
+    { [ arg al; atom "ENUM"; arg t; arg n; atom "{"; arg el; arg c; atom "}" ]
+      |> case_v ~var:"enumTypeDeclaration" }
 ;
 
 (* >>>>>> Struct, header, and union type declarations *)
 typeField:
   | al = annotationList t = typeRef n = name SEMICOLON
-    { [ NT al; NT t; NT n; Term ";" ] #@ "typeField" }
+    { [ arg al; arg t; arg n; atom ";" ] |> case_v ~var:"typeField" }
 ;
 
 typeFieldList:
-  | (* empty *) { [ Term "`EMPTY" ] #@ "typeFieldList" }
+  | (* empty *) { [ atom "`EMPTY" ] |> case_v ~var:"typeFieldList" }
   | fl = typeFieldList f = typeField
-    { [ NT fl; NT f ] #@ "typeFieldList" }
+    { [ arg fl; arg f ] |> case_v ~var:"typeFieldList" }
 ;
 
 structTypeDeclaration:
   | al = annotationList STRUCT n = name tpl = typeParameterListOpt
       L_BRACE fl = typeFieldList R_BRACE
-    { [ NT al; Term "STRUCT"; NT n; NT tpl; Term "{"; NT fl; Term "}" ]
-      #@ "structTypeDeclaration" }
+    { [ arg al; atom "STRUCT"; arg n; arg tpl; atom "{"; arg fl; atom "}" ]
+      |> case_v ~var:"structTypeDeclaration" }
 ;
 
 headerTypeDeclaration:
   | al = annotationList HEADER n = name tpl = typeParameterListOpt
       L_BRACE fl = typeFieldList R_BRACE
-    { [ NT al; Term "HEADER"; NT n; NT tpl; Term "{"; NT fl; Term "}" ]
-      #@ "headerTypeDeclaration" }
+    { [ arg al; atom "HEADER"; arg n; arg tpl; atom "{"; arg fl; atom "}" ]
+      |> case_v ~var:"headerTypeDeclaration" }
 ;
 
 headerUnionTypeDeclaration:
   | al = annotationList HEADER_UNION n = name tpl = typeParameterListOpt
       L_BRACE fl = typeFieldList R_BRACE
-    { [ NT al; Term "HEADER_UNION"; NT n; NT tpl; Term "{"; NT fl; Term "}" ]
-      #@ "headerUnionTypeDeclaration" }
+    { [ arg al; atom "HEADER_UNION"; arg n; arg tpl; atom "{"; arg fl; atom "}" ]
+      |> case_v ~var:"headerUnionTypeDeclaration" }
 ;
 
 derivedTypeDeclaration:
@@ -1164,16 +1164,16 @@ typedefType:
 
 typedefDeclaration:
 	| al = annotationList TYPEDEF t = typedefType n = name SEMICOLON
-    { [ NT al; Term "TYPEDEF"; NT t; NT n; Term ";" ] #@ "typedefDeclaration" }
+    { [ arg al; atom "TYPEDEF"; arg t; arg n; atom ";" ] |> case_v ~var:"typedefDeclaration" }
 	| al = annotationList TYPE t = typeRef n = name SEMICOLON
-    { [ NT al; Term "TYPE"; NT t; NT n; Term ";" ] #@ "typedefDeclaration" }
+    { [ arg al; atom "TYPE"; arg t; arg n; atom ";" ] |> case_v ~var:"typedefDeclaration" }
 ;
 
 (* >> Extern declarations *)
 externFunctionDeclaration:
 	| al = annotationList EXTERN p = functionPrototype pop_scope SEMICOLON
 		{ let decl =
-        [ NT al; Term "EXTERN"; NT p; Term ";" ] #@ "externFunctionDeclaration"
+        [ arg al; atom "EXTERN"; arg p; atom ";" ] |> case_v ~var:"externFunctionDeclaration"
       in
       declare_var (id_of_function_prototype p) (has_type_params_function_prototype p);
       decl }
@@ -1181,26 +1181,26 @@ externFunctionDeclaration:
 
 methodPrototype:
 	| al = annotationList tid = typeIdentifier L_PAREN pl = parameterList R_PAREN SEMICOLON
-    { [ NT al; NT tid; Term "("; NT pl; Term ")"; Term ";" ] #@ "methodPrototype" }
+    { [ arg al; arg tid; atom "("; arg pl; atom ")"; atom ";" ] |> case_v ~var:"methodPrototype" }
 	| al = annotationList p = functionPrototype pop_scope SEMICOLON
-    { [ NT al; NT p; Term ";" ] #@ "methodPrototype" }
+    { [ arg al; arg p; atom ";" ] |> case_v ~var:"methodPrototype" }
 	| al = annotationList ABSTRACT p = functionPrototype
     pop_scope SEMICOLON
-    { [ NT al; Term "ABSTRACT"; NT p; Term ";" ] #@ "methodPrototype" }
+    { [ arg al; atom "ABSTRACT"; arg p; atom ";" ] |> case_v ~var:"methodPrototype" }
 ;
 
 methodPrototypeList:
-  | (* empty *) { [ Term "`EMPTY" ] #@ "methodPrototypeList" }
+  | (* empty *) { [ atom "`EMPTY" ] |> case_v ~var:"methodPrototypeList" }
   | ps = methodPrototypeList p = methodPrototype
-    { [ NT ps; NT p ] #@ "methodPrototypeList" }
+    { [ arg ps; arg p ] |> case_v ~var:"methodPrototypeList" }
 ;
 
 externObjectDeclaration:
   | al = annotationList EXTERN n = push_externName tpl = typeParameterListOpt
     L_BRACE pl = methodPrototypeList R_BRACE pop_scope
     { let decl =
-        [ NT al; Term "EXTERN"; NT n; NT tpl; Term "{"; NT pl; Term "}" ]
-          #@ "externObjectDeclaration"
+        [ arg al; atom "EXTERN"; arg n; arg tpl; atom "{"; arg pl; atom "}" ]
+      |> case_v ~var:"externObjectDeclaration"
       in
       declare_type_of_il n (has_type_params_declaration decl);
       decl }
@@ -1216,33 +1216,33 @@ externDeclaration:
 (* >>>> Select expressions *)
 selectCase:
   | k = keysetExpression COLON n = name SEMICOLON
-    { [ NT k; Term ":"; NT n; Term ";" ] #@ "selectCase" }
+    { [ arg k; atom ":"; arg n; atom ";" ] |> case_v ~var:"selectCase" }
 ;
 
 selectCaseList:
-  | (* empty *) { [ Term "`EMPTY" ] #@ "selectCaseList" }
+  | (* empty *) { [ atom "`EMPTY" ] |> case_v ~var:"selectCaseList" }
   | cl = selectCaseList c = selectCase
-    { [ NT cl; NT c ] #@ "selectCaseList" }
+    { [ arg cl; arg c ] |> case_v ~var:"selectCaseList" }
 ;
 
 selectExpression:
   | SELECT L_PAREN el = expressionList R_PAREN L_BRACE cl = selectCaseList R_BRACE
-    { [ Term "SELECT"; Term "("; NT el; Term ")"; Term "{"; NT cl; Term "}" ]
-      #@ "selectExpression" }
+    { [ atom "SELECT"; atom "("; arg el; atom ")"; atom "{"; arg cl; atom "}" ]
+      |> case_v ~var:"selectExpression" }
 ;
 
 (* >>>> Transition statements *)
 stateExpression:
   | n = name SEMICOLON
-    { [ NT n; Term ";" ] #@ "stateExpression" }
+    { [ arg n; atom ";" ] |> case_v ~var:"stateExpression" }
   | e = selectExpression
     { e }
 ;
 
 transitionStatement:
-  | (* empty *) { [ Term "`EMPTY" ] #@ "transitionStatement" }
+  | (* empty *) { [ atom "`EMPTY" ] |> case_v ~var:"transitionStatement" }
   | TRANSITION e = stateExpression
-    { [ Term "TRANSITION"; NT e ] #@ "transitionStatement" }
+    { [ atom "TRANSITION"; arg e ] |> case_v ~var:"transitionStatement" }
 ;
 
 (* >>>> Value set declarations *)
@@ -1256,22 +1256,22 @@ valueSetType:
 valueSetDeclaration:
 	| al = annotationList VALUE_SET l_angle t = valueSetType r_angle
     L_PAREN s = expression R_PAREN n = name SEMICOLON
-    { [ NT al; Term "VALUE_SET"; Term "<"; NT t; Term ">"; Term "("; NT s; Term ")"; NT n; Term ";" ]
-       #@ "valueSetDeclaration" }
+    { [ arg al; atom "VALUE_SET"; atom "<"; arg t; atom ">"; atom "("; arg s; atom ")"; arg n; atom ";" ]
+      |> case_v ~var:"valueSetDeclaration" }
 ;
 
 (* >>>> Parser type declarations *)
 parserTypeDeclaration:
   | al = annotationList PARSER n = push_name tpl = typeParameterListOpt
       L_PAREN pl = parameterList R_PAREN pop_scope SEMICOLON
-    { [ NT al; Term "PARSER"; NT n; NT tpl; Term "("; NT pl; Term ")"; Term ";" ]
-       #@ "parserTypeDeclaration" }
+    { [ arg al; atom "PARSER"; arg n; arg tpl; atom "("; arg pl; atom ")"; atom ";" ]
+      |> case_v ~var:"parserTypeDeclaration" }
 ;
 
 (* >>>> Parser declarations *)
 parserBlockStatement:
   | al = annotationList L_BRACE sl = parserStatementList R_BRACE
-    { [ NT al; Term "{"; NT sl; Term "}" ] #@ "parserBlockStatement" }
+    { [ arg al; atom "{"; arg sl; atom "}" ] |> case_v ~var:"parserBlockStatement" }
 ;
 
 parserStatement:
@@ -1287,21 +1287,21 @@ parserStatement:
 ;
 
 parserStatementList:
-  | (* empty *) { [ Term "`EMPTY" ] #@ "parserStatementList" }
+  | (* empty *) { [ atom "`EMPTY" ] |> case_v ~var:"parserStatementList" }
   | sl = parserStatementList s = parserStatement
-    { [ NT sl; NT s ] #@ "parserStatementList" }
+    { [ arg sl; arg s ] |> case_v ~var:"parserStatementList" }
 ;
 
 parserState:
   | al = annotationList STATE n = push_name L_BRACE sl = parserStatementList t = transitionStatement R_BRACE
-    { [ NT al; Term "STATE"; NT n; Term "{"; NT sl; NT t; Term "}" ]
-      #@ "parserState" }
+    { [ arg al; atom "STATE"; arg n; atom "{"; arg sl; arg t; atom "}" ]
+      |> case_v ~var:"parserState" }
 ;
 
 parserStateList:
   | s = parserState { s }
   | sl = parserStateList s = parserState
-    { [ NT sl; NT s ] #@ "parserStateList" }
+    { [ arg sl; arg s ] |> case_v ~var:"parserStateList" }
 ;
 
 parserLocalDeclaration:
@@ -1313,36 +1313,36 @@ parserLocalDeclaration:
 ;
 
 parserLocalDeclarationList:
-  | (* empty *) { [ Term "`EMPTY" ] #@ "parserLocalDeclarationList" }
+  | (* empty *) { [ atom "`EMPTY" ] |> case_v ~var:"parserLocalDeclarationList" }
   | dl = parserLocalDeclarationList d = parserLocalDeclaration
-    { [ NT dl; NT d ] #@ "parserLocalDeclarationList" }
+    { [ arg dl; arg d ] |> case_v ~var:"parserLocalDeclarationList" }
 ;
 
 parserDeclaration:
   | al = annotationList PARSER n = push_name tpl = typeParameterListOpt
     L_PAREN pl = parameterList R_PAREN cpl = constructorParameterListOpt
     L_BRACE dl = parserLocalDeclarationList sl = parserStateList R_BRACE pop_scope
-		{ [ NT al; Term "PARSER"; NT n; NT tpl; Term "("; NT pl; Term ")"; NT cpl;
-      Term "{"; NT dl; NT sl; Term "}" ] #@ "parserDeclaration" }
+		{ [ arg al; atom "PARSER"; arg n; arg tpl; atom "("; arg pl; atom ")"; arg cpl;
+      atom "{"; arg dl; arg sl; atom "}" ] |> case_v ~var:"parserDeclaration" }
 ;
 
 (* >> Control statements and declarations *)
 (* >>>> Table declarations *)
 constOpt:
-  | (* empty *) { [ Term "`EMPTY" ] #@ "constOpt" }
-  | CONST { [ Term "CONST" ] #@ "constOpt" }
+  | (* empty *) { [ atom "`EMPTY" ] |> case_v ~var:"constOpt" }
+  | CONST { [ atom "CONST" ] |> case_v ~var:"constOpt" }
 ;
 
 (* >>>>>> Table key property *)
 tableKey:
   | e = expression COLON n = name al = annotationList SEMICOLON
-    { [ NT e; Term ":"; NT n; NT al; Term ";" ] #@ "tableKey" }
+    { [ arg e; atom ":"; arg n; arg al; atom ";" ] |> case_v ~var:"tableKey" }
 ;
 
 tableKeyList:
-  | (* empty *) { [ Term "`EMPTY" ] #@ "tableKeyList" }
+  | (* empty *) { [ atom "`EMPTY" ] |> case_v ~var:"tableKeyList" }
   | kl = tableKeyList k = tableKey
-    { [ NT kl; NT k ] #@ "tableKeyList" }
+    { [ arg kl; arg k ] |> case_v ~var:"tableKeyList" }
 ;
 
 (* >>>>>> Table actions property *)
@@ -1350,69 +1350,69 @@ tableActionReference:
   | n = prefixedNonTypeName
     { n }
   | n = prefixedNonTypeName L_PAREN al = argumentList R_PAREN
-    { [ NT n; Term "("; NT al; Term ")" ] #@ "tableActionReference" }
+    { [ arg n; atom "("; arg al; atom ")" ] |> case_v ~var:"tableActionReference" }
 ;
 
 tableAction:
   | al = annotationList ac = tableActionReference SEMICOLON
-    { [ NT al; NT ac; Term ";" ] #@ "tableAction" }
+    { [ arg al; arg ac; atom ";" ] |> case_v ~var:"tableAction" }
 ;
 
 tableActionList:
-  | (* empty *) { [ Term "`EMPTY" ] #@ "tableActionList" }
+  | (* empty *) { [ atom "`EMPTY" ] |> case_v ~var:"tableActionList" }
   | acl = tableActionList ac = tableAction
-    { [ NT acl; NT ac ] #@ "tableActionList" }
+    { [ arg acl; arg ac ] |> case_v ~var:"tableActionList" }
 ;
 
 (* >>>>>> Table entry property *)
 tableEntryPriority:
   | PRIORITY ASSIGN num = number COLON
-    { [ Term "PRIORITY"; Term "="; NT num; Term ":" ] #@ "tableEntryPriority" }
+    { [ atom "PRIORITY"; atom "="; arg num; atom ":" ] |> case_v ~var:"tableEntryPriority" }
   | PRIORITY ASSIGN L_PAREN e = expression R_PAREN COLON
-    { [ Term "PRIORITY"; Term "="; Term "("; NT e; Term ")"; Term ":" ] #@ "tableEntryPriority" }
+    { [ atom "PRIORITY"; atom "="; atom "("; arg e; atom ")"; atom ":" ] |> case_v ~var:"tableEntryPriority" }
 ;
 
 tableEntry:
   | c = constOpt p = tableEntryPriority k = keysetExpression COLON ac = tableActionReference al = annotationList SEMICOLON
-    { [ NT c; NT p; NT k; Term ":"; NT ac; NT al; Term ";" ] #@ "tableEntry" }
+    { [ arg c; arg p; arg k; atom ":"; arg ac; arg al; atom ";" ] |> case_v ~var:"tableEntry" }
   | c = constOpt k = keysetExpression COLON ac = tableActionReference al = annotationList SEMICOLON
-    { [ NT c; NT k; Term ":"; NT ac; NT al; Term ";" ] #@ "tableEntry" }
+    { [ arg c; arg k; atom ":"; arg ac; arg al; atom ";" ] |> case_v ~var:"tableEntry" }
 ;
 
 tableEntryList:
-  | (* empty *) { [ Term "`EMPTY" ] #@ "tableEntryList" }
+  | (* empty *) { [ atom "`EMPTY" ] |> case_v ~var:"tableEntryList" }
   | el = tableEntryList e = tableEntry
-    { [ NT el; NT e ] #@ "tableEntryList" }
+    { [ arg el; arg e ] |> case_v ~var:"tableEntryList" }
 ;
 
 (* >>>>>> Table properties *)
 tableProperty:
   | KEY ASSIGN L_BRACE kl = tableKeyList R_BRACE
-    { [ Term "KEY"; Term "="; Term "{"; NT kl; Term "}" ] #@ "tableProperty" }
+    { [ atom "KEY"; atom "="; atom "{"; arg kl; atom "}" ] |> case_v ~var:"tableProperty" }
   | ACTIONS ASSIGN L_BRACE acl = tableActionList R_BRACE
-    { [ Term "ACTIONS"; Term "="; Term "{"; NT acl; Term "}" ] #@ "tableProperty" }
+    { [ atom "ACTIONS"; atom "="; atom "{"; arg acl; atom "}" ] |> case_v ~var:"tableProperty" }
   | al = annotationList c = constOpt ENTRIES ASSIGN L_BRACE el = tableEntryList R_BRACE
-    { [ NT al; NT c; Term "ENTRIES"; Term "="; Term "{"; NT el; Term "}" ] #@ "tableProperty" }
+    { [ arg al; arg c; atom "ENTRIES"; atom "="; atom "{"; arg el; atom "}" ] |> case_v ~var:"tableProperty" }
   | al = annotationList c = constOpt n = tableCustomName i = initialValue SEMICOLON
-    { [ NT al; NT c; NT n; NT i; Term ";" ] #@ "tableProperty" }
+    { [ arg al; arg c; arg n; arg i; atom ";" ] |> case_v ~var:"tableProperty" }
 ;
 
 tablePropertyList:
-  | (* empty *) { [ Term "`EMPTY" ] #@ "tablePropertyList" }
+  | (* empty *) { [ atom "`EMPTY" ] |> case_v ~var:"tablePropertyList" }
   | pl = tablePropertyList p = tableProperty
-    { [ NT pl; NT p ] #@ "tablePropertyList" }
+    { [ arg pl; arg p ] |> case_v ~var:"tablePropertyList" }
 ;
 
 tableDeclaration:
   | al = annotationList TABLE n = name L_BRACE pl = tablePropertyList R_BRACE
-    { [ NT al; Term "TABLE"; NT n; Term "{"; NT pl; Term "}" ] #@ "tableDeclaration" }
+    { [ arg al; atom "TABLE"; arg n; atom "{"; arg pl; atom "}" ] |> case_v ~var:"tableDeclaration" }
 
 (* >>>> Control type declarations *)
 controlTypeDeclaration:
   | al = annotationList CONTROL n = push_name tpl = typeParameterListOpt
     L_PAREN pl = parameterList R_PAREN pop_scope SEMICOLON
-    { [ NT al; Term "CONTROL"; NT n; NT tpl; Term "("; NT pl; Term ")"; Term ";" ]
-       #@ "controlTypeDeclaration" }
+    { [ arg al; atom "CONTROL"; arg n; arg tpl; atom "("; arg pl; atom ")"; atom ";" ]
+      |> case_v ~var:"controlTypeDeclaration" }
 ;
 
 (* >>>> Control declarations *)
@@ -1432,25 +1432,25 @@ controlLocalDeclaration:
 ;
 
 controlLocalDeclarationList:
-  | (* empty *) { [ Term "`EMPTY" ] #@ "controlLocalDeclarationList" }
+  | (* empty *) { [ atom "`EMPTY" ] |> case_v ~var:"controlLocalDeclarationList" }
   | dl = controlLocalDeclarationList d = controlLocalDeclaration
-    { [ NT dl; NT d ] #@ "controlLocalDeclarationList" }
+    { [ arg dl; arg d ] |> case_v ~var:"controlLocalDeclarationList" }
 ;
 
 controlDeclaration:
   | al = annotationList CONTROL n = push_name tpl = typeParameterListOpt
     L_PAREN pl = parameterList R_PAREN cpl = constructorParameterListOpt
     L_BRACE dl = controlLocalDeclarationList APPLY b = controlBody R_BRACE pop_scope
-    { [ NT al; Term "CONTROL"; NT n; NT tpl; Term "("; NT pl; Term ")"; NT cpl;
-      Term "{"; NT dl; Term "APPLY"; NT b; Term "}" ] #@ "controlDeclaration" }
+    { [ arg al; atom "CONTROL"; arg n; arg tpl; atom "("; arg pl; atom ")"; arg cpl;
+      atom "{"; arg dl; atom "APPLY"; arg b; atom "}" ] |> case_v ~var:"controlDeclaration" }
 ;
 
 (* >> Package type declarations *)
 packageTypeDeclaration:
   | al = annotationList PACKAGE n = push_name tpl = typeParameterListOpt
     L_PAREN pl = parameterList R_PAREN pop_scope SEMICOLON
-    { [ NT al; Term "PACKAGE"; NT n; NT tpl; Term "("; NT pl; Term ")"; Term ";" ]
-       #@ "packageTypeDeclaration" }
+    { [ arg al; atom "PACKAGE"; arg n; arg tpl; atom "("; arg pl; atom ")"; atom ";" ]
+      |> case_v ~var:"packageTypeDeclaration" }
 ;
 
 (* >> Type declarations *)
@@ -1491,105 +1491,105 @@ declaration:
 (* Annotations *)
 annotationToken:
 	| UNEXPECTED_TOKEN
-    { [ Term "UNEXPECTED_TOKEN" ] #@ "annotationToken" }
+    { [ atom "UNEXPECTED_TOKEN" ] |> case_v ~var:"annotationToken" }
 	| ABSTRACT
-    { [ Term "ABSTRACT" ] #@ "annotationToken" }
+    { [ atom "ABSTRACT" ] |> case_v ~var:"annotationToken" }
 	| ACTION
-    { [ Term "ACTION" ] #@ "annotationToken" }
+    { [ atom "ACTION" ] |> case_v ~var:"annotationToken" }
 	| ACTIONS
-    { [ Term "ACTIONS" ] #@ "annotationToken" }
+    { [ atom "ACTIONS" ] |> case_v ~var:"annotationToken" }
 	| APPLY
-    { [ Term "APPLY" ] #@ "annotationToken" }
+    { [ atom "APPLY" ] |> case_v ~var:"annotationToken" }
 	| BOOL
-    { [ Term "BOOL" ] #@ "annotationToken" }
+    { [ atom "BOOL" ] |> case_v ~var:"annotationToken" }
 	| BIT
-    { [ Term "BIT" ] #@ "annotationToken" }
+    { [ atom "BIT" ] |> case_v ~var:"annotationToken" }
 	| BREAK
-    { [ Term "BREAK" ] #@ "annotationToken" }
+    { [ atom "BREAK" ] |> case_v ~var:"annotationToken" }
 	| CONST
-    { [ Term "CONST" ] #@ "annotationToken" }
+    { [ atom "CONST" ] |> case_v ~var:"annotationToken" }
 	| CONTINUE
-    { [ Term "CONTINUE" ] #@ "annotationToken" }
+    { [ atom "CONTINUE" ] |> case_v ~var:"annotationToken" }
 	| CONTROL
-    { [ Term "CONTROL" ] #@ "annotationToken" }
+    { [ atom "CONTROL" ] |> case_v ~var:"annotationToken" }
 	| DEFAULT
-    { [ Term "DEFAULT" ] #@ "annotationToken" }
+    { [ atom "DEFAULT" ] |> case_v ~var:"annotationToken" }
 	| ELSE
-    { [ Term "ELSE" ] #@ "annotationToken" }
+    { [ atom "ELSE" ] |> case_v ~var:"annotationToken" }
 	| ENTRIES
-    { [ Term "ENTRIES" ] #@ "annotationToken" }
+    { [ atom "ENTRIES" ] |> case_v ~var:"annotationToken" }
 	| ENUM
-    { [ Term "ENUM" ] #@ "annotationToken" }
+    { [ atom "ENUM" ] |> case_v ~var:"annotationToken" }
 	| ERROR
-    { [ Term "ERROR" ] #@ "annotationToken" }
+    { [ atom "ERROR" ] |> case_v ~var:"annotationToken" }
 	| EXIT
-    { [ Term "EXIT" ] #@ "annotationToken" }
+    { [ atom "EXIT" ] |> case_v ~var:"annotationToken" }
 	| EXTERN
-    { [ Term "EXTERN" ] #@ "annotationToken" }
+    { [ atom "EXTERN" ] |> case_v ~var:"annotationToken" }
 	| FALSE
-    { [ Term "FALSE" ] #@ "annotationToken" }
+    { [ atom "FALSE" ] |> case_v ~var:"annotationToken" }
 	| FOR
-    { [ Term "FOR" ] #@ "annotationToken" }
+    { [ atom "FOR" ] |> case_v ~var:"annotationToken" }
 	| HEADER
-    { [ Term "HEADER" ] #@ "annotationToken" }
+    { [ atom "HEADER" ] |> case_v ~var:"annotationToken" }
 	| HEADER_UNION
-    { [ Term "HEADER_UNION" ] #@ "annotationToken" }
+    { [ atom "HEADER_UNION" ] |> case_v ~var:"annotationToken" }
 	| IF
-    { [ Term "IF" ] #@ "annotationToken" }
+    { [ atom "IF" ] |> case_v ~var:"annotationToken" }
 	| IN
-    { [ Term "IN" ] #@ "annotationToken" }
+    { [ atom "IN" ] |> case_v ~var:"annotationToken" }
 	| INOUT
-    { [ Term "INOUT" ] #@ "annotationToken" }
+    { [ atom "INOUT" ] |> case_v ~var:"annotationToken" }
 	| INT
-    { [ Term "INT" ] #@ "annotationToken" }
+    { [ atom "INT" ] |> case_v ~var:"annotationToken" }
 	| KEY
-    { [ Term "KEY" ] #@ "annotationToken" }
+    { [ atom "KEY" ] |> case_v ~var:"annotationToken" }
 	| MATCH_KIND
-    { [ Term "MATCH_KIND" ] #@ "annotationToken" }
+    { [ atom "MATCH_KIND" ] |> case_v ~var:"annotationToken" }
 	| TYPE
-    { [ Term "TYPE" ] #@ "annotationToken" }
+    { [ atom "TYPE" ] |> case_v ~var:"annotationToken" }
 	| OUT
-    { [ Term "OUT" ] #@ "annotationToken" }
+    { [ atom "OUT" ] |> case_v ~var:"annotationToken" }
 	| PARSER
-    { [ Term "PARSER" ] #@ "annotationToken" }
+    { [ atom "PARSER" ] |> case_v ~var:"annotationToken" }
 	| PACKAGE
-    { [ Term "PACKAGE" ] #@ "annotationToken" }
+    { [ atom "PACKAGE" ] |> case_v ~var:"annotationToken" }
 	| PRAGMA
-    { [ Term "PRAGMA" ] #@ "annotationToken" }
+    { [ atom "PRAGMA" ] |> case_v ~var:"annotationToken" }
 	| RETURN
-    { [ Term "RETURN" ] #@ "annotationToken" }
+    { [ atom "RETURN" ] |> case_v ~var:"annotationToken" }
 	| SELECT
-    { [ Term "SELECT" ] #@ "annotationToken" }
+    { [ atom "SELECT" ] |> case_v ~var:"annotationToken" }
 	| STATE
-    { [ Term "STATE" ] #@ "annotationToken" }
+    { [ atom "STATE" ] |> case_v ~var:"annotationToken" }
 	| STRING
-    { [ Term "STRING" ] #@ "annotationToken" }
+    { [ atom "STRING" ] |> case_v ~var:"annotationToken" }
 	| STRUCT
-    { [ Term "STRUCT" ] #@ "annotationToken" }
+    { [ atom "STRUCT" ] |> case_v ~var:"annotationToken" }
 	| SWITCH
-    { [ Term "SWITCH" ] #@ "annotationToken" }
+    { [ atom "SWITCH" ] |> case_v ~var:"annotationToken" }
 	| TABLE
-    { [ Term "TABLE" ] #@ "annotationToken" }
+    { [ atom "TABLE" ] |> case_v ~var:"annotationToken" }
 	| THIS
-    { [ Term "THIS" ] #@ "annotationToken" }
+    { [ atom "THIS" ] |> case_v ~var:"annotationToken" }
 	| TRANSITION
-    { [ Term "TRANSITION" ] #@ "annotationToken" }
+    { [ atom "TRANSITION" ] |> case_v ~var:"annotationToken" }
 	| TRUE
-    { [ Term "TRUE" ] #@ "annotationToken" }
+    { [ atom "TRUE" ] |> case_v ~var:"annotationToken" }
 	| TUPLE
-    { [ Term "TUPLE" ] #@ "annotationToken" }
+    { [ atom "TUPLE" ] |> case_v ~var:"annotationToken" }
 	| TYPEDEF
-    { [ Term "TYPEDEF" ] #@ "annotationToken" }
+    { [ atom "TYPEDEF" ] |> case_v ~var:"annotationToken" }
 	| VARBIT
-    { [ Term "VARBIT" ] #@ "annotationToken" }
+    { [ atom "VARBIT" ] |> case_v ~var:"annotationToken" }
 	| VALUE_SET
-    { [ Term "VALUE_SET" ] #@ "annotationToken" }
+    { [ atom "VALUE_SET" ] |> case_v ~var:"annotationToken" }
 	| LIST
-    { [ Term "LIST" ] #@ "annotationToken" }
+    { [ atom "LIST" ] |> case_v ~var:"annotationToken" }
 	| VOID
-    { [ Term "VOID" ] #@ "annotationToken" }
+    { [ atom "VOID" ] |> case_v ~var:"annotationToken" }
 	| DONTCARE
-    { [ Term "_" ] #@ "annotationToken" }
+    { [ atom "_" ] |> case_v ~var:"annotationToken" }
 	| id = identifier
     { id }
 	| tid = typeIdentifier
@@ -1599,121 +1599,121 @@ annotationToken:
 	| num = number
     { num }
 	| MASK
-    { [ Term "&&&" ] #@ "annotationToken" }
+    { [ atom "&&&" ] |> case_v ~var:"annotationToken" }
   (* TODO: missing DOTS "..." in spec *)
 	| RANGE
-    { [ Term ".." ] #@ "annotationToken" }
+    { [ atom ".." ] |> case_v ~var:"annotationToken" }
 	| SHL
-    { [ Term "<<" ] #@ "annotationToken" }
+    { [ atom "<<" ] |> case_v ~var:"annotationToken" }
 	| AND
-    { [ Term "&&" ] #@ "annotationToken" }
+    { [ atom "&&" ] |> case_v ~var:"annotationToken" }
 	| OR
-    { [ Term "||" ] #@ "annotationToken" }
+    { [ atom "||" ] |> case_v ~var:"annotationToken" }
 	| EQ
-    { [ Term "==" ] #@ "annotationToken" }
+    { [ atom "==" ] |> case_v ~var:"annotationToken" }
 	| NE
-    { [ Term "!=" ] #@ "annotationToken" }
+    { [ atom "!=" ] |> case_v ~var:"annotationToken" }
 	| GE
-    { [ Term ">=" ] #@ "annotationToken" }
+    { [ atom ">=" ] |> case_v ~var:"annotationToken" }
 	| LE
-    { [ Term "<=" ] #@ "annotationToken" }
+    { [ atom "<=" ] |> case_v ~var:"annotationToken" }
 	| PLUSPLUS
-    { [ Term "++" ] #@ "annotationToken" }
+    { [ atom "++" ] |> case_v ~var:"annotationToken" }
 	| PLUS
-    { [ Term "+" ] #@ "annotationToken" }
+    { [ atom "+" ] |> case_v ~var:"annotationToken" }
 	| PLUS_SAT
-    { [ Term "|+|" ] #@ "annotationToken" }
+    { [ atom "|+|" ] |> case_v ~var:"annotationToken" }
 	| MINUS
-    { [ Term "-" ] #@ "annotationToken" }
+    { [ atom "-" ] |> case_v ~var:"annotationToken" }
 	| MINUS_SAT
-    { [ Term "|-|" ] #@ "annotationToken" }
+    { [ atom "|-|" ] |> case_v ~var:"annotationToken" }
 	| MUL
-    { [ Term "*" ] #@ "annotationToken" }
+    { [ atom "*" ] |> case_v ~var:"annotationToken" }
 	| DIV
-    { [ Term "/" ] #@ "annotationToken" }
+    { [ atom "/" ] |> case_v ~var:"annotationToken" }
 	| MOD
-    { [ Term "%" ] #@ "annotationToken" }
+    { [ atom "%" ] |> case_v ~var:"annotationToken" }
 	| BIT_OR
-    { [ Term "|" ] #@ "annotationToken" }
+    { [ atom "|" ] |> case_v ~var:"annotationToken" }
 	| BIT_AND
-    { [ Term "&" ] #@ "annotationToken" }
+    { [ atom "&" ] |> case_v ~var:"annotationToken" }
 	| BIT_XOR
-    { [ Term "^" ] #@ "annotationToken" }
+    { [ atom "^" ] |> case_v ~var:"annotationToken" }
 	| COMPLEMENT
-    { [ Term "~" ] #@ "annotationToken" }
+    { [ atom "~" ] |> case_v ~var:"annotationToken" }
 	| L_BRACKET
-    { [ Term "[" ] #@ "annotationToken" }
+    { [ atom "``[" ] |> case_v ~var:"annotationToken" }
 	| R_BRACKET
-    { [ Term "]" ] #@ "annotationToken" }
+    { [ atom "``]" ] |> case_v ~var:"annotationToken" }
 	| L_BRACE
-    { [ Term "{" ] #@ "annotationToken" }
+    { [ atom "``{" ] |> case_v ~var:"annotationToken" }
 	| R_BRACE
-    { [ Term "}" ] #@ "annotationToken" }
+    { [ atom "``}" ] |> case_v ~var:"annotationToken" }
 	| L_ANGLE
-    { [ Term "<" ] #@ "annotationToken" }
+    { [ atom "``<" ] |> case_v ~var:"annotationToken" }
 	| R_ANGLE
-    { [ Term ">" ] #@ "annotationToken" }
+    { [ atom "``>" ] |> case_v ~var:"annotationToken" }
 	| NOT
-    { [ Term "!" ] #@ "annotationToken" }
+    { [ atom "!" ] |> case_v ~var:"annotationToken" }
 	| COLON
-    { [ Term ":" ] #@ "annotationToken" }
+    { [ atom ":" ] |> case_v ~var:"annotationToken" }
 	| COMMA
-    { [ Term "," ] #@ "annotationToken" }
+    { [ atom "," ] |> case_v ~var:"annotationToken" }
 	| QUESTION
-    { [ Term "?" ] #@ "annotationToken" }
+    { [ atom "?" ] |> case_v ~var:"annotationToken" }
 	| DOT
-    { [ Term "." ] #@ "annotationToken" }
+    { [ atom "." ] |> case_v ~var:"annotationToken" }
 	| ASSIGN
-    { [ Term "=" ] #@ "annotationToken" }
+    { [ atom "=" ] |> case_v ~var:"annotationToken" }
 	| SEMICOLON
-    { [ Term ";" ] #@ "annotationToken" }
+    { [ atom ";" ] |> case_v ~var:"annotationToken" }
 	| AT
-    { [ Term "@" ] #@ "annotationToken" }
+    { [ atom "@" ] |> case_v ~var:"annotationToken" }
 ;
 
 annotationBody:
-	| (* empty *) { [ Term "`EMPTY" ] #@ "annotationBody" }
+	| (* empty *) { [ atom "`EMPTY" ] |> case_v ~var:"annotationBody" }
 	| ab = annotationBody L_PAREN ab_in = annotationBody R_PAREN
-    { [ NT ab; Term "("; NT ab_in; Term ")" ] #@ "annotationBody" }
+    { [ arg ab; atom "("; arg ab_in; atom ")" ] |> case_v ~var:"annotationBody" }
 	| ab = annotationBody at = annotationToken
-    { [ NT ab; NT at ] #@ "annotationBody" }
+    { [ arg ab; arg at ] |> case_v ~var:"annotationBody" }
 ;
 
 structuredAnnotationBody:
 	| e = dataElementExpression c = trailingCommaOpt
-    { [ NT e; NT c ] #@ "structuredAnnotationBody" }
+    { [ arg e; arg c ] |> case_v ~var:"structuredAnnotationBody" }
 ;
 
 annotation:
 	| AT name = name
-    { [ Term "@"; NT name ] #@ "annotation" }
+    { [ atom "@"; arg name ] |> case_v ~var:"annotation" }
 	| AT name = name L_PAREN body = annotationBody R_PAREN
-    { [ Term "@"; NT name; Term "("; NT body; Term ")" ] #@ "annotation" }
+    { [ atom "@"; arg name; atom "("; arg body; atom ")" ] |> case_v ~var:"annotation" }
 	| AT name = name L_BRACKET body = structuredAnnotationBody R_BRACKET
-    { [ Term "@"; NT name; Term "["; NT body; Term "]" ] #@ "annotation" }
+    { [ atom "@"; arg name; atom "["; arg body; atom "]" ] |> case_v ~var:"annotation" }
 (* From Petr4: PRAGMA not in Spec, but in Petr4/p4c *)
 	| PRAGMA name = name body = annotationBody PRAGMA_END
-    { [ Term "@"; Term "PRAGMA"; NT name; NT body ] #@ "annotation" }
+    { [ atom "@"; atom "PRAGMA"; arg name; arg body ] |> case_v ~var:"annotation" }
 ;
 
 annotationListNonEmpty:
 	| a = annotation { a }
 	| al = annotationListNonEmpty a = annotation
-		{ [ NT al; NT a ] #@ "annotationListNonEmpty" }
+		{ [ arg al; arg a ] |> case_v ~var:"annotationListNonEmpty" }
 ;
 
 %inline annotationList:
-	| (* empty *) { [ Term "`EMPTY" ] #@ "annotationList" }
+	| (* empty *) { [ atom "`EMPTY" ] |> case_v ~var:"annotationList" }
 	| al = annotationListNonEmpty { al }
 ;
 
 (******** P4 program ********)
 declarationList:
-  | (* empty *) { [ Term "`EMPTY" ] #@ "p4program" }
+  | (* empty *) { [ atom "`EMPTY" ] |> case_v ~var:"p4program" }
   | ds = declarationList d = declaration
-    { [ NT ds; NT d ] #@ "p4program" }
+    { [ arg ds; arg d ] |> case_v ~var:"p4program" }
   | ds = declarationList SEMICOLON
-    { [ NT ds; Term ";" ] #@ "p4program" }
+    { [ arg ds; atom ";" ] |> case_v ~var:"p4program" }
 ;
 
 p4program:

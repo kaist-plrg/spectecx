@@ -99,7 +99,7 @@ let rec struct_def (henv : HEnv.t) (tdenv : TDEnv.t) (def : def) : Sl.def =
 
 and struct_rel_def (henv : HEnv.t) (tdenv : TDEnv.t) (at : region) (id_rel : id)
     (nottyp : nottyp) (inputs : int list) (rules : rule list) : Sl.def =
-  let mixop, _ = nottyp.it in
+  let mixop = Il.Mixfix.to_mixop nottyp.it in
   let exps_input, paths = Antiunify.antiunify_rules inputs rules in
   let instrs = List.concat_map struct_rule_path paths in
   let instrs = Optimize.optimize henv tdenv instrs in

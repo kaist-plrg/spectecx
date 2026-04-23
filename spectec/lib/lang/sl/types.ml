@@ -55,7 +55,7 @@ type value = Il.value
 type value' = Il.value'
 
 type valuefield = atom * value
-type valuecase = mixop * value list
+type valuecase = Il.valuecase
 
 (* Operators *)
 

@@ -4,6 +4,7 @@ open Lang.Il
 open Envs.Make
 open Error
 open Ctx
+module Mixop = Lang.Il.Mixfix
 
 (* Renames for an identifier *)
 
@@ -103,9 +104,11 @@ let rec rename_exp (dctx : Dctx.t) (renv : REnv.t) (exp : exp) :
       let dctx, renv, exps = rename_exps dctx renv exps in
       let exp = TupleE exps $$ (at, note) in
       (dctx, renv, exp)
-  | CaseE (mixop, exps) ->
+  | CaseE notexp ->
+      let mixop, exps = Mixop.split notexp in
       let dctx, renv, exps = rename_exps dctx renv exps in
-      let exp = CaseE (mixop, exps) $$ (at, note) in
+      let notexp = Mixop.fill mixop exps in
+      let exp = CaseE notexp $$ (at, note) in
       (dctx, renv, exp)
   | StrE expfields ->
       let atoms, exps = List.split expfields in
