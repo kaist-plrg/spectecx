@@ -1,4 +1,4 @@
 (library
  (name interface)
  (public_name spectec.interface)
- (libraries concrete p4))
+ (libraries concrete))
