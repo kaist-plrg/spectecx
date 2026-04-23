@@ -11,8 +11,9 @@ open Common.Source
 module Il = Lang.Il
 module Sl = Lang.Sl
 
-(* Spec type passed to handlers at init *)
-type spec = IlSpec of Il.spec | SlSpec of Sl.spec
+type spec = Instrumentation_static.Static.spec =
+  | IlSpec of Il.spec
+  | SlSpec of Sl.spec
 
 (* Base handler signature *)
 module type S = sig

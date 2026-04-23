@@ -216,15 +216,9 @@ module Checkpoint = struct
               | None -> D.parse [ ("level", Some "full"); ("output", None) ]))
         Instrumentation.all_descriptors
     in
-    let handlers = Instrumentation.Config.to_handlers active in
-    Instrumentation_static.Static.reset_all ();
-    Instrumentation_static.Static.init_all
-      (Instrumentation_static.Static.IlSpec spec);
-    Instrumentation.Dispatcher.set_handlers handlers;
-    Instrumentation.Dispatcher.init ~spec:(Instrumentation.Handler.IlSpec spec);
-    restore_coverage checkpoint;
-    Instrumentation.Dispatcher.finish ();
-    Instrumentation.Config.close_outputs active
+    Instrumentation.with_session active
+      (Instrumentation_static.Static.IlSpec spec) (fun () ->
+        restore_coverage checkpoint)
 end
 
 (* =========================================================================
