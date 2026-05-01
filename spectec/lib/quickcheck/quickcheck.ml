@@ -30,7 +30,7 @@ let gen_free_vars (spec_il : spec) (free_vars : Qc_ir.ir_var list) :
 let dispatch spec_il (command : Qc_ir.qc_command) =
   match command with
   | Qc_ir.QcProp { free_vars; all_var_names; goal; prems } ->
-    let _ = Printf.printf "Property]\n" in
+    let _ = Printf.printf "Test]\n" in
     let gen = gen_free_vars spec_il free_vars in
     let prop =
       Property.for_all ~show:show_env gen (fun initial_env ->
@@ -48,7 +48,17 @@ let dispatch spec_il (command : Qc_ir.qc_command) =
           in
           Property.Bool_testable.property passed)
     in
-    Test.quickcheck prop
+    (match Test.check prop with
+     | Test.Pass { num_tests; stamps } ->
+       Printf.printf "OK, passed %d tests.\n" num_tests;
+       if stamps <> [] then
+         List.iter (fun (lbl, n) ->
+           Printf.printf "%3d%% %s\n" (n * 100 / num_tests) lbl) stamps
+     | Test.Fail { num_tests; counterexample } ->
+       Printf.printf "Falsifiable, after %d tests:\n" num_tests;
+       List.iter (fun s -> Printf.printf "  %s\n" s) counterexample
+     | Test.Gave_up { num_tests } ->
+       Printf.printf "Gave up after %d tests (too many discarded).\n" num_tests)
   | Qc_ir.QcGen { free_vars; all_var_names; prems } ->
     let _ = Printf.printf "Generation]\n" in
     let gen = gen_free_vars spec_il free_vars in
