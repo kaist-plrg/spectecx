@@ -1,12 +1,12 @@
-(** Shared CLI argument parsers, driven by handler descriptors. Flag names are
+(** Shared CLI argument parsers, driven by handler specs. Flag names are
     --<handler-name>.<param-name>, e.g. --trace.level. *)
 
 open Instrumentation
 
-(** Build a Param for one typed descriptor. Maps each declared param to a
+(** Build a Param for one typed handler spec. Maps each declared param to a
     --name.param_name flag, then calls D.parse. *)
-let handler_param (module D : Descriptor.S) :
-    Descriptor.active_handler option Core.Command.Param.t =
+let handler_param (module D : Handler.Spec.S) :
+    Handler.Config.t option Core.Command.Param.t =
   let open Core.Command.Param in
   (* One flag per declared parameter *)
   let flag_params =
@@ -43,12 +43,13 @@ let color_flag : color Core.Command.Param.t =
     (optional_with_default Auto color_arg)
     ~doc:"WHEN colorize diagnostics: auto|always|never (default: auto)"
 
-(** Shared instrumentation config CLI flags — one set of flags per descriptor *)
+(** Shared instrumentation selection CLI flags — one set of flags per handler
+    spec. *)
 let config_flags : Config.t Core.Command.Param.t =
   let open Core.Command.Param in
   List.fold_right
-    (fun descriptor rest ->
-      both (handler_param descriptor) rest
+    (fun handler_spec rest ->
+      both (handler_param handler_spec) rest
       |> map ~f:(fun (handler_opt, handler_opts) -> handler_opt :: handler_opts))
-    all_descriptors (return [])
+    builtin_handler_specs (return [])
   |> map ~f:(List.filter_map Fun.id)

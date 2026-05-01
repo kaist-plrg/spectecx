@@ -58,8 +58,8 @@ val eval_task :
   'i ->
   Lang.Il.Value.t list result
 
-(** Evaluate with an instrumentation session wrapping the call. *)
-val eval_task_with_session :
+(** Evaluate with instrumentation wrapping the call. *)
+val eval_task_with_instrumentation :
   (module Task.S with type input = 'i) ->
   ?config:Instrumentation.Config.t ->
   sl_mode:bool ->

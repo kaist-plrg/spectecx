@@ -3,4 +3,8 @@
 (library
  (name instrumentation_handlers)
  (public_name spectec.instrumentation.handlers)
- (libraries instrumentation_core instrumentation_static))
+ (libraries
+  instrumentation_api
+  instrumentation_config
+  instrumentation_spec
+  instrumentation_static))

@@ -3,6 +3,7 @@
 
 open Spectec
 open Error
+module Events = Instrumentation.Event
 
 (* =========================================================================
    Checkpoint — resumable test run persistence
@@ -98,24 +99,25 @@ module Checkpoint = struct
 
   let snapshot_coverage () =
     List.filter_map
-      (fun (module D : Instrumentation.Descriptor.S) ->
+      (fun (module D : Instrumentation.Handler.Spec.S) ->
         D.checkpoint
-        |> Option.map (fun (ops : Instrumentation.Descriptor.checkpoint_ops) ->
+        |> Option.map
+             (fun (ops : Instrumentation.Handler.Spec.checkpoint_ops) ->
                (D.name, ops.snapshot ())))
-      Instrumentation.all_descriptors
+      Instrumentation.builtin_handler_specs
 
   let restore_coverage checkpoint =
     List.iter
       (fun (name, data) ->
         let found =
           List.find_opt
-            (fun (module D : Instrumentation.Descriptor.S) -> D.name = name)
-            Instrumentation.all_descriptors
+            (fun (module D : Instrumentation.Handler.Spec.S) -> D.name = name)
+            Instrumentation.builtin_handler_specs
         in
         match found with
         | Some (module D) -> (
             match D.checkpoint with
-            | Some (ops : Instrumentation.Descriptor.checkpoint_ops) ->
+            | Some (ops : Instrumentation.Handler.Spec.checkpoint_ops) ->
                 ops.restore data
             | None -> ())
         | None -> ())
@@ -130,14 +132,14 @@ module Checkpoint = struct
         let ops_opt =
           match
             List.find_opt
-              (fun (module D : Instrumentation.Descriptor.S) -> D.name = name)
-              Instrumentation.all_descriptors
+              (fun (module D : Instrumentation.Handler.Spec.S) -> D.name = name)
+              Instrumentation.builtin_handler_specs
           with
-          | Some (module D : Instrumentation.Descriptor.S) -> D.checkpoint
+          | Some (module D : Instrumentation.Handler.Spec.S) -> D.checkpoint
           | None -> None
         in
         match (ops_opt, List.assoc_opt name c1, List.assoc_opt name c2) with
-        | ( Some (ops : Instrumentation.Descriptor.checkpoint_ops),
+        | ( Some (ops : Instrumentation.Handler.Spec.checkpoint_ops),
             Some b1,
             Some b2 ) ->
             Some (name, ops.merge b1 b2)
@@ -203,28 +205,22 @@ module Checkpoint = struct
       (List.length checkpoint.completed_inputs);
     let active =
       List.filter_map
-        (fun (module D : Instrumentation.Descriptor.S) ->
+        (fun (module D : Instrumentation.Handler.Spec.S) ->
           match D.checkpoint with
           | None -> None
           | Some _ -> (
               match
                 List.find_opt
-                  (fun a -> a.Instrumentation.Descriptor.name = D.name)
+                  (fun a -> a.Instrumentation.Handler.Config.name = D.name)
                   config
               with
               | Some a -> Some a
               | None -> D.parse [ ("level", Some "full"); ("output", None) ]))
-        Instrumentation.all_descriptors
+        Instrumentation.builtin_handler_specs
     in
-    let handlers = Instrumentation.Config.to_handlers active in
-    Instrumentation_static.Static.reset_all ();
-    Instrumentation_static.Static.init_all
-      (Instrumentation_static.Static.IlSpec spec);
-    Instrumentation.Dispatcher.set_handlers handlers;
-    Instrumentation.Dispatcher.init ~spec:(Instrumentation.Handler.IlSpec spec);
-    restore_coverage checkpoint;
-    Instrumentation.Dispatcher.finish ();
-    Instrumentation.Config.close_outputs active
+    Instrumentation.with_instrumentation active
+      (Instrumentation_static.Static.IlSpec spec) (fun () ->
+        restore_coverage checkpoint)
 end
 
 (* =========================================================================
@@ -237,25 +233,27 @@ type 'i test_result = {
   outcome : Task.test_outcome;
 }
 
-let run_with_outcome_with_session (type i)
+let run_with_outcome_with_instrumentation (type i)
     (module T : Task.S with type input = i)
     ?(config = Instrumentation.Config.default) ~sl_mode ~spec_il (input : i) =
   let result =
-    Spectec.eval_task_with_session (module T) ~config ~sl_mode ~spec_il input
+    Spectec.eval_task_with_instrumentation
+      (module T)
+      ~config ~sl_mode ~spec_il input
   in
   Task.compute_outcome (T.expectation input) result
 
 let run_with_outcome (type i) (module T : Task.S with type input = i) ~sl_mode
     ~spec_il (input : i) =
   let test_case_id = T.source input in
-  Instrumentation.Dispatcher.notify_test_start ~test_case_id;
+  Instrumentation.Dispatcher.emit (Events.Test_start { test_case_id });
   let result =
     try Spectec.eval_task (module T) ~sl_mode ~spec_il input
     with e ->
-      Instrumentation.Dispatcher.notify_test_end ~test_case_id;
+      Instrumentation.Dispatcher.emit (Events.Test_end { test_case_id });
       raise e
   in
-  Instrumentation.Dispatcher.notify_test_end ~test_case_id;
+  Instrumentation.Dispatcher.emit (Events.Test_end { test_case_id });
   Task.compute_outcome (T.expectation input) result
 
 let print_outcome_tag = function
@@ -330,7 +328,8 @@ let run_suite_with_outcomes (type i) (module T : Task.S with type input = i)
     ?(config = Instrumentation.Config.default) ~sl_mode ~spec_il
     ?(verbose = false) (inputs : i list) =
   let total = List.length inputs in
-  Instrumentation.with_session config (Instrumentation.Static.IlSpec spec_il)
+  Instrumentation.with_instrumentation config
+    (Instrumentation.Static.IlSpec spec_il)
   @@ fun () ->
   List.mapi
     (fun idx input ->
@@ -344,7 +343,9 @@ let run_suite_with_outcomes (type i) (module T : Task.S with type input = i)
 let run_and_print_single (type i) (module T : Task.S with type input = i)
     ?config ~sl_mode ~spec_il (input : i) =
   let outcome =
-    run_with_outcome_with_session (module T) ?config ~sl_mode ~spec_il input
+    run_with_outcome_with_instrumentation
+      (module T)
+      ?config ~sl_mode ~spec_il input
   in
   print_outcome (module T) (T.source input) outcome
 
@@ -368,7 +369,8 @@ type task_result = { task_name : string; summary : suite_summary }
 let run_target_batch ?(config = Instrumentation.Config.default) ?test_dir
     ~(checkpoint_config : Checkpoint.config) ~verbose ~sl_mode ~spec_files
     spec_il tasks =
-  Instrumentation.with_session config (Instrumentation.Static.IlSpec spec_il)
+  Instrumentation.with_instrumentation config
+    (Instrumentation.Static.IlSpec spec_il)
   @@ fun () ->
   let loaded_checkpoint =
     match checkpoint_config.resume_from with

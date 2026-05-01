@@ -1,0 +1,5 @@
+; Instrumentation shared exception helpers
+
+(library
+ (name instrumentation_common)
+ (public_name spectec.instrumentation.common))

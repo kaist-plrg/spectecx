@@ -8,6 +8,7 @@ open Envs.Make
 module Hint = Envs.Hint
 module Typ = Envs.Il.Typ
 open Error
+module Events = Instrumentation.Event
 module F = Format
 
 (* Option monad *)
@@ -890,7 +891,7 @@ and eval_args (ctx : Ctx.t) (args : arg list) : Ctx.t * value list =
 (* Instruction evaluation *)
 
 and eval_instr (ctx : Ctx.t) (instr : instr) : Ctx.t * Sign.t =
-  Instrumentation.Dispatcher.notify_instr ~instr ~at:instr.at;
+  Instrumentation.Dispatcher.emit (Events.Instr { instr; at = instr.at });
   (* Result instruction evaluation *)
   let eval_result_instr ctx exps =
     let ctx, values = eval_exps ctx exps in
@@ -1375,13 +1376,13 @@ and eval_rule_instr (ctx : Ctx.t) (id : id) (notexp : notexp)
 
 and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
     (Ctx.t * value list) option =
-  Instrumentation.Dispatcher.notify_rel_enter ~id:id.it ~at:id.at
-    ~values:values_input;
+  Instrumentation.Dispatcher.emit
+    (Events.Rel_enter { id = id.it; at = id.at; values = values_input });
   let _inputs, exps_input, instrs = Ctx.find_rel Local ctx id in
   check (instrs <> []) id.at "relation has no instructions";
   let attempt_rules () =
-    Instrumentation.Dispatcher.notify_rule_enter ~id:id.it ~rule_id:"0"
-      ~at:id.at;
+    Instrumentation.Dispatcher.emit
+      (Events.Rule_enter { id = id.it; rule_id = "0"; at = id.at });
     let ctx_local = Ctx.localize ctx in
     let ctx_local = Ctx.localize_inputs ctx_local values_input in
     let ctx_local = assign_exps ctx_local exps_input values_input in
@@ -1392,8 +1393,14 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
       | Res values_output -> Some (ctx, values_output)
       | _ -> None
     in
-    Instrumentation.Dispatcher.notify_rule_exit ~id:id.it ~rule_id:"0" ~at:id.at
-      ~success:(Option.is_some result);
+    Instrumentation.Dispatcher.emit
+      (Events.Rule_exit
+         {
+           id = id.it;
+           rule_id = "0";
+           at = id.at;
+           success = Option.is_some result;
+         });
     result
   in
   let result =
@@ -1406,8 +1413,8 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
     | Ok values_output -> Some (ctx, values_output)
     | Error _ -> None
   in
-  Instrumentation.Dispatcher.notify_rel_exit ~id:id.it ~at:id.at
-    ~success:(Option.is_some result);
+  Instrumentation.Dispatcher.emit
+    (Events.Rel_exit { id = id.it; at = id.at; success = Option.is_some result });
   result
 
 (* Invoke a function *)
@@ -1450,26 +1457,29 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
         ctx_local tparams targs
     in
     let attempt_clauses () =
-      Instrumentation.Dispatcher.notify_clause_enter ~id:id.it ~clause_idx:0
-        ~at:id.at;
+      Instrumentation.Dispatcher.emit
+        (Events.Clause_enter { id = id.it; clause_idx = 0; at = id.at });
       let ctx_local = Ctx.localize_inputs ctx_local values_input in
       let ctx_local = assign_args ctx ctx_local args_input values_input in
       let ctx_local, sign = eval_instrs ctx_local Cont instrs in
       let ctx = Ctx.commit ctx ctx_local in
       match sign with
       | Ret value_output ->
-          Instrumentation.Dispatcher.notify_clause_exit ~id:id.it ~clause_idx:0
-            ~at:id.at ~success:true;
+          Instrumentation.Dispatcher.emit
+            (Events.Clause_exit
+               { id = id.it; clause_idx = 0; at = id.at; success = true });
           (ctx, value_output)
       | _ ->
-          Instrumentation.Dispatcher.notify_clause_exit ~id:id.it ~clause_idx:0
-            ~at:id.at ~success:false;
+          Instrumentation.Dispatcher.emit
+            (Events.Clause_exit
+               { id = id.it; clause_idx = 0; at = id.at; success = false });
           error id.at "function was not matched"
     in
     attempt_clauses ()
   in
   (* Main dispatch *)
-  Instrumentation.Dispatcher.notify_func_enter ~id:id.it ~at:id.at ~values:[];
+  Instrumentation.Dispatcher.emit
+    (Events.Func_enter { id = id.it; at = id.at; values = [] });
   let invoke_func' () =
     let invoke () =
       let _, v =
@@ -1508,7 +1518,7 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     (ctx, value_output_result |> Result.get_ok)
   in
   let result = invoke_func' () in
-  Instrumentation.Dispatcher.notify_func_exit ~id:id.it ~at:id.at;
+  Instrumentation.Dispatcher.emit (Events.Func_exit { id = id.it; at = id.at });
   result
 
 (* Load definitions into the context *)

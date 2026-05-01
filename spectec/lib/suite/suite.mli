@@ -56,7 +56,7 @@ type 'i test_result = {
 
 (** Run a single input and compute outcome. Includes full instrumentation
     lifecycle. *)
-val run_with_outcome_with_session :
+val run_with_outcome_with_instrumentation :
   (module Spectec.Task.S with type input = 'i) ->
   ?config:Instrumentation.Config.t ->
   sl_mode:bool ->

@@ -1,10 +1,14 @@
-; Instrumentation - top-level config that depends on core and handlers
+; Instrumentation - top-level facade over the internal layers and handlers
 
 (library
  (name instrumentation)
  (public_name spectec.instrumentation)
  (libraries
-  instrumentation_core
+  instrumentation_api
+  instrumentation_common
+  instrumentation_config
+  instrumentation_dispatcher
   instrumentation_handlers
+  instrumentation_spec
   instrumentation_static
   unix))

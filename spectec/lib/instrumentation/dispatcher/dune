@@ -1,0 +1,6 @@
+; Instrumentation dispatcher layer
+
+(library
+ (name instrumentation_dispatcher)
+ (public_name spectec.instrumentation.dispatcher)
+ (libraries instrumentation_api instrumentation_common))
