@@ -44,10 +44,13 @@ let quickcheck_command =
   let%map filenames = anon (sequence ("spec files" %: string))
   and quickcheck_file =
     flag "--target" (required string) ~doc:"PATH path to .quickcheck input file"
+  and manual =
+    flag "--manual" no_arg
+      ~doc:" use manual_gen.ml generator instead of auto-derived generators"
   and color = Cli.Cli_args.Output.color_flag in
   fun () ->
     Cli.Error_handling.guard ~color ~on_ok:(fun spec_il ->
-        Quickcheck.quickcheck_file spec_il quickcheck_file)
+        Quickcheck.quickcheck_file ~manual spec_il quickcheck_file)
     @@ fun () ->
     let* spec = parse_spec_files filenames in
     let* spec_il = elaborate spec in
