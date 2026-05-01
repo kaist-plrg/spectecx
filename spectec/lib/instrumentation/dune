@@ -4,7 +4,10 @@
  (name instrumentation)
  (public_name spectec.instrumentation)
  (libraries
-  instrumentation_core
+  instrumentation_api
+  instrumentation_config
+  instrumentation_dispatcher
   instrumentation_handlers
+  instrumentation_spec
   instrumentation_static
   unix))

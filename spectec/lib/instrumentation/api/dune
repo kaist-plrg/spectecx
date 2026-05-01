@@ -1,0 +1,6 @@
+; Instrumentation execution API layer
+
+(library
+ (name instrumentation_api)
+ (public_name spectec.instrumentation.api)
+ (libraries spectec.common spectec.lang instrumentation_static))

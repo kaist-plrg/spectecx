@@ -4,14 +4,14 @@
 
 open Common.Source
 open Lang.Il
-open Instrumentation_core.Util
+open Util
 open Instrumentation_static.Premise_uid
 
 type level = Summary | Full
-type config = { level : level; output : Instrumentation_core.Output.t }
+type config = { level : level; output : Instrumentation_api.Output.t }
 
 let default_config =
-  { level = Summary; output = Instrumentation_core.Output.stdout }
+  { level = Summary; output = Instrumentation_api.Output.stdout }
 
 let config = ref default_config
 let fmt = ref Format.std_formatter
@@ -70,7 +70,7 @@ let rec is_fallible prem =
   | IterPr (inner, _) -> is_fallible inner
   | IfPr _ | RulePr _ -> true
 
-module M : Instrumentation_core.Handler.S = struct
+module M : Instrumentation_api.Handler.S = struct
   let static_dependencies =
     [
       (module Instrumentation_static.Premise_uid.Premise_uid
@@ -95,7 +95,7 @@ module M : Instrumentation_core.Handler.S = struct
   let init ~spec =
     State.reset ();
     match spec with
-    | Instrumentation_core.Handler.IlSpec il_spec ->
+    | Instrumentation_api.Handler.IlSpec il_spec ->
         State.il_spec := il_spec;
         List.iter
           (fun def ->
@@ -114,9 +114,9 @@ module M : Instrumentation_core.Handler.S = struct
                   clauses
             | _ -> ())
           il_spec
-    | Instrumentation_core.Handler.SlSpec _ -> ()
+    | Instrumentation_api.Handler.SlSpec _ -> ()
 
-  let handle : Instrumentation_core.Event.t -> unit = function
+  let handle : Instrumentation_api.Event.t -> unit = function
     | Test_start { test_case_id } -> State.set_test_case_id test_case_id
     | Test_end _ -> State.clear_test_case_id ()
     | Prem_enter { prem; at = _ } ->
@@ -407,7 +407,7 @@ let clear_test_case_id = State.clear_test_case_id
 
 (* Handler with data access - implements HANDLER_WITH_DATA signature *)
 module HandlerWithData :
-  Instrumentation_core.Handler.S_with_data with type result = result = struct
+  Instrumentation_api.Handler.S_with_data with type result = result = struct
   include M
 
   type nonrec result = result
@@ -418,8 +418,8 @@ end
 
 let make cfg =
   config := cfg;
-  fmt := Instrumentation_core.Output.formatter cfg.output;
-  (module M : Instrumentation_core.Handler.S)
+  fmt := Instrumentation_api.Output.formatter cfg.output;
+  (module M : Instrumentation_api.Handler.S)
 
 (* Create handler with data getter for programmatic access.
    Usage:
@@ -430,43 +430,48 @@ let make cfg =
 *)
 let make_with_data cfg =
   config := cfg;
-  fmt := Instrumentation_core.Output.formatter cfg.output;
-  ( (module HandlerWithData : Instrumentation_core.Handler.S_with_data
+  fmt := Instrumentation_api.Output.formatter cfg.output;
+  ( (module HandlerWithData : Instrumentation_api.Handler.S_with_data
       with type result = result),
     get_result )
 
-module Spec : Instrumentation_core.Spec.S = struct
+module Spec : Instrumentation_spec.Spec.S = struct
   let name = "premise-coverage"
   let mode = `IL
 
   let params =
     [
-      Instrumentation_core.Param_utils.level_param;
-      Instrumentation_core.Param_utils.output_param;
+      Instrumentation_spec.Param_utils.level_param;
+      Instrumentation_spec.Param_utils.output_param;
     ]
 
   let parse alist =
-    match Instrumentation_core.Param_utils.get alist "level" with
+    match Instrumentation_spec.Param_utils.get alist "level" with
     | None -> None
     | Some s ->
         let output =
-          Instrumentation_core.Param_utils.output_of
-            (Instrumentation_core.Param_utils.get alist "output")
+          Instrumentation_spec.Param_utils.output_of
+            (Instrumentation_spec.Param_utils.get alist "output")
         in
         let cfg =
           {
             level =
-              Instrumentation_core.Param_utils.parse_level ~summary:Summary
+              Instrumentation_spec.Param_utils.parse_level ~summary:Summary
                 ~full:Full s;
             output;
           }
         in
         Some
-          { Instrumentation_core.Config.name; mode; handler = make cfg; output }
+          {
+            Instrumentation_config.Handler_config.name;
+            mode;
+            handler = make cfg;
+            output;
+          }
 
   let checkpoint =
     Some
-      Instrumentation_core.Spec.
+      Instrumentation_spec.Spec.
         {
           snapshot = (fun () -> Marshal.to_bytes (get_result ()) []);
           restore = (fun b -> restore (Marshal.from_bytes b 0));
@@ -479,4 +484,4 @@ module Spec : Instrumentation_core.Spec.S = struct
         }
 end
 
-let spec : Instrumentation_core.Spec.t = (module Spec)
+let spec : Instrumentation_spec.Spec.t = (module Spec)

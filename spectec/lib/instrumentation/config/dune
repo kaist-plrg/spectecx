@@ -1,0 +1,6 @@
+; Instrumentation config layer
+
+(library
+ (name instrumentation_config)
+ (public_name spectec.instrumentation.config)
+ (libraries instrumentation_api instrumentation_static))

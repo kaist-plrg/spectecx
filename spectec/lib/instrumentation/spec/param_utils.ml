@@ -4,7 +4,9 @@
 let get params key = List.assoc_opt key params |> Option.join
 
 (* Convenience: convert optional path string to Output.t *)
-let output_of = function None -> Output.stdout | Some p -> Output.file p
+let output_of = function
+  | None -> Instrumentation_api.Output.stdout
+  | Some p -> Instrumentation_api.Output.file p
 
 (* Generic two-level parser — pass the handler's own Summary/Full constructors.
    E.g., parse_level ~summary:Summary ~full:Full "summary" *)

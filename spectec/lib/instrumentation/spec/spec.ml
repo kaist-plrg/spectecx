@@ -1,10 +1,10 @@
 (** Static spec declarations for instrumentation handlers.
 
     {!S} describes a handler spec statically — its CLI parameters, how to parse
-    flags into a configured {!Config.t}, and optionally how to checkpoint state.
-    {!Handler.S} is the counterpart: what the interpreter calls at runtime. The
-    two are split so the CLI can enumerate specs without constructing handlers.
-*)
+    flags into a configured {!Instrumentation_config.Handler_config.t}, and
+    optionally how to checkpoint state. {!Instrumentation_api.Handler.S} is the
+    counterpart: what the interpreter calls at runtime. The two are split so the
+    CLI can enumerate specs without constructing handlers. *)
 
 (** Checkpoint serialization hooks for handlers with persistent state. *)
 type checkpoint_ops = {
@@ -20,7 +20,10 @@ module type S = sig
   (** [(param_name, doc)] entries for CLI help. *)
   val params : (string * string) list
 
-  val parse : (string * string option) list -> Config.t option
+  val parse :
+    (string * string option) list ->
+    Instrumentation_config.Handler_config.t option
+
   val checkpoint : checkpoint_ops option
 end
 

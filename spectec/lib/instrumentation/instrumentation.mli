@@ -1,10 +1,10 @@
 (** Instrumentation facade. Drive instrumentation via {!with_instrumentation}
     rather than poking {!Dispatcher} directly. *)
 
-module Dispatcher = Instrumentation_core.Dispatcher
-module Event = Instrumentation_core.Event
-module Output = Instrumentation_core.Output
-module Util = Instrumentation_core.Util
+module Dispatcher = Instrumentation_dispatcher.Dispatcher
+module Event = Instrumentation_api.Event
+module Output = Instrumentation_api.Output
+module Util = Instrumentation_handlers.Util
 module Static = Instrumentation_static.Static
 module Premise_uid = Instrumentation_static.Premise_uid
 module Branch_coverage = Instrumentation_handlers.Branch_coverage
@@ -14,9 +14,9 @@ module Profile = Instrumentation_handlers.Profile
 module Trace = Instrumentation_handlers.Trace
 
 module Handler : sig
-  include module type of Instrumentation_core.Handler
-  module Spec = Instrumentation_core.Spec
-  module Config = Instrumentation_core.Config
+  include module type of Instrumentation_api.Handler
+  module Spec = Instrumentation_spec.Spec
+  module Config = Instrumentation_config.Handler_config
 end
 
 module Config : sig

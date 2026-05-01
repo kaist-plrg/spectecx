@@ -3,13 +3,13 @@
     premises, and iteration summaries. *)
 
 module Il = Lang.Il
-open Instrumentation_core.Util
+open Util
 
 type level = Summary | Full
-type config = { level : level; output : Instrumentation_core.Output.t }
+type config = { level : level; output : Instrumentation_api.Output.t }
 
 let default_config =
-  { level = Summary; output = Instrumentation_core.Output.stdout }
+  { level = Summary; output = Instrumentation_api.Output.stdout }
 
 let config = ref default_config
 let fmt = ref Format.std_formatter
@@ -33,12 +33,12 @@ module State = struct
     Format.sprintf "[%2d] %s" !depth (String.make (!depth * 2) ' ')
 end
 
-module M : Instrumentation_core.Handler.S = struct
+module M : Instrumentation_api.Handler.S = struct
   let static_dependencies = []
   let init ~spec:_ = State.reset ()
   let finish () = ()
 
-  let handle : Instrumentation_core.Event.t -> unit = function
+  let handle : Instrumentation_api.Event.t -> unit = function
     | Test_start _ | Test_end _ -> ()
     | Rel_enter { id; at = _; values } ->
         Format.fprintf !fmt "%s→ %s\n%!" (State.indent ()) id;
@@ -86,39 +86,44 @@ end
 
 let make cfg =
   config := cfg;
-  fmt := Instrumentation_core.Output.formatter cfg.output;
-  (module M : Instrumentation_core.Handler.S)
+  fmt := Instrumentation_api.Output.formatter cfg.output;
+  (module M : Instrumentation_api.Handler.S)
 
-module Spec : Instrumentation_core.Spec.S = struct
+module Spec : Instrumentation_spec.Spec.S = struct
   let name = "trace"
   let mode = `Both
 
   let params =
     [
-      Instrumentation_core.Param_utils.level_param;
-      Instrumentation_core.Param_utils.output_param;
+      Instrumentation_spec.Param_utils.level_param;
+      Instrumentation_spec.Param_utils.output_param;
     ]
 
   let parse alist =
-    match Instrumentation_core.Param_utils.get alist "level" with
+    match Instrumentation_spec.Param_utils.get alist "level" with
     | None -> None
     | Some s ->
         let output =
-          Instrumentation_core.Param_utils.output_of
-            (Instrumentation_core.Param_utils.get alist "output")
+          Instrumentation_spec.Param_utils.output_of
+            (Instrumentation_spec.Param_utils.get alist "output")
         in
         let cfg =
           {
             level =
-              Instrumentation_core.Param_utils.parse_level ~summary:Summary
+              Instrumentation_spec.Param_utils.parse_level ~summary:Summary
                 ~full:Full s;
             output;
           }
         in
         Some
-          { Instrumentation_core.Config.name; mode; handler = make cfg; output }
+          {
+            Instrumentation_config.Handler_config.name;
+            mode;
+            handler = make cfg;
+            output;
+          }
 
   let checkpoint = None
 end
 
-let spec : Instrumentation_core.Spec.t = (module Spec)
+let spec : Instrumentation_spec.Spec.t = (module Spec)

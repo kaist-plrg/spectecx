@@ -1,9 +1,9 @@
 (** Profiler: collects per-relation/function call counts and inclusive and
     exclusive timing, and prints a report on {!finish}. *)
 
-type config = { output : Instrumentation_core.Output.t }
+type config = { output : Instrumentation_api.Output.t }
 
-let default_config = { output = Instrumentation_core.Output.stdout }
+let default_config = { output = Instrumentation_api.Output.stdout }
 let config = ref default_config
 let fmt = ref Format.std_formatter
 
@@ -46,13 +46,13 @@ let now () =
   Core.Time_ns.now () |> Core.Time_ns.to_span_since_epoch
   |> Core.Time_ns.Span.to_sec
 
-module M : Instrumentation_core.Handler.S = struct
+module M : Instrumentation_api.Handler.S = struct
   open State
 
   let static_dependencies = []
   let init ~spec:_ = State.reset ()
 
-  let handle : Instrumentation_core.Event.t -> unit = function
+  let handle : Instrumentation_api.Event.t -> unit = function
     | Rel_enter { id; at = _; values = _ } ->
         let is_recursive =
           frame_stack |> Stack.to_seq
@@ -167,22 +167,22 @@ end
 
 let make cfg =
   config := cfg;
-  fmt := Instrumentation_core.Output.formatter cfg.output;
-  (module M : Instrumentation_core.Handler.S)
+  fmt := Instrumentation_api.Output.formatter cfg.output;
+  (module M : Instrumentation_api.Handler.S)
 
-module Spec : Instrumentation_core.Spec.S = struct
+module Spec : Instrumentation_spec.Spec.S = struct
   let name = "profile"
   let mode = `Both
-  let params = [ Instrumentation_core.Param_utils.output_param ]
+  let params = [ Instrumentation_spec.Param_utils.output_param ]
 
   let parse alist =
-    match Instrumentation_core.Param_utils.get alist "output" with
+    match Instrumentation_spec.Param_utils.get alist "output" with
     | None -> None
     | Some path ->
-        let output = Instrumentation_core.Output.file path in
+        let output = Instrumentation_api.Output.file path in
         Some
           {
-            Instrumentation_core.Config.name;
+            Instrumentation_config.Handler_config.name;
             mode;
             handler = make { output };
             output;
@@ -191,4 +191,4 @@ module Spec : Instrumentation_core.Spec.S = struct
   let checkpoint = None
 end
 
-let spec : Instrumentation_core.Spec.t = (module Spec)
+let spec : Instrumentation_spec.Spec.t = (module Spec)

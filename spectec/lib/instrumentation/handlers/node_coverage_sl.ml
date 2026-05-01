@@ -4,13 +4,13 @@
 
 open Common.Source
 module Sl = Lang.Sl
-open Instrumentation_core.Util
+open Util
 
 type level = Node_coverage_il.level = Summary | Full
 
 type config = Node_coverage_il.config = {
   level : level;
-  output : Instrumentation_core.Output.t;
+  output : Instrumentation_api.Output.t;
 }
 
 let default_config = Node_coverage_il.default_config
@@ -74,7 +74,7 @@ let instr_key instr =
   let content = instr_header instr |> normalize_whitespace in
   (instr.at, content)
 
-module M : Instrumentation_core.Handler.S = struct
+module M : Instrumentation_api.Handler.S = struct
   let static_dependencies = []
 
   let rec count_instr instr =
@@ -91,8 +91,8 @@ module M : Instrumentation_core.Handler.S = struct
   let init ~spec =
     State.reset ();
     match spec with
-    | Instrumentation_core.Handler.IlSpec _ -> ()
-    | Instrumentation_core.Handler.SlSpec sl_spec ->
+    | Instrumentation_api.Handler.IlSpec _ -> ()
+    | Instrumentation_api.Handler.SlSpec sl_spec ->
         State.sl_spec := sl_spec;
         List.iter
           (fun def ->
@@ -102,7 +102,7 @@ module M : Instrumentation_core.Handler.S = struct
             | _ -> ())
           sl_spec
 
-  let handle : Instrumentation_core.Event.t -> unit = function
+  let handle : Instrumentation_api.Event.t -> unit = function
     | Instr { instr; at = _ } -> State.incr State.instrs_hit (instr_key instr)
     | _ -> ()
 
@@ -240,7 +240,7 @@ let merge_results r1 r2 =
 
 (* Handler with data access - implements HANDLER_WITH_DATA signature *)
 module HandlerWithData :
-  Instrumentation_core.Handler.S_with_data with type result = result = struct
+  Instrumentation_api.Handler.S_with_data with type result = result = struct
   include M
 
   type nonrec result = result
@@ -251,41 +251,46 @@ end
 
 let make cfg =
   config := cfg;
-  fmt := Instrumentation_core.Output.formatter cfg.output;
-  (module M : Instrumentation_core.Handler.S)
+  fmt := Instrumentation_api.Output.formatter cfg.output;
+  (module M : Instrumentation_api.Handler.S)
 
-module Spec : Instrumentation_core.Spec.S = struct
+module Spec : Instrumentation_spec.Spec.S = struct
   let name = "instruction-coverage"
   let mode = `SL
 
   let params =
     [
-      Instrumentation_core.Param_utils.level_param;
-      Instrumentation_core.Param_utils.output_param;
+      Instrumentation_spec.Param_utils.level_param;
+      Instrumentation_spec.Param_utils.output_param;
     ]
 
   let parse alist =
-    match Instrumentation_core.Param_utils.get alist "level" with
+    match Instrumentation_spec.Param_utils.get alist "level" with
     | None -> None
     | Some s ->
         let output =
-          Instrumentation_core.Param_utils.output_of
-            (Instrumentation_core.Param_utils.get alist "output")
+          Instrumentation_spec.Param_utils.output_of
+            (Instrumentation_spec.Param_utils.get alist "output")
         in
         let cfg =
           {
             level =
-              Instrumentation_core.Param_utils.parse_level ~summary:Summary
+              Instrumentation_spec.Param_utils.parse_level ~summary:Summary
                 ~full:Full s;
             output;
           }
         in
         Some
-          { Instrumentation_core.Config.name; mode; handler = make cfg; output }
+          {
+            Instrumentation_config.Handler_config.name;
+            mode;
+            handler = make cfg;
+            output;
+          }
 
   let checkpoint =
     Some
-      Instrumentation_core.Spec.
+      Instrumentation_spec.Spec.
         {
           snapshot = (fun () -> Marshal.to_bytes (get_result ()) []);
           restore = (fun b -> restore (Marshal.from_bytes b 0));
@@ -298,4 +303,4 @@ module Spec : Instrumentation_core.Spec.S = struct
         }
 end
 
-let spec : Instrumentation_core.Spec.t = (module Spec)
+let spec : Instrumentation_spec.Spec.t = (module Spec)
