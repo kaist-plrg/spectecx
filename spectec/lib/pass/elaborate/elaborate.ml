@@ -1855,7 +1855,8 @@ let elab_prems_in_spec (spec_il : Il.spec)
       List.fold_left
         (fun ctx (id, plaintyp) ->
           let typ_il = elab_plaintyp ctx plaintyp in
-          Ctx.add_metavar ctx id typ_il)
+          let ctx = Ctx.add_metavar ctx id typ_il in
+          { ctx with Ctx.venv = Ctx.VEnv.add id (typ_il, []) ctx.venv })
         ctx var_decls
     in
     let _ctx, prems_il = elab_prems_with_bind ctx el_prems in

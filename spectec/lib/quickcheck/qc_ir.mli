@@ -1,25 +1,21 @@
 open Lang.Il
 
-type binding_origin =
-  | Free
-  | BoundByRule of string * int
-  | BoundByLet of exp
-
 type ir_var = {
-  iv_id     : string;
-  iv_typ    : typ;
-  iv_origin : binding_origin;
+  iv_id  : string;
+  iv_typ : typ;
 }
 
 type qc_command =
   | QcProp of {
-      free_vars : ir_var list;
-      goal      : prem;
-      prems     : prem list;
+      free_vars     : ir_var list;
+      all_var_names : id' list;
+      goal          : prem;
+      prems         : prem list;
     }
   | QcGen of {
-      free_vars : ir_var list;
-      prems     : prem list;
+      free_vars     : ir_var list;
+      all_var_names : id' list;
+      prems         : prem list;
     }
 
 type t = qc_command list

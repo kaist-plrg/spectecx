@@ -1,0 +1,3 @@
+quickcheck/gen
+    (prog : prog)
+    -- Check_prog: |- prog
