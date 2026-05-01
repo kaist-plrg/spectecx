@@ -1,3 +1,6 @@
+(** Instrumentation facade. Drive sessions via {!with_session} rather than
+    poking {!Dispatcher} directly. *)
+
 module Handler = Instrumentation_core.Handler
 module Descriptor = Instrumentation_core.Descriptor
 module Dispatcher = Instrumentation_core.Dispatcher
@@ -12,23 +15,12 @@ module Profile = Instrumentation_handlers.Profile
 module Trace = Instrumentation_handlers.Trace
 module Config = Config
 
-(* *** Add one entry here when adding a new handler *** *)
-let all_descriptors : Descriptor.t list =
-  [
-    Trace.descriptor;
-    Profile.descriptor;
-    Branch_coverage.descriptor;
-    Node_coverage_il.descriptor;
-    Node_coverage_sl.descriptor;
-  ]
+(** Every built-in handler descriptor. Add a new handler by appending here and
+    nowhere else — the CLI discovers handlers through this list. *)
+val all_descriptors : Descriptor.t list
 
-let with_session (config : Config.t) (spec : Static.spec) (f : unit -> 'a) : 'a
-    =
-  let handlers = Config.to_handlers config in
-  Static.reset_all ();
-  Static.init_all spec;
-  Dispatcher.init ~spec ~handlers;
-  let result = f () in
-  Dispatcher.finish ();
-  Config.close_outputs config;
-  result
+(** [with_session config spec f] initializes static analyses, starts a
+    dispatcher session, runs [f ()], and tears everything down via [Fun.protect]
+    so outputs close and handlers finish on both the success and exception
+    paths. *)
+val with_session : Config.t -> Static.spec -> (unit -> 'a) -> 'a

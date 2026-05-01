@@ -1,24 +1,13 @@
-(* SL Node coverage handler - Tracks instruction execution.
-
-   Implements Instrumentation_core.Handler.S interface.
-   Records all instructions at init(), then tracks which are hit during execution.
-
-   Output levels:
-   - Summary: stats + uncovered items only
-   - Full: GCOV-style annotated spec with execution counts
-
-   Usage:
-     let handler = Node_coverage_sl.make { level = Full; output = Instrumentation_core.Output.stdout }
-*)
+(** SL node coverage: same shape as {!Node_coverage_il} but over SL
+    instructions. [level] and [config] are type-aliased to the IL handler's so
+    the two share a parser and CLI surface. *)
 
 open Common.Source
 module Sl = Lang.Sl
 open Instrumentation_core.Util
 
-(* Verbosity levels - reuse from IL module *)
 type level = Node_coverage_il.level = Summary | Full
 
-(* Handler configuration - reuse from IL module for type compatibility *)
 type config = Node_coverage_il.config = {
   level : level;
   output : Instrumentation_core.Output.t;
@@ -113,21 +102,9 @@ module M : Instrumentation_core.Handler.S = struct
             | _ -> ())
           sl_spec
 
-  let on_test_start = Instrumentation_core.Noop.on_test_start
-  let on_test_end = Instrumentation_core.Noop.on_test_end
-  let on_rel_enter = Instrumentation_core.Noop.on_rel_enter
-  let on_rel_exit = Instrumentation_core.Noop.on_rel_exit
-  let on_rule_enter = Instrumentation_core.Noop.on_rule_enter
-  let on_rule_exit = Instrumentation_core.Noop.on_rule_exit
-  let on_func_enter = Instrumentation_core.Noop.on_func_enter
-  let on_func_exit = Instrumentation_core.Noop.on_func_exit
-  let on_clause_enter = Instrumentation_core.Noop.on_clause_enter
-  let on_clause_exit = Instrumentation_core.Noop.on_clause_exit
-  let on_iter_prem_enter = Instrumentation_core.Noop.on_iter_prem_enter
-  let on_iter_prem_exit = Instrumentation_core.Noop.on_iter_prem_exit
-  let on_prem_enter = Instrumentation_core.Noop.on_prem_enter
-  let on_prem_exit = Instrumentation_core.Noop.on_prem_exit
-  let on_instr ~instr ~at:_ = State.incr State.instrs_hit (instr_key instr)
+  let handle : Instrumentation_core.Handler.event -> unit = function
+    | Instr { instr; at = _ } -> State.incr State.instrs_hit (instr_key instr)
+    | _ -> ()
 
   (* --- Output: Summary mode (stats + uncovered only) --- *)
 

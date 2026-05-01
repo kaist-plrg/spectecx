@@ -1,25 +1,13 @@
-(* Branch coverage handler - Tracks rule and clause execution.
-
-   Implements Instrumentation_core.Handler.S interface.
-   Records all branches at init(), then tracks which are hit.
-
-   Output levels:
-   - Summary: stats + uncovered branches only
-   - Full: all relations/functions with coverage markers
-
-   Usage:
-     let handler = Branch_coverage.make { level = Full; output = Instrumentation_core.Output.stdout }
-*)
+(** Branch coverage: records all rules and clauses at session init, then marks
+    which ones execute. [Summary] reports only uncovered branches; [Full] emits
+    every relation and function with coverage annotations. *)
 
 open Common.Source
 module Il = Lang.Il
 module Sl = Lang.Sl
 open Instrumentation_core.Util
 
-(* Verbosity levels *)
 type level = Summary | Full
-
-(* Handler configuration *)
 type config = { level : level; output : Instrumentation_core.Output.t }
 
 let default_config =
@@ -89,27 +77,12 @@ module M : Instrumentation_core.Handler.S = struct
             | _ -> ())
           sl_spec
 
-  let on_test_start = Instrumentation_core.Noop.on_test_start
-  let on_test_end = Instrumentation_core.Noop.on_test_end
-  let on_rel_enter = Instrumentation_core.Noop.on_rel_enter
-  let on_rel_exit = Instrumentation_core.Noop.on_rel_exit
-  let on_rule_enter = Instrumentation_core.Noop.on_rule_enter
-
-  let on_rule_exit ~id ~rule_id ~at:_ ~success =
-    if success then State.incr State.rules_hit (id, rule_id)
-
-  let on_func_enter = Instrumentation_core.Noop.on_func_enter
-  let on_func_exit = Instrumentation_core.Noop.on_func_exit
-  let on_clause_enter = Instrumentation_core.Noop.on_clause_enter
-
-  let on_clause_exit ~id ~clause_idx ~at:_ ~success =
-    if success then State.incr State.clauses_hit (id, clause_idx)
-
-  let on_iter_prem_enter = Instrumentation_core.Noop.on_iter_prem_enter
-  let on_iter_prem_exit = Instrumentation_core.Noop.on_iter_prem_exit
-  let on_prem_enter = Instrumentation_core.Noop.on_prem_enter
-  let on_prem_exit = Instrumentation_core.Noop.on_prem_exit
-  let on_instr = Instrumentation_core.Noop.on_instr
+  let handle : Instrumentation_core.Handler.event -> unit = function
+    | Rule_exit { id; rule_id; at = _; success } ->
+        if success then State.incr State.rules_hit (id, rule_id)
+    | Clause_exit { id; clause_idx; at = _; success } ->
+        if success then State.incr State.clauses_hit (id, clause_idx)
+    | _ -> ()
 
   (* --- Output: Summary mode (stats + uncovered only) --- *)
 

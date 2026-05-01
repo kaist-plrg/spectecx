@@ -3,6 +3,7 @@
 
 open Spectec
 open Error
+module Handler = Instrumentation_core.Handler
 
 (* =========================================================================
    Checkpoint — resumable test run persistence
@@ -242,14 +243,14 @@ let run_with_outcome_with_session (type i)
 let run_with_outcome (type i) (module T : Task.S with type input = i) ~sl_mode
     ~spec_il (input : i) =
   let test_case_id = T.source input in
-  Instrumentation.Dispatcher.notify_test_start ~test_case_id;
+  Instrumentation.Dispatcher.emit (Handler.Test_start { test_case_id });
   let result =
     try Spectec.eval_task (module T) ~sl_mode ~spec_il input
     with e ->
-      Instrumentation.Dispatcher.notify_test_end ~test_case_id;
+      Instrumentation.Dispatcher.emit (Handler.Test_end { test_case_id });
       raise e
   in
-  Instrumentation.Dispatcher.notify_test_end ~test_case_id;
+  Instrumentation.Dispatcher.emit (Handler.Test_end { test_case_id });
   Task.compute_outcome (T.expectation input) result
 
 let print_outcome_tag = function

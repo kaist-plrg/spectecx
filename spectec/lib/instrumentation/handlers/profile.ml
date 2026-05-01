@@ -1,20 +1,12 @@
-(* Profile handler - Timing statistics with inclusive/exclusive times.
+(** Profiler: collects per-relation/function call counts and inclusive and
+    exclusive timing, and prints a report on {!finish}. *)
 
-   Implements Instrumentation_core.Handler.S interface.
-   Collects call counts and timing, prints report on finish().
-
-   Usage:
-     let handler = Profile.make { output = Instrumentation_core.Output.stdout }
-*)
-
-(* Handler configuration *)
 type config = { output : Instrumentation_core.Output.t }
 
 let default_config = { output = Instrumentation_core.Output.stdout }
 let config = ref default_config
 let fmt = ref Format.std_formatter
 
-(* Stats are mutable for accumulation across calls *)
 type stats = {
   mutable count : int;
   mutable inclusive_time : float;
@@ -59,70 +51,65 @@ module M : Instrumentation_core.Handler.S = struct
 
   let static_dependencies = []
   let init ~spec:_ = State.reset ()
-  let on_test_start = Instrumentation_core.Noop.on_test_start
-  let on_test_end = Instrumentation_core.Noop.on_test_end
-  let on_rule_enter = Instrumentation_core.Noop.on_rule_enter
-  let on_rule_exit = Instrumentation_core.Noop.on_rule_exit
-  let on_clause_enter = Instrumentation_core.Noop.on_clause_enter
-  let on_clause_exit = Instrumentation_core.Noop.on_clause_exit
-  let on_iter_prem_enter = Instrumentation_core.Noop.on_iter_prem_enter
-  let on_iter_prem_exit = Instrumentation_core.Noop.on_iter_prem_exit
-  let on_prem_enter = Instrumentation_core.Noop.on_prem_enter
-  let on_prem_exit = Instrumentation_core.Noop.on_prem_exit
-  let on_instr = Instrumentation_core.Noop.on_instr
 
-  let on_rel_enter ~id ~at:_ ~values:_ =
-    let is_recursive =
-      frame_stack |> Stack.to_seq |> Seq.exists (fun f -> f.is_rel && f.id = id)
-    in
-    let frame =
-      { id; is_rel = true; start_time = now (); child_time = 0.0; is_recursive }
-    in
-    Stack.push frame frame_stack
-
-  let on_rel_exit ~id ~at:_ ~success:_ =
-    if not (Stack.is_empty frame_stack) then (
-      let frame = Stack.pop frame_stack in
-      let elapsed = now () -. frame.start_time in
-      let exclusive = elapsed -. frame.child_time in
-      let stats = get_or_create_stats rel_stats id in
-      stats.count <- stats.count + 1;
-      if not frame.is_recursive then
-        stats.inclusive_time <- stats.inclusive_time +. elapsed;
-      stats.exclusive_time <- stats.exclusive_time +. exclusive;
-      if not (Stack.is_empty frame_stack) then
-        let parent = Stack.top frame_stack in
-        parent.child_time <- parent.child_time +. elapsed)
-
-  let on_func_enter ~id ~at:_ ~values:_ =
-    let is_recursive =
-      frame_stack |> Stack.to_seq
-      |> Seq.exists (fun f -> (not f.is_rel) && f.id = id)
-    in
-    let frame =
-      {
-        id;
-        is_rel = false;
-        start_time = now ();
-        child_time = 0.0;
-        is_recursive;
-      }
-    in
-    Stack.push frame frame_stack
-
-  let on_func_exit ~id ~at:_ =
-    if not (Stack.is_empty frame_stack) then (
-      let frame = Stack.pop frame_stack in
-      let elapsed = now () -. frame.start_time in
-      let exclusive = elapsed -. frame.child_time in
-      let stats = get_or_create_stats func_stats id in
-      stats.count <- stats.count + 1;
-      if not frame.is_recursive then
-        stats.inclusive_time <- stats.inclusive_time +. elapsed;
-      stats.exclusive_time <- stats.exclusive_time +. exclusive;
-      if not (Stack.is_empty frame_stack) then
-        let parent = Stack.top frame_stack in
-        parent.child_time <- parent.child_time +. elapsed)
+  let handle : Instrumentation_core.Handler.event -> unit = function
+    | Rel_enter { id; at = _; values = _ } ->
+        let is_recursive =
+          frame_stack |> Stack.to_seq
+          |> Seq.exists (fun f -> f.is_rel && f.id = id)
+        in
+        let frame =
+          {
+            id;
+            is_rel = true;
+            start_time = now ();
+            child_time = 0.0;
+            is_recursive;
+          }
+        in
+        Stack.push frame frame_stack
+    | Rel_exit { id; at = _; success = _ } ->
+        if not (Stack.is_empty frame_stack) then (
+          let frame = Stack.pop frame_stack in
+          let elapsed = now () -. frame.start_time in
+          let exclusive = elapsed -. frame.child_time in
+          let stats = get_or_create_stats rel_stats id in
+          stats.count <- stats.count + 1;
+          if not frame.is_recursive then
+            stats.inclusive_time <- stats.inclusive_time +. elapsed;
+          stats.exclusive_time <- stats.exclusive_time +. exclusive;
+          if not (Stack.is_empty frame_stack) then
+            let parent = Stack.top frame_stack in
+            parent.child_time <- parent.child_time +. elapsed)
+    | Func_enter { id; at = _; values = _ } ->
+        let is_recursive =
+          frame_stack |> Stack.to_seq
+          |> Seq.exists (fun f -> (not f.is_rel) && f.id = id)
+        in
+        let frame =
+          {
+            id;
+            is_rel = false;
+            start_time = now ();
+            child_time = 0.0;
+            is_recursive;
+          }
+        in
+        Stack.push frame frame_stack
+    | Func_exit { id; at = _ } ->
+        if not (Stack.is_empty frame_stack) then (
+          let frame = Stack.pop frame_stack in
+          let elapsed = now () -. frame.start_time in
+          let exclusive = elapsed -. frame.child_time in
+          let stats = get_or_create_stats func_stats id in
+          stats.count <- stats.count + 1;
+          if not frame.is_recursive then
+            stats.inclusive_time <- stats.inclusive_time +. elapsed;
+          stats.exclusive_time <- stats.exclusive_time +. exclusive;
+          if not (Stack.is_empty frame_stack) then
+            let parent = Stack.top frame_stack in
+            parent.child_time <- parent.child_time +. elapsed)
+    | _ -> ()
 
   let finish () =
     let rel_list =

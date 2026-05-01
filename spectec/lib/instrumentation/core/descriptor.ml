@@ -1,27 +1,24 @@
-(* Descriptor — plugin declarations for instrumentation handlers.
+(** Plugin declarations for instrumentation handlers.
 
-   Separates static plugin metadata (name, params, parse, checkpoint)
-   from the runtime Handler.S interface.
+    {!S} describes a handler statically — its CLI parameters, how to build a
+    live handler from parsed flags, and optionally how to checkpoint state.
+    {!Handler.S} is the counterpart: what the interpreter calls at runtime. The
+    two are split so the CLI can enumerate descriptors without constructing
+    handlers. *)
 
-   Handler.S     = what the interpreter calls at runtime.
-   Descriptor    = what the CLI uses to build Handler.S instances from flags.
-*)
-
-(* Checkpoint operations for handlers with persistent state *)
+(** Checkpoint serialization hooks for handlers with persistent state. *)
 type checkpoint_ops = {
-  snapshot : unit -> bytes; (* Marshal state for checkpointing *)
-  restore : bytes -> unit; (* Unmarshal and reload state *)
-  merge : bytes -> bytes -> bytes; (* Merge two checkpoint states *)
+  snapshot : unit -> bytes;
+  restore : bytes -> unit;
+  merge : bytes -> bytes -> bytes;
 }
 
-(* A configured, active handler — name + handler + its output destination.
-   `name` is the descriptor name, surfaced here so callers (e.g. checkpoint)
-   can match by name without opening the handler module.
-   `mode` is carried forward so Config.validate_mode can check compatibility
-   without re-opening the descriptor.
-   `output` is surfaced so Config.close_outputs can call Output.close generically.
-   Note: should only expose things callers need to act on generically after
-   handler construction. Everything else can be encapsulated inside each handler. *)
+(** A handler that has been configured from CLI flags.
+
+    Fields here are the ones callers need to act on {i generically} after
+    construction — [name] for identity (e.g. checkpoint matching), [mode] for
+    {!Config.validate_mode}, [output] for {!Config.close_outputs}. Everything
+    else stays encapsulated inside the handler module. *)
 type active_handler = {
   name : string;
   mode : [ `IL | `SL | `Both ];
@@ -29,18 +26,17 @@ type active_handler = {
   output : Output.t;
 }
 
-(* Static declaration of a handler plugin:
-   what CLI params it accepts, how to parse them into an active_handler,
-   and optionally how to checkpoint state. *)
 module type S = sig
   val name : string
   val mode : [ `IL | `SL | `Both ]
 
-  (* (param_name, doc) *)
+  (** [(param_name, doc)] entries for CLI help. *)
   val params : (string * string) list
+
   val parse : (string * string option) list -> active_handler option
   val checkpoint : checkpoint_ops option
 end
 
-(* First-class module wrapper for heterogeneous descriptor lists *)
+(** First-class module wrapper so descriptors can live in a heterogeneous list.
+*)
 type t = (module S)

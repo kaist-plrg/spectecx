@@ -1,25 +1,13 @@
-(* IL Node coverage handler - Tracks premise execution.
-
-   Implements Instrumentation_core.Handler.S interface.
-   Records all premises at init(), then tracks which are hit during execution.
-
-   Output levels:
-   - Summary: stats + uncovered items only
-   - Full: GCOV-style annotated spec with execution counts
-
-   Usage:
-     let handler = Node_coverage_il.make { level = Full; output = Instrumentation_core.Output.stdout }
-*)
+(** IL node coverage: records premises at session init, tracks execution counts,
+    reports at finish. [Summary] lists only uncovered premises; [Full] emits a
+    GCOV-style annotated spec with per-premise counts. *)
 
 open Common.Source
 open Lang.Il
 open Instrumentation_core.Util
 open Instrumentation_static.Premise_uid
 
-(* Verbosity levels *)
 type level = Summary | Full
-
-(* Handler configuration *)
 type config = { level : level; output : Instrumentation_core.Output.t }
 
 let default_config =
@@ -128,42 +116,29 @@ module M : Instrumentation_core.Handler.S = struct
           il_spec
     | Instrumentation_core.Handler.SlSpec _ -> ()
 
-  (* Test lifecycle hooks - manage test case ID for coverage tracking *)
-  let on_test_start ~test_case_id:id = State.set_test_case_id id
-  let on_test_end ~test_case_id:_ = State.clear_test_case_id ()
-  let on_rel_enter = Instrumentation_core.Noop.on_rel_enter
-  let on_rel_exit = Instrumentation_core.Noop.on_rel_exit
-  let on_rule_enter = Instrumentation_core.Noop.on_rule_enter
-  let on_rule_exit = Instrumentation_core.Noop.on_rule_exit
-  let on_func_enter = Instrumentation_core.Noop.on_func_enter
-  let on_func_exit = Instrumentation_core.Noop.on_func_exit
-  let on_clause_enter = Instrumentation_core.Noop.on_clause_enter
-  let on_clause_exit = Instrumentation_core.Noop.on_clause_exit
-  let on_iter_prem_enter = Instrumentation_core.Noop.on_iter_prem_enter
-  let on_iter_prem_exit = Instrumentation_core.Noop.on_iter_prem_exit
-
-  let on_prem_enter ~prem ~at:_ =
-    let key = prem_key prem in
-    State.incr_count State.prems_attempted key;
-    State.record_premise_coverage key
-
-  let on_prem_exit ~prem ~at:_ ~success =
-    let key = prem_key prem in
-    if success then (
-      State.incr_count State.prems_succeeded key;
-      State.record_premise_coverage key)
-    else
-      let rec incr_failures prem =
-        match prem.it with
-        | LetPr _ | ElsePr | DebugPr _ | IfHoldPr _ | IfNotHoldPr _ -> ()
-        | IterPr (inner, _) -> incr_failures inner
-        | IfPr _ | RulePr _ ->
-            let key = prem_key prem in
-            State.incr_count State.prems_failed key
-      in
-      incr_failures prem
-
-  let on_instr = Instrumentation_core.Noop.on_instr
+  let handle : Instrumentation_core.Handler.event -> unit = function
+    | Test_start { test_case_id } -> State.set_test_case_id test_case_id
+    | Test_end _ -> State.clear_test_case_id ()
+    | Prem_enter { prem; at = _ } ->
+        let key = prem_key prem in
+        State.incr_count State.prems_attempted key;
+        State.record_premise_coverage key
+    | Prem_exit { prem; at = _; success } ->
+        let key = prem_key prem in
+        if success then (
+          State.incr_count State.prems_succeeded key;
+          State.record_premise_coverage key)
+        else
+          let rec incr_failures prem =
+            match prem.it with
+            | LetPr _ | ElsePr | DebugPr _ | IfHoldPr _ | IfNotHoldPr _ -> ()
+            | IterPr (inner, _) -> incr_failures inner
+            | IfPr _ | RulePr _ ->
+                let key = prem_key prem in
+                State.incr_count State.prems_failed key
+          in
+          incr_failures prem
+    | _ -> ()
 
   (* --- Output: Summary mode (stats + uncovered only) --- *)
 
