@@ -3,4 +3,4 @@
 (library
  (name instrumentation_dispatcher)
  (public_name spectec.instrumentation.dispatcher)
- (libraries instrumentation_api))
+ (libraries instrumentation_api instrumentation_common))

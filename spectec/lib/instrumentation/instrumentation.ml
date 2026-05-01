@@ -10,6 +10,7 @@ module Node_coverage_sl = Instrumentation_handlers.Node_coverage_sl
 module Profile = Instrumentation_handlers.Profile
 module Trace = Instrumentation_handlers.Trace
 module Run_config = Instrumentation_config.Config
+module Exn = Instrumentation_common.Exn
 
 module Handler = struct
   include Instrumentation_api.Handler
@@ -40,11 +41,17 @@ let builtin_handler_specs : Handler.Spec.t list =
 let with_instrumentation (config : Config.t) (spec : Static.spec)
     (f : unit -> 'a) : 'a =
   let handlers = Config.handlers config in
+  let cleanup () =
+    let first_error = Exn.try_record_first_error None Dispatcher.finish in
+    let first_error =
+      Exn.try_record_first_error first_error (fun () ->
+          Config.close_outputs config)
+    in
+    Exn.raise_recorded_error first_error
+  in
   Static.reset_all ();
   Config.register_static_dependencies config;
   Static.init_all spec;
-  Dispatcher.init ~spec ~handlers;
-  let result = f () in
-  Dispatcher.finish ();
-  Config.close_outputs config;
-  result
+  Exn.with_cleanup ~cleanup (fun () ->
+      Dispatcher.init ~spec ~handlers;
+      f ())

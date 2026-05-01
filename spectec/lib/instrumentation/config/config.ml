@@ -1,3 +1,5 @@
+module Exn = Instrumentation_common.Exn
+
 type t = Handler_config.t list
 
 let default = []
@@ -30,4 +32,11 @@ let validate_mode (config : t) ~sl_mode =
         (Printf.sprintf "Instrumentation handlers incompatible with %s mode: %s"
            mode_str details)
 
-let close_outputs (config : t) = List.iter Handler_config.close_output config
+let close_outputs (config : t) =
+  config
+  |> List.fold_left
+       (fun first_error entry ->
+         Exn.try_record_first_error first_error (fun () ->
+             Handler_config.close_output entry))
+       None
+  |> Exn.raise_recorded_error

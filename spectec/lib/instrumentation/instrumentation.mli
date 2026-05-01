@@ -34,7 +34,6 @@ end
 val builtin_handler_specs : Handler.Spec.t list
 
 (** [with_instrumentation config spec f] initializes static analyses, starts the
-    instrumentation dispatcher, runs [f ()], and tears everything down via
-    [Fun.protect] so outputs close and handlers finish on both the success and
-    exception paths. *)
+    instrumentation dispatcher, runs [f ()], and always finishes handlers and
+    closes outputs on both the success and exception paths. *)
 val with_instrumentation : Config.t -> Static.spec -> (unit -> 'a) -> 'a
