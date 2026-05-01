@@ -1,6 +1,6 @@
-(** Event dispatcher for instrumentation handlers. Drive sessions via
-    {!Instrumentation.with_session}; interpreters call {!emit}. [init] fails if
-    a session is already active; [finish] is idempotent. *)
+(** Event runtime for instrumentation handlers. Drive instrumentation via
+    {!Instrumentation.with_instrumentation}; interpreters call {!emit}. [init]
+    fails if instrumentation is already active; [finish] is idempotent. *)
 
 val init : spec:Handler.spec -> handlers:(module Handler.S) list -> unit
 

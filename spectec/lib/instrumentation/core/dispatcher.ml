@@ -6,7 +6,7 @@ let init ~spec ~handlers =
   (match !session with
   | Idle -> ()
   | Active _ ->
-      failwith "Instrumentation.Dispatcher.init: session already active");
+      failwith "Instrumentation.Dispatcher.init: instrumentation already active");
   List.iter (fun (module H : Handler.S) -> H.init ~spec) handlers;
   session := Active handlers
 

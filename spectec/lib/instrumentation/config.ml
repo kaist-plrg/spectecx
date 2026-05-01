@@ -1,7 +1,7 @@
 open Instrumentation_core
 open Descriptor
 
-type t = active_handler list
+type t = selected_handler list
 
 let default = []
 

@@ -6,6 +6,7 @@ module Hint = Envs.Hint
 module Typ = Envs.Il.Typ
 open Error
 open Attempt
+module Events = Instrumentation.Handler
 module F = Format
 
 (* Assignments *)
@@ -919,7 +920,8 @@ and eval_prem (ctx : Ctx.t) (prem : prem) : Ctx.t attempt =
   in
   (match prem.it with
   | IterPr _ -> ()
-  | _ -> Instrumentation.Dispatcher.emit (Prem_enter { prem; at = prem.at }));
+  | _ ->
+      Instrumentation.Dispatcher.emit (Events.Prem_enter { prem; at = prem.at }));
   let result =
     match prem.it with
     | RulePr (id, notexp) -> eval_rule_prem ctx id notexp
@@ -935,7 +937,7 @@ and eval_prem (ctx : Ctx.t) (prem : prem) : Ctx.t attempt =
   | IterPr _ -> ()
   | _ ->
       Instrumentation.Dispatcher.emit
-        (Prem_exit { prem; at = prem.at; success = Result.is_ok result }));
+        (Events.Prem_exit { prem; at = prem.at; success = Result.is_ok result }));
   result
 
 and eval_prems (ctx : Ctx.t) (prems : prem list) : Ctx.t attempt =
@@ -974,9 +976,10 @@ and eval_iter_prem_list (ctx : Ctx.t) (prem : prem) (vars : var list) :
             (fun ctx_values_binding_batch ctx_sub ->
               let* ctx, values_binding_batch_rev = ctx_values_binding_batch in
               Instrumentation.Dispatcher.emit
-                (Iter_prem_enter { prem; at = prem.at });
+                (Events.Iter_prem_enter { prem; at = prem.at });
               let* ctx_sub = eval_prem ctx_sub prem in
-              Instrumentation.Dispatcher.emit (Iter_prem_exit { at = prem.at });
+              Instrumentation.Dispatcher.emit
+                (Events.Iter_prem_exit { at = prem.at });
               let value_binding_batch =
                 List.map
                   (fun (id_binding, _typ_binding, iters_binding) ->
@@ -1041,10 +1044,10 @@ and eval_iter_prem (ctx : Ctx.t) (prem : prem) (iterexp : iterexp) :
               (fun ctx_values_binding_batch ctx_sub ->
                 let* ctx, values_binding_batch_rev = ctx_values_binding_batch in
                 Instrumentation.Dispatcher.emit
-                  (Iter_prem_enter { prem; at = prem.at });
+                  (Events.Iter_prem_enter { prem; at = prem.at });
                 let* ctx_sub = eval_prem ctx_sub prem in
                 Instrumentation.Dispatcher.emit
-                  (Iter_prem_exit { at = prem.at });
+                  (Events.Iter_prem_exit { at = prem.at });
                 let value_binding_batch =
                   List.map
                     (fun (id_binding, _typ_binding, iters_binding) ->
@@ -1088,7 +1091,7 @@ and eval_iter_prem (ctx : Ctx.t) (prem : prem) (iterexp : iterexp) :
 and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
     (Ctx.t * value list) attempt =
   Instrumentation.Dispatcher.emit
-    (Rel_enter { id = id.it; at = id.at; values = values_input });
+    (Events.Rel_enter { id = id.it; at = id.at; values = values_input });
   (* Rule matching *)
   let match_rule ctx inputs rule values_input =
     let _, notexp, prems = rule.it in
@@ -1120,7 +1123,8 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
             in
             let attempt_rule () : (Ctx.t * value list) attempt =
               Instrumentation.Dispatcher.emit
-                (Rule_enter { id = id.it; rule_id = id_rule.it; at = id.at });
+                (Events.Rule_enter
+                   { id = id.it; rule_id = id_rule.it; at = id.at });
               (* Create a subtrace for the rule *)
               let ctx_local = Ctx.localize ctx in
               (* Try to match the rule *)
@@ -1135,7 +1139,7 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
                         id_rule.it)
               in
               Instrumentation.Dispatcher.emit
-                (Rule_exit
+                (Events.Rule_exit
                    {
                      id = id.it;
                      rule_id = id_rule.it;
@@ -1160,7 +1164,7 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
   in
   let result = invoke_rel' () in
   Instrumentation.Dispatcher.emit
-    (Rel_exit { id = id.it; at = id.at; success = Result.is_ok result });
+    (Events.Rel_exit { id = id.it; at = id.at; success = Result.is_ok result });
   result |> nest id.at (F.asprintf "invocation of relation %s failed" id.it)
 
 (* Invoke a function *)
@@ -1169,7 +1173,7 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     (Ctx.t * value) attempt =
   let ctx, values_input = eval_args ctx args in
   Instrumentation.Dispatcher.emit
-    (Func_enter { id = id.it; at = id.at; values = values_input });
+    (Events.Func_enter { id = id.it; at = id.at; values = values_input });
   (* Clause matching *)
   let match_clause ctx_caller ctx_callee clause values_input =
     let args_input, exp_output, prems = clause.it in
@@ -1184,12 +1188,13 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     (* Invoke builtin function *)
     let invoke_func_builtin' () =
       Instrumentation.Dispatcher.emit
-        (Clause_enter { id = id.it; clause_idx = 0; at = id.at });
+        (Events.Clause_enter { id = id.it; clause_idx = 0; at = id.at });
       let value_output =
         ctx.builtins.invoke id targs values_input |> unwrap_builtin
       in
       Instrumentation.Dispatcher.emit
-        (Clause_exit { id = id.it; clause_idx = 0; at = id.at; success = true });
+        (Events.Clause_exit
+           { id = id.it; clause_idx = 0; at = id.at; success = true });
       Ok (ctx, value_output)
     in
     invoke_func_builtin' ()
@@ -1225,7 +1230,7 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
             in
             let attempt_clause () : (Ctx.t * value) attempt =
               Instrumentation.Dispatcher.emit
-                (Clause_enter
+                (Events.Clause_enter
                    { id = id.it; clause_idx = idx_clause; at = id.at });
               (* Create a subtrace for the clause *)
               let ctx_local = Ctx.localize ctx in
@@ -1251,7 +1256,7 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
                         (Print.string_of_args args_input))
               in
               Instrumentation.Dispatcher.emit
-                (Clause_exit
+                (Events.Clause_exit
                    {
                      id = id.it;
                      clause_idx = idx_clause;
@@ -1312,7 +1317,7 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     in
     Ok (ctx, value_output)
   in
-  Instrumentation.Dispatcher.emit (Func_exit { id = id.it; at = id.at });
+  Instrumentation.Dispatcher.emit (Events.Func_exit { id = id.it; at = id.at });
   result
   |> nest id.at
        (F.asprintf "invocation of function %s%s%s failed"

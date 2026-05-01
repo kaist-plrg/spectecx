@@ -39,7 +39,7 @@ type event =
     act on the constructors they care about (default: [| _ -> ()]). *)
 module type S = sig
   (** Static analyses this handler needs. Registered via {!Config.to_handlers}
-      before session init. *)
+      before runtime init. *)
   val static_dependencies : (module Instrumentation_static.Static.S) list
 
   val init : spec:spec -> unit

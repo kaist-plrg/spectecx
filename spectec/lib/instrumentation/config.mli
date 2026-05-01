@@ -3,7 +3,7 @@
 
 open Instrumentation_core
 
-type t = Descriptor.active_handler list
+type t = Descriptor.selected_handler list
 
 val default : t
 

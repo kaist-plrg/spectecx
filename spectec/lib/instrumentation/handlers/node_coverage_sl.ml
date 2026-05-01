@@ -254,7 +254,7 @@ let make cfg =
   fmt := Instrumentation_core.Output.formatter cfg.output;
   (module M : Instrumentation_core.Handler.S)
 
-module Descriptor : Instrumentation_core.Descriptor.S = struct
+module Spec : Instrumentation_core.Descriptor.S = struct
   let name = "instruction-coverage"
   let mode = `SL
 
@@ -303,4 +303,4 @@ module Descriptor : Instrumentation_core.Descriptor.S = struct
         }
 end
 
-let descriptor : Instrumentation_core.Descriptor.t = (module Descriptor)
+let spec : Instrumentation_core.Descriptor.t = (module Spec)

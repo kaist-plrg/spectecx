@@ -170,7 +170,7 @@ let make cfg =
   fmt := Instrumentation_core.Output.formatter cfg.output;
   (module M : Instrumentation_core.Handler.S)
 
-module Descriptor : Instrumentation_core.Descriptor.S = struct
+module Spec : Instrumentation_core.Descriptor.S = struct
   let name = "profile"
   let mode = `Both
   let params = [ Instrumentation_core.Param_utils.output_param ]
@@ -191,4 +191,4 @@ module Descriptor : Instrumentation_core.Descriptor.S = struct
   let checkpoint = None
 end
 
-let descriptor : Instrumentation_core.Descriptor.t = (module Descriptor)
+let spec : Instrumentation_core.Descriptor.t = (module Spec)

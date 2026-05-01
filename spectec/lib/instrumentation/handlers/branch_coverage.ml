@@ -287,7 +287,7 @@ let make_with_data cfg =
       with type result = result),
     get_result )
 
-module Descriptor : Instrumentation_core.Descriptor.S = struct
+module Spec : Instrumentation_core.Descriptor.S = struct
   let name = "branch-coverage"
   let mode = `Both
 
@@ -336,4 +336,4 @@ module Descriptor : Instrumentation_core.Descriptor.S = struct
         }
 end
 
-let descriptor : Instrumentation_core.Descriptor.t = (module Descriptor)
+let spec : Instrumentation_core.Descriptor.t = (module Spec)

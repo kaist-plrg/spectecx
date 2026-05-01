@@ -1,5 +1,3 @@
-module Handler = Instrumentation_core.Handler
-module Descriptor = Instrumentation_core.Descriptor
 module Dispatcher = Instrumentation_core.Dispatcher
 module Output = Instrumentation_core.Output
 module Util = Instrumentation_core.Util
@@ -12,18 +10,23 @@ module Profile = Instrumentation_handlers.Profile
 module Trace = Instrumentation_handlers.Trace
 module Config = Config
 
+module Handler = struct
+  include Instrumentation_core.Handler
+  module Spec = Instrumentation_core.Descriptor
+end
+
 (* *** Add one entry here when adding a new handler *** *)
-let all_descriptors : Descriptor.t list =
+let builtin_handler_specs : Handler.Spec.t list =
   [
-    Trace.descriptor;
-    Profile.descriptor;
-    Branch_coverage.descriptor;
-    Node_coverage_il.descriptor;
-    Node_coverage_sl.descriptor;
+    Trace.spec;
+    Profile.spec;
+    Branch_coverage.spec;
+    Node_coverage_il.spec;
+    Node_coverage_sl.spec;
   ]
 
-let with_session (config : Config.t) (spec : Static.spec) (f : unit -> 'a) : 'a
-    =
+let with_instrumentation (config : Config.t) (spec : Static.spec)
+    (f : unit -> 'a) : 'a =
   let handlers = Config.to_handlers config in
   Static.reset_all ();
   Static.init_all spec;

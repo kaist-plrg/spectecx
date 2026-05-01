@@ -34,7 +34,9 @@ let run_with_task (type i) (module T : Spectec.Task.S with type input = i)
       | None -> failwith ("T not found: " ^ filename)
       | Some input ->
           let%bind _ =
-            Spectec.eval_task_with_session (module T) ~sl_mode ~spec_il input
+            Spectec.eval_task_with_instrumentation
+              (module T)
+              ~sl_mode ~spec_il input
           in
           Ok ()
     in

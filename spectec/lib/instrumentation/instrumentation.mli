@@ -1,8 +1,6 @@
-(** Instrumentation facade. Drive sessions via {!with_session} rather than
-    poking {!Dispatcher} directly. *)
+(** Instrumentation facade. Drive instrumentation via {!with_instrumentation}
+    rather than poking {!Dispatcher} directly. *)
 
-module Handler = Instrumentation_core.Handler
-module Descriptor = Instrumentation_core.Descriptor
 module Dispatcher = Instrumentation_core.Dispatcher
 module Output = Instrumentation_core.Output
 module Util = Instrumentation_core.Util
@@ -15,12 +13,17 @@ module Profile = Instrumentation_handlers.Profile
 module Trace = Instrumentation_handlers.Trace
 module Config = Config
 
-(** Every built-in handler descriptor. Add a new handler by appending here and
-    nowhere else — the CLI discovers handlers through this list. *)
-val all_descriptors : Descriptor.t list
+module Handler : sig
+  include module type of Instrumentation_core.Handler
+  module Spec = Instrumentation_core.Descriptor
+end
 
-(** [with_session config spec f] initializes static analyses, starts a
-    dispatcher session, runs [f ()], and tears everything down via [Fun.protect]
-    so outputs close and handlers finish on both the success and exception
-    paths. *)
-val with_session : Config.t -> Static.spec -> (unit -> 'a) -> 'a
+(** Every built-in handler spec. Add a new handler by appending here and nowhere
+    else — the CLI discovers handlers through this list. *)
+val builtin_handler_specs : Handler.Spec.t list
+
+(** [with_instrumentation config spec f] initializes static analyses, starts the
+    instrumentation dispatcher, runs [f ()], and tears everything down via
+    [Fun.protect] so outputs close and handlers finish on both the success and
+    exception paths. *)
+val with_instrumentation : Config.t -> Static.spec -> (unit -> 'a) -> 'a
