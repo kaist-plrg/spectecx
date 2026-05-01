@@ -1,4 +1,4 @@
-(* Lightweight helpers for use inside Descriptor submodule implementations. *)
+(* Lightweight helpers for use inside Spec submodule implementations. *)
 
 (* Look up a param value in the alist — e.g., Param_utils.get alist "level" *)
 let get params key = List.assoc_opt key params |> Option.join

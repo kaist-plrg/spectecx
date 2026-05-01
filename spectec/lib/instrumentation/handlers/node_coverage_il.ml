@@ -116,7 +116,7 @@ module M : Instrumentation_core.Handler.S = struct
           il_spec
     | Instrumentation_core.Handler.SlSpec _ -> ()
 
-  let handle : Instrumentation_core.Handler.event -> unit = function
+  let handle : Instrumentation_core.Event.t -> unit = function
     | Test_start { test_case_id } -> State.set_test_case_id test_case_id
     | Test_end _ -> State.clear_test_case_id ()
     | Prem_enter { prem; at = _ } ->
@@ -435,7 +435,7 @@ let make_with_data cfg =
       with type result = result),
     get_result )
 
-module Spec : Instrumentation_core.Descriptor.S = struct
+module Spec : Instrumentation_core.Spec.S = struct
   let name = "premise-coverage"
   let mode = `IL
 
@@ -462,16 +462,11 @@ module Spec : Instrumentation_core.Descriptor.S = struct
           }
         in
         Some
-          {
-            Instrumentation_core.Descriptor.name;
-            mode;
-            handler = make cfg;
-            output;
-          }
+          { Instrumentation_core.Config.name; mode; handler = make cfg; output }
 
   let checkpoint =
     Some
-      Instrumentation_core.Descriptor.
+      Instrumentation_core.Spec.
         {
           snapshot = (fun () -> Marshal.to_bytes (get_result ()) []);
           restore = (fun b -> restore (Marshal.from_bytes b 0));
@@ -484,4 +479,4 @@ module Spec : Instrumentation_core.Descriptor.S = struct
         }
 end
 
-let spec : Instrumentation_core.Descriptor.t = (module Spec)
+let spec : Instrumentation_core.Spec.t = (module Spec)

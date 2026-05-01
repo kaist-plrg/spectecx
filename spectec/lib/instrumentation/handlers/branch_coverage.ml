@@ -77,7 +77,7 @@ module M : Instrumentation_core.Handler.S = struct
             | _ -> ())
           sl_spec
 
-  let handle : Instrumentation_core.Handler.event -> unit = function
+  let handle : Instrumentation_core.Event.t -> unit = function
     | Rule_exit { id; rule_id; at = _; success } ->
         if success then State.incr State.rules_hit (id, rule_id)
     | Clause_exit { id; clause_idx; at = _; success } ->
@@ -287,7 +287,7 @@ let make_with_data cfg =
       with type result = result),
     get_result )
 
-module Spec : Instrumentation_core.Descriptor.S = struct
+module Spec : Instrumentation_core.Spec.S = struct
   let name = "branch-coverage"
   let mode = `Both
 
@@ -314,16 +314,11 @@ module Spec : Instrumentation_core.Descriptor.S = struct
           }
         in
         Some
-          {
-            Instrumentation_core.Descriptor.name;
-            mode;
-            handler = make cfg;
-            output;
-          }
+          { Instrumentation_core.Config.name; mode; handler = make cfg; output }
 
   let checkpoint =
     Some
-      Instrumentation_core.Descriptor.
+      Instrumentation_core.Spec.
         {
           snapshot = (fun () -> Marshal.to_bytes (get_result ()) []);
           restore = (fun b -> restore (Marshal.from_bytes b 0));
@@ -336,4 +331,4 @@ module Spec : Instrumentation_core.Descriptor.S = struct
         }
 end
 
-let spec : Instrumentation_core.Descriptor.t = (module Spec)
+let spec : Instrumentation_core.Spec.t = (module Spec)

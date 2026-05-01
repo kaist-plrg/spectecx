@@ -10,7 +10,7 @@ let init ~spec ~handlers =
   List.iter (fun (module H : Handler.S) -> H.init ~spec) handlers;
   session := Active handlers
 
-let emit (ev : Handler.event) : unit =
+let emit (ev : Event.t) : unit =
   match !session with
   | Active hs -> List.iter (fun (module H : Handler.S) -> H.handle ev) hs
   | Idle -> ()

@@ -6,7 +6,7 @@ open Instrumentation
 (** Build a Param for one typed handler spec. Maps each declared param to a
     --name.param_name flag, then calls D.parse. *)
 let handler_param (module D : Handler.Spec.S) :
-    Handler.Spec.selected_handler option Core.Command.Param.t =
+    Handler.Config.t option Core.Command.Param.t =
   let open Core.Command.Param in
   (* One flag per declared parameter *)
   let flag_params =

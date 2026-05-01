@@ -2,6 +2,7 @@
     rather than poking {!Dispatcher} directly. *)
 
 module Dispatcher = Instrumentation_core.Dispatcher
+module Event = Instrumentation_core.Event
 module Output = Instrumentation_core.Output
 module Util = Instrumentation_core.Util
 module Static = Instrumentation_static.Static
@@ -11,11 +12,21 @@ module Node_coverage_il = Instrumentation_handlers.Node_coverage_il
 module Node_coverage_sl = Instrumentation_handlers.Node_coverage_sl
 module Profile = Instrumentation_handlers.Profile
 module Trace = Instrumentation_handlers.Trace
-module Config = Config
 
 module Handler : sig
   include module type of Instrumentation_core.Handler
-  module Spec = Instrumentation_core.Descriptor
+  module Spec = Instrumentation_core.Spec
+  module Config = Instrumentation_core.Config
+end
+
+module Config : sig
+  type t = Handler.Config.t list
+
+  val default : t
+  val register_static_dependencies : t -> unit
+  val handlers : t -> (module Handler.S) list
+  val validate_mode : t -> sl_mode:bool -> (unit, string) result
+  val close_outputs : t -> unit
 end
 
 (** Every built-in handler spec. Add a new handler by appending here and nowhere

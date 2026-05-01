@@ -1,16 +1,16 @@
-(** Active instrumentation configuration — the list of handlers selected by
-    parsing CLI flags against {!Instrumentation_core.Descriptor.S}. *)
+(** Active instrumentation configuration — the list of configured handlers built
+    by parsing CLI flags against {!Instrumentation_core.Spec.S}. *)
 
-open Instrumentation_core
-
-type t = Descriptor.selected_handler list
+type t = Instrumentation_core.Config.t list
 
 val default : t
 
-(** Extract the handler modules. As a side effect, registers every handler's
-    static dependencies so {!Instrumentation_static.Static.init_all} sees them.
-*)
-val to_handlers : t -> (module Handler.S) list
+(** Register every configured handler's static dependencies so
+    {!Instrumentation_static.Static.init_all} sees them. *)
+val register_static_dependencies : t -> unit
+
+(** Extract the configured runtime handlers. *)
+val handlers : t -> (module Instrumentation_core.Handler.S) list
 
 (** [Error msg] when any configured handler is incompatible with the chosen
     interpreter mode ([sl_mode] selects SL vs IL). *)

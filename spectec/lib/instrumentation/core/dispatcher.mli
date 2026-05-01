@@ -6,6 +6,6 @@ val init : spec:Handler.spec -> handlers:(module Handler.S) list -> unit
 
 (** Dispatch an event to all active handlers. No-op when no session is active,
     so interpreters can be driven without instrumentation configured. *)
-val emit : Handler.event -> unit
+val emit : Event.t -> unit
 
 val finish : unit -> unit

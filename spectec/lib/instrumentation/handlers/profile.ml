@@ -52,7 +52,7 @@ module M : Instrumentation_core.Handler.S = struct
   let static_dependencies = []
   let init ~spec:_ = State.reset ()
 
-  let handle : Instrumentation_core.Handler.event -> unit = function
+  let handle : Instrumentation_core.Event.t -> unit = function
     | Rel_enter { id; at = _; values = _ } ->
         let is_recursive =
           frame_stack |> Stack.to_seq
@@ -170,7 +170,7 @@ let make cfg =
   fmt := Instrumentation_core.Output.formatter cfg.output;
   (module M : Instrumentation_core.Handler.S)
 
-module Spec : Instrumentation_core.Descriptor.S = struct
+module Spec : Instrumentation_core.Spec.S = struct
   let name = "profile"
   let mode = `Both
   let params = [ Instrumentation_core.Param_utils.output_param ]
@@ -182,7 +182,7 @@ module Spec : Instrumentation_core.Descriptor.S = struct
         let output = Instrumentation_core.Output.file path in
         Some
           {
-            Instrumentation_core.Descriptor.name;
+            Instrumentation_core.Config.name;
             mode;
             handler = make { output };
             output;
@@ -191,4 +191,4 @@ module Spec : Instrumentation_core.Descriptor.S = struct
   let checkpoint = None
 end
 
-let spec : Instrumentation_core.Descriptor.t = (module Spec)
+let spec : Instrumentation_core.Spec.t = (module Spec)

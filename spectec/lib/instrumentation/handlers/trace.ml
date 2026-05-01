@@ -38,7 +38,7 @@ module M : Instrumentation_core.Handler.S = struct
   let init ~spec:_ = State.reset ()
   let finish () = ()
 
-  let handle : Instrumentation_core.Handler.event -> unit = function
+  let handle : Instrumentation_core.Event.t -> unit = function
     | Test_start _ | Test_end _ -> ()
     | Rel_enter { id; at = _; values } ->
         Format.fprintf !fmt "%s→ %s\n%!" (State.indent ()) id;
@@ -89,7 +89,7 @@ let make cfg =
   fmt := Instrumentation_core.Output.formatter cfg.output;
   (module M : Instrumentation_core.Handler.S)
 
-module Spec : Instrumentation_core.Descriptor.S = struct
+module Spec : Instrumentation_core.Spec.S = struct
   let name = "trace"
   let mode = `Both
 
@@ -116,14 +116,9 @@ module Spec : Instrumentation_core.Descriptor.S = struct
           }
         in
         Some
-          {
-            Instrumentation_core.Descriptor.name;
-            mode;
-            handler = make cfg;
-            output;
-          }
+          { Instrumentation_core.Config.name; mode; handler = make cfg; output }
 
   let checkpoint = None
 end
 
-let spec : Instrumentation_core.Descriptor.t = (module Spec)
+let spec : Instrumentation_core.Spec.t = (module Spec)

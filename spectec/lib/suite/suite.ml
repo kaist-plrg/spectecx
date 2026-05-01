@@ -3,7 +3,7 @@
 
 open Spectec
 open Error
-module Events = Instrumentation.Handler
+module Events = Instrumentation.Event
 
 (* =========================================================================
    Checkpoint — resumable test run persistence
@@ -211,7 +211,7 @@ module Checkpoint = struct
           | Some _ -> (
               match
                 List.find_opt
-                  (fun a -> a.Instrumentation_core.Descriptor.name = D.name)
+                  (fun a -> a.Instrumentation.Handler.Config.name = D.name)
                   config
               with
               | Some a -> Some a

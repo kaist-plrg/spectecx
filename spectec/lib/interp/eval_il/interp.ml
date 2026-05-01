@@ -6,7 +6,7 @@ module Hint = Envs.Hint
 module Typ = Envs.Il.Typ
 open Error
 open Attempt
-module Events = Instrumentation.Handler
+module Events = Instrumentation.Event
 module F = Format
 
 (* Assignments *)

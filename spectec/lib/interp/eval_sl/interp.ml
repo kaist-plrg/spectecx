@@ -8,7 +8,7 @@ open Envs.Make
 module Hint = Envs.Hint
 module Typ = Envs.Il.Typ
 open Error
-module Events = Instrumentation.Handler
+module Events = Instrumentation.Event
 module F = Format
 
 (* Option monad *)

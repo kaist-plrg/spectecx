@@ -1,26 +1,19 @@
-open Instrumentation_core
-open Descriptor
-
-type t = selected_handler list
+type t = Instrumentation_core.Config.t list
 
 let default = []
 
-let to_handlers (config : t) =
-  let handlers = List.map (fun a -> a.handler) config in
-  List.iter
-    (fun (module H : Handler.S) ->
-      List.iter
-        (fun (module M : Instrumentation_static.Static.S) ->
-          Instrumentation_static.Static.register (module M))
-        H.static_dependencies)
-    handlers;
-  handlers
+let register_static_dependencies (config : t) =
+  List.iter Instrumentation_core.Config.register_static_dependencies config
+
+let handlers (config : t) =
+  List.map Instrumentation_core.Config.to_handler config
 
 let validate_mode (config : t) ~sl_mode =
   let interp_mode = if sl_mode then `SL else `IL in
   let incompatible =
     List.filter_map
-      (fun { name; mode; _ } ->
+      (fun ({ Instrumentation_core.Config.name; mode; _ } :
+             Instrumentation_core.Config.t) ->
         match (interp_mode, mode) with
         | `IL, `SL -> Some (name, "SL only")
         | `SL, `IL -> Some (name, "IL only")
@@ -40,4 +33,4 @@ let validate_mode (config : t) ~sl_mode =
            mode_str details)
 
 let close_outputs (config : t) =
-  List.iter (fun a -> Output.close a.output) config
+  List.iter Instrumentation_core.Config.close_output config
