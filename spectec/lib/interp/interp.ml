@@ -20,3 +20,7 @@ let eval_il target spec rid args filename =
 let eval_sl target spec rid args filename =
   Eval_sl.run target spec rid args filename
   |> Result.map_error (fun e -> EvalSlError e)
+
+let run_prems target spec initial_bindings prems var_names filename =
+  Eval_il.run_prems target spec initial_bindings prems var_names filename
+  |> Result.map_error (fun e -> EvalIlError e)

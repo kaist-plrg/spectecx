@@ -23,3 +23,12 @@ val eval_sl :
   Lang.Il.Value.t list ->
   string ->
   (ctx_sl * Lang.Il.Value.t list, error) result
+
+val run_prems :
+  (module Target.S) ->
+  Lang.Il.spec ->
+  (Lang.Il.id' * Lang.Il.Value.t) list ->
+  Lang.Il.prem list ->
+  Lang.Il.id' list ->
+  string ->
+  ((Lang.Il.id' * Lang.Il.Value.t) list, error) result

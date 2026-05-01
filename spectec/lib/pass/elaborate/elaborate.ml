@@ -1832,6 +1832,36 @@ let elab_spec (spec : spec) : Lang.Il.spec Error.result =
     if errors = [] then Ok spec_il else Error errors
   with Error.ElabError e -> Error [ e ]
 
+let ctx_of_il_spec (spec_il : Il.spec) : Ctx.t =
+  List.fold_left
+    (fun ctx def ->
+      match def.it with
+      | Il.TypD (id, tparams, deftyp) ->
+          Ctx.add_typdef ctx id (Typdef.Defined (tparams, deftyp))
+      | Il.RelD (id, nottyp, inputs, _rules) ->
+          Ctx.add_rel ctx id nottyp inputs
+      | Il.DecD (id, tparams, params, typ, _clauses) ->
+          Ctx.add_defined_dec ctx id tparams params typ
+      | Il.BuiltinDecD (id, tparams, params, typ, _hints) ->
+          Ctx.add_builtin_dec ctx id tparams params typ)
+    (Ctx.init ()) spec_il
+
+let elab_prems_in_spec (spec_il : Il.spec)
+    (var_decls : (El.id * El.plaintyp) list) (el_prems : El.prem list) :
+    Il.prem list Error.result =
+  try
+    let ctx = ctx_of_il_spec spec_il in
+    let ctx =
+      List.fold_left
+        (fun ctx (id, plaintyp) ->
+          let typ_il = elab_plaintyp ctx plaintyp in
+          Ctx.add_metavar ctx id typ_il)
+        ctx var_decls
+    in
+    let _ctx, prems_il = elab_prems_with_bind ctx el_prems in
+    Ok prems_il
+  with Error.ElabError e -> Error [ e ]
+
 type single_error = Error.single_error
 type error = Error.error
 type 'a result = 'a Error.result

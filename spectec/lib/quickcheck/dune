@@ -1,0 +1,8 @@
+(library
+ (name quickcheck)
+ (public_name spectec.quickcheck)
+ (modules qc_ast qc_parse qc_ir qc_elab quickcheck
+          il_gen gen arbitrary property test random)
+ (libraries spectec.lang.il spectec.lang.el
+            spectec.pipeline.frontend spectec.pass.elaborate
+            spectec.interp bignum.bigint))
