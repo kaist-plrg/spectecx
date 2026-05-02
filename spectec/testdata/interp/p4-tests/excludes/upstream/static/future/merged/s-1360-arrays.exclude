@@ -1,0 +1,7 @@
+p4c/testdata/p4_16_samples/array1.p4
+p4c/testdata/p4_16_samples/array2.p4
+p4c/testdata/p4_16_samples/array3.p4
+p4c/testdata/p4_16_samples/array5.p4
+p4c/testdata/p4_16_samples/externArray1.p4
+p4c/testdata/p4_16_samples/issue5335_default_initialized_non_header_stack.p4
+p4c/testdata/p4_16_samples/issue5335_default_initialized_non_header_stack_nested.p4

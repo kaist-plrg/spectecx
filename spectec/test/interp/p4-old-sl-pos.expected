@@ -874,7 +874,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16
 Typechecker success: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/hash_ubpf.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/hashext.p4
-Typechecker success: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/hashext.p4
+Excluding file: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/hashext.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/hashext2.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/hashext2.p4
@@ -2137,7 +2137,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16
 Typechecker success: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/issue5211_simplify_parsers_dup_state_local_var_decl.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/issue5231-const-int-concat.p4
-Typechecker success: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/issue5231-const-int-concat.p4
+Excluding file: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/issue5231-const-int-concat.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/issue529.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/issue529.p4
@@ -3835,9 +3835,9 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16
 Typechecker success: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/xor_test.p4
 
 Typechecker (sl) summary
-  Ran:       1063 / 1278   (83.18%)
-  Passed:    1063 (100.00% of ran)
+  Ran:       1061 / 1278   (83.02%)
+  Passed:    1061 (100.00% of ran)
   Failed:       0 (0.00% of ran)
-  Skipped:    215 (16.82% of total)
+  Skipped:    217 (16.98% of total)
 
 

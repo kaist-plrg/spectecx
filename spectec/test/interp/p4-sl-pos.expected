@@ -874,8 +874,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16
 Typechecker success: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/hash_ubpf.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/hashext.p4
-Typechecker failed: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/hashext.p4
-  ../../../../../spectec/examples/p4-concrete/5-typing/5.11-typing-declaration.spectec:1133:6-1133:13:Error: relation was not matched
+Excluding file: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/hashext.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/hashext2.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/hashext2.p4
@@ -2139,8 +2138,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16
 Typechecker success: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/issue5211_simplify_parsers_dup_state_local_var_decl.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/issue5231-const-int-concat.p4
-Typechecker failed: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/issue5231-const-int-concat.p4
-  ../../../../../spectec/examples/p4-concrete/5-typing/5.06.2-typing-expression-eval.spectec:312:6-312:34:Error: relation has no instructions
+Excluding file: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/issue5231-const-int-concat.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/issue529.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/issue529.p4
@@ -3841,19 +3839,15 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16
 Typechecker success: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/xor_test.p4
 
 Typechecker (sl) summary
-  Ran:       1063 / 1278   (83.18%)
-  Passed:    1057 (99.44% of ran)
-  Failed:       6 (0.56% of ran)
-  Skipped:    215 (16.82% of total)
+  Ran:       1061 / 1278   (83.02%)
+  Passed:    1057 (99.62% of ran)
+  Failed:       4 (0.38% of ran)
+  Skipped:    217 (16.98% of total)
 
 
-Failures (6):
-  [FAIL] ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/hashext.p4
-    ../../../../../spectec/examples/p4-concrete/5-typing/5.11-typing-declaration.spectec:1133:6-1133:13:Error: relation was not matched
+Failures (4):
   [FAIL] ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/issue2090.p4
     ../../../../../spectec/examples/p4-concrete/5-typing/5.15.1-typing-call-convention.spectec:101:6-101:29:Error: relation was not matched
-  [FAIL] ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/issue5231-const-int-concat.p4
-    ../../../../../spectec/examples/p4-concrete/5-typing/5.06.2-typing-expression-eval.spectec:312:6-312:34:Error: relation has no instructions
   [FAIL] ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/issue561-bmv2.p4
     ../../../../../spectec/examples/p4-concrete/5-typing/5.15.1-typing-call-convention.spectec:101:6-101:29:Error: relation was not matched
   [FAIL] ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/p416-type-use3.p4

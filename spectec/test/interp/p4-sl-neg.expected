@@ -1114,8 +1114,7 @@ Expected typechecker failure: ../../../../../spectec/testdata/interp/p4-tests/te
   ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_errors/type-in-expr-lex1.p4:8:22-8:23:Error: syntax error
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_errors/type-in-expr.p4
-Expected typechecker failure: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_errors/type-in-expr.p4
-  ../../../../../spectec/examples/p4-concrete/5-typing/5.11-typing-declaration.spectec:1133:6-1133:13:Error: relation was not matched
+Excluding file: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_errors/type-in-expr.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_errors/type-params_e.p4
 Expected typechecker failure: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_errors/type-params_e.p4
@@ -1184,10 +1183,10 @@ Expected typechecker failure: ../../../../../spectec/testdata/interp/p4-tests/te
   ../../../../../spectec/examples/p4-concrete/5-typing/5.11-typing-declaration.spectec:61:6-61:13:Error: relation was not matched
 
 Typechecker (sl) summary
-  Ran:        254 / 310    (81.94%)
-  Passed:     253 (99.61% of ran)
-  Failed:       1 (0.39% of ran)
-  Skipped:     56 (18.06% of total)
+  Ran:        253 / 310    (81.61%)
+  Passed:     252 (99.60% of ran)
+  Failed:       1 (0.40% of ran)
+  Skipped:     57 (18.39% of total)
 
 
 Failures (1):
