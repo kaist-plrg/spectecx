@@ -155,13 +155,17 @@ and eq_instr (instr_a : instr) (instr_b : instr) : bool =
       eq_exp exp_a exp_b && eq_cases cases_a cases_b
       && eq_phantom_opt phantom_opt_a phantom_opt_b
   | OtherwiseI instr_a, OtherwiseI instr_b -> eq_instr instr_a instr_b
-  | LetI (exp_l_a, exp_r_a, iterexps_a), LetI (exp_l_b, exp_r_b, iterexps_b) ->
+  | ( LetI (exp_l_a, exp_r_a, iterexps_a, block_a),
+      LetI (exp_l_b, exp_r_b, iterexps_b, block_b) ) ->
       eq_exp exp_l_a exp_l_b && eq_exp exp_r_a exp_r_b
       && eq_iterexps iterexps_a iterexps_b
-  | RuleI (id_a, ne_a, iterexps_a), RuleI (id_b, ne_b, iterexps_b) ->
+      && eq_instrs block_a block_b
+  | ( RuleI (id_a, ne_a, iterexps_a, block_a),
+      RuleI (id_b, ne_b, iterexps_b, block_b) ) ->
       eq_id id_a id_b
       && Il.Mixfix.eq ~eq_arg:eq_exp ne_a ne_b
       && eq_iterexps iterexps_a iterexps_b
+      && eq_instrs block_a block_b
   | ResultI exps_a, ResultI exps_b -> eq_exps exps_a exps_b
   | ReturnI exp_a, ReturnI exp_b -> eq_exp exp_a exp_b
   | DebugI exp_a, DebugI exp_b -> eq_exp exp_a exp_b
@@ -170,3 +174,16 @@ and eq_instr (instr_a : instr) (instr_b : instr) : bool =
 and eq_instrs (instrs_a : instr list) (instrs_b : instr list) : bool =
   List.length instrs_a = List.length instrs_b
   && List.for_all2 eq_instr instrs_a instrs_b
+
+and eq_block (block_a : block) (block_b : block) : bool =
+  eq_instrs block_a block_b
+
+and eq_elseblock (elseblock_a : elseblock) (elseblock_b : elseblock) : bool =
+  eq_block elseblock_a elseblock_b
+
+and eq_elseblock_opt (elseblock_opt_a : elseblock option)
+    (elseblock_opt_b : elseblock option) : bool =
+  match (elseblock_opt_a, elseblock_opt_b) with
+  | Some elseblock_a, Some elseblock_b -> eq_elseblock elseblock_a elseblock_b
+  | None, None -> true
+  | _ -> false

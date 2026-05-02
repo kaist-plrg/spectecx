@@ -135,11 +135,14 @@ and instr' =
   | IfNotHoldI of id * notexp * iterexp list * instr list * phantom option
   | CaseI of exp * case list * phantom option
   | OtherwiseI of instr
-  | LetI of exp * exp * iterexp list
-  | RuleI of id * notexp * iterexp list
+  | LetI of exp * exp * iterexp list * instr list
+  | RuleI of id * notexp * iterexp list * instr list
   | ResultI of exp list
   | ReturnI of exp
   | DebugI of exp
+
+and block = instr list
+and elseblock = instr list
 
 (* Hints *)
 
@@ -152,11 +155,11 @@ and def' =
   (* `syntax` id `<` list(tparam, `,`) `>` `=` deftyp *)
   | TypD of id * tparam list * deftyp
   (* `relation` id `:` mixop `hint(input` `%`int* `)` list(exp, `,`) `:` instr* *)
-  | RelD of id * (mixop * int list) * exp list * instr list
+  | RelD of id * (mixop * int list) * exp list * block * elseblock option
   (* `builtin` `dec` id `<` list(tparam, `,`) `>` list(arg, `,`) *)
   | BuiltinDecD of id * tparam list * arg list
   (* `dec` id `<` list(tparam, `,`) `>` list(param, `,`) `:` typ instr* *)
-  | DecD of id * tparam list * arg list * instr list
+  | DecD of id * tparam list * arg list * block * elseblock option
 
 (* Spec *)
 

@@ -161,8 +161,12 @@ and insert_phantom' (tdenv : TDEnv.t) (pathconds : pathcond list)
   | OtherwiseI instr ->
       let instr = insert_phantom' tdenv pathconds instr in
       Sl.OtherwiseI instr $ at
-  | LetI (exp_l, exp_r, iterexps) -> Sl.LetI (exp_l, exp_r, iterexps) $ at
-  | RuleI (id, notexp, iterexps) -> Sl.RuleI (id, notexp, iterexps) $ at
+  | LetI (exp_l, exp_r, iterexps, block) ->
+      let block = insert_phantom tdenv pathconds block in
+      Sl.LetI (exp_l, exp_r, iterexps, block) $ at
+  | RuleI (id, notexp, iterexps, block) ->
+      let block = insert_phantom tdenv pathconds block in
+      Sl.RuleI (id, notexp, iterexps, block) $ at
   | ResultI exps -> Sl.ResultI exps $ at
   | ReturnI exp -> Sl.ReturnI exp $ at
   | DebugI exp -> Sl.DebugI exp $ at
@@ -204,18 +208,33 @@ and insert_nothing' (instr : instr) : Sl.instr =
   | OtherwiseI instr ->
       let instr = insert_nothing' instr in
       Sl.OtherwiseI instr $ at
-  | LetI (exp_l, exp_r, iterexps) -> Sl.LetI (exp_l, exp_r, iterexps) $ at
-  | RuleI (id, notexp, iterexps) -> Sl.RuleI (id, notexp, iterexps) $ at
+  | LetI (exp_l, exp_r, iterexps, block) ->
+      let block = insert_nothing block in
+      Sl.LetI (exp_l, exp_r, iterexps, block) $ at
+  | RuleI (id, notexp, iterexps, block) ->
+      let block = insert_nothing block in
+      Sl.RuleI (id, notexp, iterexps, block) $ at
   | ResultI exps -> Sl.ResultI exps $ at
   | ReturnI exp -> Sl.ReturnI exp $ at
   | DebugI exp -> Sl.DebugI exp $ at
 
 (* Instrumentation *)
 
-let instrument (tdenv : TDEnv.t) (instrs : instr list) : Sl.instr list =
-  if
-    List.exists
-      (fun instr -> match instr.it with OtherwiseI _ -> true | _ -> false)
-      instrs
-  then insert_nothing instrs
-  else insert_phantom tdenv [] instrs
+let instrument (tdenv : TDEnv.t) (block : instr list)
+    (elseblock_opt : instr list option) : Sl.instr list * Sl.instr list option =
+  match elseblock_opt with
+  | Some elseblock ->
+      let block = insert_nothing block in
+      let elseblock = insert_nothing elseblock in
+      (block, Some elseblock)
+  | None ->
+      let block =
+        if
+          List.exists
+            (fun instr ->
+              match instr.it with OtherwiseI _ -> true | _ -> false)
+            block
+        then insert_nothing block
+        else insert_phantom tdenv [] block
+      in
+      (block, None)

@@ -30,9 +30,9 @@ and struct_prems' (prems_internalized : (prem * iterexp list) list)
       let at = prem_h.at in
       match prem_h.it with
       | RulePr (id, notexp) ->
-          let instr_h = Ol.Ast.RuleI (id, notexp, iterexps_h) $ at in
           let instrs_t = struct_prems' prems_internalized_t instr_ret in
-          instr_h :: instrs_t
+          let instr_h = Ol.Ast.RuleI (id, notexp, iterexps_h, instrs_t) $ at in
+          [ instr_h ]
       | IfPr exp ->
           let instrs_t = struct_prems' prems_internalized_t instr_ret in
           let instr_h = Ol.Ast.IfI (exp, iterexps_h, instrs_t) $ at in
@@ -50,14 +50,36 @@ and struct_prems' (prems_internalized : (prem * iterexp list) list)
           in
           [ instr_h ]
       | LetPr (exp_l, exp_r) ->
-          let instr_h = Ol.Ast.LetI (exp_l, exp_r, iterexps_h) $ at in
           let instrs_t = struct_prems' prems_internalized_t instr_ret in
-          instr_h :: instrs_t
+          let instr_h = Ol.Ast.LetI (exp_l, exp_r, iterexps_h, instrs_t) $ at in
+          [ instr_h ]
       | DebugPr exp ->
           let instr_h = Ol.Ast.DebugI exp $ at in
           let instrs_t = struct_prems' prems_internalized_t instr_ret in
           instr_h :: instrs_t
       | _ -> assert false)
+
+let split_else_path ((prems, payload) : prem list * 'a) :
+    (prem list * 'a) option * (prem list * 'a) =
+  match List.rev prems with
+  | { it = ElsePr; _ } :: prems_rev ->
+      (Some (List.rev prems_rev, payload), (prems, payload))
+  | _ -> (None, (prems, payload))
+
+let partition_else_paths (paths : (prem list * 'a) list) :
+    (prem list * 'a) list * (prem list * 'a) option =
+  let normal_paths, else_paths =
+    List.fold_right
+      (fun path (normal_paths, else_paths) ->
+        match split_else_path path with
+        | Some else_path, _ ->
+            if else_paths <> None then
+              failwith "multiple otherwise paths are not supported"
+            else (normal_paths, Some else_path)
+        | None, normal_path -> (normal_path :: normal_paths, else_paths))
+      paths ([], None)
+  in
+  (normal_paths, else_paths)
 
 (* Structuring rules *)
 
@@ -72,6 +94,11 @@ let struct_rule_path ((prems, exps_output) : prem list * exp list) :
     else exps_output |> List.map at |> over_region
   in
   let instr_ret = Ol.Ast.ResultI exps_output $ at in
+  let prems =
+    match List.rev prems with
+    | { it = ElsePr; _ } :: prems_rev -> List.rev prems_rev
+    | _ -> prems
+  in
   struct_prems prems instr_ret
 
 (* Structuring clauses *)
@@ -80,6 +107,11 @@ let struct_clause_path ((prems, exp_output) : prem list * exp) :
     Ol.Ast.instr list =
   let at = exp_output.at in
   let instr_ret = Ol.Ast.ReturnI exp_output $ at in
+  let prems =
+    match List.rev prems with
+    | { it = ElsePr; _ } :: prems_rev -> List.rev prems_rev
+    | _ -> prems
+  in
   struct_prems prems instr_ret
 
 (* Structuring definitions *)
@@ -101,10 +133,17 @@ and struct_rel_def (henv : HEnv.t) (tdenv : TDEnv.t) (at : region) (id_rel : id)
     (nottyp : nottyp) (inputs : int list) (rules : rule list) : Sl.def =
   let mixop = Il.Mixfix.to_mixop nottyp.it in
   let exps_input, paths = Antiunify.antiunify_rules inputs rules in
-  let instrs = List.concat_map struct_rule_path paths in
-  let instrs = Optimize.optimize henv tdenv instrs in
-  let instrs = Instrument.instrument tdenv instrs in
-  Sl.RelD (id_rel, (mixop, inputs), exps_input, instrs) $ at
+  let block_paths, else_path_opt = partition_else_paths paths in
+  let block =
+    List.concat_map struct_rule_path block_paths |> Optimize.optimize henv tdenv
+  in
+  let elseblock_opt =
+    Option.map
+      (fun path -> struct_rule_path path |> Optimize.optimize henv tdenv)
+      else_path_opt
+  in
+  let block, elseblock_opt = Instrument.instrument tdenv block elseblock_opt in
+  Sl.RelD (id_rel, (mixop, inputs), exps_input, block, elseblock_opt) $ at
 
 (* Structuring builtin declaration definitions *)
 
@@ -135,10 +174,18 @@ and struct_builtin_dec_def (at : region) (id_dec : id) (tparams : tparam list)
 and struct_dec_def (henv : HEnv.t) (tdenv : TDEnv.t) (at : region) (id_dec : id)
     (tparams : tparam list) (clauses : clause list) : Sl.def =
   let args_input, paths = Antiunify.antiunify_clauses clauses in
-  let instrs = List.concat_map struct_clause_path paths in
-  let instrs = Optimize.optimize henv tdenv instrs in
-  let instrs = Instrument.instrument tdenv instrs in
-  Sl.DecD (id_dec, tparams, args_input, instrs) $ at
+  let block_paths, else_path_opt = partition_else_paths paths in
+  let block =
+    List.concat_map struct_clause_path block_paths
+    |> Optimize.optimize henv tdenv
+  in
+  let elseblock_opt =
+    Option.map
+      (fun path -> struct_clause_path path |> Optimize.optimize henv tdenv)
+      else_path_opt
+  in
+  let block, elseblock_opt = Instrument.instrument tdenv block elseblock_opt in
+  Sl.DecD (id_dec, tparams, args_input, block, elseblock_opt) $ at
 
 (* Load type definitions *)
 

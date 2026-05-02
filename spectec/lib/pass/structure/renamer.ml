@@ -180,15 +180,17 @@ and rename_instr (rename : t) (instr : instr) : instr =
   | OtherwiseI instr ->
       let instr = rename_instr rename instr in
       OtherwiseI instr $ at
-  | LetI (exp_l, exp_r, iterexps) ->
+  | LetI (exp_l, exp_r, iterexps, block) ->
       let exp_l = rename_exp rename exp_l in
       let exp_r = rename_exp rename exp_r in
       let iterexps = List.map (rename_iterexp rename) iterexps in
-      LetI (exp_l, exp_r, iterexps) $ at
-  | RuleI (id_rel, notexp, iterexps) ->
+      let block = List.map (rename_instr rename) block in
+      LetI (exp_l, exp_r, iterexps, block) $ at
+  | RuleI (id_rel, notexp, iterexps, block) ->
       let notexp = Il.Mixfix.map (rename_exp rename) notexp in
       let iterexps = List.map (rename_iterexp rename) iterexps in
-      RuleI (id_rel, notexp, iterexps) $ at
+      let block = List.map (rename_instr rename) block in
+      RuleI (id_rel, notexp, iterexps, block) $ at
   | ResultI exps ->
       let exps = List.map (rename_exp rename) exps in
       ResultI exps $ at

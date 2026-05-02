@@ -53,12 +53,12 @@ let instr_header instr =
   | Sl.CaseI (exp, _, _) ->
       Format.sprintf "Case on %s" (Sl.Print.string_of_exp exp)
   | Sl.OtherwiseI _ -> "Otherwise"
-  | Sl.LetI (exp_l, exp_r, iterexps) ->
+  | Sl.LetI (exp_l, exp_r, iterexps, _) ->
       Format.sprintf "Let %s = %s%s"
         (Sl.Print.string_of_exp exp_l)
         (Sl.Print.string_of_exp exp_r)
         (Sl.Print.string_of_iterexps iterexps)
-  | Sl.RuleI (id, notexp, iterexps) ->
+  | Sl.RuleI (id, notexp, iterexps, _) ->
       Format.sprintf "%s: %s%s"
         (Sl.Print.string_of_relid id)
         (Sl.Print.string_of_notexp notexp)
@@ -86,6 +86,8 @@ module M : Instrumentation_api.Handler.S = struct
     | Sl.CaseI (_, cases, _) ->
         List.iter (fun (_, instrs) -> List.iter count_instr instrs) cases
     | Sl.OtherwiseI inner -> count_instr inner
+    | Sl.LetI (_, _, _, block) -> List.iter count_instr block
+    | Sl.RuleI (_, _, _, block) -> List.iter count_instr block
     | _ -> ()
 
   let init ~spec =
@@ -97,8 +99,12 @@ module M : Instrumentation_api.Handler.S = struct
         List.iter
           (fun def ->
             match def.it with
-            | Sl.RelD (_, _, _, instrs) -> List.iter count_instr instrs
-            | Sl.DecD (_, _, _, instrs) -> List.iter count_instr instrs
+            | Sl.RelD (_, _, _, block, elseblock_opt) ->
+                List.iter count_instr block;
+                Option.iter (List.iter count_instr) elseblock_opt
+            | Sl.DecD (_, _, _, block, elseblock_opt) ->
+                List.iter count_instr block;
+                Option.iter (List.iter count_instr) elseblock_opt
             | _ -> ())
           sl_spec
 
@@ -123,18 +129,28 @@ module M : Instrumentation_api.Handler.S = struct
       List.iter
         (fun def ->
           match def.it with
-          | Sl.RelD (id, _, _, instrs) ->
+          | Sl.RelD (id, _, _, block, elseblock_opt) ->
               List.iter
                 (fun instr ->
                   if not (Hashtbl.mem State.instrs_hit (instr_key instr)) then
                     uncovered := (id.it, instr_header instr) :: !uncovered)
-                instrs
-          | Sl.DecD (id, _, _, instrs) ->
+                block;
+              Option.iter
+                (List.iter (fun instr ->
+                     if not (Hashtbl.mem State.instrs_hit (instr_key instr))
+                     then uncovered := (id.it, instr_header instr) :: !uncovered))
+                elseblock_opt
+          | Sl.DecD (id, _, _, block, elseblock_opt) ->
               List.iter
                 (fun instr ->
                   if not (Hashtbl.mem State.instrs_hit (instr_key instr)) then
                     uncovered := (id.it, instr_header instr) :: !uncovered)
-                instrs
+                block;
+              Option.iter
+                (List.iter (fun instr ->
+                     if not (Hashtbl.mem State.instrs_hit (instr_key instr))
+                     then uncovered := (id.it, instr_header instr) :: !uncovered))
+                elseblock_opt
           | _ -> ())
         !State.sl_spec;
       if !uncovered <> [] then (
@@ -172,18 +188,22 @@ module M : Instrumentation_api.Handler.S = struct
             List.iter (print_instr (indent ^ "    ")) instrs)
           cases
     | Sl.OtherwiseI inner -> print_instr (indent ^ "  ") inner
+    | Sl.LetI (_, _, _, block) -> List.iter (print_instr (indent ^ "  ")) block
+    | Sl.RuleI (_, _, _, block) -> List.iter (print_instr (indent ^ "  ")) block
     | _ -> ()
 
   let print_full () =
     List.iter
       (fun def ->
         match def.it with
-        | Sl.RelD (id, _, _, instrs) ->
+        | Sl.RelD (id, _, _, block, elseblock_opt) ->
             Format.fprintf !fmt "\nrelation %s:\n" id.it;
-            List.iter (print_instr "  ") instrs
-        | Sl.DecD (id, _, _, instrs) ->
+            List.iter (print_instr "  ") block;
+            Option.iter (List.iter (print_instr "  ")) elseblock_opt
+        | Sl.DecD (id, _, _, block, elseblock_opt) ->
             Format.fprintf !fmt "\ndef $%s:\n" id.it;
-            List.iter (print_instr "  ") instrs
+            List.iter (print_instr "  ") block;
+            Option.iter (List.iter (print_instr "  ")) elseblock_opt
         | _ -> ())
       !State.sl_spec
 

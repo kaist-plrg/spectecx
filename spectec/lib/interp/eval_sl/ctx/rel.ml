@@ -3,8 +3,12 @@ open Lang.Sl.Print
 
 (* Relation *)
 
-type t = Envs.Hint.t * exp list * instr list
+type t = Envs.Hint.t * exp list * block * elseblock option
 
-let to_string (inputs, exps, instrs) =
+let to_string (inputs, exps, block, elseblock_opt) =
   Envs.Hint.to_string inputs ^ string_of_exps ", " exps ^ "\n\n"
-  ^ string_of_instrs instrs
+  ^ string_of_block block
+  ^
+  match elseblock_opt with
+  | None -> ""
+  | Some elseblock -> "\n\notherwise\n\n" ^ string_of_instrs elseblock
