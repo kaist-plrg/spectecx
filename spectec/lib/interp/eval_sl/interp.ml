@@ -1522,15 +1522,21 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
       in
       Ok v
     in
+    let is_anonymous fid =
+      match Ctx.find_func_opt Local ctx fid with
+      | Some _ -> Ctx.find_func_opt Global ctx fid = None
+      | None -> false
+    in
+    let is_high_order values =
+      List.exists
+        (fun value ->
+          match value.it with Lang.Il.FuncV _ -> true | _ -> false)
+        values
+    in
     let value_output_result =
       (* Skip caching for generics and HOFs *)
-      if
-        targs <> []
-        || List.exists
-             (fun value ->
-               match value.it with Lang.Il.FuncV _ -> true | _ -> false)
-             values_input
-      then invoke ()
+      if targs <> [] || is_anonymous id || is_high_order values_input then
+        invoke ()
       else invoke |> Cache.with_func_cache ctx.cache (id.it, values_input)
     in
     (ctx, value_output_result |> Result.get_ok)

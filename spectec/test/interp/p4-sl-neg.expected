@@ -51,7 +51,8 @@ Expected typechecker failure: ../../../../../spectec/testdata/interp/p4-tests/te
   ../../../../../spectec/examples/p4-concrete/5-typing/5.11-typing-declaration.spectec:109:6-109:24:Error: relation was not matched
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_errors/compound-assignment.p4
-Unexpected typechecker success: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_errors/compound-assignment.p4
+Expected typechecker failure: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_errors/compound-assignment.p4
+  ../../../../../spectec/examples/p4-concrete/5-typing/5.10-typing-statement.spectec:44:6-44:13:Error: relation was not matched
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_errors/conditional_e.p4
 Expected typechecker failure: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_errors/conditional_e.p4
@@ -1184,12 +1185,8 @@ Expected typechecker failure: ../../../../../spectec/testdata/interp/p4-tests/te
 
 Typechecker (sl) summary
   Ran:        253 / 310    (81.61%)
-  Passed:     252 (99.60% of ran)
-  Failed:       1 (0.40% of ran)
+  Passed:     253 (100.00% of ran)
+  Failed:       0 (0.00% of ran)
   Skipped:     57 (18.39% of total)
 
-
-Failures (1):
-  [FAIL] ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_errors/compound-assignment.p4
-    expected failure but succeeded
 
