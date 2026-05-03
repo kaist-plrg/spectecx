@@ -140,3 +140,36 @@ module Typecheck = struct
   let format_output _values = "Typechecker succeeded"
   let save_output _filename _values = ()
 end
+
+module Typecheck_cli : Cli.Task_cli.S = struct
+  module Task = Typecheck
+
+  let flags =
+    let open Core.Command.Let_syntax in
+    let open Core.Command.Param in
+    let%map includes = flag "-i" (listed string) ~doc:"DIR P4 include paths"
+    and filename = flag "-p" (required string) ~doc:"FILE P4 file to process" in
+    { Typecheck.includes; filename; expect = Spectec.Task.Positive }
+end
+
+let target = (module Target : Spectec.Target.S)
+
+module Cli : Cli.Target_cli.S = struct
+  module Target = Target
+
+  let name = "p4"
+
+  let command =
+    let module Subcommand = Cli.Subcommand in
+    Core.Command.group ~summary:"P4 commands"
+      [
+        Subcommand.make_task target ~name:"typecheck"
+          ~summary:"Run P4 typechecker"
+          (module Typecheck_cli);
+        Subcommand.make_parse target ~name:"parse"
+          ~summary:"parse a P4 program to an IL value"
+          (module Typecheck_cli);
+        Subcommand.make_batch target ~name:"batch" [ (module Typecheck_cli) ];
+        Subcommand.make_checkpoint target ~name:"checkpoint";
+      ]
+end

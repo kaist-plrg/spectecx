@@ -7,7 +7,7 @@
  (libraries
   spectec
   spectec.cli
-  targets
+  spectec.targets.p4
   core
   core_unix
   core_unix.command_unix))
