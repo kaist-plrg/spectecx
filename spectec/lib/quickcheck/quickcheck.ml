@@ -27,24 +27,21 @@ let gen_free_vars (spec_il : spec) (free_vars : Qc_ir.ir_var list) :
            (gen_of_typ spec_il v.Qc_ir.iv_typ))
        free_vars)
 
-let gen_free_vars_manual (spec_il : spec) (free_vars : Qc_ir.ir_var list) :
+let gen_free_vars_manual (spec_il : spec) (i : int) :
     (id' * value) list Gen.t =
-  match Manual_gen.gen_inputs spec_il free_vars with
+  match Manual_gen.gen_inputs spec_il i with
   | Some gen -> gen
   | None ->
-    let names = String.concat ", "
-      (List.map (fun v -> v.Qc_ir.iv_id) free_vars) in
     failwith (Printf.sprintf
-      "quickcheck --manual: no manual generator for inputs [%s]. \
-       Add a case in manual_gen.ml gen_inputs."
-      names)
+      "quickcheck --manual: no manual generator for block %d. \
+       Add a case in manual_gen.ml gen_inputs." i)
 
-let dispatch ~use_manual spec_il (command : Qc_ir.qc_command) =
+let dispatch ~use_manual ~idx spec_il (command : Qc_ir.qc_command) =
   match command with
   | Qc_ir.QcProp { free_vars; all_var_names; goal; prems } ->
     let _ = Printf.printf "Test]\n" in
     let gen =
-      if use_manual then gen_free_vars_manual spec_il free_vars
+      if use_manual then gen_free_vars_manual spec_il idx
       else gen_free_vars spec_il free_vars
     in
     let prop =
@@ -77,7 +74,7 @@ let dispatch ~use_manual spec_il (command : Qc_ir.qc_command) =
   | Qc_ir.QcGen { free_vars; all_var_names; prems } ->
     let _ = Printf.printf "Generation]\n" in
     let gen =
-      if use_manual then gen_free_vars_manual spec_il free_vars
+      if use_manual then gen_free_vars_manual spec_il idx
       else gen_free_vars spec_il free_vars
     in
     let count = ref 0 in
@@ -105,4 +102,4 @@ let quickcheck_file ?(manual = []) spec_il path =
         (Printf.sprintf "quickcheck: failed to elaborate '%s': %s" path msg)
     | Ok cmds -> List.iteri (fun i cmd ->
       Printf.printf "\n[Quickcheck %d: " i;
-      dispatch ~use_manual:(List.mem i manual) spec_il cmd) cmds
+      dispatch ~use_manual:(List.mem i manual) ~idx:i spec_il cmd) cmds

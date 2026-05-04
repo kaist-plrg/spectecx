@@ -23,20 +23,20 @@ open Common.Source
      Some (Gen.map (fun v -> [(id, v)]) (gen_prog _spec))
 *)
 
-let gen_inputs (_spec : spec) (free_vars : Qc_ir.ir_var list) :
+let gen_inputs (_spec : spec) (i : int) :
     (string * value) list Gen.t option =
   ignore no_region;
-  match free_vars with
-  (* Add cases here. Match on the variable list structure, e.g.:
+  match i with
+  (* Add cases here. Match on the block index, e.g.:
 
-     | [{ Qc_ir.iv_id = id; iv_typ = { it = VarT ({ it = "mytype"; _ }, _); _ } }] ->
-       Some (Gen.map (fun v -> [(id, v)]) (gen_mytype _spec))
+     | 0 ->
+       Some (Gen.map (fun v -> [("prog", v)]) (gen_prog _spec))
 
-     | [{ Qc_ir.iv_id = id1; _ }; { Qc_ir.iv_id = id2; _ }] ->
+     | 1 ->
        Some (
          let open Gen in
          let* v1 = ... and* v2 = ... in
-         return [(id1, v1); (id2, v2)]
+         return [("x", v1); ("y", v2)]
        )
   *)
   | _ -> None
