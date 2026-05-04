@@ -6,20 +6,7 @@
 
     Each constructor takes the target as a first-class module so spec loading
     happens inside the callback — [--spec] overrides and the instrumentation
-    lifecycle then behave correctly.
-
-    {!with_error_handling} runs a pipeline thunk inside a fresh diagnostic
-    context, renders any diagnostics (and errors) to stderr, and exits with
-    status 1 on [Error]. Call sites stay free of exit plumbing. *)
-
-val with_error_handling :
-  color:Cli_args.color ->
-  on_ok:('a -> unit) ->
-  (unit -> ('a, Spectec.Error.t) result) ->
-  unit
-
-val with_error_handling_unit :
-  color:Cli_args.color -> (unit -> (unit, Spectec.Error.t) result) -> unit
+    lifecycle then behave correctly. *)
 
 val make_task :
   (module Spectec.Target.S) ->

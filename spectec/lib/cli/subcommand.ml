@@ -1,35 +1,6 @@
 let ( let* ) = Result.bind
 
-(* Resolve [--color] into an [Ansi.t]. [Auto] honors the [NO_COLOR] env
-   variable convention and falls back on a stderr TTY check. *)
-let resolve_ansi : Cli_args.color -> Spectec.Diagnostic.Ansi.t = function
-  | Always -> Spectec.Diagnostic.Ansi.color
-  | Never -> Spectec.Diagnostic.Ansi.plain
-  | Auto ->
-      if Sys.getenv_opt "NO_COLOR" = None && Unix.isatty Unix.stderr then
-        Spectec.Diagnostic.Ansi.color
-      else Spectec.Diagnostic.Ansi.plain
-
-(* Run [f], render any diagnostics it produced (plus any error returned) to
-   stderr, and pass the success value to [on_ok]. On [Error _], exits with
-   status 1 so the shell sees the failure — call sites stay free of exit
-   plumbing. *)
-let with_error_handling ~color ~on_ok f =
-  let ansi = resolve_ansi color in
-  let result, bag = Spectec.with_diagnostics f in
-  let combined =
-    match result with
-    | Ok _ -> bag
-    | Error e ->
-        Spectec.Diagnostic.Bag.merge bag (Spectec.Error.to_diagnostics e)
-  in
-  if not (Spectec.Diagnostic.Bag.is_empty combined) then
-    Printf.eprintf "%s\n%!"
-      (Spectec.Diagnostic.Render.render_bag ~ansi combined);
-  match result with Ok v -> on_ok v | Error _ -> exit 1
-
-let with_error_handling_unit ~color f =
-  with_error_handling ~color ~on_ok:ignore f
+open Error_handling
 
 let load_spec ~spec_dir filenames_spec =
   let filenames =
@@ -48,20 +19,16 @@ let make_task (module Tgt : Spectec.Target.S) ~name ~summary
     @@
     let open Core.Command.Let_syntax in
     let open Core.Command.Param in
-    let%map filenames_spec =
-      flag "--spec" (listed string)
-        ~doc:"FILES spec files (default: use target spec dir)"
-    and sl_mode = flag "--sl" no_arg ~doc:" use SL interpreter (default: IL)"
+    let%map filenames_spec = Cli_args.Spec.files_flag
+    and sl_mode = Cli_args.Interpreter.sl_mode_flag
     and verbose = flag "-v" no_arg ~doc:" verbose output"
-    and batch_mode = flag "--batch" no_arg ~doc:" run on a directory of inputs"
-    and batch_dir =
-      flag "--batch-dir" (optional string)
-        ~doc:"DIR directory of inputs (default: target's test dir)"
+    and batch_mode = Cli_args.Batch.mode_flag
+    and batch_dir = Cli_args.Batch.dir_flag
     and input = TC.flags
-    and config = Cli_args.config_flags
-    and color = Cli_args.color_flag in
+    and config = Cli_args.Interpreter.config_flags
+    and color = Cli_args.Output.color_flag in
     fun () ->
-      with_error_handling_unit ~color @@ fun () ->
+      guard_unit ~color @@ fun () ->
       let open Spectec in
       let* () = validate_config config ~sl_mode in
       let* _files, spec_il = load_spec ~spec_dir:Tgt.spec_dir filenames_spec in
@@ -91,14 +58,12 @@ let make_parse (module Tgt : Spectec.Target.S) ~name ~summary
     @@
     let open Core.Command.Let_syntax in
     let open Core.Command.Param in
-    let%map filenames_spec =
-      flag "--spec" (listed string)
-        ~doc:"FILES spec files (default: use target spec dir)"
+    let%map filenames_spec = Cli_args.Spec.files_flag
     and input = TC.flags
     and roundtrip = flag "-r" no_arg ~doc:" roundtrip parse/unparse"
-    and color = Cli_args.color_flag in
+    and color = Cli_args.Output.color_flag in
     fun () ->
-      with_error_handling ~color ~on_ok:(Format.printf "%s\n") @@ fun () ->
+      guard ~color ~on_ok:(Format.printf "%s\n") @@ fun () ->
       let open Spectec in
       let* _files, spec_il = load_spec ~spec_dir:Tgt.spec_dir filenames_spec in
       let* _, values = TC.Task.parse_input ~spec:spec_il input in
@@ -130,33 +95,22 @@ let make_batch (module Tgt : Spectec.Target.S) ~name
     @@
     let open Core.Command.Let_syntax in
     let open Core.Command.Param in
-    let%map sl_mode =
-      flag "--sl" no_arg ~doc:" use SL interpreter (default: IL)"
+    let%map sl_mode = Cli_args.Interpreter.sl_mode_flag
     and verbose = flag "-v" no_arg ~doc:" verbose: print progress for each test"
-    and batch_dir =
-      flag "--batch-dir" (optional string)
-        ~doc:"DIR directory of inputs (default: target's test dir)"
-    and checkpoint_output_file =
-      flag "--checkpoint" (optional string)
-        ~doc:"FILE save checkpoint to file (enables resume)"
-    and checkpoint_resume_file =
-      flag "--resume" (optional string) ~doc:"FILE resume from checkpoint file"
-    and checkpoint_save_interval =
-      flag "--save-interval"
-        (optional_with_default 100 int)
-        ~doc:"N save checkpoint every N tests (default: 100)"
-    and config = Cli_args.config_flags
-    and color = Cli_args.color_flag in
+    and batch_dir = Cli_args.Batch.dir_flag
+    and checkpoint = Cli_args.Checkpoint.flags
+    and config = Cli_args.Interpreter.config_flags
+    and color = Cli_args.Output.color_flag in
     fun () ->
-      with_error_handling_unit ~color @@ fun () ->
+      guard_unit ~color @@ fun () ->
       let open Spectec in
       let* () = validate_config config ~sl_mode in
       let* spec_files, spec_il = load_spec ~spec_dir:Tgt.spec_dir [] in
       let checkpoint_config : Batch.Checkpoint.config =
         {
-          output_file = checkpoint_output_file;
-          resume_from = checkpoint_resume_file;
-          save_interval = checkpoint_save_interval;
+          output_file = checkpoint.output;
+          resume_from = checkpoint.resume;
+          save_interval = checkpoint.save_interval;
         }
       in
       let results =
@@ -181,10 +135,10 @@ let make_checkpoint (module Tgt : Spectec.Target.S) ~name =
     let open Core.Command.Let_syntax in
     let open Core.Command.Param in
     let%map checkpoint_file = anon ("checkpoint-file" %: string)
-    and config = Cli_args.config_flags
-    and color = Cli_args.color_flag in
+    and config = Cli_args.Interpreter.config_flags
+    and color = Cli_args.Output.color_flag in
     fun () ->
-      with_error_handling_unit ~color @@ fun () ->
+      guard_unit ~color @@ fun () ->
       let* spec_files, spec_il = load_spec ~spec_dir:Tgt.spec_dir [] in
       let* checkpoint =
         Batch.Checkpoint.verify_and_load ~file:checkpoint_file ~spec_files
@@ -203,9 +157,9 @@ let make_checkpoint (module Tgt : Spectec.Target.S) ~name =
     and output_file =
       flag "--output" (required string)
         ~doc:"FILE output file for merged checkpoint"
-    and color = Cli_args.color_flag in
+    and color = Cli_args.Output.color_flag in
     fun () ->
-      with_error_handling_unit ~color @@ fun () ->
+      guard_unit ~color @@ fun () ->
       let spec_files = Spectec.collect_spec_files Tgt.spec_dir in
       let* checkpoint1 =
         Batch.Checkpoint.verify_and_load ~file:checkpoint_file1 ~spec_files

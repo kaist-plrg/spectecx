@@ -11,9 +11,9 @@ let elab_command =
   let open Core.Command.Let_syntax in
   let open Core.Command.Param in
   let%map filenames = anon (sequence ("spec files" %: string))
-  and color = Cli.Cli_args.color_flag in
+  and color = Cli.Cli_args.Output.color_flag in
   fun () ->
-    Cli.Subcommand.with_error_handling ~color ~on_ok:(fun spec_il ->
+    Cli.Error_handling.guard ~color ~on_ok:(fun spec_il ->
         Format.printf "%s\n" (Lang.Il.Print.string_of_spec spec_il))
     @@ fun () ->
     let* spec = parse_spec_files filenames in
@@ -26,9 +26,9 @@ let structure_command =
   let open Core.Command.Let_syntax in
   let open Core.Command.Param in
   let%map filenames = anon (sequence ("spec files" %: string))
-  and color = Cli.Cli_args.color_flag in
+  and color = Cli.Cli_args.Output.color_flag in
   fun () ->
-    Cli.Subcommand.with_error_handling ~color ~on_ok:(fun spec_sl ->
+    Cli.Error_handling.guard ~color ~on_ok:(fun spec_sl ->
         Format.printf "%s\n" (Lang.Sl.Print.string_of_spec spec_sl))
     @@ fun () ->
     let* spec = parse_spec_files filenames in
