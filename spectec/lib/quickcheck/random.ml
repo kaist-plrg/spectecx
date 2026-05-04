@@ -1,6 +1,6 @@
-(* XorShift 기반 분리 가능 PRNG.
-   두 int 씨드(s1, s2)로 상태를 표현하고 split은 순수 함수로 구현된다.
-   Haskell split :: StdGen -> (StdGen, StdGen) 시맨틱을 따른다. *)
+(* XorShift-based splittable PRNG.
+   State is represented with two int seeds (s1, s2); split is a pure function.
+   Follows Haskell's split :: StdGen -> (StdGen, StdGen) semantics. *)
 
 type t = { s1 : int; s2 : int }
 
@@ -11,7 +11,7 @@ let make_self_init () =
   let s = Stdlib.Random.State.make_self_init () in
   { s1 = Stdlib.Random.State.bits s; s2 = Stdlib.Random.State.bits s }
 
-(* XorShift mix: 두 씨드를 혼합하여 비트열을 생성 *)
+(* XorShift mix: combines two seeds to produce a bit sequence *)
 let bits { s1; s2 } =
   let x = s1 lxor s2 in
   let x = x lxor (x lsr 13) in
@@ -19,8 +19,8 @@ let bits { s1; s2 } =
   let x = x lxor (x lsr 17) in
   x land max_int
 
-(* 두 독립 자식 스트림을 반환 — Haskell split 시맨틱
-   63비트 OCaml int 범위에 맞는 LCG 상수를 사용한다. *)
+(* Returns two independent child streams — Haskell split semantics.
+   Uses LCG constants fitting the 63-bit OCaml int range. *)
 let split { s1; s2 } =
   let a = (s1 * 1664525 + 1013904223) land max_int in
   let b = (s2 * 22695477 + 1) land max_int in

@@ -1,4 +1,4 @@
-(* QuickCheck 테스트 러너 *)
+(* QuickCheck test runner *)
 
 type config = {
   num_tests : int;
@@ -19,7 +19,7 @@ type outcome =
   | Fail of { num_tests : int; counterexample : string list }
   | Gave_up of { num_tests : int }
 
-(* 레이블 빈도를 집계하여 정렬된 리스트로 반환 *)
+(* Aggregates label frequencies and returns a sorted list *)
 let count_stamps stamps =
   let tbl = Hashtbl.create 16 in
   List.iter (fun s ->
@@ -36,7 +36,7 @@ let check ?(config = default_config) prop =
     | `Nondeterministic -> Random.make_self_init ()
   in
   let gen = Property.evaluate prop in
-  (* 각 트라이얼마다 독립 PRNG를 split으로 파생하여 실행한다 *)
+  (* Each trial derives an independent PRNG by splitting *)
   let rec loop i discarded all_stamps =
     if i >= config.num_tests then
       Pass { num_tests = i; stamps = count_stamps all_stamps }

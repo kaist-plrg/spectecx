@@ -1,13 +1,13 @@
-(* IL 타입 기반 값 생성기.
-   Lang.Il의 typ'와 deftyp'로부터 Value.t Gen.t를 파생한다.
-   gen_of_typ / gen_of_deftyp은 상호 재귀로 정의된다.
-   gen_of_deftyp은 값의 typ' 어노테이션을 위해 외부 typ을 인자로 받는다. *)
+(* IL type-based value generator.
+   Derives Value.t Gen.t from typ' and deftyp' in Lang.Il.
+   gen_of_typ and gen_of_deftyp are mutually recursive.
+   gen_of_deftyp receives the outer typ for value typ' annotations. *)
 
 open Lang.Il
 open Common.Source
 
-(* tparams와 deftyp을 함께 반환하여 호출자가 타입 인자를 치환할 수 있게 한다 *)
-(* case의 sub-type 중 하나라도 name과 같은 VarT를 포함하면 재귀 케이스로 분류 *)
+(* Returns tparams alongside deftyp so the caller can substitute type arguments *)
+(* A case is recursive if any of its sub-types contains a VarT with the given name *)
 let rec typ_has_varname name (typ : typ) =
   match typ.it with
   | VarT (id, _) -> id.it = name
@@ -57,8 +57,8 @@ let rec gen_of_typ (spec : spec) (typ : typ) : Value.t Gen.t =
   | VarT (id, targs) ->
     (match find_typdef spec id.it with
      | Some (tparams, deftyp) ->
-       (* 타입 파라미터를 실제 타입 인자로 치환한 확장 spec으로 재귀 생성 *)
-       (* targ' = typ' 이므로 targ.it $ targ.at로 typ으로 변환한다 *)
+       (* generate recursively using an extended spec with type parameters
+          substituted by actual type arguments; targ' = typ' so convert via targ.it $ targ.at *)
        let spec' =
          List.fold_left2
            (fun acc tparam targ ->
@@ -73,8 +73,8 @@ let rec gen_of_typ (spec : spec) (typ : typ) : Value.t Gen.t =
   | FuncT ->
     failwith "Il_gen.gen_of_typ: cannot generate values of FuncT"
 
-(* outer_typ: VarT나 PlainT에서 온 외부 타입.
-   StructV, CaseV의 make_val에 사용할 typ'를 제공한다. *)
+(* outer_typ: the external type from VarT or PlainT.
+   Provides the typ' used in make_val for StructV and CaseV. *)
 and gen_of_deftyp (spec : spec) (outer_typ : typ) (deftyp : deftyp) : Value.t Gen.t =
   let open Gen in
   match deftyp.it with

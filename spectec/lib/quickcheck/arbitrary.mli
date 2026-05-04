@@ -1,25 +1,25 @@
-(** Arbitrary / Coarbitrary 타입클래스 시뮬레이션.
+(** Arbitrary / Coarbitrary type class simulation.
 
-    Haskell의 타입클래스를 OCaml 모듈 타입([ARBITRARY], [COARBITRARY])으로
-    표현하고, Functor([Make_list], [Make_pair] 등)로 복합 인스턴스를 파생한다.
-    프로젝트의 [Envs.Make] Functor 패턴과 동일한 관용구를 따른다. *)
+    Encodes Haskell type classes as OCaml module types ([ARBITRARY],
+    [COARBITRARY]) and derives composite instances via Functors
+    ([Make_list], [Make_pair], etc.). *)
 
-(** {2 타입클래스 시그니처} *)
+(** {2 Type class signatures} *)
 
 module type ARBITRARY = sig
   type t
   val arbitrary : t Gen.t
-  (** [arbitrary]는 [t] 타입의 기본 생성기이다. *)
+  (** [arbitrary] is the default generator for type [t]. *)
 end
 
 module type COARBITRARY = sig
   type t
   val coarbitrary : t -> 'b Gen.t -> 'b Gen.t
-  (** [coarbitrary x gen]은 [x]의 구조에 따라 [gen]의 PRNG 상태를 교란한다.
-      함수 생성기([arbitrary (a -> b)])를 만들기 위해 사용된다. *)
+  (** [coarbitrary x gen] perturbs the PRNG state of [gen] based on the
+      structure of [x]. Used to build function generators ([arbitrary (a -> b)]). *)
 end
 
-(** {2 원시 인스턴스} *)
+(** {2 Primitive instances} *)
 
 module Bool : sig
   include ARBITRARY with type t = bool
@@ -27,13 +27,13 @@ module Bool : sig
 end
 
 module Nat : sig
-  (** 음이 아닌 정수. 크기 파라미터로 상한이 제한된다. *)
+  (** Non-negative integers. Upper bound limited by the size parameter. *)
   include ARBITRARY with type t = int
   val coarbitrary : int -> 'b Gen.t -> 'b Gen.t
 end
 
 module Int : sig
-  (** 부호 있는 정수. [-size, size] 범위에서 생성된다. *)
+  (** Signed integers. Generated in the [-size, size] range. *)
   include ARBITRARY with type t = int
   val coarbitrary : int -> 'b Gen.t -> 'b Gen.t
 end
@@ -48,26 +48,26 @@ module Text : sig
   val coarbitrary : string -> 'b Gen.t -> 'b Gen.t
 end
 
-(** {2 파생 인스턴스 (Functor)} *)
+(** {2 Derived instances (Functor)} *)
 
 module Make_list (A : ARBITRARY) : ARBITRARY with type t = A.t list
-(** 리스트 인스턴스를 파생한다. 길이는 크기 파라미터로 제한된다. *)
+(** Derives a list instance. Length is bounded by the size parameter. *)
 
 module Make_option (A : ARBITRARY) : ARBITRARY with type t = A.t option
-(** 옵션 인스턴스를 파생한다. *)
+(** Derives an option instance. *)
 
 module Make_pair (A : ARBITRARY) (B : ARBITRARY) :
   ARBITRARY with type t = A.t * B.t
-(** 쌍 인스턴스를 파생한다. *)
+(** Derives a pair instance. *)
 
 module Make_fun (A : COARBITRARY) (B : ARBITRARY) :
   ARBITRARY with type t = A.t -> B.t
-(** 함수 인스턴스를 파생한다.
-    Haskell의 [arbitrary = promote (`coarbitrary` arbitrary)] 직역이다. *)
+(** Derives a function instance.
+    Direct translation of Haskell's [arbitrary = promote (`coarbitrary` arbitrary)]. *)
 
-(** {2 1급 모듈 헬퍼} *)
+(** {2 First-class module helper} *)
 
 type 'a arbitrary = (module ARBITRARY with type t = 'a)
 
 val gen_of : 'a arbitrary -> 'a Gen.t
-(** [(module M)] 에서 생성기를 추출한다. *)
+(** Extracts the generator from [(module M)]. *)

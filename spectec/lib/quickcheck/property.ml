@@ -1,4 +1,4 @@
-(* Property 시스템 — goal.md의 Property/Result/Testable 직역 *)
+(* Property system — direct translation of Property/Result/Testable from goal.md *)
 
 module Result = struct
   type t = {
@@ -15,7 +15,7 @@ end
 
 type t = Prop of Result.t Gen.t
 
-(* 중첩 모듈 타입에서 외부 t를 참조하기 위한 별칭 *)
+(* Alias to refer to the outer t from within a nested module type *)
 type prop = t
 
 let of_result res = Prop (Gen.return res)
@@ -27,23 +27,23 @@ module type TESTABLE = sig
   val property : t -> prop
 end
 
-(* Bool 인스턴스: property b = result (nothing { ok = Just b }) *)
+(* Bool instance: property b = result (nothing { ok = Just b }) *)
 module Bool_testable = struct
   type t = bool
   let property b = of_result (Result.with_ok b)
 end
 
-(* Property 인스턴스: property prop = prop *)
+(* Property instance: property prop = prop *)
 module Prop_testable = struct
   type t = prop
   let property p = p
 end
 
-(* 함수 인스턴스: property f = forAll arbitrary f *)
+(* Function instance: property f = forAll arbitrary f *)
 module Make_fun_testable (A : Arbitrary.ARBITRARY) (B : TESTABLE) = struct
   type t = A.t -> B.t
   let property f =
-    (* for_all은 아래에 정의되므로 전방 참조를 피하기 위해 직접 구성 *)
+    (* for_all is defined below; build directly to avoid a forward reference *)
     Prop (
       let open Gen in
       let* a = A.arbitrary in
@@ -51,7 +51,7 @@ module Make_fun_testable (A : Arbitrary.ARBITRARY) (B : TESTABLE) = struct
       return (Result.add_argument "<fun-arg>" res))
 end
 
-(* forAll: goal.md 직역
+(* forAll: direct translation from goal.md
    forAll gen body = Prop $ do
      a <- gen; res <- evaluate (body a)
      return (res { arguments = show a : arguments res }) *)
@@ -62,11 +62,11 @@ let for_all ~show gen body =
     let* res = evaluate (body a) in
     return (Result.add_argument (show a) res))
 
-(* ==>: 전제조건 필터링 *)
+(* ==>: precondition filtering *)
 let ( ==> ) cond prop =
   if cond then prop else of_result Result.nothing
 
-(* label: stamp에 레이블 추가 *)
+(* label: adds a label to stamp *)
 let label s (Prop gen) = Prop (Gen.map (Result.add_stamp s) gen)
 
 let classify cond name prop =

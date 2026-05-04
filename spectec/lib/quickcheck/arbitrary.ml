@@ -1,4 +1,4 @@
-(* Arbitrary / Coarbitrary — Haskell 타입클래스를 OCaml 모듈 타입으로 표현 *)
+(* Arbitrary / Coarbitrary — Haskell type classes encoded as OCaml module types *)
 
 module type ARBITRARY = sig
   type t
@@ -19,20 +19,20 @@ module Bool = struct
   let coarbitrary b gen = Gen.variant (if b then 0 else 1) gen
 end
 
-(* Nat: 음이 아닌 정수, 크기 파라미터 기반 상한 *)
+(* Nat: non-negative integers, bounded by size parameter *)
 module Nat = struct
   type t = int
   let arbitrary = Gen.sized (fun n -> Gen.choose_int (0, n))
 
-  (* coarbitrary n: 비트 단위 재귀 교란 — Haskell Int coarbitrary 변형 *)
+  (* coarbitrary n: bitwise recursive perturbation — variant of Haskell Int coarbitrary *)
   let rec coarbitrary n gen =
     if n = 0 then Gen.variant 0 gen
     else Gen.variant 1 (coarbitrary (n / 2) gen)
 end
 
-(* Int: 부호 있는 정수
+(* Int: signed integers
    arbitrary = sized (\n -> choose (-n,n))
-   coarbitrary: Haskell 명세 직역 *)
+   coarbitrary: direct translation of Haskell spec *)
 module Int = struct
   type t = int
   let arbitrary = Gen.sized (fun n -> Gen.choose_int (-n, n))
@@ -51,7 +51,7 @@ module Char = struct
   let coarbitrary c gen = Gen.variant (Stdlib.Char.code c) gen
 end
 
-(* Text: 임의 길이의 소문자 알파벳 문자열 *)
+(* Text: string of arbitrary length using lowercase alphabetical characters *)
 module Text = struct
   type t = string
 
@@ -62,12 +62,12 @@ module Text = struct
     let* chars = Gen.sequence (List.init len (fun _ -> gen_char)) in
     return (String.init (List.length chars) (List.nth chars))
 
-  (* 각 문자의 코드로 연쇄 교란 *)
+  (* perturbs recursively using each character's code *)
   let coarbitrary s gen =
     String.fold_right (fun c g -> Gen.variant (Stdlib.Char.code c) g) s gen
 end
 
-(* --- 파생 Functor --- *)
+(* --- Derived Functors --- *)
 
 module Make_list (A : ARBITRARY) = struct
   type t = A.t list
@@ -84,13 +84,13 @@ module Make_pair (A : ARBITRARY) (B : ARBITRARY) = struct
   let arbitrary = Gen.pair A.arbitrary B.arbitrary
 end
 
-(* promote (`coarbitrary` arbitrary) — Haskell arbitrary(a->b) 직역 *)
+(* promote (`coarbitrary` arbitrary) — direct translation of Haskell arbitrary(a->b) *)
 module Make_fun (A : COARBITRARY) (B : ARBITRARY) = struct
   type t = A.t -> B.t
   let arbitrary = Gen.promote (fun a -> A.coarbitrary a B.arbitrary)
 end
 
-(* --- 1급 모듈 헬퍼 --- *)
+(* --- First-class module helper --- *)
 
 type 'a arbitrary = (module ARBITRARY with type t = 'a)
 

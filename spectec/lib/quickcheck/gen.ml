@@ -1,13 +1,13 @@
-(* Gen 모나드: newtype Gen a = Gen (Int -> Rand -> a)
-   goal.md의 Haskell 명세를 OCaml로 직역한다. *)
+(* Gen monad: newtype Gen a = Gen (Int -> Rand -> a)
+   Direct OCaml translation of the Haskell spec. *)
 
 type 'a t = Gen of (int -> Random.t -> 'a)
 
-(* --- 모나드 인터페이스 --- *)
+(* --- Monad interface --- *)
 
 let return a = Gen (fun _ _ -> a)
 
-(* bind: r0을 r1/r2로 split — goal.md >>= 직역
+(* bind: splits r0 into r1/r2 — direct translation of >>=
    Gen m1 >>= k = Gen (\n r0 -> let (r1,r2) = split r0
                                   Gen m2 = k (m1 n r1)
                                   in m2 n r2) *)
@@ -27,7 +27,7 @@ let ( and* ) (Gen ga) (Gen gb) =
     let r1, r2 = Random.split r in
     (ga n r1, gb n r2))
 
-(* --- 실행 --- *)
+(* --- Execution --- *)
 
 let of_fun f = Gen f
 
@@ -35,7 +35,7 @@ let run (Gen m) ~size ~rand = m size rand
 
 let sample g = run g ~size:5 ~rand:(Random.make_self_init ())
 
-(* --- 핵심 콤비네이터 --- *)
+(* --- Core combinators --- *)
 
 let sized f = Gen (fun n r -> let (Gen m) = f n in m n r)
 
@@ -68,9 +68,9 @@ let frequency = function
     in
     pick n xs
 
-(* variant: goal.md의 `rands r !! (v+1)` 구현.
-   v+1번 right-split을 수행하여 PRNG 상태를 결정론적으로 교란한다.
-   coarbitrary가 함수 생성기를 만들기 위해 사용한다. *)
+(* variant: implements `rands r !! (v+1)` from goal.md.
+   Performs v+1 right-splits to deterministically perturb the PRNG state.
+   Used by coarbitrary to build function generators. *)
 let variant v (Gen m) =
   Gen (fun n r ->
     let rec perturb r k =
@@ -81,7 +81,7 @@ let variant v (Gen m) =
     in
     m n (perturb r (v + 1)))
 
-(* promote: goal.md의 promote 직역.
+(* promote: direct translation of promote from goal.md.
    promote f = Gen (\n r -> \a -> let Gen m = f a in m n r) *)
 let promote f =
   Gen (fun n r -> fun a ->
