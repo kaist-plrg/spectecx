@@ -39,12 +39,12 @@ let gen_free_vars_manual (spec_il : spec) (free_vars : Qc_ir.ir_var list) :
        Add a case in manual_gen.ml gen_inputs."
       names)
 
-let dispatch ~manual spec_il (command : Qc_ir.qc_command) =
+let dispatch ~use_manual spec_il (command : Qc_ir.qc_command) =
   match command with
   | Qc_ir.QcProp { free_vars; all_var_names; goal; prems } ->
     let _ = Printf.printf "Test]\n" in
     let gen =
-      if manual then gen_free_vars_manual spec_il free_vars
+      if use_manual then gen_free_vars_manual spec_il free_vars
       else gen_free_vars spec_il free_vars
     in
     let prop =
@@ -77,7 +77,7 @@ let dispatch ~manual spec_il (command : Qc_ir.qc_command) =
   | Qc_ir.QcGen { free_vars; all_var_names; prems } ->
     let _ = Printf.printf "Generation]\n" in
     let gen =
-      if manual then gen_free_vars_manual spec_il free_vars
+      if use_manual then gen_free_vars_manual spec_il free_vars
       else gen_free_vars spec_il free_vars
     in
     let count = ref 0 in
@@ -94,7 +94,7 @@ let dispatch ~manual spec_il (command : Qc_ir.qc_command) =
          incr count)
     done
 
-let quickcheck_file ?(manual = false) spec_il path =
+let quickcheck_file ?(manual = []) spec_il path =
   match Qc_parse.parse_file path with
   | Error msg ->
     failwith (Printf.sprintf "quickcheck: failed to parse '%s': %s" path msg)
@@ -105,4 +105,4 @@ let quickcheck_file ?(manual = false) spec_il path =
         (Printf.sprintf "quickcheck: failed to elaborate '%s': %s" path msg)
     | Ok cmds -> List.iteri (fun i cmd ->
       Printf.printf "\n[Quickcheck %d: " i;
-      dispatch ~manual spec_il cmd) cmds
+      dispatch ~use_manual:(List.mem i manual) spec_il cmd) cmds

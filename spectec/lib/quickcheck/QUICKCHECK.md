@@ -375,12 +375,25 @@ spectec quickcheck spec.watsup --target test.quickcheck
 ## CLI 사용법
 
 ```bash
-# 기본 사용
+# 기본 사용 (자동 생성기)
 spectec quickcheck <spec파일들...> --target <.quickcheck파일>
+
+# 특정 블록에만 manual generator 적용 (0번, 2번 블록)
+spectec quickcheck <spec파일들...> --target <.quickcheck파일> --manual 0 --manual 2
+
+# 모든 블록에 manual generator 적용
+spectec quickcheck <spec파일들...> --target <.quickcheck파일> --manual 0 --manual 1 --manual 2 ...
 
 # 예시
 spectec quickcheck tutorial.watsup --target test.quickcheck
+spectec quickcheck tutorial.watsup --target test.quickcheck --manual 0
 ```
+
+**`--manual INDEX` 옵션:**
+- `--manual`은 반복 사용 가능하며, 각 `INDEX`는 `.quickcheck` 파일 내 블록의 0-based 인덱스를 의미한다.
+- 지정된 인덱스의 블록에만 `manual_gen.ml`의 커스텀 generator가 사용된다.
+- 지정되지 않은 블록은 자동 생성기(`il_gen.ml`)를 사용한다.
+- `--manual`을 전혀 지정하지 않으면 모든 블록이 자동 생성기를 사용한다 (기존 동작 유지).
 
 ---
 

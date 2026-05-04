@@ -45,8 +45,8 @@ let quickcheck_command =
   and quickcheck_file =
     flag "--target" (required string) ~doc:"PATH path to .quickcheck input file"
   and manual =
-    flag "--manual" no_arg
-      ~doc:" use manual_gen.ml generator instead of auto-derived generators"
+    flag "--manual" (listed int)
+      ~doc:"INDEX (repeatable) apply manual generator to quickcheck block at INDEX"
   and color = Cli.Cli_args.Output.color_flag in
   fun () ->
     Cli.Error_handling.guard ~color ~on_ok:(fun spec_il ->
