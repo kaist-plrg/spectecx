@@ -53,10 +53,10 @@ let make_task (module Tgt : Spectec.Target.S) ~name ~summary
         ~doc:"FILES spec files (default: use target spec dir)"
     and sl_mode = flag "--sl" no_arg ~doc:" use SL interpreter (default: IL)"
     and verbose = flag "-v" no_arg ~doc:" verbose output"
-    and suite_mode =
-      flag "--suite" no_arg ~doc:" run on test suite (default dir)"
-    and suite_dir_arg =
-      flag "--suite-dir" (optional string) ~doc:"DIR run on test suite in DIR"
+    and batch_mode = flag "--batch" no_arg ~doc:" run on a directory of inputs"
+    and batch_dir =
+      flag "--batch-dir" (optional string)
+        ~doc:"DIR directory of inputs (default: target's test dir)"
     and input = TC.flags
     and config = Cli_args.config_flags
     and color = Cli_args.color_flag in
@@ -65,19 +65,19 @@ let make_task (module Tgt : Spectec.Target.S) ~name ~summary
       let open Spectec in
       let* () = validate_config config ~sl_mode in
       let* _files, spec_il = load_spec ~spec_dir:Tgt.spec_dir filenames_spec in
-      match (suite_mode, suite_dir_arg) with
+      match (batch_mode, batch_dir) with
       | false, None ->
-          Suite.run_and_print_single
+          Batch.run_and_print_single
             (module TC.Task)
             ~config ~sl_mode ~spec_il input;
           Ok ()
       | true, None ->
-          Suite.run_and_print_suite
+          Batch.run_and_print_batch
             (module TC.Task)
             ~config ~sl_mode ~spec_il ~verbose (TC.Task.collect ());
           Ok ()
       | _, Some dir ->
-          Suite.run_and_print_suite
+          Batch.run_and_print_batch
             (module TC.Task)
             ~config ~sl_mode ~spec_il ~verbose (TC.Task.collect ~dir ());
           Ok ()
@@ -133,11 +133,9 @@ let make_batch (module Tgt : Spectec.Target.S) ~name
     let%map sl_mode =
       flag "--sl" no_arg ~doc:" use SL interpreter (default: IL)"
     and verbose = flag "-v" no_arg ~doc:" verbose: print progress for each test"
-    and test_dir =
-      flag "--test-dir" (optional string)
-        ~doc:
-          "DIR directory containing test inputs (default: target's test \
-           directory)"
+    and batch_dir =
+      flag "--batch-dir" (optional string)
+        ~doc:"DIR directory of inputs (default: target's test dir)"
     and checkpoint_output_file =
       flag "--checkpoint" (optional string)
         ~doc:"FILE save checkpoint to file (enables resume)"
@@ -154,7 +152,7 @@ let make_batch (module Tgt : Spectec.Target.S) ~name
       let open Spectec in
       let* () = validate_config config ~sl_mode in
       let* spec_files, spec_il = load_spec ~spec_dir:Tgt.spec_dir [] in
-      let checkpoint_config : Suite.Checkpoint.config =
+      let checkpoint_config : Batch.Checkpoint.config =
         {
           output_file = checkpoint_output_file;
           resume_from = checkpoint_resume_file;
@@ -162,13 +160,13 @@ let make_batch (module Tgt : Spectec.Target.S) ~name
         }
       in
       let results =
-        Suite.run_target_batch ~config ?test_dir ~checkpoint_config ~verbose
+        Batch.run_target ~config ?test_dir:batch_dir ~checkpoint_config ~verbose
           ~sl_mode ~spec_files spec_il packed_tasks
       in
       List.iter
-        (fun Suite.{ task_name; summary } ->
-          let passed = Suite.summary_passed summary in
-          let failed = Suite.summary_failed summary in
+        (fun Batch.{ task_name; summary } ->
+          let passed = Batch.summary_passed summary in
+          let failed = Batch.summary_failed summary in
           Format.printf "%s: %d/%d passed, %d failed\n" task_name passed
             summary.total failed)
         results;
@@ -189,10 +187,10 @@ let make_checkpoint (module Tgt : Spectec.Target.S) ~name =
       with_error_handling_unit ~color @@ fun () ->
       let* spec_files, spec_il = load_spec ~spec_dir:Tgt.spec_dir [] in
       let* checkpoint =
-        Suite.Checkpoint.verify_and_load ~file:checkpoint_file ~spec_files
+        Batch.Checkpoint.verify_and_load ~file:checkpoint_file ~spec_files
           ~verbose:true
       in
-      Suite.Checkpoint.display_report ~spec:spec_il ~config checkpoint;
+      Batch.Checkpoint.display_report ~spec:spec_il ~config checkpoint;
       Ok ()
   in
   let merge_command =
@@ -210,15 +208,15 @@ let make_checkpoint (module Tgt : Spectec.Target.S) ~name =
       with_error_handling_unit ~color @@ fun () ->
       let spec_files = Spectec.collect_spec_files Tgt.spec_dir in
       let* checkpoint1 =
-        Suite.Checkpoint.verify_and_load ~file:checkpoint_file1 ~spec_files
+        Batch.Checkpoint.verify_and_load ~file:checkpoint_file1 ~spec_files
           ~verbose:false
       in
       let* checkpoint2 =
-        Suite.Checkpoint.verify_and_load ~file:checkpoint_file2 ~spec_files
+        Batch.Checkpoint.verify_and_load ~file:checkpoint_file2 ~spec_files
           ~verbose:false
       in
-      let* merged = Suite.Checkpoint.merge checkpoint1 checkpoint2 in
-      Suite.Checkpoint.save_to_file ~file:output_file merged;
+      let* merged = Batch.Checkpoint.merge checkpoint1 checkpoint2 in
+      Batch.Checkpoint.save_to_file ~file:output_file merged;
       Format.printf "Merged checkpoint saved to: %s\n" output_file;
       Format.printf "  Checkpoint 1: %d tests\n"
         (List.length checkpoint1.completed_inputs);

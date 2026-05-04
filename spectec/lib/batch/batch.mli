@@ -1,5 +1,4 @@
-(** Suite - Test suite infrastructure, batch running, and checkpoint
-    persistence. *)
+(** Batch - Batch run infrastructure and checkpoint persistence. *)
 
 (** {1 Checkpoint} *)
 
@@ -64,9 +63,9 @@ val run_with_outcome_with_instrumentation :
   'i ->
   Spectec.Task.test_outcome
 
-(** Run a suite of inputs and return individual outcomes. Instrumentation
-    lifecycle wraps the entire suite. *)
-val run_suite_with_outcomes :
+(** Run a batch of inputs and return individual outcomes. Instrumentation
+    lifecycle wraps the entire batch. *)
+val run_batch_with_outcomes :
   (module Spectec.Task.S with type input = 'i) ->
   ?config:Instrumentation.Config.t ->
   sl_mode:bool ->
@@ -75,9 +74,9 @@ val run_suite_with_outcomes :
   'i list ->
   'i test_result list
 
-(** {1 Suite summary} *)
+(** {1 Batch summary} *)
 
-type suite_summary = {
+type batch_summary = {
   pass : int;
   expected_fail : int;
   fail : int;
@@ -85,9 +84,9 @@ type suite_summary = {
   total : int;
 }
 
-val summarize_outcomes : 'i test_result list -> suite_summary
-val summary_passed : suite_summary -> int
-val summary_failed : suite_summary -> int
+val summarize_outcomes : 'i test_result list -> batch_summary
+val summary_passed : batch_summary -> int
+val summary_failed : batch_summary -> int
 
 (** {1 Presentation} *)
 
@@ -97,7 +96,7 @@ val print_outcome :
   Spectec.Task.test_outcome ->
   unit
 
-val print_summary : suite_summary -> unit
+val print_summary : batch_summary -> unit
 
 (** {1 Composed run + print} *)
 
@@ -109,7 +108,7 @@ val run_and_print_single :
   'i ->
   unit
 
-val run_and_print_suite :
+val run_and_print_batch :
   (module Spectec.Task.S with type input = 'i) ->
   ?config:Instrumentation.Config.t ->
   sl_mode:bool ->
@@ -118,11 +117,11 @@ val run_and_print_suite :
   'i list ->
   unit
 
-(** {1 Target batch} *)
+(** {1 Per-target run} *)
 
-type task_result = { task_name : string; summary : suite_summary }
+type task_result = { task_name : string; summary : batch_summary }
 
-val run_target_batch :
+val run_target :
   ?config:Instrumentation.Config.t ->
   ?test_dir:string ->
   checkpoint_config:Checkpoint.config ->
