@@ -98,6 +98,7 @@ let make_batch (module Tgt : Spectec.Target.S) ~name
     let%map sl_mode = Cli_args.Interpreter.sl_mode_flag
     and verbose = flag "-v" no_arg ~doc:" verbose: print progress for each test"
     and batch_dir = Cli_args.Batch.dir_flag
+    and filenames_spec = Cli_args.Spec.files_flag
     and checkpoint = Cli_args.Checkpoint.flags
     and config = Cli_args.Interpreter.config_flags
     and color = Cli_args.Output.color_flag in
@@ -105,7 +106,9 @@ let make_batch (module Tgt : Spectec.Target.S) ~name
       guard_unit ~color @@ fun () ->
       let open Spectec in
       let* () = validate_config config ~sl_mode in
-      let* spec_files, spec_il = load_spec ~spec_dir:Tgt.spec_dir [] in
+      let* spec_files, spec_il =
+        load_spec ~spec_dir:Tgt.spec_dir filenames_spec
+      in
       let checkpoint_config : Batch.Checkpoint.config =
         {
           output_file = checkpoint.output;
