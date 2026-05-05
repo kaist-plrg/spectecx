@@ -127,7 +127,7 @@ let shrink (spec : spec) =
     let t = v.note.typ in
     match v.it with
     | TextV s ->
-      if s = "" then []
+      if String.length s <= 1 then []
       else
         let n = String.length s in
         Value.make_val t (TextV "") ::

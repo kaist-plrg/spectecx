@@ -1,7 +1,7 @@
 open Lang.Il
 
 type ir_var = {
-  iv_id  : string;
+  iv_id  : id';
   iv_typ : typ;
 }
 

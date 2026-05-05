@@ -85,19 +85,21 @@ let dispatch ~use_manual ~idx spec_il (command : Qc_ir.qc_command) =
       if use_manual then gen_free_vars_manual spec_il idx
       else gen_free_vars spec_il free_vars
     in
-    let count = ref 0 in
-    while !count < 100 do
-      let initial_env = Gen.sample gen in
-      (match
-         Interp.run_prems
-           (module Nop_target) spec_il initial_env prems ""
-       with
-       | Error _ -> ()
-       | Ok env ->
-         print_string (show_env env);
-         print_newline ();
-         incr count)
-    done
+    let rec loop count discarded =
+      if count >= 100 then ()
+      else if discarded >= 1000 then ()
+      else 
+        let initial_env = Gen.sample gen in
+        (match
+          Interp.run_prems
+            (module Nop_target) spec_il initial_env prems ""
+        with
+        | Error _ -> loop count (discarded + 1)
+        | Ok env ->
+          let _ = print_string (show_env env) in
+          let _ = print_newline () in
+          loop (count + 1) discarded)
+    in loop 0 0
 
 let quickcheck_file ?(manual = []) spec_il path =
   match Qc_parse.parse_file path with
