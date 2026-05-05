@@ -33,16 +33,7 @@ type outcome =
 val check : ?config:config -> Property.t -> outcome
 (** [check prop] runs [prop] and returns [outcome]. *)
 
-val quickcheck : ?config:config -> Property.t -> unit
-(** [quickcheck prop] runs [check] and prints a human-readable report.
-    Raises [Failure] on [Fail]. *)
+type opt = PROP | GEN
 
-(** {2 Convenience entry point} *)
-
-val for_all :
-  ?config:config ->
-  show:('a -> string) ->
-  'a Gen.t ->
-  ('a -> bool) ->
-  unit
-(** [for_all ~show gen pred] constructs and runs a property from [gen] and [pred]. *)
+val quickcheck : ?config:config -> Property.t -> opt -> unit
+(** [quickcheck prop opt] runs [check] and prints a human-readable report. *)

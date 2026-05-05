@@ -68,7 +68,7 @@ let dispatch ~use_manual ~idx spec_il (command : Qc_ir.qc_command) =
            | `R (Error _) -> Property.Bool_testable.property false
            | `R (Ok _) -> Property.Bool_testable.property true))
     in
-    Test.quickcheck prop
+    Test.quickcheck prop Test.PROP
   | Qc_ir.QcGen { free_vars; prems } ->
     let _ = Printf.printf "Generation]\n" in
     let gen =
@@ -89,14 +89,7 @@ let dispatch ~use_manual ~idx spec_il (command : Qc_ir.qc_command) =
             (Property.of_result (Property.Result.with_ok true)))
     in
     let config = { Test.default_config with Test.max_size = 5 } in
-    (match Test.check ~config prop with
-     | Test.Pass { num_tests; stamps } ->
-       Printf.printf "OK, generated %d samples.\n" num_tests;
-       List.iter (fun (lbl, n) ->
-         Printf.printf "%3d%% %s\n" (n * 100 / num_tests) lbl) stamps
-     | Test.Fail _ -> ()
-     | Test.Gave_up { num_tests } ->
-       Printf.printf "Gave up after %d tests (too many discarded).\n" num_tests)
+    Test.quickcheck ~config:config prop Test.GEN
 
 let quickcheck_file ?(manual = []) spec_il path =
   match Qc_parse.parse_file path with

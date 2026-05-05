@@ -8,7 +8,7 @@ module Result = struct
     shrink : unit -> t Gen.t list;
   }
 
-  let nothing = { ok = None; stamp = []; arguments = []; shrink = fun () -> [] }
+  let nothing = { ok = None; stamp = []; arguments = []; shrink = (fun () -> []) }
   let with_ok b = { nothing with ok = Some b }
   let add_argument s r = { r with arguments = s :: r.arguments }
   let add_stamp s r = { r with stamp = s :: r.stamp }
@@ -62,10 +62,11 @@ let rec for_all ?(shrink = fun _ -> []) ~show gen body =
     let* a = gen in
     let* res = evaluate (body a) in
     let base = Result.add_argument (show a) res in
-    return { base with Result.shrink = fun () ->
-      List.map
-        (fun a' -> evaluate (for_all ~shrink ~show (Gen.return a') body))
-        (shrink a) })
+    return { base with
+      Result.shrink = (fun () ->
+        List.map
+          (fun a' -> evaluate (for_all ~shrink ~show (Gen.return a') body))
+          (shrink a)) })
 
 (* ==>: precondition filtering *)
 let ( ==> ) cond prop =
