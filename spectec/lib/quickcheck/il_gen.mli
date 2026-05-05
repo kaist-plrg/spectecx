@@ -27,3 +27,11 @@ val gen_of_deftyp : spec -> typ -> deftyp -> Value.t Gen.t
     [outer_typ] is used for the [vnote.typ] annotation of generated values.
     For [VariantT], reduces the size parameter to prevent infinite loops on
     recursive types. *)
+
+val shrink : spec -> Value.t -> Value.t list
+(** [shrink spec v] returns a list of values strictly smaller than [v],
+    used by the QuickCheck shrinker to minimise counterexamples.
+    Handles [TextV], [ListV], [OptV], [TupleV], [StructV], and [CaseV].
+    For [CaseV], looks up the variant definition in [spec] via [find_typdef]
+    to try nullary non-recursive cases and shrink each constructor argument.
+    Returns [[]] for [BoolV], [NumV], [FuncV], and unknown types. *)

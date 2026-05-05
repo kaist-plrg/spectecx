@@ -121,3 +121,111 @@ and gen_of_deftyp (spec : spec) (outer_typ : typ) (deftyp : deftyp) : Value.t Ge
       match List.map make_case_gen candidate_cases with
       | [] -> failwith "Il_gen.gen_of_deftyp: VariantT with no cases"
       | gens -> Gen.oneof gens)
+
+let shrink (spec : spec) =
+  let rec shrink (v : Value.t) : Value.t list =
+    let t = v.note.typ in
+    match v.it with
+    | TextV s ->
+      if s = "" then []
+      else
+        let n = String.length s in
+        Value.make_val t (TextV "") ::
+        List.init (n - 1) (fun i ->
+          let s' = String.sub s 0 i ^ String.sub s (i + 1) (n - i - 1) in
+          Value.make_val t (TextV s'))
+    | ListV vs ->
+      let n = List.length vs in
+      if n = 0 then []
+      else
+        Value.make_val t (ListV []) ::
+        List.init n (fun i ->
+          Value.make_val t (ListV (List.filteri (fun j _ -> j <> i) vs)))
+        @
+        List.concat_map (fun (i, vi) ->
+          List.map (fun vi' ->
+            Value.make_val t
+              (ListV (List.mapi (fun j vj -> if j = i then vi' else vj) vs)))
+          (shrink vi))
+        (List.mapi (fun i vi -> (i, vi)) vs)
+    | OptV (Some inner) ->
+      Value.make_val t (OptV None) ::
+      List.map (fun inner' -> Value.make_val t (OptV (Some inner')))
+        (shrink inner)
+    | TupleV vs ->
+      List.concat_map (fun (i, vi) ->
+        List.map (fun vi' ->
+          Value.make_val t
+            (TupleV (List.mapi (fun j vj -> if j = i then vi' else vj) vs)))
+        (shrink vi))
+      (List.mapi (fun i vi -> (i, vi)) vs)
+    | StructV fields ->
+      List.concat_map (fun (i, (_, vi)) ->
+        List.map (fun vi' ->
+          Value.make_val t
+            (StructV (List.mapi (fun j (aj, vj) ->
+              if j = i then (aj, vi') else (aj, vj)) fields)))
+        (shrink vi))
+      (List.mapi (fun i f -> (i, f)) fields)
+    | CaseV vc ->
+      let args = Mixfix.args vc in
+      (match v.note.typ with
+       | VarT (id, _) ->
+         (match find_typdef spec id.it with
+          | Some (_, deftyp) ->
+            (match deftyp.it with
+             | VariantT cases ->
+               let outer_name = id.it in
+               (* Find which case in the variant matches the current value
+                  by comparing atom structure after filling the type-level mixop *)
+               let current_case =
+                 List.find_opt (fun (nottyp, _, _) ->
+                   let mixop, typs = Mixfix.split nottyp.it in
+                   List.length typs = List.length args &&
+                   let filled = Mixfix.fill mixop args in
+                   List.length filled = List.length vc &&
+                   List.for_all2 (fun p1 p2 ->
+                     match p1, p2 with
+                     | Mixfix.Atom a1, Mixfix.Atom a2 ->
+                       Xl.Atom.compare a1.it a2.it = 0
+                     | Mixfix.Arg _, Mixfix.Arg _ -> true
+                     | _ -> false)
+                   vc filled)
+                 cases
+               in
+               (* Strategy 1: if current case is recursive, return same-type subcomponents *)
+               let recursive_subcomponents =
+                 match current_case with
+                 | None -> []
+                 | Some (nottyp, _, _) ->
+                   let _, typs = Mixfix.split nottyp.it in
+                   List.filter_map (fun (typ, vi) ->
+                     match typ.it with
+                     | VarT (sub_id, _) when sub_id.it = outer_name -> Some vi
+                     | _ -> None)
+                   (List.combine typs args)
+               in
+               (* Shrink each argument of the current case *)
+               let shrunk_args =
+                 List.concat_map (fun (i, vi) ->
+                   List.map (fun vi' ->
+                     let arg_idx = ref 0 in
+                     let new_vc =
+                       List.map (fun part ->
+                         match part with
+                         | Mixfix.Atom a -> Mixfix.Atom a
+                         | Mixfix.Arg _ ->
+                           let idx = !arg_idx in incr arg_idx;
+                           Mixfix.Arg (if idx = i then vi' else List.nth args idx))
+                       vc
+                     in
+                     Value.make_val t (CaseV new_vc))
+                   (shrink vi))
+                 (List.mapi (fun i vi -> (i, vi)) args)
+               in
+               recursive_subcomponents @ shrunk_args
+             | _ -> [])
+          | None -> [])
+       | _ -> [])
+    | _ -> []
+  in shrink

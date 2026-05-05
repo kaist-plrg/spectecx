@@ -40,7 +40,7 @@ let error_to_diagnostic ((at, msg) : error) : Diagnostic.t =
    present in the context after evaluation are silently omitted. *)
 let run_prems (module T : Target.S) (spec : spec)
     (initial_bindings : (id' * value) list) (prems : prem list)
-    (all_var_names : id' list) (filename : string) :
+    (filename : string) :
     ((id' * value) list, error) result =
   let builtins = Builtins.make T.builtins in
   let cache =
@@ -58,11 +58,9 @@ let run_prems (module T : Target.S) (spec : spec)
     let+ ctx = Interp.eval_prems ctx prems in
     let bindings =
       List.filter_map
-        (fun id ->
-          match Ctx.find_value_opt ctx (id $ no_region, []) with
-          | Some v -> Some (id, v)
-          | None -> None)
-        all_var_names
+        (fun ((id, iters), v) ->
+          if iters = [] then Some (id.it, v) else None)
+        (Ctx.Local.VEnv.bindings ctx.local.venv)
     in
     Result.ok bindings
   in

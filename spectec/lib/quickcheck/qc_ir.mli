@@ -7,15 +7,13 @@ type ir_var = {
 
 type qc_command =
   | QcProp of {
-      free_vars     : ir_var list;
-      all_var_names : id' list;
-      goal          : prem;
-      prems         : prem list;
+      free_vars : ir_var list;
+      goal      : prem;
+      prems     : prem list;
     }
   | QcGen of {
-      free_vars     : ir_var list;
-      all_var_names : id' list;
-      prems         : prem list;
+      free_vars : ir_var list;
+      prems     : prem list;
     }
 
 type t = qc_command list

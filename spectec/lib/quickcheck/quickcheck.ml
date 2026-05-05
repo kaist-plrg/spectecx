@@ -13,6 +13,14 @@ module Nop_target : Interp.Target.S = struct
   let state_version = ref 0
 end
 
+let shrink_env spec (env : (id' * value) list) : (id' * value) list list =
+  let shrink_value = shrink spec in
+  List.concat_map (fun (i, (_, vi)) ->
+    List.map (fun vi' ->
+      List.mapi (fun j (idj, vj) -> if j = i then (idj, vi') else (idj, vj)) env)
+    (shrink_value vi))
+  (List.mapi (fun i p -> (i, p)) env)
+
 let show_env (bindings : (id' * value) list) : string =
   String.concat ", "
     (List.map (fun (id, v) -> id ^ "=" ^ Print.string_of_value v) bindings)
@@ -38,17 +46,17 @@ let gen_free_vars_manual (spec_il : spec) (i : int) :
 
 let dispatch ~use_manual ~idx spec_il (command : Qc_ir.qc_command) =
   match command with
-  | Qc_ir.QcProp { free_vars; all_var_names; goal; prems } ->
+  | Qc_ir.QcProp { free_vars; goal; prems } ->
     let _ = Printf.printf "Test]\n" in
     let gen =
       if use_manual then gen_free_vars_manual spec_il idx
       else gen_free_vars spec_il free_vars
     in
     let prop =
-      Property.for_all ~show:show_env gen (fun initial_env ->
+      Property.for_all ~shrink:(shrink_env spec_il) ~show:show_env gen (fun initial_env ->
         match
           Interp.run_prems
-            (module Nop_target) spec_il initial_env prems all_var_names ""
+            (module Nop_target) spec_il initial_env prems ""
         with
         | Error _ ->
           Property.of_result Property.Result.nothing
@@ -56,7 +64,7 @@ let dispatch ~use_manual ~idx spec_il (command : Qc_ir.qc_command) =
           let passed =
             Result.is_ok
               (Interp.run_prems
-                 (module Nop_target) spec_il env [goal] all_var_names "")
+                 (module Nop_target) spec_il env [goal] "")
           in
           Property.Bool_testable.property passed)
     in
@@ -71,7 +79,7 @@ let dispatch ~use_manual ~idx spec_il (command : Qc_ir.qc_command) =
        List.iter (fun s -> Printf.printf "  %s\n" s) counterexample
      | Test.Gave_up { num_tests } ->
        Printf.printf "Gave up after %d tests (too many discarded).\n" num_tests)
-  | Qc_ir.QcGen { free_vars; all_var_names; prems } ->
+  | Qc_ir.QcGen { free_vars; prems } ->
     let _ = Printf.printf "Generation]\n" in
     let gen =
       if use_manual then gen_free_vars_manual spec_il idx
@@ -82,7 +90,7 @@ let dispatch ~use_manual ~idx spec_il (command : Qc_ir.qc_command) =
       let initial_env = Gen.sample gen in
       (match
          Interp.run_prems
-           (module Nop_target) spec_il initial_env prems all_var_names ""
+           (module Nop_target) spec_il initial_env prems ""
        with
        | Error _ -> ()
        | Ok env ->

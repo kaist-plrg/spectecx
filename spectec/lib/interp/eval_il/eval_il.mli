@@ -22,6 +22,5 @@ val run_prems :
   Lang.Il.spec ->
   (Lang.Il.id' * Lang.Il.Value.t) list ->
   Lang.Il.prem list ->
-  Lang.Il.id' list ->
   string ->
   ((Lang.Il.id' * Lang.Il.Value.t) list, error) result

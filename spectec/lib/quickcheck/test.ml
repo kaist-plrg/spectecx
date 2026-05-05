@@ -29,6 +29,18 @@ let count_stamps stamps =
   Hashtbl.fold (fun k v acc -> (k, v) :: acc) tbl []
   |> List.sort (fun (_, a) (_, b) -> compare b a)
 
+let rec shrink_loop (r : Property.Result.t) : Property.Result.t =
+  let candidate_gens = r.Property.Result.shrink () in
+  let failing =
+    List.find_map (fun gen ->
+      let r' = Gen.run gen ~size:0 ~rand:(Random.make 0) in
+      if r'.Property.Result.ok = Some false then Some r' else None)
+    candidate_gens
+  in
+  match failing with
+  | None    -> r
+  | Some r' -> shrink_loop r'
+
 let check ?(config = default_config) prop =
   let rand =
     match config.seed with
@@ -57,8 +69,9 @@ let check ?(config = default_config) prop =
            | None -> "discarded");
       match result.Property.Result.ok with
       | Some false ->
+        let minimal = shrink_loop result in
         Fail { num_tests = i + 1;
-               counterexample = result.Property.Result.arguments }
+               counterexample = minimal.Property.Result.arguments }
       | Some true ->
         loop (i + 1) discarded
           (result.Property.Result.stamp @ all_stamps)

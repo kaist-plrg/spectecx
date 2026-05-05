@@ -2,18 +2,6 @@ open Common.Source
 open Lang.Il
 module El = Lang.El
 
-(* --- helpers ---------------------------------------------------------- *)
-
-let find_rel (spec_il : spec) (name : string) :
-    (nottyp * int list) option =
-  List.find_map
-    (fun def ->
-      match def.it with
-      | RelD (id, nottyp, inputs, _) when id.it = name ->
-        Some (nottyp, inputs)
-      | _ -> None)
-    spec_il
-
 (* Structural translation of El.plaintyp → Il.typ.
    No context needed: purely syntactic.
    Type-argument count checking happens in elab_prems_in_spec. *)
@@ -35,33 +23,6 @@ and elab_plaintyp' (pt' : El.plaintyp') : typ' =
     in
     VarT (id, il_targs)
 
-(* Walk the elaborated premises and collect the names of variables that are
-   bound (i.e., created) by the premises, rather than merely used as inputs.
-   Returns names in evaluation order; used to build all_var_names. *)
-let extract_bound_var_names (spec_il : spec) (prems : prem list) : id' list =
-  List.concat_map
-    (fun prem ->
-      match prem.it with
-      | LetPr (lhs, _) -> (
-          match lhs.it with
-          | VarE id -> [ id.it ]
-          | _ -> [])
-      | RulePr (rel_id, notexp) -> (
-          match find_rel spec_il rel_id.it with
-          | None -> []
-          | Some (_, inputs) ->
-            let args = Mixfix.args notexp in
-            List.concat_map
-              (fun (i, arg) ->
-                if List.mem i inputs then []
-                else
-                  match arg.it with
-                  | VarE id -> [ id.it ]
-                  | _ -> [])
-              (List.mapi (fun i a -> (i, a)) args))
-      | _ -> [])
-    prems
-
 (* --- block elaboration ------------------------------------------------ *)
 
 let elab_block (spec_il : spec) (block : Qc_ast.ast_block) :
@@ -75,7 +36,6 @@ let elab_block (spec_il : spec) (block : Qc_ast.ast_block) :
             iv_typ = elab_plaintyp p.Qc_ast.p_typ })
         params
     in
-    let param_names = List.map (fun p -> p.Qc_ast.p_id.it) params in
     let var_decls =
       List.map (fun p -> (p.Qc_ast.p_id, p.Qc_ast.p_typ)) params
     in
@@ -86,11 +46,9 @@ let elab_block (spec_il : spec) (block : Qc_ast.ast_block) :
        | [] -> Error "quickcheck/prop: empty elaboration result"
        | il_goal :: il_prems_rev ->
          let il_prems = List.rev il_prems_rev in
-         let bound_names = extract_bound_var_names spec_il il_prems in
          Ok
            (Qc_ir.QcProp
               { free_vars;
-                all_var_names = param_names @ bound_names;
                 goal = il_goal;
                 prems = il_prems }))
   | Qc_ast.AB_Gen { params; prems } ->
@@ -101,7 +59,6 @@ let elab_block (spec_il : spec) (block : Qc_ast.ast_block) :
             iv_typ = elab_plaintyp p.Qc_ast.p_typ })
         params
     in
-    let param_names = List.map (fun p -> p.Qc_ast.p_id.it) params in
     let var_decls =
       List.map (fun p -> (p.Qc_ast.p_id, p.Qc_ast.p_typ)) params
     in
@@ -109,10 +66,8 @@ let elab_block (spec_il : spec) (block : Qc_ast.ast_block) :
      | Error e ->
        Error (Elaborate.error_to_string e)
      | Ok il_prems ->
-       let bound_names = extract_bound_var_names spec_il il_prems in
        Ok (Qc_ir.QcGen
              { free_vars;
-               all_var_names = param_names @ bound_names;
                prems = il_prems }))
 
 (* --- top-level -------------------------------------------------------- *)

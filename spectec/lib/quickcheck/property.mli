@@ -15,6 +15,9 @@ module Result : sig
     (** Labels accumulated by [label]/[classify]. Used for statistics. *)
     arguments : string list;
     (** String representation of counterexample arguments recorded by [for_all]. *)
+    shrink : unit -> t Gen.t list;
+    (** Lazy thunk: returns candidate generators to try for shrinking.
+        Populated by [for_all ~shrink]; evaluated and run by [Test.check]. *)
   }
 
   val nothing : t
@@ -63,10 +66,16 @@ module Make_fun_testable (A : Arbitrary.ARBITRARY) (B : TESTABLE) :
 
 (** {2 Property combinators} *)
 
-val for_all : show:('a -> string) -> 'a Gen.t -> ('a -> t) -> t
-(** [for_all ~show gen body] generates a value with [gen], supplies it to [body],
-    and records the string representation in [arguments].
-    Direct translation of [forAll] from goal.md. *)
+val for_all :
+  ?shrink:('a -> 'a list) ->
+  show:('a -> string) ->
+  'a Gen.t ->
+  ('a -> t) ->
+  t
+(** [for_all ?shrink ~show gen body] generates a value with [gen], supplies it
+    to [body], and records the string representation in [arguments].
+    If [shrink] is provided, the [shrink] field of the result carries a thunk
+    that [Test.check] uses to find a minimal counterexample on failure. *)
 
 val ( ==> ) : bool -> t -> t
 (** [cond ==> prop]: if [cond] is [true] returns [prop], otherwise returns neutral. *)
