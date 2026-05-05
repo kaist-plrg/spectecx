@@ -38,11 +38,13 @@ let structure_command =
 
 let command =
   let module P4 = Targets_p4.P4.Cli in
+  let module Impty = Targets_impty.Impty.Cli in
   Core.Command.group ~summary:"SpecTec command line tools"
     [
       ("elab", elab_command);
       ("struct", structure_command);
       (P4.name, P4.command);
+      (Impty.name, Impty.command);
     ]
 
 let () = Command_unix.run ~version command

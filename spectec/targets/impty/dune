@@ -1,0 +1,13 @@
+(library
+ (name targets_impty)
+ (public_name spectec.targets.impty)
+ (libraries
+  spectec
+  spectec.cli
+  spectec.common
+  spectec.lang
+  spectec.interp.builtins
+  core
+  str)
+ (preprocess
+  (pps ppx_let)))
