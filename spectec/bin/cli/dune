@@ -1,5 +1,0 @@
-(library
- (name cli)
- (libraries core unix spectec spectec.suite spectec.instrumentation)
- (preprocess
-  (pps ppx_let)))

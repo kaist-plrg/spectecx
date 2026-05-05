@@ -1,5 +1,4 @@
-(** Suite - Test suite infrastructure, batch running, and checkpoint
-    persistence. *)
+(** Batch - Batch run infrastructure and checkpoint persistence. *)
 
 open Spectec
 open Error
@@ -274,9 +273,9 @@ let run_one_input (type i) (module T : Task.S with type input = i) ~sl_mode
   if verbose then print_outcome_tag outcome;
   { input; source; outcome }
 
-(* --- Suite summary --- *)
+(* --- Batch summary --- *)
 
-type suite_summary = {
+type batch_summary = {
   pass : int;
   expected_fail : int;
   fail : int;
@@ -322,9 +321,9 @@ let print_summary summary =
   Format.printf "\nTest Results: %d/%d passed, %d failed\n" passed summary.total
     failed
 
-(* --- Suite runner --- *)
+(* --- Batch runner --- *)
 
-let run_suite_with_outcomes (type i) (module T : Task.S with type input = i)
+let run_batch_with_outcomes (type i) (module T : Task.S with type input = i)
     ?(config = Instrumentation.Config.default) ~sl_mode ~spec_il
     ?(verbose = false) (inputs : i list) =
   let total = List.length inputs in
@@ -349,10 +348,10 @@ let run_and_print_single (type i) (module T : Task.S with type input = i)
   in
   print_outcome (module T) (T.source input) outcome
 
-let run_and_print_suite (type i) (module T : Task.S with type input = i) ?config
+let run_and_print_batch (type i) (module T : Task.S with type input = i) ?config
     ~sl_mode ~spec_il ~verbose (inputs : i list) =
   let results =
-    run_suite_with_outcomes (module T) ?config ~sl_mode ~spec_il ~verbose inputs
+    run_batch_with_outcomes (module T) ?config ~sl_mode ~spec_il ~verbose inputs
   in
   if not verbose then
     List.iter
@@ -364,9 +363,9 @@ let run_and_print_suite (type i) (module T : Task.S with type input = i) ?config
 
 (* --- Target batch runner --- *)
 
-type task_result = { task_name : string; summary : suite_summary }
+type task_result = { task_name : string; summary : batch_summary }
 
-let run_target_batch ?(config = Instrumentation.Config.default) ?test_dir
+let run_target ?(config = Instrumentation.Config.default) ?test_dir
     ~(checkpoint_config : Checkpoint.config) ~verbose ~sl_mode ~spec_files
     spec_il tasks =
   Instrumentation.with_instrumentation config
