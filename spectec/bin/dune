@@ -8,6 +8,7 @@
   spectec
   spectec.cli
   spectec.targets.p4
+  spectec.targets.impty
   core
   core_unix
   core_unix.command_unix))

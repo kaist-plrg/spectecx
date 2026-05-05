@@ -1,0 +1,4 @@
+int base = 100;
+(int -> int) add_to_base = fun(int n) -> int { base + n };
+int five = add_to_base(5);
+int ten = add_to_base(10)
