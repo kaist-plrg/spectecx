@@ -41,6 +41,23 @@ let rec shrink_loop (r : Property.Result.t) : Property.Result.t =
   | None    -> r
   | Some r' -> shrink_loop r'
 
+let rec generalize_loop (r : Property.Result.t) : Property.Result.t =
+  let candidates = r.Property.Result.generalize () in
+  let found = List.find_map (fun (_, gens) ->
+    if gens = [] then None
+    else
+      let results = List.map (fun gen ->
+        Gen.run gen ~size:3 ~rand:(Random.make 0)) gens in
+      if List.exists (fun r' -> r'.Property.Result.ok = Some false) results
+      && List.for_all (fun r' -> r'.Property.Result.ok <> Some true) results
+      then Some (List.hd results)
+      else None)
+  candidates
+  in
+  match found with
+  | None    -> r
+  | Some r' -> generalize_loop r'
+
 let check ?(config = default_config) prop =
   let rand =
     match config.seed with
@@ -70,8 +87,9 @@ let check ?(config = default_config) prop =
       match result.Property.Result.ok with
       | Some false ->
         let minimal = shrink_loop result in
+        let generalized = generalize_loop minimal in
         Fail { num_tests = i + 1;
-               counterexample = minimal.Property.Result.arguments }
+               counterexample = generalized.Property.Result.arguments }
       | Some true ->
         loop (i + 1) discarded
           (result.Property.Result.stamp @ all_stamps) next_rand

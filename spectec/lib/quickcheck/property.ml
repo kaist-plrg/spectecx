@@ -6,9 +6,10 @@ module Result = struct
     stamp : string list;
     arguments : string list;
     shrink : unit -> t Gen.t list;
+    generalize : unit -> (string * t Gen.t list) list;
   }
 
-  let nothing = { ok = None; stamp = []; arguments = []; shrink = (fun () -> []) }
+  let nothing = { ok = None; stamp = []; arguments = []; shrink = (fun () -> []); generalize = (fun () -> []) }
   let with_ok b = { nothing with ok = Some b }
   let add_argument s r = { r with arguments = s :: r.arguments }
   let add_stamp s r = { r with stamp = s :: r.stamp }
@@ -56,7 +57,9 @@ end
    forAll gen body = Prop $ do
      a <- gen; res <- evaluate (body a)
      return (res { arguments = show a : arguments res }) *)
-let rec for_all ?(shrink = fun _ -> []) ~show gen body =
+let generalize_n = 10
+
+let rec for_all ?(shrink = fun _ -> []) ?(generalize = fun _ -> []) ~show gen body =
   Prop (
     let open Gen in
     let* a = gen in
@@ -65,8 +68,21 @@ let rec for_all ?(shrink = fun _ -> []) ~show gen body =
     return { base with
       Result.shrink = (fun () ->
         List.map
-          (fun a' -> evaluate (for_all ~shrink ~show (Gen.return a') body))
-          (shrink a)) })
+          (fun a' -> evaluate (for_all ~shrink ~generalize ~show (Gen.return a') body))
+          (shrink a));
+      Result.generalize = (fun () ->
+        List.map
+          (fun (s, gen') ->
+            let samples = List.init generalize_n (fun i ->
+              Gen.map
+                (fun r -> { r with Result.arguments =
+                    match r.Result.arguments with
+                    | _ :: rest -> s :: rest
+                    | [] -> [s] })
+                (evaluate (for_all ~shrink ~generalize ~show (Gen.variant i gen') body)))
+            in
+            (s, samples))
+          (generalize a)) })
 
 (* ==>: precondition filtering *)
 let ( ==> ) cond prop =

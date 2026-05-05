@@ -21,6 +21,10 @@ let shrink_env spec (env : (id' * value) list) : (id' * value) list list =
     (shrink_value vi))
   (List.mapi (fun i p -> (i, p)) env)
 
+let generalize_env _spec (_counter_env : (id' * value) list) : (string * ((id' * value) list Gen.t)) list = 
+  (* TO DO *)
+  []
+
 let show_env (bindings : (id' * value) list) : string =
   String.concat ", "
     (List.map (fun (id, v) -> id ^ "=" ^ Print.string_of_value v) bindings)
@@ -58,7 +62,7 @@ let dispatch ~use_manual ~idx spec_il (command : Qc_ir.qc_command) =
       with Interp.StepLimitExceeded -> `Timeout
     in
     let prop =
-      Property.for_all ~shrink:(shrink_env spec_il) ~show:show_env gen (fun initial_env ->
+      Property.for_all ~shrink:(shrink_env spec_il) ~generalize:(generalize_env spec_il) ~show:show_env gen (fun initial_env ->
         match run initial_env prems with
         | `Timeout | `R (Error _) ->
           Property.of_result Property.Result.nothing
