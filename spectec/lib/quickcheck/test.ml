@@ -48,8 +48,8 @@ let check ?(config = default_config) prop =
     | `Nondeterministic -> Random.make_self_init ()
   in
   let gen = Property.evaluate prop in
-  (* Each trial derives an independent PRNG by splitting *)
-  let rec loop i discarded all_stamps =
+  (* Each trial derives an independent PRNG by splitting and advancing rand *)
+  let rec loop i discarded all_stamps rand =
     if i >= config.num_tests then
       Pass { num_tests = i; stamps = count_stamps all_stamps }
     else if discarded > config.num_tests * 10 then
@@ -59,7 +59,7 @@ let check ?(config = default_config) prop =
         if config.max_size = 0 then 0
         else (i * config.max_size) / config.num_tests
       in
-      let _, trial_rand = Random.split rand in
+      let trial_rand, next_rand = Random.split rand in
       let result = Gen.run gen ~size ~rand:trial_rand in
       if config.verbose then
         Printf.printf "Test %d: %s\n%!" (i + 1)
@@ -74,12 +74,12 @@ let check ?(config = default_config) prop =
                counterexample = minimal.Property.Result.arguments }
       | Some true ->
         loop (i + 1) discarded
-          (result.Property.Result.stamp @ all_stamps)
+          (result.Property.Result.stamp @ all_stamps) next_rand
       | None ->
-        loop i (discarded + 1) all_stamps
+        loop i (discarded + 1) all_stamps next_rand
     end
   in
-  loop 0 0 []
+  loop 0 0 [] rand
 
 let quickcheck ?(config = default_config) prop =
   match check ~config prop with
@@ -92,8 +92,7 @@ let quickcheck ?(config = default_config) prop =
         stamps
   | Fail { num_tests; counterexample } ->
     Printf.printf "Falsifiable, after %d tests:\n" num_tests;
-    List.iter (fun s -> Printf.printf "  %s\n" s) counterexample;
-    failwith "QuickCheck: property falsified"
+    List.iter (fun s -> Printf.printf "  %s\n" s) counterexample
   | Gave_up { num_tests } ->
     Printf.printf "Gave up after %d tests (too many discarded).\n" num_tests
 

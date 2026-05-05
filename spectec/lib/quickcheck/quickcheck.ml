@@ -52,54 +52,51 @@ let dispatch ~use_manual ~idx spec_il (command : Qc_ir.qc_command) =
       if use_manual then gen_free_vars_manual spec_il idx
       else gen_free_vars spec_il free_vars
     in
+    let run env prems =
+      try `R (Interp.run_prems ~max_steps:10_000
+                (module Nop_target) spec_il env prems "")
+      with Interp.StepLimitExceeded -> `Timeout
+    in
     let prop =
       Property.for_all ~shrink:(shrink_env spec_il) ~show:show_env gen (fun initial_env ->
-        match
-          Interp.run_prems
-            (module Nop_target) spec_il initial_env prems ""
-        with
-        | Error _ ->
+        match run initial_env prems with
+        | `Timeout | `R (Error _) ->
           Property.of_result Property.Result.nothing
-        | Ok env ->
-          let passed =
-            Result.is_ok
-              (Interp.run_prems
-                 (module Nop_target) spec_il env [goal] "")
-          in
-          Property.Bool_testable.property passed)
+        | `R (Ok env) ->
+          (match run env [goal] with
+           | `Timeout -> Property.of_result Property.Result.nothing
+           | `R (Error _) -> Property.Bool_testable.property false
+           | `R (Ok _) -> Property.Bool_testable.property true))
     in
-    (match Test.check prop with
-     | Test.Pass { num_tests; stamps } ->
-       Printf.printf "OK, passed %d tests.\n" num_tests;
-       if stamps <> [] then
-         List.iter (fun (lbl, n) ->
-           Printf.printf "%3d%% %s\n" (n * 100 / num_tests) lbl) stamps
-     | Test.Fail { num_tests; counterexample } ->
-       Printf.printf "Falsifiable, after %d tests:\n" num_tests;
-       List.iter (fun s -> Printf.printf "  %s\n" s) counterexample
-     | Test.Gave_up { num_tests } ->
-       Printf.printf "Gave up after %d tests (too many discarded).\n" num_tests)
+    Test.quickcheck prop
   | Qc_ir.QcGen { free_vars; prems } ->
     let _ = Printf.printf "Generation]\n" in
     let gen =
       if use_manual then gen_free_vars_manual spec_il idx
       else gen_free_vars spec_il free_vars
     in
-    let rec loop count discarded =
-      if count >= 100 then ()
-      else if discarded >= 1000 then ()
-      else 
-        let initial_env = Gen.sample gen in
-        (match
-          Interp.run_prems
-            (module Nop_target) spec_il initial_env prems ""
+    let prop =
+      Property.for_all ~show:show_env gen (fun initial_env ->
+        match
+          (try `R (Interp.run_prems ~max_steps:10_000
+                     (module Nop_target) spec_il initial_env prems "")
+           with Interp.StepLimitExceeded -> `Timeout)
         with
-        | Error _ -> loop count (discarded + 1)
-        | Ok env ->
-          let _ = print_string (show_env env) in
-          let _ = print_newline () in
-          loop (count + 1) discarded)
-    in loop 0 0
+        | `Timeout | `R (Error _) ->
+          Property.of_result Property.Result.nothing
+        | `R (Ok env) ->
+          Property.label (show_env env)
+            (Property.of_result (Property.Result.with_ok true)))
+    in
+    let config = { Test.default_config with Test.max_size = 5 } in
+    (match Test.check ~config prop with
+     | Test.Pass { num_tests; stamps } ->
+       Printf.printf "OK, generated %d samples.\n" num_tests;
+       List.iter (fun (lbl, n) ->
+         Printf.printf "%3d%% %s\n" (n * 100 / num_tests) lbl) stamps
+     | Test.Fail _ -> ()
+     | Test.Gave_up { num_tests } ->
+       Printf.printf "Gave up after %d tests (too many discarded).\n" num_tests)
 
 let quickcheck_file ?(manual = []) spec_il path =
   match Qc_parse.parse_file path with

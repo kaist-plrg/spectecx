@@ -5,4 +5,4 @@
           il_gen manual_gen gen arbitrary property test random)
  (libraries spectec.lang.il spectec.lang.el
             spectec.pipeline.frontend spectec.pass.elaborate
-            spectec.interp bignum.bigint))
+            spectec.interp bignum.bigint unix))

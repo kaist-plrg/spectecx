@@ -9,6 +9,8 @@ open Attempt
 module Events = Instrumentation.Event
 module F = Format
 
+let step_budget : int ref = ref (-1)
+
 (* Assignments *)
 
 (* Assigning a value to an expression *)
@@ -1106,6 +1108,8 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
   in
   (* Main invocation logic *)
   let invoke_rel' () =
+    if !step_budget = 0 then raise StepLimitExceeded
+    else if !step_budget > 0 then decr step_budget;
     (* Find the relation *)
     let inputs, rules = Ctx.find_rel ctx id in
     check_warn (rules <> []) id.at "relation has no rules";

@@ -5,6 +5,8 @@ type error
 type ctx_il
 type ctx_sl
 
+exception StepLimitExceeded
+
 val error_to_string : error -> string
 val error_to_diagnostic : error -> Diagnostic.t
 
@@ -25,6 +27,7 @@ val eval_sl :
   (ctx_sl * Lang.Il.Value.t list, error) result
 
 val run_prems :
+  ?max_steps:int ->
   (module Target.S) ->
   Lang.Il.spec ->
   (Lang.Il.id' * Lang.Il.Value.t) list ->
