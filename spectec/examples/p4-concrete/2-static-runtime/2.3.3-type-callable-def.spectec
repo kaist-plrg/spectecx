@@ -1,0 +1,60 @@
+;;
+;; Callable type definitions
+;;
+
+;;
+;;;; Action type definitions
+;;
+
+syntax actionTypeDefIR = actionTypeIR
+
+;;
+;;;; Function type definitions
+;;
+
+syntax definedFunctionTypeDefIR =
+  FUNCTION nameIR
+    `< typeParameterIR* `, typeParameterIR* >
+    `( parameterIR* ) `: typeIR
+
+syntax externFunctionTypeDefIR =
+  EXTERN_FUNCTION nameIR
+    `< typeParameterIR* `, typeParameterIR* >
+    `( parameterIR* ) `: typeIR
+
+syntax functionTypeDefIR =
+  | definedFunctionTypeDefIR
+  | externFunctionTypeDefIR
+
+;;
+;;;; Method types
+;;
+
+syntax externMethodTypeDefIR =
+  | EXTERN_METHOD nameIR
+      `< typeParameterIR* `, typeParameterIR* >
+      `( parameterIR* ) `: typeIR
+  | EXTERN_METHOD ABSTRACT nameIR
+      `< typeParameterIR* `, typeParameterIR* >
+      `( parameterIR* ) `: typeIR
+
+syntax parserApplyMethodTypeDefIR = parserApplyMethodTypeIR
+
+syntax controlApplyMethodTypeDefIR = controlApplyMethodTypeIR
+
+syntax tableApplyMethodTypeDefIR = tableApplyMethodTypeIR
+
+syntax methodTypeDefIR =
+  | externMethodTypeDefIR
+  | parserApplyMethodTypeDefIR
+  | controlApplyMethodTypeDefIR
+  | tableApplyMethodTypeDefIR
+
+;;
+;;;; Callable types
+;;
+
+syntax callableTypeDefIR =
+  | actionTypeDefIR
+  | functionTypeDefIR
+  | methodTypeDefIR

@@ -1,0 +1,34 @@
+;;
+;; Environments
+;;
+
+;; Map from variable identifiers to static types
+
+syntax varTypeIR = direction typeIR ctk value?
+  hint(prose_fields "direction" "type" "compile-time known-ness" "default value")
+
+syntax typeFrame = map<id, varTypeIR>
+
+dec $empty_typeFrame : typeFrame
+def $empty_typeFrame = $empty_map<id, varTypeIR>
+
+;; Map from type identifiers to type definitions
+
+syntax typeDefEnv = map<typeId, typeDefIR>
+
+dec $empty_typeDefEnv : typeDefEnv
+def $empty_typeDefEnv = $empty_map<typeId, typeDefIR>
+
+;; Map from callable identifiers to callable type definitions
+
+syntax callableTypeDefEnv = map<callableId, callableTypeDefIR>
+
+dec $empty_callableTypeDefEnv : callableTypeDefEnv
+def $empty_callableTypeDefEnv = $empty_map<callableId, callableTypeDefIR>
+
+;; Map from constructor identifiers to constructor type definitions
+
+syntax constructorTypeDefEnv = map<constructorId, constructorTypeDefIR>
+
+dec $empty_constructorTypeDefEnv : constructorTypeDefEnv
+def $empty_constructorTypeDefEnv = $empty_map<constructorId, constructorTypeDefIR>

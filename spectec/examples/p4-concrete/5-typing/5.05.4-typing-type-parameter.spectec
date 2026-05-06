@@ -1,0 +1,12 @@
+;;
+;; Type parameter typing
+;;
+;; syntax typeParameterList
+;;
+
+rule TypeParameterListOpt_ok:
+  p TC_0 |- typeParameterListOpt : TC_1 typeId*
+  -- if typeParameter*
+      = $flatten_typeParameterListOpt(typeParameterListOpt)
+  -- if (typeId = $name(typeParameter))*
+  -- if TC_1 = $add_typeParameters_t(p, TC_0, typeId*)

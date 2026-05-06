@@ -5,17 +5,33 @@
  (libraries test_lib core core_unix core_unix.command_unix))
 
 (rule
- (target struct.actual)
+ (target p4-old.actual)
+ (deps
+  (source_tree ../../examples/p4-concrete-old))
+ (action
+  (with-stdout-to
+   %{target}
+   (with-stderr-to
+    p4-old.err
+    (run ./main.exe -s ../../../../../spectec/examples/p4-concrete-old)))))
+
+(rule
+ (alias runtest)
+ (action
+  (diff p4-old.expected p4-old.actual)))
+
+(rule
+ (target p4.actual)
  (deps
   (source_tree ../../examples/p4-concrete))
  (action
   (with-stdout-to
    %{target}
    (with-stderr-to
-    struct.err
+    p4.err
     (run ./main.exe -s ../../../../../spectec/examples/p4-concrete)))))
 
 (rule
  (alias runtest)
  (action
-  (diff struct.expected struct.actual)))
+  (diff p4.expected p4.actual)))

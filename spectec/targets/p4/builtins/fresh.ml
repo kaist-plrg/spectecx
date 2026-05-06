@@ -19,4 +19,4 @@ let fresh_tid ~at : Value.t result =
   let typ = VarT ("tid" $ no_region, []) in
   Ok (Il.Value.Make.text typ tid)
 
-let builtins = [ ("fresh_tid", Define.T0.a0 fresh_tid) ]
+let builtins = [ ("fresh_typeId", Define.T0.a0 fresh_tid) ]

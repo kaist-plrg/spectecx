@@ -1,0 +1,32 @@
+;;
+;; Constructor definitions
+;;
+
+syntax externObjectConstructorDef =
+  EXTERN nameIR `< typeParameterListIR >
+    `( constructorParameterListIR )
+    `{ externMethodPrototypeListIR }
+
+syntax parserObjectConstructorDef =
+  PARSER `< typeParameterListIR >
+    `( parameterListIR )
+    `( constructorParameterListIR )
+    `{ parserLocalDeclarationListIR
+       parserStateListIR }
+
+syntax controlObjectConstructorDef =
+  CONTROL `< typeParameterListIR >
+    `( parameterListIR )
+    `( constructorParameterListIR )
+    `{ controlLocalDeclarationListIR
+       APPLY controlBodyIR }
+
+syntax packageObjectConstructorDef =
+  PACKAGE `< typeParameterListIR >
+    `( constructorParameterListIR )
+
+syntax constructorDef =
+  | externObjectConstructorDef
+  | parserObjectConstructorDef
+  | controlObjectConstructorDef
+  | packageObjectConstructorDef

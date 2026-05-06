@@ -7,14 +7,14 @@ open Builtins
 let bigint_of_value (value : value) : Bigint.t =
   value |> Value.get_num |> Xl.Num.to_int
 
-(* dec $sum(nat* ) : nat *)
+(* dec $sum_nat(nat* ) : nat *)
 
 let sum ~at (nums : Bigint.t list) : Value.t result =
   at |> ignore;
   let sum = List.fold_left Bigint.( + ) Bigint.zero nums in
   Ok (Value.nat sum)
 
-(* dec $max(nat* ) : nat *)
+(* dec $max_nat(nat* ) : nat *)
 
 (* Returns zero if list is empty *)
 let max ~at (nums : Bigint.t list) : Value.t result =
@@ -22,7 +22,7 @@ let max ~at (nums : Bigint.t list) : Value.t result =
   let max_value = List.fold_left Bigint.max Bigint.zero nums in
   Ok (Value.nat max_value)
 
-(* dec $min(nat* ) : nat *)
+(* dec $min_nat(nat* ) : nat *)
 
 (* Returns zero if list is empty *)
 let min ~at (nums : Bigint.t list) : Value.t result =
@@ -32,7 +32,7 @@ let min ~at (nums : Bigint.t list) : Value.t result =
 
 let builtins =
   [
-    ("sum", Define.T0.a1 (Arg.list_of Arg.nat) sum);
-    ("max", Define.T0.a1 (Arg.list_of Arg.nat) max);
-    ("min", Define.T0.a1 (Arg.list_of Arg.nat) min);
+    ("sum_nat", Define.T0.a1 (Arg.list_of Arg.nat) sum);
+    ("max_nat", Define.T0.a1 (Arg.list_of Arg.nat) max);
+    ("min_nat", Define.T0.a1 (Arg.list_of Arg.nat) min);
   ]

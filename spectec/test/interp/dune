@@ -6,12 +6,16 @@
   (pps ppx_let))
  (libraries test_lib targets_p4 core core_unix core_unix.command_unix))
 
+;; ============================================================
+;; p4-old target tests
+;; ============================================================
+
 ;; IL Positive tests (expect success, default IL mode)
 
 (rule
- (target il-pos.actual)
+ (target p4-old-il-pos.actual)
  (deps
-  (source_tree ../../examples/p4-concrete)
+  (source_tree ../../examples/p4-concrete-old)
   (source_tree ../../testdata/interp/p4-tests/includes)
   (source_tree ../../testdata/interp/p4-tests/excludes)
   (source_tree ../../testdata/interp/p4-tests/tests/p4_16_samples))
@@ -19,9 +23,10 @@
   (with-stdout-to
    %{target}
    (with-stderr-to
-    il-pos.err
+    p4-old-il-pos.err
     (run
      ./main.exe
+     --p4-old
      -i
      ../../../../../spectec/testdata/interp/p4-tests/includes
      -e
@@ -30,15 +35,142 @@
      ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples)))))
 
 (rule
- (alias il-pos)
- (deps il-pos.err il-pos.actual)
+ (alias p4-old-il-pos)
+ (deps p4-old-il-pos.err p4-old-il-pos.actual)
  (action
-  (diff il-pos.expected il-pos.actual)))
+  (diff p4-old-il-pos.expected p4-old-il-pos.actual)))
 
 ;; IL Negative tests (expect failure, default IL mode)
 
 (rule
- (target il-neg.actual)
+ (target p4-old-il-neg.actual)
+ (deps
+  (source_tree ../../examples/p4-concrete-old)
+  (source_tree ../../testdata/interp/p4-tests/includes)
+  (source_tree ../../testdata/interp/p4-tests/excludes)
+  (source_tree ../../testdata/interp/p4-tests/tests/p4_16_errors))
+ (action
+  (with-stdout-to
+   %{target}
+   (with-stderr-to
+    p4-old-il-neg.err
+    (run
+     ./main.exe
+     --p4-old
+     -neg
+     -i
+     ../../../../../spectec/testdata/interp/p4-tests/includes
+     -e
+     ../../../../../spectec/testdata/interp/p4-tests/excludes
+     -d
+     ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_errors)))))
+
+(rule
+ (alias p4-old-il-neg)
+ (deps p4-old-il-neg.err p4-old-il-neg.actual)
+ (action
+  (diff p4-old-il-neg.expected p4-old-il-neg.actual)))
+
+;; SL Positive tests (expect success, with --sl flag)
+
+(rule
+ (target p4-old-sl-pos.actual)
+ (deps
+  (source_tree ../../examples/p4-concrete-old)
+  (source_tree ../../testdata/interp/p4-tests/includes)
+  (source_tree ../../testdata/interp/p4-tests/excludes)
+  (source_tree ../../testdata/interp/p4-tests/tests/p4_16_samples))
+ (action
+  (with-stdout-to
+   %{target}
+   (with-stderr-to
+    p4-old-sl-pos.err
+    (run
+     ./main.exe
+     --p4-old
+     --sl
+     -i
+     ../../../../../spectec/testdata/interp/p4-tests/includes
+     -e
+     ../../../../../spectec/testdata/interp/p4-tests/excludes
+     -d
+     ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples)))))
+
+(rule
+ (alias p4-old-sl-pos)
+ (deps p4-old-sl-pos.err p4-old-sl-pos.actual)
+ (action
+  (diff p4-old-sl-pos.expected p4-old-sl-pos.actual)))
+
+;; SL Negative tests (expect failure, with --sl flag)
+
+(rule
+ (target p4-old-sl-neg.actual)
+ (deps
+  (source_tree ../../examples/p4-concrete-old)
+  (source_tree ../../testdata/interp/p4-tests/includes)
+  (source_tree ../../testdata/interp/p4-tests/excludes)
+  (source_tree ../../testdata/interp/p4-tests/tests/p4_16_errors))
+ (action
+  (with-stdout-to
+   %{target}
+   (with-stderr-to
+    p4-old-sl-neg.err
+    (run
+     ./main.exe
+     --p4-old
+     --sl
+     -neg
+     -i
+     ../../../../../spectec/testdata/interp/p4-tests/includes
+     -e
+     ../../../../../spectec/testdata/interp/p4-tests/excludes
+     -d
+     ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_errors)))))
+
+(rule
+ (alias p4-old-sl-neg)
+ (deps p4-old-sl-neg.err p4-old-sl-neg.actual)
+ (action
+  (diff p4-old-sl-neg.expected p4-old-sl-neg.actual)))
+
+;; ============================================================
+;; p4 (new spec) target tests
+;; ============================================================
+
+;; IL Positive tests (expect success, default IL mode)
+
+(rule
+ (target p4-il-pos.actual)
+ (deps
+  (source_tree ../../examples/p4-concrete)
+  (source_tree ../../testdata/interp/p4-tests/includes)
+  (source_tree ../../testdata/interp/p4-tests/excludes)
+  (source_tree ../../testdata/interp/p4-tests/tests/p4_16_samples))
+ (action
+  (with-stdout-to
+   %{target}
+   (with-stderr-to
+    p4-il-pos.err
+    (run
+     ./main.exe
+     -i
+     ../../../../../spectec/testdata/interp/p4-tests/includes
+     -e
+     ../../../../../spectec/testdata/interp/p4-tests/excludes
+     -d
+     ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples)))))
+
+(rule
+ (alias p4-il-pos)
+ (deps p4-il-pos.err p4-il-pos.actual)
+ (action
+  (diff p4-il-pos.expected p4-il-pos.actual)))
+
+;; IL Negative tests (expect failure, default IL mode)
+
+(rule
+ (target p4-il-neg.actual)
  (deps
   (source_tree ../../examples/p4-concrete)
   (source_tree ../../testdata/interp/p4-tests/includes)
@@ -48,7 +180,7 @@
   (with-stdout-to
    %{target}
    (with-stderr-to
-    il-neg.err
+    p4-il-neg.err
     (run
      ./main.exe
      -neg
@@ -60,15 +192,15 @@
      ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_errors)))))
 
 (rule
- (alias il-neg)
- (deps il-neg.err il-neg.actual)
+ (alias p4-il-neg)
+ (deps p4-il-neg.err p4-il-neg.actual)
  (action
-  (diff il-neg.expected il-neg.actual)))
+  (diff p4-il-neg.expected p4-il-neg.actual)))
 
 ;; SL Positive tests (expect success, with --sl flag)
 
 (rule
- (target sl-pos.actual)
+ (target p4-sl-pos.actual)
  (deps
   (source_tree ../../examples/p4-concrete)
   (source_tree ../../testdata/interp/p4-tests/includes)
@@ -78,7 +210,7 @@
   (with-stdout-to
    %{target}
    (with-stderr-to
-    sl-pos.err
+    p4-sl-pos.err
     (run
      ./main.exe
      --sl
@@ -90,15 +222,15 @@
      ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples)))))
 
 (rule
- (alias sl-pos)
- (deps sl-pos.err sl-pos.actual)
+ (alias p4-sl-pos)
+ (deps p4-sl-pos.err p4-sl-pos.actual)
  (action
-  (diff sl-pos.expected sl-pos.actual)))
+  (diff p4-sl-pos.expected p4-sl-pos.actual)))
 
 ;; SL Negative tests (expect failure, with --sl flag)
 
 (rule
- (target sl-neg.actual)
+ (target p4-sl-neg.actual)
  (deps
   (source_tree ../../examples/p4-concrete)
   (source_tree ../../testdata/interp/p4-tests/includes)
@@ -108,7 +240,7 @@
   (with-stdout-to
    %{target}
    (with-stderr-to
-    sl-neg.err
+    p4-sl-neg.err
     (run
      ./main.exe
      --sl
@@ -121,27 +253,43 @@
      ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_errors)))))
 
 (rule
- (alias sl-neg)
- (deps sl-neg.err sl-neg.actual)
+ (alias p4-sl-neg)
+ (deps p4-sl-neg.err p4-sl-neg.actual)
  (action
-  (diff sl-neg.expected sl-neg.actual)))
+  (diff p4-sl-neg.expected p4-sl-neg.actual)))
 
+;; ============================================================
 ;; Combined aliases for running all tests
+;; ============================================================
 
 (alias
- (name il)
+ (name p4-old-il)
  (deps
-  (alias il-pos)
-  (alias il-neg)))
+  (alias p4-old-il-pos)
+  (alias p4-old-il-neg)))
 
 (alias
- (name sl)
+ (name p4-old-sl)
  (deps
-  (alias sl-pos)
-  (alias sl-neg)))
+  (alias p4-old-sl-pos)
+  (alias p4-old-sl-neg)))
+
+(alias
+ (name p4-il)
+ (deps
+  (alias p4-il-pos)
+  (alias p4-il-neg)))
+
+(alias
+ (name p4-sl)
+ (deps
+  (alias p4-sl-pos)
+  (alias p4-sl-neg)))
 
 (alias
  (name runtest)
  (deps
-  (alias il)
-  (alias sl)))
+  (alias p4-old-il)
+  (alias p4-old-sl)
+  (alias p4-il)
+  (alias p4-sl)))

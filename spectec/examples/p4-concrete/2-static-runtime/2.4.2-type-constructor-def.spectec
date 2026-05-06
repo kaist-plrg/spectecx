@@ -1,0 +1,7 @@
+;;
+;;;; Constructor type definitions
+;;
+
+syntax constructorTypeDefIR =
+  CONSTRUCTOR `< typeParameterIR* `, typeParameterIR* >
+    `( constructorParameterIR* ) `: typeIR

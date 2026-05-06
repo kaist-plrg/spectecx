@@ -1,0 +1,12 @@
+;;
+;;;; Constructor parameter types
+;;
+
+syntax constructorParameterIR = parameterIR
+
+;;
+;;;; Constructor types
+;;
+
+syntax constructorTypeIR =
+  CONSTRUCTOR `( constructorParameterIR* ) `: typeIR

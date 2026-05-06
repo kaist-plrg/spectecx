@@ -1,0 +1,13 @@
+dec $modulo(nat, nat) : nat?
+  hint(prose_in %0 "mod" %1)
+
+def $modulo(n_a, n_b) = $(n_a \ n_b)
+  -- if n_b =/= 0
+def $modulo(n_a, n_b) = eps
+  -- if n_b = 0
+
+dec $modulo_42(nat) : nat
+  hint(prose_in %0 "mod forty-two")
+
+def $modulo_42(n) = n_result
+  -- if n_result = $modulo(n, 42)

@@ -46,30 +46,30 @@ let pow2 ~at (width : Bigint.t) : Value.t result =
   at |> ignore;
   Ok (Value.int (pow2' width))
 
-(* dec $to_int(int, bitstr) : int *)
+(* dec $bitstr_to_int(int, int) : int *)
 
-let rec to_int' (w : Bigint.t) (n : Bigint.t) : Bigint.t =
+let rec bitstr_to_int' (w : Bigint.t) (n : Bigint.t) : Bigint.t =
   let two = Bigint.(one + one) in
   let w' = pow2' w in
-  if Bigint.(n >= w' / two) then to_int' w Bigint.(n - w')
-  else if Bigint.(n < -(w' / two)) then to_int' w Bigint.(n + w')
+  if Bigint.(n >= w' / two) then bitstr_to_int' w Bigint.(n - w')
+  else if Bigint.(n < -(w' / two)) then bitstr_to_int' w Bigint.(n + w')
   else n
 
-let to_int ~at (width : Bigint.t) (bitstr : Bigint.t) : Value.t result =
+let bitstr_to_int ~at (width : Bigint.t) (bitstr : Bigint.t) : Value.t result =
   at |> ignore;
-  Ok (Value.int (to_int' width bitstr))
+  Ok (Value.int (bitstr_to_int' width bitstr))
 
-(* dec $to_bitstr(int, int) : bitstr *)
+(* dec $int_to_bitstr(int, int) : int *)
 
-let rec to_bitstr' (w : Bigint.t) (n : Bigint.t) : Bigint.t =
+let rec int_to_bitstr' (w : Bigint.t) (n : Bigint.t) : Bigint.t =
   let w' = pow2' w in
   if Bigint.(n >= w') then Bigint.(n % w')
-  else if Bigint.(n < zero) then to_bitstr' w Bigint.(n + w')
+  else if Bigint.(n < zero) then int_to_bitstr' w Bigint.(n + w')
   else n
 
-let to_bitstr ~at (width : Bigint.t) (rawint : Bigint.t) : Value.t result =
+let int_to_bitstr ~at (width : Bigint.t) (rawint : Bigint.t) : Value.t result =
   at |> ignore;
-  Ok (Value.int (to_bitstr' width rawint))
+  Ok (Value.int (int_to_bitstr' width rawint))
 
 (* dec $bneg(int) : int *)
 
@@ -124,8 +124,8 @@ let builtins : (string * Define.t) list =
     ("shr", Define.T0.a2 Arg.int Arg.int shr);
     ("shr_arith", Define.T0.a3 Arg.int Arg.int Arg.int shr_arith);
     ("pow2", Define.T0.a1 Arg.nat pow2);
-    ("to_int", Define.T0.a2 Arg.int Arg.int to_int);
-    ("to_bitstr", Define.T0.a2 Arg.int Arg.int to_bitstr);
+    ("bitstr_to_int", Define.T0.a2 Arg.int Arg.int bitstr_to_int);
+    ("int_to_bitstr", Define.T0.a2 Arg.int Arg.int int_to_bitstr);
     ("bneg", Define.T0.a1 Arg.int bneg);
     ("band", Define.T0.a2 Arg.int Arg.int band);
     ("bxor", Define.T0.a2 Arg.int Arg.int bxor);

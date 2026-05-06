@@ -1,0 +1,896 @@
+;;
+;; Names
+;;
+
+syntax prefixedNameIR =
+  | `` nameIR   hint(print %0)
+  | `. nameIR
+
+dec $prefixedNonTypeName(prefixedNonTypeName) : prefixedNameIR
+  hint(prose_in "the prefixed name of " %0)
+def $prefixedNonTypeName(nonTypeName) = `` $name(nonTypeName)
+def $prefixedNonTypeName(`ID `. nonTypeName) = `. $name(nonTypeName)
+
+dec $prefixedTypeName(prefixedTypeName) : prefixedNameIR
+  hint(prose_in "the prefixed name of " %0)
+def $prefixedTypeName(typeName) = `` $name(typeName)
+def $prefixedTypeName(`TID `. typeName) = `. $name(typeName)
+
+dec $flatten_prefixedNameIR(prefixedNameIR) : nameIR
+  hint(prose_in "the string form of " %0)
+def $flatten_prefixedNameIR(`` nameIR) = nameIR
+def $flatten_prefixedNameIR(`. nameIR) = "." ++ nameIR
+
+syntax nameListIR = nameIR*
+
+;;
+;; Type parameters
+;;
+
+syntax typeParameterListIR = typeParameterIR*
+
+;;
+;; Parameters
+;;
+
+syntax parameterListIR = parameterIR*
+
+;;
+;; Constructor parameters
+;;
+
+syntax constructorParameterListIR = parameterIR*
+
+;;
+;; Value key-value pairs
+;;
+
+syntax namedValueIR = nameIR `= value
+
+syntax namedValueListIR = namedValueIR*
+
+;;
+;; Expression key-value pairs
+;;
+
+syntax namedExpressionIR = nameIR `= typedExpressionIR
+
+syntax namedExpressionListIR = namedExpressionIR*
+
+;;
+;; Expressions
+;;
+
+;;
+;;;; Literal expressions
+;;
+
+syntax literalExpressionIR = literalExpression
+
+;;
+;;;; Reference expressions
+;;
+
+syntax referenceExpressionIR = prefixedNameIR
+
+;;
+;;;; Default expressions
+;;
+
+syntax defaultExpressionIR = defaultExpression
+
+;;
+;;;; Unary, binary, and ternary expressions
+;;
+
+syntax unaryExpressionIR = unop typedExpressionIR
+
+syntax binaryExpressionIR =
+  typedExpressionIR binop typedExpressionIR
+
+syntax ternaryExpressionIR =
+  typedExpressionIR `? typedExpressionIR `: typedExpressionIR
+
+;;
+;;;; Cast expressions
+;;
+
+syntax castExpressionIR = `( typeIR ) typedExpressionIR
+
+;;
+;;;; Data (aggregate) expressions
+;;
+
+syntax typedExpressionListIR
+
+syntax invalidHeaderExpressionIR = invalidHeaderExpression
+
+syntax sequenceExpressionIR =
+  | SEQ `{ typedExpressionListIR }
+  | SEQ `{ typedExpressionListIR `, `... }
+
+syntax recordExpressionIR =
+  | RECORD `{ namedExpressionListIR }
+  | RECORD `{ namedExpressionListIR `, `... }
+
+syntax dataExpressionIR =
+  | invalidHeaderExpressionIR
+  | sequenceExpressionIR
+  | recordExpressionIR
+
+;;
+;;;; Member and index access expressions
+;;
+
+syntax memberAccessBaseIR
+
+syntax errorAccessExpressionIR =
+  ERROR `. nameIR
+
+syntax memberAccessExpressionIR =
+  memberAccessBaseIR `. nameIR
+
+syntax indexAccessExpressionIR =
+  typedExpressionIR `[ typedExpressionIR ]
+
+syntax sliceAccessExpressionIR =
+  | typedExpressionIR `[ typedExpressionIR `: typedExpressionIR ]
+  | typedExpressionIR `[ typedExpressionIR `+: typedExpressionIR ]
+
+syntax accessExpressionIR =
+  | errorAccessExpressionIR
+  | memberAccessExpressionIR
+  | indexAccessExpressionIR
+  | sliceAccessExpressionIR
+
+;;
+;;;; Call expressions
+;;
+
+syntax typedLvalueIR
+syntax typeArgumentListIR
+syntax argumentListIR
+
+syntax callableTargetIR =
+  | referenceExpressionIR
+  | typedExpressionIR `. nameIR
+  | TYPE prefixedNameIR `. nameIR
+  | `( callableTargetIR )
+
+syntax constructorTargetIR = prefixedNameIR `< typeArgumentListIR >
+
+syntax callExpressionIR =
+  | constructorTargetIR `( argumentListIR )
+  | callableTargetIR `< typeArgumentListIR > `( argumentListIR )
+
+;;
+;;;; Parenthesized expressions
+;;
+
+syntax parenthesizedExpressionIR = `( typedExpressionIR )
+
+;;
+;;;; Expressions
+;;
+
+syntax expressionIR =
+  | literalExpressionIR
+  | referenceExpressionIR
+  | defaultExpressionIR
+  | unaryExpressionIR
+  | binaryExpressionIR
+  | ternaryExpressionIR
+  | castExpressionIR
+  | dataExpressionIR
+  | accessExpressionIR
+  | callExpressionIR
+  | parenthesizedExpressionIR
+
+syntax expressionNoteIR = `( typeIR ctk )
+  hint(prose "a pair of type" %0 "and compile-time known-ness" %1)
+  hint(prose_fields "type" "compile-time known-ness")
+
+syntax typedExpressionIR =
+  expressionIR `# expressionNoteIR
+  hint(print %0)
+  hint(prose %0 "annotated with" %1)
+  hint(prose_fields "expression" "note")
+
+syntax typedExpressionListIR = typedExpressionIR*
+
+syntax memberAccessBaseIR =
+  | TYPE prefixedNameIR
+  | typedExpressionIR
+
+dec $type_of_typedExpressionIR(typedExpressionIR) : typeIR
+  hint(prose_in "the type of" %0)
+def $type_of_typedExpressionIR(typedExpressionIR) = typeIR
+  -- if _ `# `( typeIR _ ) = typedExpressionIR
+
+dec $ctk_of_typedExpressionIR(typedExpressionIR) : ctk
+  hint(prose_in "the compile-time known-ness of" %0)
+def $ctk_of_typedExpressionIR(typedExpressionIR) = ctk
+  -- if _ `# `( _ ctk ) = typedExpressionIR
+
+;;
+;; Keyset expressions
+;;
+
+syntax simpleKeysetExpressionIR =
+  | typedExpressionIR
+  | typedExpressionIR `&&& typedExpressionIR
+  | typedExpressionIR `.. typedExpressionIR
+  | DEFAULT
+  | `_
+
+syntax simpleKeysetExpressionListIR = simpleKeysetExpressionIR*
+
+syntax tupleKeysetExpressionIR = `( simpleKeysetExpressionListIR )
+
+syntax keysetExpressionIR =
+  | simpleKeysetExpressionIR
+  | tupleKeysetExpressionIR
+
+dec $flatten_keysetExpressionIR(keysetExpressionIR)
+  : simpleKeysetExpressionListIR
+  hint(prose_in "the flattened keyset expression list of " %0)
+
+def $flatten_keysetExpressionIR(simpleKeysetExpressionIR)
+  = [ simpleKeysetExpressionIR ]
+def $flatten_keysetExpressionIR(`( simpleKeysetExpressionListIR ))
+  = simpleKeysetExpressionListIR
+
+;;
+;; Type arguments
+;;
+
+syntax typeArgumentListIR = typeArgumentIR*
+
+;;
+;; Arguments
+;;
+
+syntax argumentIR =
+  | typedExpressionIR
+  | nameIR `= typedExpressionIR
+  | nameIR `= `_
+  | `_
+
+syntax argumentListIR = argumentIR*
+
+;;
+;; L-values
+;;
+
+syntax lvalueIR =
+  | referenceExpressionIR
+  | typedLvalueIR `. nameIR
+  | typedLvalueIR `[ typedExpressionIR ]
+  | typedLvalueIR `[ typedExpressionIR `: typedExpressionIR ]
+  | typedLvalueIR `[ typedExpressionIR `+: typedExpressionIR ]
+  | `( typedLvalueIR )
+
+syntax lvalueNoteIR = `( typeIR )
+
+syntax typedLvalueIR = lvalueIR `# lvalueNoteIR
+  hint(print %0)
+  hint(prose %0 "with note" %1)
+  hint(prose_fields "lvalue" "note")
+
+dec $type_of_typedLvalueIR(typedLvalueIR) : typeIR
+  hint(prose_in "the type of lvalue" %0)
+def $type_of_typedLvalueIR(typedLvalueIR) = typeIR
+  -- if _ `# `( typeIR ) = typedLvalueIR
+
+dec $typedLvalueIR_as_typedExpressionIR(typedLvalueIR)
+  : typedExpressionIR?
+  hint(prose_in "the expression form of" %0)
+def $typedLvalueIR_as_typedExpressionIR(
+    referenceExpressionIR `# `( typeIR ))
+  = referenceExpressionIR `# `( typeIR DYN )
+def $typedLvalueIR_as_typedExpressionIR(
+    (typedLvalueIR `. nameIR) `# `( typeIR ))
+  = (typedExpressionIR `. nameIR) `# `( typeIR DYN )
+  -- if typedExpressionIR
+      = $typedLvalueIR_as_typedExpressionIR(typedLvalueIR)
+def $typedLvalueIR_as_typedExpressionIR(
+    (typedLvalueIR_base `[ typedExpressionIR_index ]) `# `( typeIR ))
+  = (typedExpressionIR_base `[ typedExpressionIR_index ]) `# `( typeIR DYN )
+  -- if typedExpressionIR_base
+      = $typedLvalueIR_as_typedExpressionIR(typedLvalueIR_base)
+def $typedLvalueIR_as_typedExpressionIR(
+    (typedLvalueIR_base `[ typedExpressionIR_hi `: typedExpressionIR_lo ]) `# `( typeIR ))
+  = (typedExpressionIR_base `[ typedExpressionIR_hi `: typedExpressionIR_lo ]) `# `( typeIR DYN )
+  -- if typedExpressionIR_base
+      = $typedLvalueIR_as_typedExpressionIR(typedLvalueIR_base)
+def $typedLvalueIR_as_typedExpressionIR(
+    (typedLvalueIR_base `[ typedExpressionIR_l `+: typedExpressionIR_w ]) `# `( typeIR ))
+  = (typedExpressionIR_base `[ typedExpressionIR_l `+: typedExpressionIR_w ]) `# `( typeIR DYN )
+  -- if typedExpressionIR_base
+      = $typedLvalueIR_as_typedExpressionIR(typedLvalueIR_base)
+
+dec $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  : typedLvalueIR?
+  hint(prose_in "the l-value form of" %0)
+def $typedExpressionIR_as_typedLvalueIR(
+    referenceExpressionIR `# `( typeIR _ ))
+  = referenceExpressionIR `# `( typeIR )
+def $typedExpressionIR_as_typedLvalueIR(
+    (typedExpressionIR `. nameIR) `# `( typeIR _ ))
+  = (typedLvalueIR `. nameIR) `# `( typeIR )
+  -- if typedLvalueIR
+      = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+def $typedExpressionIR_as_typedLvalueIR(
+    (typedExpressionIR_base `[ typedExpressionIR_index ]) `# `( typeIR _ ))
+  = (typedLvalueIR_base `[ typedExpressionIR_index ]) `# `( typeIR )
+  -- if typedLvalueIR_base
+      = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR_base)
+def $typedExpressionIR_as_typedLvalueIR(
+    (typedExpressionIR_base `[ typedExpressionIR_hi `: typedExpressionIR_lo ]) `# `( typeIR _ ))
+  = (typedLvalueIR_base `[ typedExpressionIR_hi `: typedExpressionIR_lo ]) `# `( typeIR )
+  -- if typedLvalueIR_base
+      = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR_base)
+def $typedExpressionIR_as_typedLvalueIR(
+    (typedExpressionIR_base `[ typedExpressionIR_l `+: typedExpressionIR_w ]) `# `( typeIR _ ))
+  = (typedLvalueIR_base `[ typedExpressionIR_l `+: typedExpressionIR_w ]) `# `( typeIR )
+  -- if typedLvalueIR_base
+      = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR_base)
+def $typedExpressionIR_as_typedLvalueIR(
+    (`( typedExpressionIR )) `# `( typeIR _ ))
+  = (`( typedLvalueIR )) `# `( typeIR )
+  -- if typedLvalueIR
+      = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+
+;;
+;; Statements
+;;
+
+;;
+;;;; Empty statements
+;;
+
+syntax emptyStatementIR = emptyStatement
+
+;;
+;;;; Assignment statements
+;;
+
+syntax assignmentStatementIR =
+  typedLvalueIR assignop typedExpressionIR `;
+
+;;
+;;;; Call statements
+;;
+
+syntax callStatementIR =
+  callableTargetIR `< typeArgumentListIR > `( argumentListIR ) `;
+
+;;
+;;;; Direct application statements
+;;
+
+syntax directApplicationStatementIR =
+  constructorTargetIR `. APPLY `( argumentListIR ) `;
+
+;;
+;;;; Return statements
+;;
+
+syntax returnStatementIR =
+  | RETURN `;
+  | RETURN typedExpressionIR `;
+
+;;
+;;;; Exit statements
+;;
+
+syntax exitStatementIR = exitStatement
+
+;;
+;;;; Block statements
+;;
+
+syntax blockElementStatementListIR
+
+syntax blockStatementIR =
+  annotationList `{ blockElementStatementListIR }
+
+;;
+;;;; Conditional statements
+;;
+
+syntax statementIR
+
+syntax conditionalStatementIR =
+  | IF `( typedExpressionIR ) statementIR
+  | IF `( typedExpressionIR ) statementIR ELSE statementIR
+
+;;
+;;;; For statements
+;;
+
+syntax initializerOptIR
+
+syntax forUpdateStatementIR =
+  | callableTargetIR `< typeArgumentListIR > `( argumentListIR )
+  | typedLvalueIR assignop typedExpressionIR
+
+syntax forUpdateStatementListIR = forUpdateStatementIR*
+
+syntax forInitStatementIR =
+  | annotationList typeIR nameIR initializerOptIR
+  | forUpdateStatementIR
+
+syntax forInitStatementListIR = forInitStatementIR*
+
+syntax forCollectionExpressionIR =
+  | typedExpressionIR
+  | typedExpressionIR `.. typedExpressionIR
+
+syntax forStatementIR =
+  | annotationList FOR
+      `( forInitStatementListIR `; typedExpressionIR `; forUpdateStatementListIR )
+      statementIR
+  | annotationList FOR
+      `( typeIR nameIR IN forCollectionExpressionIR )
+      statementIR
+  | annotationList FOR
+      `( annotationList typeIR nameIR IN forCollectionExpressionIR )
+      statementIR
+
+;;
+;;;; Switch statements
+;;
+
+syntax switchLabelIR =
+  | DEFAULT
+  | typedExpressionIR
+
+syntax switchCaseIR =
+  | switchLabelIR `: blockStatementIR
+  | switchLabelIR `:
+
+syntax switchCaseListIR = switchCaseIR*
+
+syntax switchStatementIR =
+  SWITCH `( typedExpressionIR ) `{ switchCaseListIR }
+
+;;
+;;;; Break and continue statements
+;;
+
+syntax breakStatementIR = breakStatement
+
+syntax continueStatementIR = continueStatement
+
+;;
+;;;; Statements
+;;
+
+syntax statementIR =
+  | emptyStatementIR
+  | assignmentStatementIR
+  | callStatementIR
+  | directApplicationStatementIR
+  | returnStatementIR
+  | exitStatementIR
+  | blockStatementIR
+  | conditionalStatementIR
+  | forStatementIR
+  | breakStatementIR
+  | continueStatementIR
+  | switchStatementIR
+
+;;
+;; Declarations
+;;
+
+;;
+;;;; Constant and variable declarations
+;;
+
+syntax constantDeclarationIR =
+  annotationList CONST typeIR nameIR constantInitializerIR `;
+
+syntax initializerOptIR = initializerIR?
+
+syntax variableDeclarationIR =
+  annotationList typeIR nameIR initializerOptIR `;
+
+syntax blockElementStatementIR =
+  | constantDeclarationIR
+  | variableDeclarationIR
+  | statementIR
+
+syntax blockElementStatementListIR = blockElementStatementIR*
+
+;;
+;;;; Function declarations
+;;
+
+syntax functionPrototypeIR =
+  typeIR nameIR
+    `< typeParameterListIR `, typeParameterListIR > `( parameterListIR )
+
+syntax functionDeclarationIR =
+  annotationList functionPrototypeIR blockStatementIR
+
+;;
+;;;; Action declarations
+;;
+
+syntax actionDeclarationIR =
+  annotationList ACTION nameIR `( parameterListIR ) blockStatementIR
+
+;;
+;;;; Instantiations
+;;
+
+syntax objectDeclarationListIR
+
+syntax objectInitializerIR = `= `{ objectDeclarationListIR }
+
+syntax objectInitializerOptIR = objectInitializerIR?
+
+syntax instantiationIR =
+  annotationList typeIR constructorTargetIR
+    `( argumentListIR ) nameIR
+    objectInitializerOptIR `;
+  hint(prose_fields "annotations" "type" "constructor target"
+                    "arguments" "name" "object initializer")
+
+syntax objectDeclarationIR =
+  | functionDeclarationIR
+  | instantiationIR
+
+syntax objectDeclarationListIR = objectDeclarationIR*
+
+dec $flatten_objectInitializerOptIR(objectInitializerOptIR)
+  : objectDeclarationListIR
+  hint(prose_in "the list of object declarations in" %0)
+
+def $flatten_objectInitializerOptIR(eps) = eps
+def $flatten_objectInitializerOptIR(`= `{ objectDeclarationListIR })
+  = objectDeclarationListIR
+
+;;
+;;;; Error declarations
+;;
+
+syntax errorDeclarationIR = ERROR `{ nameListIR }
+
+;;
+;;;; Match kind declarations
+;;
+
+syntax matchKindDeclarationIR = MATCH_KIND `{ nameListIR }
+
+;;
+;;;; Derived type declarations
+;;
+
+;;
+;;;;;; Enum type declarations
+;;
+
+syntax enumTypeDeclarationIR =
+  | annotationList ENUM nameIR `{ nameListIR }
+  | annotationList ENUM typeIR nameIR `{ namedValueListIR }
+
+;;
+;;;;;; Struct, header, and union type declarations
+;;
+
+syntax typeFieldIR = annotationList typeIR nameIR `;
+
+syntax typeFieldListIR = typeFieldIR*
+
+syntax structTypeDeclarationIR =
+  annotationList STRUCT nameIR
+    `< typeParameterListIR > `{ typeFieldListIR }
+
+syntax headerTypeDeclarationIR =
+  annotationList HEADER nameIR
+    `< typeParameterListIR > `{ typeFieldListIR }
+
+syntax headerUnionTypeDeclarationIR =
+  annotationList HEADER_UNION nameIR
+    `< typeParameterListIR > `{ typeFieldListIR }
+
+syntax derivedTypeDeclarationIR =
+  | enumTypeDeclarationIR
+  | structTypeDeclarationIR
+  | headerTypeDeclarationIR
+  | headerUnionTypeDeclarationIR
+
+;;
+;;;; Typedef and newtype declarations
+;;
+
+syntax typedefIR =
+  | typeIR
+  | derivedTypeDeclarationIR
+
+syntax typedefDeclarationIR =
+  | annotationList TYPEDEF typedefIR nameIR `;
+  | annotationList TYPE typeIR nameIR `;
+
+;;
+;;;; Extern declarations
+;;
+
+syntax externFunctionDeclarationIR =
+  annotationList EXTERN functionPrototypeIR `;
+
+syntax externConstructorPrototypeIR =
+  annotationList nameIR `< `, typeParameterListIR > `( parameterListIR ) `;
+
+syntax externConstructorPrototypeListIR = externConstructorPrototypeIR*
+
+syntax externMethodPrototypeIR =
+  | annotationList functionPrototypeIR `;
+  | annotationList ABSTRACT functionPrototypeIR `;
+
+syntax externMethodPrototypeListIR = externMethodPrototypeIR*
+
+syntax externObjectDeclarationIR =
+  annotationList EXTERN nameIR `< typeParameterListIR `, >
+    `{ externConstructorPrototypeListIR
+       externMethodPrototypeListIR }
+
+syntax externDeclarationIR =
+  | externFunctionDeclarationIR
+  | externObjectDeclarationIR
+
+;;
+;;;; Parser statements and declarations
+;;
+
+;;
+;;;;;; Select expressions
+;;
+
+syntax selectCaseIR = keysetExpressionIR `: nameIR `;
+
+syntax selectCaseListIR = selectCaseIR*
+
+syntax selectExpressionIR =
+  SELECT `( typedExpressionListIR ) `{ selectCaseListIR }
+
+;;
+;;;;;; Transition statements
+;;
+
+syntax stateExpressionIR =
+  | nameIR `;
+  | selectExpressionIR
+
+syntax transitionStatementIR = TRANSITION stateExpressionIR
+
+;;
+;;;;;; Value set declarations
+;;
+
+syntax valueSetDeclarationIR =
+  annotationList VALUE_SET `< typeIR > `( typedExpressionIR ) nameIR `;
+
+;;
+;;;;;; Parser type declarations
+;;
+
+syntax parserTypeDeclarationIR =
+  annotationList PARSER nameIR
+    `< typeParameterListIR `, typeParameterListIR > `( parameterListIR ) `;
+
+;;
+;;;;;; Parser declarations
+;;
+
+syntax parserStatementIR, parserStatementListIR
+
+syntax parserBlockStatementIR =
+  annotationList `{ parserStatementListIR }
+
+syntax parserConditionalStatementIR =
+  | IF `( typedExpressionIR ) parserStatementIR
+  | IF `( typedExpressionIR ) parserStatementIR ELSE parserStatementIR
+
+syntax parserStatementIR =
+  | constantDeclarationIR
+  | variableDeclarationIR
+  | emptyStatementIR
+  | assignmentStatementIR
+  | callStatementIR
+  | directApplicationStatementIR
+  | parserBlockStatementIR
+  | parserConditionalStatementIR
+
+syntax parserStatementListIR = parserStatementIR*
+
+syntax parserStateIR =
+  annotationList STATE nameIR
+    `{ parserStatementListIR transitionStatementIR }
+
+syntax parserStateListIR = parserStateIR*
+
+syntax parserLocalDeclarationIR =
+  | constantDeclarationIR
+  | instantiationIR
+  | variableDeclarationIR
+  | valueSetDeclarationIR
+
+syntax parserLocalDeclarationListIR =
+  parserLocalDeclarationIR*
+
+syntax parserDeclarationIR =
+  annotationList PARSER
+    nameIR `< typeParameterListIR `, typeParameterListIR >
+    `( parameterListIR ) `( constructorParameterListIR )
+    `{ parserLocalDeclarationListIR parserStateListIR }
+
+;;
+;;;; Control statements and declarations
+;;
+
+;;
+;;;;;; Table declarations
+;;
+
+syntax constIR = const
+
+syntax constOptIR = constIR?
+
+;;
+;;;;;;;; Table key property
+;;
+
+syntax tableKeyIR = typedExpressionIR `# nameIR `: nameIR annotationList `;
+
+syntax tableKeyListIR = tableKeyIR*
+
+;;
+;;;;;;;; Table actions property
+;;
+
+syntax controlPlaneNameIR = nameIR?
+
+syntax tableActionReferenceIR =
+  prefixedNameIR controlPlaneNameIR `( argumentListIR )
+
+syntax tableActionIR =
+  annotationList tableActionReferenceIR
+    `# `( parameterListIR `, parameterListIR ) `;
+
+syntax tableActionListIR = tableActionIR*
+
+;;
+;;;;;;;; Table entry property
+;;
+
+syntax tableEntryPriorityIR = PRIORITY `= integerLiteral `:
+
+syntax tableEntryPriorityOptIR = tableEntryPriorityIR?
+
+syntax tableEntryIR =
+  constOptIR tableEntryPriorityOptIR
+    keysetExpressionIR `: tableActionReferenceIR annotationList `;
+
+dec $tableEntryPriorityOptIR_of_tableEntryIR(tableEntryIR)
+  : tableEntryPriorityOptIR
+  hint(prose_in "the priority of" %0)
+def $tableEntryPriorityOptIR_of_tableEntryIR(tableEntryIR)
+  = tableEntryPriorityOptIR
+  -- if _ tableEntryPriorityOptIR _ `: _ _ `; = tableEntryIR
+
+syntax tableEntryListIR = tableEntryIR*
+
+;;
+;;;;;;;; Table custom property
+;;
+
+syntax tableCustomPropertyIR
+
+;;
+;;;;;;;; Table properties
+;;
+
+syntax tableKeysPropertyIR = KEY `= `{ tableKeyListIR }
+
+syntax tableActionsPropertyIR = ACTIONS `= `{ tableActionListIR }
+
+syntax tableDefaultActionPropertyIR =
+  annotationList constOptIR DEFAULT_ACTION `= tableActionReferenceIR `;
+
+syntax tableEntriesPropertyIR =
+  annotationList constOptIR ENTRIES `= `{ tableEntryListIR }
+
+syntax tableCustomPropertyIR =
+  ;; (TODO) Consider extending syntax value in syntax expressionIR
+  | annotationList constOptIR CUSTOM nameIR initializerIR `;
+  | annotationList constOptIR CUSTOM_CONST nameIR constantInitializerIR `;
+
+syntax tablePropertyIR =
+  | tableKeysPropertyIR
+  | tableActionsPropertyIR
+  | tableDefaultActionPropertyIR
+  | tableEntriesPropertyIR
+  | tableCustomPropertyIR
+
+syntax tablePropertyListIR = tablePropertyIR*
+
+syntax tableDeclarationIR =
+  annotationList TABLE typeIR nameIR `{ tablePropertyListIR }
+  hint(print %0 TABLE %2 `{ %3 } )
+
+;;
+;;;;;; Control type declarations
+;;
+
+syntax controlTypeDeclarationIR =
+  annotationList CONTROL nameIR
+    `< typeParameterListIR `, typeParameterListIR >
+    `( parameterListIR ) `;
+
+;;
+;;;;;; Control declarations
+;;
+
+syntax controlBodyIR = blockStatementIR
+
+syntax controlLocalDeclarationIR =
+  | constantDeclarationIR
+  | instantiationIR
+  | variableDeclarationIR
+  | actionDeclarationIR
+  | tableDeclarationIR
+
+syntax controlLocalDeclarationListIR =
+  controlLocalDeclarationIR*
+
+syntax controlDeclarationIR =
+  annotationList CONTROL
+    nameIR `< typeParameterListIR `, typeParameterListIR >
+    `( parameterListIR ) `( constructorParameterListIR )
+    `{ controlLocalDeclarationListIR APPLY controlBodyIR }
+
+;;
+;;;; Package type declarations
+;;
+
+syntax packageTypeDeclarationIR =
+  annotationList PACKAGE nameIR
+    `< typeParameterListIR `, typeParameterListIR >
+    `( parameterListIR ) `;
+
+;;
+;;;; Type declarations
+;;
+
+syntax typeDeclarationIR =
+  | derivedTypeDeclarationIR
+  | typedefDeclarationIR
+  | parserTypeDeclarationIR
+  | controlTypeDeclarationIR
+  | packageTypeDeclarationIR
+
+;;
+;;;; Declaration
+;;
+
+syntax declarationIR =
+  | constantDeclarationIR
+  | instantiationIR
+  | functionDeclarationIR
+  | actionDeclarationIR
+  | errorDeclarationIR
+  | matchKindDeclarationIR
+  | externDeclarationIR
+  | parserDeclarationIR
+  | controlDeclarationIR
+  | typeDeclarationIR
+
+;;
+;; P4 program
+;;
+
+syntax p4programIR = declarationIR* `;

@@ -1,0 +1,25 @@
+;;
+;; Compile-time known-ness
+;;
+
+syntax ctk = LCTK | CTK | DYN
+
+dec $join_ctk(ctk, ctk) : ctk
+  hint(prose_in "the join of" %0 "and" %1)
+
+def $join_ctk(LCTK, LCTK) = LCTK
+def $join_ctk(LCTK, CTK) = CTK
+def $join_ctk(CTK, LCTK) = CTK
+def $join_ctk(CTK, CTK) = CTK
+def $join_ctk(ctk_a, ctk_b) = DYN
+  -- otherwise
+
+dec $joins_ctk(ctk*) : ctk
+  hint(prose_in "the join of" %0)
+
+def $joins_ctk(eps) = LCTK
+def $joins_ctk(ctk) = ctk
+def $joins_ctk(ctk_a :: ctk_b) = $join_ctk(ctk_a, ctk_b)
+def $joins_ctk(ctk_a :: ctk_b :: ctk_c*) = $joins_ctk(ctk_d :: ctk_c*)
+  -- if ctk_c* =/= eps
+  -- if ctk_d = $join_ctk(ctk_a, ctk_b)

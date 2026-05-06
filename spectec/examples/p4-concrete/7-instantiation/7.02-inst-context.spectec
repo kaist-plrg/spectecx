@@ -1,0 +1,325 @@
+;;
+;; Layered context
+;;
+
+;; Global layer
+
+syntax globalInstLayer =
+  { CONSTRUCTOR constructorDefEnv,
+    TYPE typeDefEnv,
+    CALLABLE callableDefEnv,
+    FRAME frame }
+
+;; Block Layer
+
+syntax blockInstLayer =
+  { TYPE theta,
+    CALLABLE callableDefEnv,
+    STATE stateEnv,
+    FRAME frame }
+
+;; Local layer
+
+syntax localInstLayer =
+  { TYPE theta,
+    FRAMES frame* }
+
+;;
+;; Instantiation context
+;;
+
+syntax instContext =
+  { PATH objectId,
+    GLOBAL globalInstLayer,
+    BLOCK blockInstLayer,
+    LOCAL localInstLayer }
+
+var IC : instContext
+
+;;
+;; Constructors
+;;
+
+dec $empty_instContext : instContext
+  hint(prose_in "an empty instantiation context")
+
+def $empty_instContext = IC
+  -- if globalInstLayer
+      = { CONSTRUCTOR $empty_constructorDefEnv,
+          TYPE $empty_typeDefEnv,
+          CALLABLE $empty_callableDefEnv,
+          FRAME $empty_frame }
+  -- if blockInstLayer
+      = { TYPE $empty_theta,
+          CALLABLE $empty_callableDefEnv,
+          STATE $empty_stateEnv,
+          FRAME $empty_frame }
+  -- if localInstLayer
+      = { TYPE $empty_theta,
+          FRAMES ([ $empty_frame ]) }
+  -- if IC
+      = { PATH ([]),
+          GLOBAL globalInstLayer,
+          BLOCK blockInstLayer,
+          LOCAL localInstLayer }
+
+;;
+;; Frame entry and exit
+;;
+
+dec $enter_i(instContext) : instContext
+  hint(prose_in %0 "with a new local frame")
+
+def $enter_i(IC) = IC[ .LOCAL.FRAMES = $empty_frame :: IC.LOCAL.FRAMES ]
+
+dec $exit_i(instContext) : instContext
+  hint(prose_in %0 "with the innermost frame removed")
+
+def $exit_i(IC) = IC[ .LOCAL.FRAMES = frame_t* ]
+  -- if IC.LOCAL.FRAMES = frame_h :: frame_t*
+
+;;
+;; Path entry
+;;
+
+dec $enter_path_i(instContext, id) : instContext
+  hint(prose_in %0 "with" %1 "added to the path")
+
+def $enter_path_i(IC, id) = IC[ .PATH = IC.PATH ++ id ]
+
+;;
+;; Context inheritance
+;;
+
+dec $inherit_i(cursor, instContext) : instContext
+  hint(prose_in "an instantiation context same as" %1 "up to the" %0 "layer")
+
+def $inherit_i(GLOBAL, IC)
+  = IC[ .BLOCK = blockInstLayer ][ .LOCAL = localInstLayer ]
+  -- if blockInstLayer = { TYPE $empty_theta,
+                           CALLABLE $empty_callableDefEnv,
+                           STATE $empty_stateEnv,
+                           FRAME $empty_frame }
+  -- if localInstLayer = { TYPE $empty_theta,
+                           FRAMES ([ $empty_frame ]) }
+def $inherit_i(BLOCK, IC) = IC[ .LOCAL = localInstLayer ]
+  -- if localInstLayer = { TYPE $empty_theta,
+                           FRAMES ([ $empty_frame ]) }
+def $inherit_i(LOCAL, IC) = IC
+
+;;
+;; Adders
+;;
+
+;;; Adder for values
+
+dec $add_var_i(cursor, instContext, id, value): instContext
+  hint(prose_in %1 "where" %2 "to" %3 "is added to the" %0 "layer")
+dec $add_vars_i(cursor, instContext, id*, value*): instContext
+  hint(prose_in %1 "where each of" %2 "to each of" %3 "are added to the" %0 "layer")
+
+def $add_var_i(GLOBAL, IC, id, value) = IC[ .GLOBAL.FRAME = frame ]
+  -- if ~$in_set<id>(id, $dom_map<id, value>(IC.GLOBAL.FRAME))
+  -- if frame = $add_map<id, value>(IC.GLOBAL.FRAME, id, value)
+def $add_var_i(BLOCK, IC, id, value) = IC[ .BLOCK.FRAME = frame ]
+  -- if ~$in_set<id>(id, $dom_map<id, value>(IC.BLOCK.FRAME))
+  -- if frame = $add_map<id, value>(IC.BLOCK.FRAME, id, value)
+def $add_var_i(LOCAL, IC, id, value) = IC[ .LOCAL.FRAMES = frame_h' :: frame_t* ]
+  -- if IC.LOCAL.FRAMES = frame_h :: frame_t*
+  -- if ~$in_set<id>(id, $dom_map<id, value>(frame_h))
+  -- if frame_h' = $add_map<id, value>(frame_h, id, value)
+
+def $add_vars_i(p, IC, eps, eps) = IC
+def $add_vars_i(p, IC, id_h :: id_t*, value_h :: value_t*) = IC''
+  -- if IC' = $add_var_i(p, IC, id_h, value_h)
+  -- if IC'' = $add_vars_i(p, IC', id_t*, value_t*)
+
+;;; Adder for type definitions
+
+dec $add_typeDef_i(cursor, instContext, typeId, typeDefIR) : instContext
+  hint(prose_in %1 "where" %2 "to" %3 "is added to the" %0 "layer")
+
+def $add_typeDef_i(GLOBAL, IC, typeId, typeDefIR)
+  = IC[ .GLOBAL.TYPE = typeDefEnv ]
+  -- if typeDefEnv
+      = $add_map<typeId, typeDefIR>(IC.GLOBAL.TYPE, typeId, typeDefIR)
+
+;;; Adder for parser states
+
+dec $add_parserState_i(instContext, nameIR, parserStateIR) : instContext
+  hint(prose_in %0 "where" %1 "to" %2 "is added")
+
+def $add_parserState_i(IC, nameIR, parserStateIR)
+  = IC[ .BLOCK.STATE = stateEnv ]
+  -- if ~$in_set<nameIR>(
+          nameIR,
+          $dom_map<nameIR, parserStateIR>(IC.BLOCK.STATE))
+  -- if stateEnv
+      = $add_map<nameIR, parserStateIR>(IC.BLOCK.STATE, nameIR, parserStateIR)
+
+;;; Adder for type variables
+
+dec $add_type_i(cursor, instContext, typeId, typeIR) : instContext
+dec $add_types_i(cursor, instContext, typeId*, typeIR*) : instContext
+
+def $add_type_i(BLOCK, IC, typeId, typeIR) = IC[ .BLOCK.TYPE = theta ]
+  -- if theta = $add_map<typeId, typeIR>(IC.BLOCK.TYPE, typeId, typeIR)
+def $add_type_i(LOCAL, IC, typeId, typeIR) = IC[ .LOCAL.TYPE = theta ]
+  -- if theta = $add_map<typeId, typeIR>(IC.LOCAL.TYPE, typeId, typeIR)
+
+def $add_types_i(p, IC, eps, eps) = IC
+def $add_types_i(p, IC, typeId_h :: typeId_t*, typeIR_h :: typeIR_t*) =
+    $add_types_i(p, IC', typeId_t*, typeIR_t*)
+  -- if IC' = $add_type_i(p, IC, typeId_h, typeIR_h)
+
+;;; Adder for callable definitions
+
+dec $add_callableDef_overload_i(cursor, instContext, callableId, callableDef)
+  : instContext
+  hint(prose_in %1 "where" %2 "to" %3 "is added as an overloaded callable to the" %0 "layer")
+
+def $add_callableDef_overload_i(GLOBAL, IC, callableId, callableDef)
+  = IC[ .GLOBAL.CALLABLE = callableDefEnv ]
+  -- if ~$in_set<callableId>(callableId, $dom_map<callableId, callableDef>(IC.GLOBAL.CALLABLE))
+  -- if callableDefEnv
+      = $add_map<callableId, callableDef>(IC.GLOBAL.CALLABLE, callableId, callableDef)
+def $add_callableDef_overload_i(BLOCK, IC, callableId, callableDef)
+  = IC[ .BLOCK.CALLABLE = callableDefEnv ]
+  -- if ~$in_set<callableId>(callableId, $dom_map<callableId, callableDef>(IC.BLOCK.CALLABLE))
+  -- if callableDefEnv
+    = $add_map<callableId, callableDef>(IC.BLOCK.CALLABLE, callableId, callableDef)
+
+dec $add_callableDef_non_overload_i(cursor, instContext, callableId, callableDef)
+  : instContext
+  hint(prose_in %1 "where" %2 "to" %3 "is added as a non-overloaded callable to the" %0 "layer")
+
+def $add_callableDef_non_overload_i(GLOBAL, IC, callableId, callableDef)
+  = IC[ .GLOBAL.CALLABLE = callableDefEnv ]
+  -- if id `( _ ) = callableId
+  -- if `{ (id_k `( _ ))* } = $dom_map<callableId, callableDef>(IC.GLOBAL.CALLABLE)
+  -- if ~$in_set<id>(id, `{ id_k* })
+  -- if callableDefEnv
+      = $add_map<callableId, callableDef>(IC.GLOBAL.CALLABLE, callableId, callableDef)
+def $add_callableDef_non_overload_i(BLOCK, IC, callableId, callableDef)
+  = IC[ .BLOCK.CALLABLE = callableDefEnv ]
+  -- if id `( _ ) = callableId
+  -- if `{ (id_k `( _ ))* } = $dom_map<callableId, callableDef>(IC.BLOCK.CALLABLE)
+  -- if ~$in_set<id>(id, `{ id_k* })
+  -- if callableDefEnv
+      = $add_map<callableId, callableDef>(IC.BLOCK.CALLABLE, callableId, callableDef)
+
+;;; Finder for callable definitions
+
+dec $find_callableDef_non_overload_i(cursor, instContext, prefixedNameIR)
+  : (cursor, callableId, callableDef)?
+  hint(prose_in "the non-overloaded callable definition of" %2 "from the" %0 "layer of" %1)
+
+def $find_callableDef_non_overload_i(p, IC, `. nameIR)
+  = eps
+  -- if eps = $find_non_overloaded<callableDef>(IC.GLOBAL.CALLABLE, nameIR)
+def $find_callableDef_non_overload_i(p, IC, `. nameIR)
+  = (GLOBAL, callableId, callableDef)
+  -- if (callableId, callableDef) = $find_non_overloaded<callableDef>(IC.GLOBAL.CALLABLE, nameIR)
+def $find_callableDef_non_overload_i(GLOBAL, IC, `` nameIR)
+  = $find_callableDef_non_overload_i(GLOBAL, IC, `. nameIR)
+def $find_callableDef_non_overload_i(BLOCK, IC, `` nameIR)
+  = (BLOCK, callableId, callableDef)
+  -- if (callableId, callableDef)
+      = $find_non_overloaded<callableDef>(IC.BLOCK.CALLABLE, nameIR)
+def $find_callableDef_non_overload_i(BLOCK, IC, `` nameIR)
+  = $find_callableDef_non_overload_i(GLOBAL, IC, `` nameIR)
+  -- if eps
+      = $find_non_overloaded<callableDef>(IC.BLOCK.CALLABLE, nameIR)
+def $find_callableDef_non_overload_i(LOCAL, IC, `` nameIR)
+  = $find_callableDef_non_overload_i(BLOCK, IC, `` nameIR)
+
+;;; Adder for constructor definitions
+
+dec $add_constructorDef_i(instContext, callableId, constructorDef) : instContext
+  hint(prose_in "where" %1 "to" %2 "is added to" %0)
+dec $add_constructorDefs_i(instContext, callableId*, constructorDef*) : instContext
+  hint(prose_in "where each of" %1 "to each of" %2 "are added to" %0)
+
+def $add_constructorDef_i(IC, callableId, constructorDef)
+  = IC[ .GLOBAL.CONSTRUCTOR = constructorDefEnv ]
+  -- if constructorDefEnv
+      = $add_map<callableId, constructorDef>(
+          IC.GLOBAL.CONSTRUCTOR, callableId, constructorDef)
+
+def $add_constructorDefs_i(IC, eps, eps) = IC
+def $add_constructorDefs_i(
+    IC, callableId_h :: callableId_t*,
+    constructorDef_h :: constructorDef_t*)
+  = IC''
+  -- if IC' = $add_constructorDef_i(IC, callableId_h, constructorDef_h)
+  -- if IC'' = $add_constructorDefs_i(IC', callableId_t*, constructorDef_t*)
+
+;;
+;; Finders
+;;
+
+;;; Finder for values
+
+dec $find_var_i(prefixedNameIR, cursor, instContext) : value
+  hint(prose_in "the value of" %0 "from the" %1 "layer of" %2)
+
+def $find_var_i(`. id, p, IC) = value
+  -- if value = $find_map<id, value>(IC.GLOBAL.FRAME, id)
+def $find_var_i(`` id, GLOBAL, IC) = value
+  -- if value = $find_map<id, value>(IC.GLOBAL.FRAME, id)
+def $find_var_i(`` id, BLOCK, IC) = value
+  -- if value = $find_map<id, value>(IC.BLOCK.FRAME, id)
+def $find_var_i(`` id, BLOCK, IC)
+  = $find_var_i(`` id, GLOBAL, IC)
+  -- if eps = $find_map<id, value>(IC.BLOCK.FRAME, id)
+def $find_var_i(`` id, LOCAL, IC) = value
+  -- if value = $find_maps<id, value>(IC.LOCAL.FRAMES, id)
+def $find_var_i(`` id, LOCAL, IC)
+  = $find_var_i(`` id, BLOCK, IC)
+  -- if eps = $find_maps<id, value>(IC.LOCAL.FRAMES, id)
+
+;;; Finder for type definitions
+
+dec $find_typeDef_i(cursor, instContext, prefixedNameIR) : typeDefIR?
+  hint(prose_in "the type definition of" %2 "from the" %0 "layer of" %1)
+
+def $find_typeDef_i(_, IC, `` nameIR)
+  = $find_map<typeId, typeDefIR>(IC.GLOBAL.TYPE, nameIR)
+def $find_typeDef_i(_, IC, `. nameIR)
+  = $find_map<typeId, typeDefIR>(IC.GLOBAL.TYPE, nameIR)
+
+;;; Finder for constructor definitions
+
+dec $find_constructorDef_i(instContext, prefixedNameIR, argumentIR*)
+  : callResolution<constructorDef>?
+  hint(prose_in "the overloaded constructor definition of" %1 `( %2 ) "in" %0)
+
+def $find_constructorDef_i(IC, `` nameIR, argumentIR*)
+  = $find_overloaded<constructorDef>(
+      IC.GLOBAL.CONSTRUCTOR,
+      callTargetKey,
+      def $parameterListIR_of_constructorDef)
+  -- if callTargetKey = $callTargetKey(nameIR, argumentIR*)
+def $find_constructorDef_i(IC, `. nameIR, argumentIR*)
+  = $find_overloaded<constructorDef>(
+      IC.GLOBAL.CONSTRUCTOR,
+      callTargetKey,
+      def $parameterListIR_of_constructorDef)
+  -- if callTargetKey = $callTargetKey(nameIR, argumentIR*)
+
+;;
+;; Type substitutions
+;;
+
+dec $subst_type_i(cursor, instContext, typeIR) : typeIR
+  hint(prose_in %2 "substituted by bound type variables in" %1 "from the" %0 "layer")
+
+def $subst_type_i(GLOBAL, IC, typeIR) = typeIR
+def $subst_type_i(BLOCK, IC, typeIR) = typeIR_subst
+  -- if theta = IC.BLOCK.TYPE
+  -- if typeIR_subst = $subst_typeIR(theta, typeIR)
+def $subst_type_i(LOCAL, IC, typeIR) = typeIR_subst
+  -- if theta_block = IC.BLOCK.TYPE
+  -- if theta_local = IC.LOCAL.TYPE
+  -- if theta = $extend_map<typeId, typeIR>(theta_block, theta_local)
+  -- if typeIR_subst = $subst_typeIR(theta, typeIR)

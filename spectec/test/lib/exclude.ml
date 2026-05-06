@@ -6,7 +6,20 @@ module Excludes = Set.Make (String)
 type t = Excludes.t
 
 let normalize line =
-  "../../../../../spectec/testdata/interp/p4-tests/tests/" ^ line
+  let local_prefix = "spectec/testdata/interp/p4-tests/tests/" in
+  let upstream_prefix = "p4c/testdata/" in
+  let already_normalized = "../../../../../" ^ local_prefix in
+  let chop_prefix prefix s = String.drop_prefix s (String.length prefix) in
+  if String.is_prefix line ~prefix:already_normalized then line
+  else
+    let relative =
+      if String.is_prefix line ~prefix:local_prefix then
+        chop_prefix local_prefix line
+      else if String.is_prefix line ~prefix:upstream_prefix then
+        chop_prefix upstream_prefix line
+      else line
+    in
+    already_normalized ^ relative
 
 let from_file filename =
   In_channel.read_lines filename

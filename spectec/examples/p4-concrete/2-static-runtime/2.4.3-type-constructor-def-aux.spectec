@@ -1,0 +1,11 @@
+;;
+;; Parameters of a constructor type definition
+;;
+
+dec $parameterListIR_of_constructorTypeDefIR(constructorTypeDefIR)
+  : parameterIR*
+  hint(prose_in "the parameters of" %0)
+
+def $parameterListIR_of_constructorTypeDefIR(
+    CONSTRUCTOR `< _ `, _ > `( constructorParameterIR* ) `: _)
+  = constructorParameterIR*
