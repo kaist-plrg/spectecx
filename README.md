@@ -36,6 +36,20 @@ SpecTec-Core currently consists of three main components.
 * Interpreter backends for IL/SL.
   * Needs to be coupled with a parser that converts an input file into a SpecTec IL value.
 
+Repository layout:
+
+```
+spectec/lib/lang/        ASTs for el / il / sl / xl
+spectec/lib/pass/        parse, elaborate (EL→IL), structure (IL→SL)
+spectec/lib/interp/      IL and SL interpreters, builtins, target interface
+spectec/lib/cli/         reusable CLI machinery (Target_cli, Task_cli, Subcommand)
+spectec/lib/spectec.ml   public facade (pipeline + eval + Error/Task/Target)
+spectec/targets/<t>/     per-target code, including each target's CLI module
+spectec/bin/             top-level entrypoint that registers each target's CLI
+spectec/test/            diff-based test drivers
+spectec/testdata/        test inputs
+```
+
 ### Commands
 ```bash
 # print out the IL representation of a SpecTec spec
@@ -61,9 +75,21 @@ make test
 - Checks parsing, elaboration and structuring using the `spectec/examples/p4-concrete` spec corpus.
 - Checks IL/SL interpreter coupled with the P4 parser using `spectec/testdata/interp/p4-tests` files.
 
+### Adding a New Target
+
+Targets live in `spectec/targets/<name>/`, separate from `spectec/lib/`. The reusable CLI infrastructure (`Target_cli`, `Task_cli`, `Subcommand` constructors) lives in `spectec/lib/cli/`. To add a target:
+
+1. Implement `Spectec.Target.S` and one or more `Spectec.Task.S` in `spectec/targets/<name>/`.
+2. Add target-specific built-ins under `spectec/targets/<name>/builtins/`.
+3. For each task, implement a `Cli.Task_cli.S` module that parses command-line flags into the task's input.
+4. Compose those task-CLIs into a `Cli : Cli.Target_cli.S` module using `Cli.Subcommand` constructors (`make_task`, `make_parse`, `make_batch`, `make_checkpoint`).
+5. Register the target in `spectec/bin/main.ml` by adding `(Your_target.Cli.name, Your_target.Cli.command)` to the top-level command group.
+
+The P4 target (`spectec/targets/p4/p4.ml`) is the working example.
+
 ### Contributing
 
-SpecTec-Core is an open-source project. Please feel free to contribute by opening issues or pull requests.
+Contributions are welcome — open an issue or pull request. See [CONTRIBUTING.md](CONTRIBUTING.md) for code conventions, commit and PR format, and rebase guidance.
 
 ### License
 
