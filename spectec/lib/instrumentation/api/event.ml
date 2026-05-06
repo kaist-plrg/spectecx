@@ -6,11 +6,22 @@ type t =
   | Test_start of { test_case_id : string }
   | Test_end of { test_case_id : string }
   | Rel_enter of { id : string; at : region; values : Il.Value.t list }
-  | Rel_exit of { id : string; at : region; success : bool }
+  | Rel_exit of {
+      id : string;
+      at : region;
+      success : bool;
+      values : Il.Value.t list;
+          (** Output values on success; empty on failure. *)
+    }
   | Rule_enter of { id : string; rule_id : string; at : region }
   | Rule_exit of { id : string; rule_id : string; at : region; success : bool }
   | Func_enter of { id : string; at : region; values : Il.Value.t list }
-  | Func_exit of { id : string; at : region }
+  | Func_exit of {
+      id : string;
+      at : region;
+      value : Il.Value.t option;
+          (** Return value on success; [None] on failure. *)
+    }
   | Clause_enter of { id : string; clause_idx : int; at : region }
   | Clause_exit of {
       id : string;

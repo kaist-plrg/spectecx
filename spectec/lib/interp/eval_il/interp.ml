@@ -1163,8 +1163,15 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
     Ok (ctx, values_output)
   in
   let result = invoke_rel' () in
+  let values_output = match result with Ok (_, vs) -> vs | Error _ -> [] in
   Instrumentation.Dispatcher.emit
-    (Events.Rel_exit { id = id.it; at = id.at; success = Result.is_ok result });
+    (Events.Rel_exit
+       {
+         id = id.it;
+         at = id.at;
+         success = Result.is_ok result;
+         values = values_output;
+       });
   result |> nest id.at (F.asprintf "invocation of relation %s failed" id.it)
 
 (* Invoke a function *)
@@ -1317,7 +1324,11 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     in
     Ok (ctx, value_output)
   in
-  Instrumentation.Dispatcher.emit (Events.Func_exit { id = id.it; at = id.at });
+  let value_output =
+    match result with Ok (_, v) -> Some v | Error _ -> None
+  in
+  Instrumentation.Dispatcher.emit
+    (Events.Func_exit { id = id.it; at = id.at; value = value_output });
   result
   |> nest id.at
        (F.asprintf "invocation of function %s%s%s failed"

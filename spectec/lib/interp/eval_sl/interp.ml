@@ -1424,8 +1424,15 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
     | Ok values_output -> Some (ctx, values_output)
     | Error _ -> None
   in
+  let values_output = match result with Some (_, vs) -> vs | None -> [] in
   Instrumentation.Dispatcher.emit
-    (Events.Rel_exit { id = id.it; at = id.at; success = Option.is_some result });
+    (Events.Rel_exit
+       {
+         id = id.it;
+         at = id.at;
+         success = Option.is_some result;
+         values = values_output;
+       });
   result
 
 (* Invoke a function *)
@@ -1542,7 +1549,9 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     (ctx, value_output_result |> Result.get_ok)
   in
   let result = invoke_func' () in
-  Instrumentation.Dispatcher.emit (Events.Func_exit { id = id.it; at = id.at });
+  let _, value_output = result in
+  Instrumentation.Dispatcher.emit
+    (Events.Func_exit { id = id.it; at = id.at; value = Some value_output });
   result
 
 (* Load definitions into the context *)

@@ -68,7 +68,7 @@ module M : Instrumentation_api.Handler.S = struct
           }
         in
         Stack.push frame frame_stack
-    | Rel_exit { id; at = _; success = _ } ->
+    | Rel_exit { id; at = _; success = _; values = _ } ->
         if not (Stack.is_empty frame_stack) then (
           let frame = Stack.pop frame_stack in
           let elapsed = now () -. frame.start_time in
@@ -96,7 +96,7 @@ module M : Instrumentation_api.Handler.S = struct
           }
         in
         Stack.push frame frame_stack
-    | Func_exit { id; at = _ } ->
+    | Func_exit { id; at = _; value = _ } ->
         if not (Stack.is_empty frame_stack) then (
           let frame = Stack.pop frame_stack in
           let elapsed = now () -. frame.start_time in
