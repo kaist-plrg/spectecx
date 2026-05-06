@@ -2,12 +2,11 @@
 
     Levels are a strict progression of verbosity:
     - [Summary]: relation/function enter/exit only.
-    - [Rules]:   above + each rule attempt's enter/exit (which rule fired,
-                 and whether it succeeded).
-    - [Inputs]:  above + input values on enter and output values on exit.
-    - [Full]:    above + premises, iteration markers, and clause events
-                 (the inner-loop noise needed for debugging non-terminating
-                 evaluations).
+    - [Rules]: above + each rule attempt's enter/exit (which rule fired, and
+      whether it succeeded).
+    - [Inputs]: above + input values on enter and output values on exit.
+    - [Full]: above + premises, iteration markers, and clause events (the
+      inner-loop noise needed for debugging non-terminating evaluations).
 
     All levels stream — events are printed as they happen, not buffered. *)
 
