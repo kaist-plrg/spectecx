@@ -275,24 +275,66 @@ and string_of_instr ?(level = 0) ?(index = 0) instr =
   | OtherwiseI instr ->
       Format.asprintf "%sOtherwise\n\n%s" order
         (string_of_instr ~level:(level + 1) ~index:1 instr)
-  | LetI (exp_l, exp_r, iterexps) ->
-      Format.asprintf "%s(Let %s be %s)%s" order (string_of_exp exp_l)
+  | LetI (exp_l, exp_r, iterexps, block) ->
+      Format.asprintf "%s(Let %s be %s)%s\n\n%s" order (string_of_exp exp_l)
         (string_of_exp exp_r)
         (string_of_iterexps iterexps)
-  | RuleI (id_rel, notexp, iterexps) ->
-      Format.asprintf "%s(%s: %s)%s" order (string_of_relid id_rel)
+        (fst (string_of_instrs_from ~level ~index:(index + 1) block))
+  | RuleI (id_rel, notexp, iterexps, block) ->
+      Format.asprintf "%s(%s: %s)%s\n\n%s" order (string_of_relid id_rel)
         (string_of_notexp notexp)
         (string_of_iterexps iterexps)
+        (fst (string_of_instrs_from ~level ~index:(index + 1) block))
   | ResultI [] -> Format.asprintf "%sThe relation holds" order
   | ResultI exps ->
       Format.asprintf "%sResult in %s" order (string_of_exps ", " exps)
   | ReturnI exp -> Format.asprintf "%sReturn %s" order (string_of_exp exp)
   | DebugI exp -> Format.asprintf "%sDebug: %s" order (string_of_exp exp)
 
+and string_of_instr_with_next ?(level = 0) ~(index : int) instr =
+  let indent = String.make (level * 2) ' ' in
+  let order = Format.asprintf "%s%d. " indent index in
+  match instr.it with
+  | LetI (exp_l, exp_r, iterexps, block) ->
+      let block, next = string_of_instrs_from ~level ~index:(index + 1) block in
+      ( Format.asprintf "%s(Let %s be %s)%s\n\n%s" order (string_of_exp exp_l)
+          (string_of_exp exp_r)
+          (string_of_iterexps iterexps)
+          block,
+        next )
+  | RuleI (id_rel, notexp, iterexps, block) ->
+      let block, next = string_of_instrs_from ~level ~index:(index + 1) block in
+      ( Format.asprintf "%s(%s: %s)%s\n\n%s" order (string_of_relid id_rel)
+          (string_of_notexp notexp)
+          (string_of_iterexps iterexps)
+          block,
+        next )
+  | _ -> (string_of_instr ~level ~index instr, index + 1)
+
+and string_of_instrs_from ?(level = 0) ~(index : int) instrs =
+  List.fold_left
+    (fun (strings, index) instr ->
+      let string, index = string_of_instr_with_next ~level ~index instr in
+      (strings @ [ string ], index))
+    ([], index) instrs
+  |> fun (strings, index) -> (String.concat "\n\n" strings, index)
+
 and string_of_instrs ?(level = 0) instrs =
-  instrs
-  |> List.mapi (fun idx instr -> string_of_instr ~level ~index:(idx + 1) instr)
-  |> String.concat "\n\n"
+  fst (string_of_instrs_from ~level ~index:1 instrs)
+
+and string_of_block ?(level = 0) ?(index = 0) block =
+  fst (string_of_instrs_from ~level ~index:(index + 1) block)
+
+and string_of_elseblock ?(level = 0) ?(index = 0) elseblock =
+  let indent = String.make (level * 2) ' ' in
+  let order = Format.asprintf "%s%d. " indent (index + 1) in
+  Format.asprintf "%sOtherwise\n\n%s" order
+    (string_of_instrs ~level:(level + 1) elseblock)
+
+and string_of_elseblock_opt ?(level = 0) ?(index = 0) elseblock_opt =
+  match elseblock_opt with
+  | None -> ""
+  | Some elseblock -> "\n\n" ^ string_of_elseblock ~level ~index elseblock
 
 (* Definitions *)
 
@@ -303,16 +345,18 @@ let rec string_of_def def =
   | TypD (typid, tparams, deftyp) ->
       "syntax " ^ string_of_typid typid ^ string_of_tparams tparams ^ " = "
       ^ string_of_deftyp deftyp
-  | RelD (relid, (_mixop, _inputs), exps_input, instrs) ->
+  | RelD (relid, (_mixop, _inputs), exps_input, block, elseblock_opt) ->
       "relation " ^ string_of_relid relid ^ ": "
       ^ string_of_exps ", " exps_input
-      ^ "\n\n" ^ string_of_instrs instrs
+      ^ "\n\n" ^ string_of_block block
+      ^ string_of_elseblock_opt ~index:(List.length block) elseblock_opt
   | BuiltinDecD (defid, tparams, args_input) ->
       "builtin dec " ^ string_of_defid defid ^ string_of_tparams tparams
       ^ string_of_args args_input
-  | DecD (defid, tparams, args_input, instrs) ->
+  | DecD (defid, tparams, args_input, block, elseblock_opt) ->
       "dec " ^ string_of_defid defid ^ string_of_tparams tparams
-      ^ string_of_args args_input ^ "\n\n" ^ string_of_instrs instrs
+      ^ string_of_args args_input ^ "\n\n" ^ string_of_block block
+      ^ string_of_elseblock_opt ~index:(List.length block) elseblock_opt
 
 and string_of_defs defs = String.concat "\n\n" (List.map string_of_def defs)
 

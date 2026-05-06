@@ -12,8 +12,8 @@ and instr' =
   | IfNotHoldI of id * notexp * iterexp list * instr list
   | CaseI of exp * case list * bool
   | OtherwiseI of instr
-  | LetI of exp * exp * iterexp list
-  | RuleI of id * notexp * iterexp list
+  | LetI of exp * exp * iterexp list * instr list
+  | RuleI of id * notexp * iterexp list * instr list
   | ResultI of exp list
   | ReturnI of exp
   | DebugI of exp

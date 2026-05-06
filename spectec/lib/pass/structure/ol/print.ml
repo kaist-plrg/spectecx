@@ -51,14 +51,18 @@ and string_of_instr ?(level = 0) ?(index = 0) instr =
   | OtherwiseI instr ->
       Format.asprintf "%sOtherwise\n\n%s" order
         (string_of_instr ~level:(level + 1) ~index:1 instr)
-  | LetI (exp_l, exp_r, iterexps) ->
+  | LetI (exp_l, exp_r, iterexps, block) ->
       Format.asprintf "%s(Let %s be %s)%s" order (string_of_exp exp_l)
         (string_of_exp exp_r)
         (string_of_iterexps iterexps)
-  | RuleI (id_rel, notexp, iterexps) ->
+      ^ "\n\n"
+      ^ string_of_instrs ~level:(level + 1) block
+  | RuleI (id_rel, notexp, iterexps, block) ->
       Format.asprintf "%s(%s: %s)%s" order (string_of_relid id_rel)
         (string_of_notexp notexp)
         (string_of_iterexps iterexps)
+      ^ "\n\n"
+      ^ string_of_instrs ~level:(level + 1) block
   | ResultI [] -> Format.asprintf "%sThe relation holds" order
   | ResultI exps ->
       Format.asprintf "%sResult in %s" order (string_of_exps ", " exps)

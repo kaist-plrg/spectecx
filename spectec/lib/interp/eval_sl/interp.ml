@@ -919,8 +919,10 @@ and eval_instr (ctx : Ctx.t) (instr : instr) : Ctx.t * Sign.t =
       eval_if_not_hold_instr ctx id notexp iterexps instrs_then
   | CaseI (exp, cases, _phantom_opt) -> eval_case_instr ctx exp cases
   | OtherwiseI instr -> eval_instr ctx instr
-  | LetI (exp_l, exp_r, iterexps) -> eval_let_instr ctx exp_l exp_r iterexps
-  | RuleI (id, notexp, iterexps) -> eval_rule_instr ctx id notexp iterexps
+  | LetI (exp_l, exp_r, iterexps, block) ->
+      eval_let_instr ctx exp_l exp_r iterexps block
+  | RuleI (id, notexp, iterexps, block) ->
+      eval_rule_instr ctx id notexp iterexps block
   | ResultI exps -> eval_result_instr ctx exps
   | ReturnI exp -> eval_return_instr ctx exp
   | DebugI exp -> eval_debug_instr ctx exp
@@ -1137,7 +1139,7 @@ and eval_case_instr (ctx : Ctx.t) (exp : exp) (cases : case list) :
 (* Let instruction evaluation *)
 
 and eval_let_instr (ctx : Ctx.t) (exp_l : exp) (exp_r : exp)
-    (iterexps : iterexp list) : Ctx.t * Sign.t =
+    (iterexps : iterexp list) (block : block) : Ctx.t * Sign.t =
   let eval_let_iter ctx exp_l exp_r iterexps =
     let rec eval_let_iter' ctx exp_l exp_r iterexps =
       let eval_let ctx exp_l exp_r =
@@ -1271,19 +1273,20 @@ and eval_let_instr (ctx : Ctx.t) (exp_l : exp) (exp_r : exp)
     eval_let_iter' ctx exp_l exp_r iterexps
   in
   let ctx = eval_let_iter ctx exp_l exp_r iterexps in
-  (ctx, Cont)
+  let ctx, sign = eval_instrs ctx Cont block in
+  (ctx, sign)
 
 (* Rule instruction evaluation *)
 
 and eval_rule_instr (ctx : Ctx.t) (id : id) (notexp : notexp)
-    (iterexps : iterexp list) : Ctx.t * Sign.t =
+    (iterexps : iterexp list) (block : block) : Ctx.t * Sign.t =
   let eval_rule_iter ctx id notexp iterexps =
     let rec eval_rule_iter' ctx id notexp iterexps =
       (* Single rule evaluation *)
       let eval_rule ctx id notexp =
         let rel = Ctx.find_rel Local ctx id in
         let exps_input, exps_output =
-          let inputs, _, _ = rel in
+          let inputs, _, _, _ = rel in
           Hint.split_exps_without_idx inputs (Mixop.args notexp)
         in
         let ctx, values_input = eval_exps ctx exps_input in
@@ -1370,7 +1373,8 @@ and eval_rule_instr (ctx : Ctx.t) (id : id) (notexp : notexp)
     eval_rule_iter' ctx id notexp iterexps
   in
   let ctx = eval_rule_iter ctx id notexp iterexps in
-  (ctx, Cont)
+  let ctx, sign = eval_instrs ctx Cont block in
+  (ctx, sign)
 
 (* Invoke a relation *)
 
@@ -1378,15 +1382,22 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
     (Ctx.t * value list) option =
   Instrumentation.Dispatcher.emit
     (Events.Rel_enter { id = id.it; at = id.at; values = values_input });
-  let _inputs, exps_input, instrs = Ctx.find_rel Local ctx id in
-  check (instrs <> []) id.at "relation has no instructions";
+  let _inputs, exps_input, block, elseblock_opt = Ctx.find_rel Local ctx id in
+  check
+    (block <> [] || Option.is_some elseblock_opt)
+    id.at "relation has no instructions";
   let attempt_rules () =
     Instrumentation.Dispatcher.emit
       (Events.Rule_enter { id = id.it; rule_id = "0"; at = id.at });
     let ctx_local = Ctx.localize ctx in
     let ctx_local = Ctx.localize_inputs ctx_local values_input in
     let ctx_local = assign_exps ctx_local exps_input values_input in
-    let ctx_local, sign = eval_instrs ctx_local Cont instrs in
+    let ctx_local, sign = eval_instrs ctx_local Cont block in
+    let ctx_local, sign =
+      match (sign, elseblock_opt) with
+      | Cont, Some elseblock -> eval_instrs ctx_local Cont elseblock
+      | _ -> (ctx_local, sign)
+    in
     let ctx = Ctx.commit ctx ctx_local in
     let result =
       match sign with
@@ -1430,7 +1441,7 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     (ctx, value_output)
   in
   (* User-defined function invocation *)
-  let invoke_func_def tparams args_input instrs =
+  let invoke_func_def tparams args_input block elseblock_opt =
     let ctx_local = Ctx.localize ctx in
     check
       (List.length targs = List.length tparams)
@@ -1461,7 +1472,12 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
         (Events.Clause_enter { id = id.it; clause_idx = 0; at = id.at });
       let ctx_local = Ctx.localize_inputs ctx_local values_input in
       let ctx_local = assign_args ctx ctx_local args_input values_input in
-      let ctx_local, sign = eval_instrs ctx_local Cont instrs in
+      let ctx_local, sign = eval_instrs ctx_local Cont block in
+      let ctx_local, sign =
+        match (sign, elseblock_opt) with
+        | Cont, Some elseblock -> eval_instrs ctx_local Cont elseblock
+        | _ -> (ctx_local, sign)
+      in
       let ctx = Ctx.commit ctx ctx_local in
       match sign with
       | Ret value_output ->
@@ -1491,9 +1507,11 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
               (F.asprintf
                  "builtin $%s is declared in the spec but not implemented" id.it);
             invoke_func_builtin ()
-        | Some (Ctx.Func.Defined (tparams, args_input, instrs)) ->
-            check (instrs <> []) id.at "function has no instructions";
-            invoke_func_def tparams args_input instrs
+        | Some (Ctx.Func.Defined (tparams, args_input, block, elseblock_opt)) ->
+            check
+              (block <> [] || Option.is_some elseblock_opt)
+              id.at "function has no instructions";
+            invoke_func_def tparams args_input block elseblock_opt
         | None ->
             if ctx.builtins.is_builtin id then (
               warn id.at
@@ -1504,15 +1522,21 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
       in
       Ok v
     in
+    let is_anonymous fid =
+      match Ctx.find_func_opt Local ctx fid with
+      | Some _ -> Ctx.find_func_opt Global ctx fid = None
+      | None -> false
+    in
+    let is_high_order values =
+      List.exists
+        (fun value ->
+          match value.it with Lang.Il.FuncV _ -> true | _ -> false)
+        values
+    in
     let value_output_result =
       (* Skip caching for generics and HOFs *)
-      if
-        targs <> []
-        || List.exists
-             (fun value ->
-               match value.it with Lang.Il.FuncV _ -> true | _ -> false)
-             values_input
-      then invoke ()
+      if targs <> [] || is_anonymous id || is_high_order values_input then
+        invoke ()
       else invoke |> Cache.with_func_cache ctx.cache (id.it, values_input)
     in
     (ctx, value_output_result |> Result.get_ok)
@@ -1528,12 +1552,12 @@ let load_def (ctx : Ctx.t) (def : def) : Ctx.t =
   | TypD (id, tparams, deftyp) ->
       let typdef = (tparams, deftyp) in
       Ctx.add_typdef Global ctx id typdef
-  | RelD (id, (_, inputs), exps_input, instrs) ->
-      let rel = (inputs, exps_input, instrs) in
+  | RelD (id, (_, inputs), exps_input, block, elseblock_opt) ->
+      let rel = (inputs, exps_input, block, elseblock_opt) in
       Ctx.add_rel Global ctx id rel
   | BuiltinDecD (id, _, _) -> Ctx.add_func Global ctx id Ctx.Func.Builtin
-  | DecD (id, tparams, args_input, instrs) ->
-      let func = Ctx.Func.Defined (tparams, args_input, instrs) in
+  | DecD (id, tparams, args_input, block, elseblock_opt) ->
+      let func = Ctx.Func.Defined (tparams, args_input, block, elseblock_opt) in
       Ctx.add_func Global ctx id func
 
 let load_spec (ctx : Ctx.t) (spec : spec) : Ctx.t =

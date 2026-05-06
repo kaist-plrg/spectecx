@@ -1342,8 +1342,7 @@ Excluding file: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samp
 Typechecker success: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/issue2044-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/issue2090.p4
-Typechecker failed: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/issue2090.p4
-  ../../../../../spectec/examples/p4-concrete/5-typing/5.15.1-typing-call-convention.spectec:101:6-101:29:Error: relation was not matched
+Typechecker success: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/issue2090.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/issue210.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/issue210.p4
@@ -2165,8 +2164,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16
 Typechecker success: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/issue561-7-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/issue561-bmv2.p4
-Typechecker failed: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/issue561-bmv2.p4
-  ../../../../../spectec/examples/p4-concrete/5-typing/5.15.1-typing-call-convention.spectec:101:6-101:29:Error: relation was not matched
+Typechecker success: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/issue561-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/issue561.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/issue561.p4
@@ -2493,8 +2491,7 @@ Excluding file: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samp
 Typechecker success: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/overwrite.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/p416-type-use3.p4
-Typechecker failed: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/p416-type-use3.p4
-  ../../../../../spectec/examples/p4-concrete/5-typing/5.10-typing-statement.spectec:823:6-823:13:Error: relation was not matched
+Typechecker success: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/p416-type-use3.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/p4rt_digest_complex.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/p4rt_digest_complex.p4
@@ -3484,8 +3481,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16
 Typechecker success: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/spec-ex18.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/spec-ex19.p4
-Typechecker failed: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/spec-ex19.p4
-  ../../../../../spectec/examples/p4-concrete/5-typing/5.15.1-typing-call-convention.spectec:101:6-101:29:Error: relation was not matched
+Typechecker success: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/spec-ex19.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/spec-ex20.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/spec-ex20.p4
@@ -3840,18 +3836,8 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16
 
 Typechecker (sl) summary
   Ran:       1061 / 1278   (83.02%)
-  Passed:    1057 (99.62% of ran)
-  Failed:       4 (0.38% of ran)
+  Passed:    1061 (100.00% of ran)
+  Failed:       0 (0.00% of ran)
   Skipped:    217 (16.98% of total)
 
-
-Failures (4):
-  [FAIL] ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/issue2090.p4
-    ../../../../../spectec/examples/p4-concrete/5-typing/5.15.1-typing-call-convention.spectec:101:6-101:29:Error: relation was not matched
-  [FAIL] ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/issue561-bmv2.p4
-    ../../../../../spectec/examples/p4-concrete/5-typing/5.15.1-typing-call-convention.spectec:101:6-101:29:Error: relation was not matched
-  [FAIL] ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/p416-type-use3.p4
-    ../../../../../spectec/examples/p4-concrete/5-typing/5.10-typing-statement.spectec:823:6-823:13:Error: relation was not matched
-  [FAIL] ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples/spec-ex19.p4
-    ../../../../../spectec/examples/p4-concrete/5-typing/5.15.1-typing-call-convention.spectec:101:6-101:29:Error: relation was not matched
 

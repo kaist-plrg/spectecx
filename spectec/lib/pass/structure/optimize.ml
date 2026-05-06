@@ -17,31 +17,57 @@ module TDEnv = Envs.Il.TDEnv
 
    Notice the stop condition when we meet a shadowing let binding *)
 
-let rec rename_let_alias (rename : Renamer.t) (instrs : instr list) : instr list
-    =
-  match instrs with
-  | [] -> []
-  | instr_h :: instrs_t -> (
-      match instr_h.it with
-      | LetI ({ it = VarE id_l; _ }, _, _) when Renamer.Rename.mem id_l rename
-        ->
-          instr_h :: instrs_t
-      | _ ->
-          let instr_h = Renamer.rename_instr rename instr_h in
-          let instrs_t = rename_let_alias rename instrs_t in
-          instr_h :: instrs_t)
-
 let rec remove_let_alias (instrs : instr list) : instr list =
   match instrs with
   | [] -> []
-  | instr_h :: instrs_t -> (
-      match instr_h.it with
-      | LetI ({ it = VarE id_l; _ }, { it = VarE id_r; _ }, _) ->
+  | { it = IfI (exp_cond, iterexps, instrs_then); at; _ } :: instrs_t ->
+      let instrs_then = remove_let_alias instrs_then in
+      let instr_h = IfI (exp_cond, iterexps, instrs_then) $ at in
+      let instrs_t = remove_let_alias instrs_t in
+      instr_h :: instrs_t
+  | { it = IfHoldI (id, notexp, iterexps, instrs_then); at; _ } :: instrs_t ->
+      let instrs_then = remove_let_alias instrs_then in
+      let instr_h = IfHoldI (id, notexp, iterexps, instrs_then) $ at in
+      let instrs_t = remove_let_alias instrs_t in
+      instr_h :: instrs_t
+  | { it = IfNotHoldI (id, notexp, iterexps, instrs_then); at; _ } :: instrs_t
+    ->
+      let instrs_then = remove_let_alias instrs_then in
+      let instr_h = IfNotHoldI (id, notexp, iterexps, instrs_then) $ at in
+      let instrs_t = remove_let_alias instrs_t in
+      instr_h :: instrs_t
+  | { it = CaseI (exp, cases, total); at; _ } :: instrs_t ->
+      let cases =
+        let guards, blocks = List.split cases in
+        let blocks = List.map remove_let_alias blocks in
+        List.combine guards blocks
+      in
+      let instr_h = CaseI (exp, cases, total) $ at in
+      let instrs_t = remove_let_alias instrs_t in
+      instr_h :: instrs_t
+  | ({ it = LetI (exp_l, exp_r, iterexps, block); _ } as instr_h) :: instrs_t
+    -> (
+      match (exp_l.it, exp_r.it) with
+      | VarE id_l, VarE id_r ->
           let rename = Renamer.Rename.singleton id_l id_r in
-          instrs_t |> rename_let_alias rename |> remove_let_alias
+          let block =
+            block |> Renamer.rename_instrs rename |> remove_let_alias
+          in
+          let instrs_t = remove_let_alias instrs_t in
+          block @ instrs_t
       | _ ->
+          let block = remove_let_alias block in
+          let instr_h = LetI (exp_l, exp_r, iterexps, block) $ instr_h.at in
           let instrs_t = remove_let_alias instrs_t in
           instr_h :: instrs_t)
+  | ({ it = RuleI (id, notexp, iterexps, block); _ } as instr_h) :: instrs_t ->
+      let block = remove_let_alias block in
+      let instr_h = RuleI (id, notexp, iterexps, block) $ instr_h.at in
+      let instrs_t = remove_let_alias instrs_t in
+      instr_h :: instrs_t
+  | instr_h :: instrs_t ->
+      let instrs_t = remove_let_alias instrs_t in
+      instr_h :: instrs_t
 
 (* [2] Parallelize if conditions in logical or *)
 
@@ -78,6 +104,19 @@ let rec parallelize_if_disjunction (instr : instr) : instr list =
   | IfNotHoldI (id, notexp, iterexps, instrs_then) ->
       let instrs_then = parallelize_if_disjunctions instrs_then in
       [ IfNotHoldI (id, notexp, iterexps, instrs_then) $ at ]
+  | CaseI (exp, cases, total) ->
+      let cases =
+        let guards, blocks = List.split cases in
+        let blocks = List.map parallelize_if_disjunctions blocks in
+        List.combine guards blocks
+      in
+      [ CaseI (exp, cases, total) $ at ]
+  | LetI (exp_l, exp_r, iterexps, block) ->
+      let block = parallelize_if_disjunctions block in
+      [ LetI (exp_l, exp_r, iterexps, block) $ at ]
+  | RuleI (id, notexp, iterexps, block) ->
+      let block = parallelize_if_disjunctions block in
+      [ RuleI (id, notexp, iterexps, block) $ at ]
   | _ -> [ instr ]
 
 and parallelize_if_disjunctions (instrs : instr list) : instr list =
@@ -106,6 +145,25 @@ let rec matchify_if_eq_terminal (instr : instr) : instr =
       let exp_cond = matchify_exp_eq_terminal exp_cond in
       let instrs_then = matchify_if_eq_terminals instrs_then in
       IfI (exp_cond, iterexps, instrs_then) $ at
+  | IfHoldI (id, notexp, iterexps, instrs_then) ->
+      let instrs_then = matchify_if_eq_terminals instrs_then in
+      IfHoldI (id, notexp, iterexps, instrs_then) $ at
+  | IfNotHoldI (id, notexp, iterexps, instrs_then) ->
+      let instrs_then = matchify_if_eq_terminals instrs_then in
+      IfNotHoldI (id, notexp, iterexps, instrs_then) $ at
+  | CaseI (exp, cases, total) ->
+      let cases =
+        let guards, blocks = List.split cases in
+        let blocks = List.map matchify_if_eq_terminals blocks in
+        List.combine guards blocks
+      in
+      CaseI (exp, cases, total) $ at
+  | LetI (exp_l, exp_r, iterexps, block) ->
+      let block = matchify_if_eq_terminals block in
+      LetI (exp_l, exp_r, iterexps, block) $ at
+  | RuleI (id, notexp, iterexps, block) ->
+      let block = matchify_if_eq_terminals block in
+      RuleI (id, notexp, iterexps, block) $ at
   | _ -> instr
 
 and matchify_if_eq_terminals (instrs : instr list) : instr list =
@@ -203,6 +261,14 @@ module Bind = struct
         if Sl.Eq.eq_atoms atoms atoms_target then
           collapse_exps rename exps exps_target
         else None
+    | OptE exp_opt, OptE exp_opt_target -> (
+        match (exp_opt, exp_opt_target) with
+        | Some exp, Some exp_target -> collapse_exp rename exp exp_target
+        | None, None -> Some rename
+        | _ -> None)
+    | ListE exps, ListE exps_target -> collapse_exps rename exps exps_target
+    | ConsE (exp_h, exp_t), ConsE (exp_h_target, exp_t_target) ->
+        collapse_exps rename [ exp_h; exp_t ] [ exp_h_target; exp_t_target ]
     | IterE (exp, iterexp), IterE (exp_target, iterexp_target) -> (
         match collapse_exp rename exp exp_target with
         | Some rename ->
@@ -241,7 +307,7 @@ module Bind = struct
   let rec collapse_expunits (rename : Renamer.t) (expunits : expunit list)
       (expunits_target : expunit list) : Renamer.t option =
     match (expunits, expunits_target) with
-    | [], [] -> Some Renamer.Rename.empty
+    | [], [] -> Some rename
     | expunit_h :: expunits_t, expunit_target_h :: expunits_target_t -> (
         match collapse_expunit rename expunit_h expunit_target_h with
         | Some rename -> collapse_expunits rename expunits_t expunits_target_t
@@ -291,27 +357,41 @@ let rec remove_redundant_bindings' (henv : HEnv.t) (bind : Bind.t)
       let instr_h = CaseI (exp, cases, total) $ at in
       let instrs_t = remove_redundant_bindings' henv bind instrs_t in
       instr_h :: instrs_t
-  | ({ it = LetI (exp_l, exp_r, iterexps); _ } as instr_h) :: instrs_t -> (
+  | ({ it = LetI (exp_l, exp_r, iterexps, block); _ } as instr_h) :: instrs_t
+    -> (
+      let block = remove_redundant_bindings' henv bind block in
       let bind_target = Bind.init_let_bind exp_l exp_r iterexps in
       let rename_opt = Bind.collapse_bind bind bind_target in
       match rename_opt with
       | Some rename ->
-          instrs_t
-          |> Renamer.rename_instrs rename
-          |> remove_redundant_bindings' henv bind
+          let block =
+            block
+            |> Renamer.rename_instrs rename
+            |> remove_redundant_bindings' henv bind
+          in
+          let instrs_t = remove_redundant_bindings' henv bind instrs_t in
+          block @ instrs_t
       | None ->
           let instrs_t = remove_redundant_bindings' henv bind instrs_t in
+          let instr_h = LetI (exp_l, exp_r, iterexps, block) $ instr_h.at in
           instr_h :: instrs_t)
-  | ({ it = RuleI (id, notexp, iterexps); _ } as instr_h) :: instrs_t -> (
+  | ({ it = RuleI (id, notexp, iterexps, block); _ } as instr_h) :: instrs_t
+    -> (
+      let block = remove_redundant_bindings' henv bind block in
       let bind_target = Bind.init_rule_bind henv id notexp iterexps in
       let rename_opt = Bind.collapse_bind bind bind_target in
       match rename_opt with
       | Some rename ->
-          instrs_t
-          |> Renamer.rename_instrs rename
-          |> remove_redundant_bindings' henv bind
+          let block =
+            block
+            |> Renamer.rename_instrs rename
+            |> remove_redundant_bindings' henv bind
+          in
+          let instrs_t = remove_redundant_bindings' henv bind instrs_t in
+          block @ instrs_t
       | None ->
           let instrs_t = remove_redundant_bindings' henv bind instrs_t in
+          let instr_h = RuleI (id, notexp, iterexps, block) $ instr_h.at in
           instr_h :: instrs_t)
   | instr_h :: instrs_t ->
       let instrs_t = remove_redundant_bindings' henv bind instrs_t in
@@ -346,21 +426,25 @@ let rec remove_redundant_bindings (henv : HEnv.t) (instrs : instr list) :
       let instr_h = CaseI (exp, cases, total) $ at in
       let instrs_t = remove_redundant_bindings henv instrs_t in
       instr_h :: instrs_t
-  | ({ it = LetI (exp_l, exp_r, iterexps); _ } as instr_h) :: instrs_t ->
+  | ({ it = LetI (exp_l, exp_r, iterexps, block); _ } as instr_h) :: instrs_t ->
+      let block = remove_redundant_bindings henv block in
       let bind = Bind.init_let_bind exp_l exp_r iterexps in
       let instrs_t =
         instrs_t
         |> remove_redundant_bindings' henv bind
         |> remove_redundant_bindings henv
       in
+      let instr_h = LetI (exp_l, exp_r, iterexps, block) $ instr_h.at in
       instr_h :: instrs_t
-  | ({ it = RuleI (id, notexp, iterexps); _ } as instr_h) :: instrs_t ->
+  | ({ it = RuleI (id, notexp, iterexps, block); _ } as instr_h) :: instrs_t ->
+      let block = remove_redundant_bindings henv block in
       let bind = Bind.init_rule_bind henv id notexp iterexps in
       let instrs_t =
         instrs_t
         |> remove_redundant_bindings' henv bind
         |> remove_redundant_bindings henv
       in
+      let instr_h = RuleI (id, notexp, iterexps, block) $ instr_h.at in
       instr_h :: instrs_t
   | instr_h :: instrs_t ->
       let instrs_t = instrs_t |> remove_redundant_bindings henv in
@@ -371,11 +455,91 @@ let rec remove_redundant_bindings (henv : HEnv.t) (instrs : instr list) :
 let rec merge_block (instrs_a : instr list) (instrs_b : instr list) : instr list
     =
   match (instrs_a, instrs_b) with
-  | instr_a :: instrs_a, instr_b :: instrs_b when Ol.Eq.eq_instr instr_a instr_b
-    ->
-      let instrs = merge_block instrs_a instrs_b in
-      instr_a :: instrs
+  | ( { it = IfI (exp_cond_a, iterexps_a, instrs_then_a); at; _ } :: instrs_a,
+      { it = IfI (exp_cond_b, iterexps_b, instrs_then_b); _ } :: instrs_b )
+    when Sl.Eq.eq_exp exp_cond_a exp_cond_b
+         && Sl.Eq.eq_iterexps iterexps_a iterexps_b ->
+      let instrs_then = merge_block instrs_then_a instrs_then_b in
+      let instr_h = IfI (exp_cond_a, iterexps_a, instrs_then) $ at in
+      merge_block (instr_h :: instrs_a) instrs_b
   | _ -> instrs_a @ instrs_b
+
+let downstream_binding (henv : HEnv.t) (bind : Bind.t) (instrs : instr list) :
+    (instr list * instr list) option =
+  match instrs with
+  | { it = LetI (exp_l, exp_r, iterexps, block); _ } :: instrs_t -> (
+      let bind_target = Bind.init_let_bind exp_l exp_r iterexps in
+      match Bind.collapse_bind bind bind_target with
+      | Some rename ->
+          let block = Renamer.rename_instrs rename block in
+          Some (block, instrs_t)
+      | None -> None)
+  | { it = RuleI (id, notexp, iterexps, block); _ } :: instrs_t -> (
+      let bind_target = Bind.init_rule_bind henv id notexp iterexps in
+      match Bind.collapse_bind bind bind_target with
+      | Some rename ->
+          let block = Renamer.rename_instrs rename block in
+          Some (block, instrs_t)
+      | None -> None)
+  | _ -> None
+
+let rec merge_binding (henv : HEnv.t) (instrs : instr list) : instr list =
+  match instrs with
+  | [] -> []
+  | { it = IfI (exp_cond, iterexps, instrs_then); at; _ } :: instrs_t ->
+      let instrs_then = merge_binding henv instrs_then in
+      let instr_h = IfI (exp_cond, iterexps, instrs_then) $ at in
+      let instrs_t = merge_binding henv instrs_t in
+      instr_h :: instrs_t
+  | { it = IfHoldI (id, notexp, iterexps, instrs_then); at; _ } :: instrs_t ->
+      let instrs_then = merge_binding henv instrs_then in
+      let instr_h = IfHoldI (id, notexp, iterexps, instrs_then) $ at in
+      let instrs_t = merge_binding henv instrs_t in
+      instr_h :: instrs_t
+  | { it = IfNotHoldI (id, notexp, iterexps, instrs_then); at; _ } :: instrs_t
+    ->
+      let instrs_then = merge_binding henv instrs_then in
+      let instr_h = IfNotHoldI (id, notexp, iterexps, instrs_then) $ at in
+      let instrs_t = merge_binding henv instrs_t in
+      instr_h :: instrs_t
+  | { it = CaseI (exp, cases, total); at; _ } :: instrs_t ->
+      let cases =
+        let guards, blocks = List.split cases in
+        let blocks = List.map (merge_binding henv) blocks in
+        List.combine guards blocks
+      in
+      let instr_h = CaseI (exp, cases, total) $ at in
+      let instrs_t = merge_binding henv instrs_t in
+      instr_h :: instrs_t
+  | ({ it = LetI (exp_l, exp_r, iterexps, block); _ } as instr_h) :: instrs_t
+    -> (
+      let bind = Bind.init_let_bind exp_l exp_r iterexps in
+      match downstream_binding henv bind instrs_t with
+      | Some (block_merge, instrs_t) ->
+          let block = merge_block block block_merge in
+          let instr_h = LetI (exp_l, exp_r, iterexps, block) $ instr_h.at in
+          merge_binding henv (instr_h :: instrs_t)
+      | None ->
+          let block = merge_binding henv block in
+          let instr_h = LetI (exp_l, exp_r, iterexps, block) $ instr_h.at in
+          let instrs_t = merge_binding henv instrs_t in
+          instr_h :: instrs_t)
+  | ({ it = RuleI (id, notexp, iterexps, block); _ } as instr_h) :: instrs_t
+    -> (
+      let bind = Bind.init_rule_bind henv id notexp iterexps in
+      match downstream_binding henv bind instrs_t with
+      | Some (block_merge, instrs_t) ->
+          let block = merge_block block block_merge in
+          let instr_h = RuleI (id, notexp, iterexps, block) $ instr_h.at in
+          merge_binding henv (instr_h :: instrs_t)
+      | None ->
+          let block = merge_binding henv block in
+          let instr_h = RuleI (id, notexp, iterexps, block) $ instr_h.at in
+          let instrs_t = merge_binding henv instrs_t in
+          instr_h :: instrs_t)
+  | instr_h :: instrs_t ->
+      let instrs_t = merge_binding henv instrs_t in
+      instr_h :: instrs_t
 
 (* Syntactic analysis of conditions
 
@@ -641,6 +805,16 @@ let rec merge_if (tdenv : TDEnv.t) (instrs : instr list) : instr list =
       in
       let instrs_t = merge_if tdenv instrs_t in
       instr_h :: instrs_t
+  | ({ it = LetI (exp_l, exp_r, iterexps, block); _ } as instr_h) :: instrs_t ->
+      let block = merge_if tdenv block in
+      let instr_h = LetI (exp_l, exp_r, iterexps, block) $ instr_h.at in
+      let instrs_t = merge_if tdenv instrs_t in
+      instr_h :: instrs_t
+  | ({ it = RuleI (id, notexp, iterexps, block); _ } as instr_h) :: instrs_t ->
+      let block = merge_if tdenv block in
+      let instr_h = RuleI (id, notexp, iterexps, block) $ instr_h.at in
+      let instrs_t = merge_if tdenv instrs_t in
+      instr_h :: instrs_t
   | instr_h :: instrs_t ->
       let instrs_t = merge_if tdenv instrs_t in
       instr_h :: instrs_t
@@ -715,6 +889,16 @@ let rec merge_if_hold (instrs : instr list) : instr list =
         let cases = List.combine guards blocks in
         CaseI (exp, cases, total) $ at
       in
+      let instrs_t = merge_if_hold instrs_t in
+      instr_h :: instrs_t
+  | ({ it = LetI (exp_l, exp_r, iterexps, block); _ } as instr_h) :: instrs_t ->
+      let block = merge_if_hold block in
+      let instr_h = LetI (exp_l, exp_r, iterexps, block) $ instr_h.at in
+      let instrs_t = merge_if_hold instrs_t in
+      instr_h :: instrs_t
+  | ({ it = RuleI (id, notexp, iterexps, block); _ } as instr_h) :: instrs_t ->
+      let block = merge_if_hold block in
+      let instr_h = RuleI (id, notexp, iterexps, block) $ instr_h.at in
       let instrs_t = merge_if_hold instrs_t in
       instr_h :: instrs_t
   | instr_h :: instrs_t ->
@@ -973,6 +1157,16 @@ let rec casify (tdenv : TDEnv.t) (instrs : instr list) : instr list =
           in
           let instrs_t = casify tdenv instrs_t in
           instr_h :: instrs_t)
+  | ({ it = LetI (exp_l, exp_r, iterexps, block); _ } as instr_h) :: instrs_t ->
+      let block = casify tdenv block in
+      let instr_h = LetI (exp_l, exp_r, iterexps, block) $ instr_h.at in
+      let instrs_t = casify tdenv instrs_t in
+      instr_h :: instrs_t
+  | ({ it = RuleI (id, notexp, iterexps, block); _ } as instr_h) :: instrs_t ->
+      let block = casify tdenv block in
+      let instr_h = RuleI (id, notexp, iterexps, block) $ instr_h.at in
+      let instrs_t = casify tdenv instrs_t in
+      instr_h :: instrs_t
   | instr_h :: instrs_t ->
       let instrs_t = casify tdenv instrs_t in
       instr_h :: instrs_t
@@ -1031,6 +1225,19 @@ and totalize_case_analysis' (tdenv : TDEnv.t) (instr : instr) : instr =
           let total = Set.equal mixops_case mixops_total in
           CaseI (exp, cases, total) $ at
       | None -> CaseI (exp, cases, false) $ at)
+  | CaseI (exp, cases, true) ->
+      let cases =
+        let guards, blocks = List.split cases in
+        let blocks = List.map (totalize_case_analysis tdenv) blocks in
+        List.combine guards blocks
+      in
+      CaseI (exp, cases, true) $ at
+  | LetI (exp_l, exp_r, iterexps, block) ->
+      let block = totalize_case_analysis tdenv block in
+      LetI (exp_l, exp_r, iterexps, block) $ at
+  | RuleI (id, notexp, iterexps, block) ->
+      let block = totalize_case_analysis tdenv block in
+      RuleI (id, notexp, iterexps, block) $ at
   | _ -> instr
 
 (* Apply optimizations until it reaches a fixed point *)
@@ -1042,9 +1249,8 @@ let optimize_pre (instrs : instr list) : instr list =
 let rec optimize_loop (henv : HEnv.t) (tdenv : TDEnv.t) (instrs : instr list) :
     instr list =
   let instrs_optimized =
-    instrs
-    |> remove_redundant_bindings henv
-    |> merge_if tdenv |> merge_if_hold |> casify tdenv
+    instrs |> merge_binding henv |> merge_if tdenv |> merge_if_hold
+    |> casify tdenv
   in
   if Ol.Eq.eq_instrs instrs instrs_optimized then instrs
   else optimize_loop henv tdenv instrs_optimized

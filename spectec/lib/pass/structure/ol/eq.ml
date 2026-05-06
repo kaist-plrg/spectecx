@@ -46,14 +46,18 @@ and eq_instr (instr_a : instr) (instr_b : instr) : bool =
   | CaseI (exp_a, cases_a, total_a), CaseI (exp_b, cases_b, total_b) ->
       Sl.Eq.eq_exp exp_a exp_b && eq_cases cases_a cases_b && total_a = total_b
   | OtherwiseI instr_a, OtherwiseI instr_b -> eq_instr instr_a instr_b
-  | LetI (exp_l_a, exp_r_a, iterexps_a), LetI (exp_l_b, exp_r_b, iterexps_b) ->
+  | ( LetI (exp_l_a, exp_r_a, iterexps_a, block_a),
+      LetI (exp_l_b, exp_r_b, iterexps_b, block_b) ) ->
       Sl.Eq.eq_exp exp_l_a exp_l_b
       && Sl.Eq.eq_exp exp_r_a exp_r_b
       && Sl.Eq.eq_iterexps iterexps_a iterexps_b
-  | RuleI (id_a, notexp_a, iterexps_a), RuleI (id_b, notexp_b, iterexps_b) ->
+      && eq_instrs block_a block_b
+  | ( RuleI (id_a, notexp_a, iterexps_a, block_a),
+      RuleI (id_b, notexp_b, iterexps_b, block_b) ) ->
       Sl.Eq.eq_id id_a id_b
       && Il.Mixfix.eq ~eq_arg:Sl.Eq.eq_exp notexp_a notexp_b
       && Sl.Eq.eq_iterexps iterexps_a iterexps_b
+      && eq_instrs block_a block_b
   | ResultI exps_a, ResultI exps_b -> Sl.Eq.eq_exps exps_a exps_b
   | ReturnI exp_a, ReturnI exp_b -> Sl.Eq.eq_exp exp_a exp_b
   | DebugI exp_a, DebugI exp_b -> Sl.Eq.eq_exp exp_a exp_b
