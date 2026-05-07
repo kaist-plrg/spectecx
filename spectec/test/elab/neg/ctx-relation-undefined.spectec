@@ -1,0 +1,6 @@
+;; Triggers ctx/ctx.ml:227 — a rule referring to a relation that was never declared.
+
+syntax foo = nat
+
+rule Missing/case:
+  |- foo

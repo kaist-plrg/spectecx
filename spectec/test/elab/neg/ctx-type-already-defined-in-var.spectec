@@ -1,0 +1,6 @@
+;; Triggers elaborate.ml:1494 — `var` declaration whose name collides with an
+;; existing typdef.
+
+syntax foo = nat
+
+var foo : int

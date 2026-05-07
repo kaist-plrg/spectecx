@@ -1,0 +1,4 @@
+;; Triggers ctx/ctx.ml:200 — declaring the same meta-variable twice.
+
+var x : nat
+var x : int

@@ -1,0 +1,6 @@
+;; Triggers ctx/ctx.ml:170 — calling a dec that was never declared.
+
+var n : nat
+
+dec $caller(nat) : nat
+def $caller(n) = $missing(n)

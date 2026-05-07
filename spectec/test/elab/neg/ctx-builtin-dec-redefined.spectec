@@ -1,0 +1,4 @@
+;; A builtin dec is declared twice with the same identifier.
+
+builtin dec $f : nat
+builtin dec $f : nat

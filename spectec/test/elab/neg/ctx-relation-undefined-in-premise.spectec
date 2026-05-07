@@ -1,0 +1,10 @@
+;; A rule premise references a relation that was never declared.
+
+syntax foo = nat
+
+relation R: foo |- foo
+  hint(input %0)
+
+rule R/foo:
+  0 |- 0
+  -- Missing: 0 |- 0
