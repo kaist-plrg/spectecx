@@ -260,15 +260,15 @@ module M : Instrumentation_api.Handler.S = struct
       Format.fprintf !fmt "%4d: %s     %s-- %s\n" uid (format_count succ) indent
         content
 
-  let print_prems indent prems =
+  let print_prems indent result_str prems =
     List.iter (print_prem indent) prems;
     (* Print success count for final premise *)
     match List.rev prems with
     | last :: _ ->
         let key = prem_key last in
         let succ = get_prem_succeeded key in
-        Format.fprintf !fmt "      %s      %sSUCCESS\n" (format_count succ)
-          indent
+        Format.fprintf !fmt "      %s      %s%s\n" (format_count succ) indent
+          result_str
     | [] -> ()
 
   let print_full () =
@@ -279,17 +279,23 @@ module M : Instrumentation_api.Handler.S = struct
             Format.fprintf !fmt "\nrelation %s:\n" id.it;
             List.iter
               (fun rule ->
-                let rule_id, _, prems = rule.it in
+                let rule_id, notexp, prems = rule.it in
+                let result_str =
+                  Print.string_of_notexp notexp |> normalize_whitespace
+                in
                 Format.fprintf !fmt "      rule %s:\n" rule_id.it;
-                print_prems "    " prems)
+                print_prems "    " result_str prems)
               rules
         | DecD (id, _, _, _, clauses) ->
             Format.fprintf !fmt "\ndef $%s:\n" id.it;
             List.iteri
               (fun idx clause ->
-                let _, _, prems = clause.it in
+                let _, exp, prems = clause.it in
+                let result_str =
+                  Print.string_of_exp exp |> normalize_whitespace
+                in
                 Format.fprintf !fmt "      clause %d:\n" idx;
-                print_prems "    " prems)
+                print_prems "    " result_str prems)
               clauses
         | _ -> ())
       !State.il_spec
