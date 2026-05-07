@@ -1,0 +1,4 @@
+// Curried adder: a function that returns a function.
+(int -> (int -> int)) adder = fun(int a) -> int -> int { fun(int b) -> int { a + b } };
+(int -> int) add3 = adder(3);
+int seven = add3(4)
