@@ -160,25 +160,40 @@ module M : Instrumentation_api.Handler.S = struct
 
       (* Breakdown for if-premises *)
       let total_if = !State.total_if_prems in
-      let attempted_if =
+      let succeeded_if =
         Hashtbl.fold
           (fun k _ acc -> if is_if_prem_key k then acc + 1 else acc)
-          State.prems_attempted 0
+          State.prems_succeeded 0
       in
       let failed_if =
         Hashtbl.fold
           (fun k _ acc -> if is_if_prem_key k then acc + 1 else acc)
           State.prems_failed 0
       in
-      let never_attempted = total_if - attempted_if in
-      let attempted_failed = failed_if in
-      let attempted_never_failed = attempted_if - failed_if in
+      let both_if =
+        Hashtbl.fold
+          (fun k _ acc ->
+            if is_if_prem_key k && Hashtbl.mem State.prems_succeeded k then
+              acc + 1
+            else acc)
+          State.prems_failed 0
+      in
+      let neither_if = total_if - (succeeded_if + failed_if - both_if) in
+      let total_score = succeeded_if + failed_if in
+      let twice_total_if = 2 * total_if in
 
       Format.fprintf !fmt "%d rule premises\n" !State.total_rule_prems;
       Format.fprintf !fmt
-        "%d if-premises : %d never attempted, %d attempted but never failed, \
-         %d attempted and failed\n"
-        total_if never_attempted attempted_never_failed attempted_failed)
+        "%d if-premises: succeeded %d/%d (%.2f%%), failed %d/%d (%.2f%%), \
+         neither %d/%d (%.2f%%), total %d/%d (%.2f%%)\n"
+        total_if succeeded_if total_if
+        (percentage succeeded_if total_if)
+        failed_if total_if
+        (percentage failed_if total_if)
+        neither_if total_if
+        (percentage neither_if total_if)
+        total_score twice_total_if
+        (percentage total_score twice_total_if))
 
   let print_uncovered () =
     let total = !State.total_prems in
