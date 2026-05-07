@@ -9,6 +9,7 @@ module Node_coverage_il = Instrumentation_handlers.Node_coverage_il
 module Node_coverage_sl = Instrumentation_handlers.Node_coverage_sl
 module Profile = Instrumentation_handlers.Profile
 module Trace = Instrumentation_handlers.Trace
+module Tree = Instrumentation_handlers.Tree
 module Run_config = Instrumentation_config.Config
 module Exn = Instrumentation_common.Exn
 
@@ -32,6 +33,7 @@ end
 let builtin_handler_specs : Handler.Spec.t list =
   [
     Trace.spec;
+    Tree.spec;
     Profile.spec;
     Branch_coverage.spec;
     Node_coverage_il.spec;
