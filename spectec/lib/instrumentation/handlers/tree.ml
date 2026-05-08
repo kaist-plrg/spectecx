@@ -26,6 +26,36 @@ let fmt = ref Format.std_formatter
 let summarize_value (v : Il.Value.t) : string =
   Il.Print.string_of_value v |> summarize ~max_len:100
 
+(* === Spec lookup for notation rendering ============================ *)
+
+(* Per-relation notation skeleton + which arg slots are inputs.
+   Populated from the IL spec at init; empty under SL. *)
+module Sig = struct
+  let relations : (string, Il.Mixfix.mixop * int list) Hashtbl.t =
+    Hashtbl.create 32
+
+  let functions : (string, int) Hashtbl.t = Hashtbl.create 32
+
+  let reset () =
+    Hashtbl.clear relations;
+    Hashtbl.clear functions
+
+  let collect_il (spec : Il.spec) : unit =
+    List.iter
+      (fun (def : Il.def) ->
+        match def.it with
+        | RelD (id, nottyp, input_idxs, _rules) ->
+            let mixop = Il.Mixfix.to_mixop nottyp.it in
+            Hashtbl.replace relations id.it (mixop, input_idxs)
+        | DecD (id, _tparams, params, _ret, _) ->
+            Hashtbl.replace functions id.it (List.length params)
+        | _ -> ())
+      spec
+
+  let lookup_relation id = Hashtbl.find_opt relations id
+  let knows_function id = Hashtbl.mem functions id
+end
+
 (* === Tree representation =========================================== *)
 
 type kind = Rel | Func
@@ -96,14 +126,64 @@ end
 
 (* === Rendering ===================================================== *)
 
+(* Weave inputs (in [input_idxs] order) and outputs (filling the
+   complement positions, in increasing order) into a single
+   arg-position list of length [arity]. Returns [None] if lengths don't
+   line up so the caller can fall back. *)
+let weave_args ~arity ~input_idxs ~inputs ~outputs : Il.Value.t list option =
+  let output_idxs =
+    List.init arity Fun.id |> List.filter (fun i -> not (List.mem i input_idxs))
+  in
+  if
+    List.length input_idxs <> List.length inputs
+    || List.length output_idxs <> List.length outputs
+  then None
+  else
+    let by_pos =
+      List.combine input_idxs inputs @ List.combine output_idxs outputs
+    in
+    Some (List.init arity (fun i -> List.assoc i by_pos))
+
+let render_notation mixop args =
+  let mixfix = Il.Mixfix.fill mixop args in
+  Il.Mixfix.render
+    ~string_of_atom:(fun a -> Xl.Atom.string_of_atom a.it)
+    ~string_of_arg:summarize_value mixfix
+
+(* Try to render a relation node as its declared notation with values
+   substituted; fall back to [id/rule] if the notation isn't available
+   (e.g., under SL) or the outcome is Failed. *)
+let try_render_relation_with_notation node =
+  match (Sig.lookup_relation node.id, node.outcome) with
+  | Some (mixop, input_idxs), Succeeded outputs -> (
+      let arity = Il.Mixfix.arity mixop in
+      match weave_args ~arity ~input_idxs ~inputs:node.inputs ~outputs with
+      | Some args -> Some (render_notation mixop args)
+      | None -> None)
+  | _ -> None
+
 let label node =
   let base =
     match node.kind with
     | Rel -> (
-        match node.rule with
-        | Some r when r <> "" -> node.id ^ "/" ^ r
-        | _ -> node.id)
-    | Func -> "$" ^ node.id
+        match try_render_relation_with_notation node with
+        | Some notation -> (
+            match node.rule with
+            | Some r when r <> "" ->
+                Format.sprintf "%s    [%s/%s]" notation node.id r
+            | _ -> Format.sprintf "%s    [%s]" notation node.id)
+        | None -> (
+            match node.rule with
+            | Some r when r <> "" -> node.id ^ "/" ^ r
+            | _ -> node.id))
+    | Func ->
+        let args = List.map summarize_value node.inputs |> String.concat ", " in
+        let call = Format.sprintf "$%s(%s)" node.id args in
+        if Sig.knows_function node.id then
+          match node.outcome with
+          | Succeeded [ v ] -> Format.sprintf "%s = %s" call (summarize_value v)
+          | _ -> call
+        else "$" ^ node.id
   in
   match node.outcome with Succeeded _ -> base | Failed -> base ^ "  ✗"
 
@@ -149,7 +229,14 @@ let close_and_maybe_render ~outcome =
 
 module M : Instrumentation_api.Handler.S = struct
   let static_dependencies = []
-  let init ~spec:_ = State.reset ()
+
+  let init ~spec =
+    State.reset ();
+    Sig.reset ();
+    match spec with
+    | Instrumentation_api.Handler.IlSpec s -> Sig.collect_il s
+    | Instrumentation_api.Handler.SlSpec _ -> ()
+
   let finish () = ()
 
   let handle : Instrumentation_api.Event.t -> unit = function
