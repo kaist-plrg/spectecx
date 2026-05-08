@@ -43,7 +43,7 @@ let quickcheck_command =
   let open Core.Command.Param in
   let%map filenames = anon (sequence ("spec files" %: string))
   and quickcheck_file =
-    flag "--target" (required string) ~doc:"PATH path to .quickcheck input file"
+    flag "--qc" (required string) ~doc:"PATH path to .quickcheck input file"
   and manual =
     flag "--manual" (listed int)
       ~doc:"INDEX (repeatable) apply manual generator to quickcheck block at INDEX"

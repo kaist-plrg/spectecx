@@ -99,14 +99,14 @@ let check ?(config = default_config) prop =
   in
   loop 0 0 [] rand
 
-type opt = PROP | GEN
+type opt = Prop | Gen
 
 let quickcheck ?(config = default_config) prop opt =
   match check ~config prop with
   | Pass { num_tests; stamps } ->
     (match opt with
-    | PROP ->  Printf.printf "OK, generated %d samples.\n" num_tests
-    | GEN -> Printf.printf "OK, passed %d tests.\n" num_tests);
+    | Prop ->  Printf.printf "OK, generated %d samples.\n" num_tests
+    | Gen -> Printf.printf "OK, passed %d tests.\n" num_tests);
     if stamps <> [] then
       List.iter (fun (lbl, count) ->
         Printf.printf "%3d%% %s\n\n"
@@ -114,10 +114,10 @@ let quickcheck ?(config = default_config) prop opt =
         stamps
   | Fail { num_tests; counterexample } ->
     (match opt with
-    | PROP ->
+    | Prop ->
       Printf.printf "Falsifiable, after %d tests:\n" num_tests;
       List.iter (fun s -> Printf.printf "  %s\n" s) counterexample
-    | GEN -> ()
+    | Gen -> ()
     )
   | Gave_up { num_tests } ->
     Printf.printf "Gave up after %d tests (too many discarded).\n" num_tests

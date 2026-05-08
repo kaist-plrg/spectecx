@@ -152,10 +152,8 @@ let parse_gen_block (block_lines : string list) :
             match parse_params_line line with
             | Error e -> Error e
             | Ok ps -> collect_params (acc @ ps) rest)
-        | L_Prem -> collect_prems acc [] (line :: rest)
-        | L_Header _ -> Error "quickcheck/gen: unexpected nested header"
-        | L_Goal ->
-          Error (Printf.sprintf "quickcheck/gen: unexpected line '%s'" line))
+        | L_Prem | L_Goal -> collect_prems acc [] (line :: rest)
+        | L_Header _ -> Error "quickcheck/gen: unexpected nested header")
   and collect_prems params prems_acc lines =
     match lines with
     | [] ->
@@ -163,16 +161,13 @@ let parse_gen_block (block_lines : string list) :
     | line :: rest -> (
         match classify line with
         | L_Blank -> collect_prems params prems_acc rest
-        | L_Prem -> (
+        | L_Prem | L_Goal -> (
             match parse_prem_line line with
             | Error e -> Error e
             | Ok p -> collect_prems params (p :: prems_acc) rest)
         | L_Header _ -> Error "quickcheck/gen: unexpected nested header"
         | L_Param ->
-          Error "quickcheck/gen: param declaration after premises not allowed"
-        | L_Goal ->
-          Error
-            (Printf.sprintf "quickcheck/gen: unexpected line '%s'" line))
+          Error "quickcheck/gen: param declaration after premises not allowed")
   in
   collect_params [] block_lines
 

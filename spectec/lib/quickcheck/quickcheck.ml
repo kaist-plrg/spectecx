@@ -84,7 +84,7 @@ let dispatch ~use_manual ~idx spec (command : Qc_ir.qc_command) =
            | `R (Error _) -> Property.Bool_testable.property false
            | `R (Ok _) -> Property.Bool_testable.property true))
     in
-    Test.quickcheck prop Test.PROP
+    Test.quickcheck prop Test.Prop
   | Qc_ir.QcGen { free_vars; prems_rel } ->
     let _ = Printf.printf "Generation]\n" in
     let gen =
@@ -109,7 +109,7 @@ let dispatch ~use_manual ~idx spec (command : Qc_ir.qc_command) =
             (Property.of_result (Property.Result.with_ok true)))
     in
     let config = { Test.default_config with Test.max_size = 5 } in
-    Test.quickcheck ~config:config prop Test.GEN
+    Test.quickcheck ~config:config prop Test.Gen
 
 let quickcheck_file ?(manual = []) spec_il path =
   match Qc_parse.parse_file path with
