@@ -1091,7 +1091,7 @@ and eval_iter_prem (ctx : Ctx.t) (prem : prem) (iterexp : iterexp) :
 and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
     (Ctx.t * value list) attempt =
   Instrumentation.Dispatcher.emit
-    (Events.Rel_enter { id = id.it; at = id.at; values = values_input });
+    (Events.Rel_enter { id = id.it; at = id.at; inputs = values_input });
   (* Rule matching *)
   let match_rule ctx inputs rule values_input =
     let _, notexp, prems = rule.it in
@@ -1163,8 +1163,9 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
     Ok (ctx, values_output)
   in
   let result = invoke_rel' () in
+  let outputs = match result with Ok (_, vs) -> Some vs | Error _ -> None in
   Instrumentation.Dispatcher.emit
-    (Events.Rel_exit { id = id.it; at = id.at; success = Result.is_ok result });
+    (Events.Rel_exit { id = id.it; at = id.at; outputs });
   result |> nest id.at (F.asprintf "invocation of relation %s failed" id.it)
 
 (* Invoke a function *)
@@ -1173,7 +1174,7 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     (Ctx.t * value) attempt =
   let ctx, values_input = eval_args ctx args in
   Instrumentation.Dispatcher.emit
-    (Events.Func_enter { id = id.it; at = id.at; values = values_input });
+    (Events.Func_enter { id = id.it; at = id.at; inputs = values_input });
   (* Clause matching *)
   let match_clause ctx_caller ctx_callee clause values_input =
     let args_input, exp_output, prems = clause.it in
@@ -1317,7 +1318,9 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     in
     Ok (ctx, value_output)
   in
-  Instrumentation.Dispatcher.emit (Events.Func_exit { id = id.it; at = id.at });
+  let output = match result with Ok (_, v) -> Some v | Error _ -> None in
+  Instrumentation.Dispatcher.emit
+    (Events.Func_exit { id = id.it; at = id.at; output });
   result
   |> nest id.at
        (F.asprintf "invocation of function %s%s%s failed"

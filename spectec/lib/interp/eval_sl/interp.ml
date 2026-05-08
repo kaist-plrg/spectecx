@@ -1381,7 +1381,7 @@ and eval_rule_instr (ctx : Ctx.t) (id : id) (notexp : notexp)
 and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
     (Ctx.t * value list) option =
   Instrumentation.Dispatcher.emit
-    (Events.Rel_enter { id = id.it; at = id.at; values = values_input });
+    (Events.Rel_enter { id = id.it; at = id.at; inputs = values_input });
   let _inputs, exps_input, block, elseblock_opt = Ctx.find_rel Local ctx id in
   check
     (block <> [] || Option.is_some elseblock_opt)
@@ -1424,8 +1424,9 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
     | Ok values_output -> Some (ctx, values_output)
     | Error _ -> None
   in
+  let outputs = Option.map snd result in
   Instrumentation.Dispatcher.emit
-    (Events.Rel_exit { id = id.it; at = id.at; success = Option.is_some result });
+    (Events.Rel_exit { id = id.it; at = id.at; outputs });
   result
 
 (* Invoke a function *)
@@ -1495,7 +1496,7 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
   in
   (* Main dispatch *)
   Instrumentation.Dispatcher.emit
-    (Events.Func_enter { id = id.it; at = id.at; values = [] });
+    (Events.Func_enter { id = id.it; at = id.at; inputs = [] });
   let invoke_func' () =
     let invoke () =
       let _, v =
@@ -1542,7 +1543,8 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     (ctx, value_output_result |> Result.get_ok)
   in
   let result = invoke_func' () in
-  Instrumentation.Dispatcher.emit (Events.Func_exit { id = id.it; at = id.at });
+  Instrumentation.Dispatcher.emit
+    (Events.Func_exit { id = id.it; at = id.at; output = Some (snd result) });
   result
 
 (* Load definitions into the context *)

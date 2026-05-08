@@ -53,7 +53,7 @@ module M : Instrumentation_api.Handler.S = struct
   let init ~spec:_ = State.reset ()
 
   let handle : Instrumentation_api.Event.t -> unit = function
-    | Rel_enter { id; at = _; values = _ } ->
+    | Rel_enter { id; at = _; inputs = _ } ->
         let is_recursive =
           frame_stack |> Stack.to_seq
           |> Seq.exists (fun f -> f.is_rel && f.id = id)
@@ -68,7 +68,7 @@ module M : Instrumentation_api.Handler.S = struct
           }
         in
         Stack.push frame frame_stack
-    | Rel_exit { id; at = _; success = _ } ->
+    | Rel_exit { id; at = _; outputs = _ } ->
         if not (Stack.is_empty frame_stack) then (
           let frame = Stack.pop frame_stack in
           let elapsed = now () -. frame.start_time in
@@ -81,7 +81,7 @@ module M : Instrumentation_api.Handler.S = struct
           if not (Stack.is_empty frame_stack) then
             let parent = Stack.top frame_stack in
             parent.child_time <- parent.child_time +. elapsed)
-    | Func_enter { id; at = _; values = _ } ->
+    | Func_enter { id; at = _; inputs = _ } ->
         let is_recursive =
           frame_stack |> Stack.to_seq
           |> Seq.exists (fun f -> (not f.is_rel) && f.id = id)
@@ -96,7 +96,7 @@ module M : Instrumentation_api.Handler.S = struct
           }
         in
         Stack.push frame frame_stack
-    | Func_exit { id; at = _ } ->
+    | Func_exit { id; at = _; output = _ } ->
         if not (Stack.is_empty frame_stack) then (
           let frame = Stack.pop frame_stack in
           let elapsed = now () -. frame.start_time in
