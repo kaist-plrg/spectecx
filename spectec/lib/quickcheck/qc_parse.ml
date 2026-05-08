@@ -92,8 +92,8 @@ type line_kind =
 let classify (line : string) : line_kind =
   match String.trim line with
   | "" -> L_Blank
-  | "quickcheck/prop" -> L_Header `Prop
-  | "quickcheck/gen"  -> L_Header `Gen
+  | "quickcheck/prop:" -> L_Header `Prop
+  | "quickcheck/gen:"  -> L_Header `Gen
   | s when s.[0] = '(' -> L_Param
   | s when String.length s >= 2 && String.sub s 0 2 = "--" -> L_Prem
   | _ -> L_Goal

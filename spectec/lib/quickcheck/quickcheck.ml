@@ -21,8 +21,9 @@ let shrink_env spec (env : (id' * value) list) : (id' * value) list list =
     (shrink_value vi))
   (List.mapi (fun i p -> (i, p)) env)
 
-let generalize_env _spec (_counter_env : (id' * value) list) : (string * ((id' * value) list Gen.t)) list = 
+let generalize_env _spec (_counter_env : (id' * value) list) : (string * ((id' * value) list Gen.t)) list =
   (* TO DO *)
+  (* output every generalized version of counter_env*)
   []
 
 let show_env (bindings : (id' * value) list) : string =
@@ -48,48 +49,63 @@ let gen_free_vars_manual (spec_il : spec) (i : int) :
       "quickcheck --manual: no manual generator for block %d. \
        Add a case in manual_gen.ml gen_inputs." i)
 
-let dispatch ~use_manual ~idx spec_il (command : Qc_ir.qc_command) =
+let call_rel spec rel_id input_vals =
+  try `R (Interp.eval_il ~max_steps:10_000
+            (module Nop_target) spec rel_id input_vals "")
+  with Interp.StepLimitExceeded -> `Timeout
+
+let dispatch ~use_manual ~idx spec (command : Qc_ir.qc_command) =
   match command with
-  | Qc_ir.QcProp { free_vars; goal; prems } ->
+  | Qc_ir.QcProp { free_vars; prems_rel; goal_rel } ->
     let _ = Printf.printf "Test]\n" in
     let gen =
-      if use_manual then gen_free_vars_manual spec_il idx
-      else gen_free_vars spec_il free_vars
-    in
-    let run env prems =
-      try `R (Interp.run_prems ~max_steps:10_000
-                (module Nop_target) spec_il env prems "")
-      with Interp.StepLimitExceeded -> `Timeout
+      if use_manual then gen_free_vars_manual spec idx
+      else gen_free_vars spec free_vars
     in
     let prop =
-      Property.for_all ~shrink:(shrink_env spec_il) ~generalize:(generalize_env spec_il) ~show:show_env gen (fun initial_env ->
-        match run initial_env prems with
+      Property.for_all ~shrink:(shrink_env spec) ~generalize:(generalize_env spec) ~show:show_env gen (fun initial_env ->
+        let prems_inputs =
+          List.map (fun id -> List.assoc id initial_env) prems_rel.Qc_ir.sr_inputs
+        in
+        match call_rel spec prems_rel.Qc_ir.sr_id prems_inputs with
         | `Timeout | `R (Error _) ->
           Property.of_result Property.Result.nothing
-        | `R (Ok env) ->
-          (match run env [goal] with
+        | `R (Ok (_, output_vals)) ->
+          let output_env =
+            List.mapi (fun i (id, _) -> (id, List.nth output_vals i))
+              prems_rel.Qc_ir.sr_outputs
+          in
+          let full_env = initial_env @ output_env in
+          let goal_inputs =
+            List.map (fun id -> List.assoc id full_env) goal_rel.Qc_ir.sr_inputs
+          in
+          (match call_rel spec goal_rel.Qc_ir.sr_id goal_inputs with
            | `Timeout -> Property.of_result Property.Result.nothing
            | `R (Error _) -> Property.Bool_testable.property false
            | `R (Ok _) -> Property.Bool_testable.property true))
     in
     Test.quickcheck prop Test.PROP
-  | Qc_ir.QcGen { free_vars; prems } ->
+  | Qc_ir.QcGen { free_vars; prems_rel } ->
     let _ = Printf.printf "Generation]\n" in
     let gen =
-      if use_manual then gen_free_vars_manual spec_il idx
-      else gen_free_vars spec_il free_vars
+      if use_manual then gen_free_vars_manual spec idx
+      else gen_free_vars spec free_vars
     in
     let prop =
       Property.for_all ~show:show_env gen (fun initial_env ->
-        match
-          (try `R (Interp.run_prems ~max_steps:10_000
-                     (module Nop_target) spec_il initial_env prems "")
-           with Interp.StepLimitExceeded -> `Timeout)
-        with
+        let prems_inputs =
+          List.map (fun id -> List.assoc id initial_env) prems_rel.Qc_ir.sr_inputs
+        in
+        match call_rel spec prems_rel.Qc_ir.sr_id prems_inputs with
         | `Timeout | `R (Error _) ->
           Property.of_result Property.Result.nothing
-        | `R (Ok env) ->
-          Property.label (show_env env)
+        | `R (Ok (_, output_vals)) ->
+          let output_env =
+            List.mapi (fun i (id, _) -> (id, List.nth output_vals i))
+              prems_rel.Qc_ir.sr_outputs
+          in
+          let full_env = initial_env @ output_env in
+          Property.label (show_env full_env)
             (Property.of_result (Property.Result.with_ok true)))
     in
     let config = { Test.default_config with Test.max_size = 5 } in
@@ -104,6 +120,8 @@ let quickcheck_file ?(manual = []) spec_il path =
     | Error msg ->
       failwith
         (Printf.sprintf "quickcheck: failed to elaborate '%s': %s" path msg)
-    | Ok cmds -> List.iteri (fun i cmd ->
-      Printf.printf "\n[Quickcheck %d: " i;
-      dispatch ~use_manual:(List.mem i manual) ~idx:i spec_il cmd) cmds
+    | Ok (cmds, synthetic_defs) ->
+      let spec_with_synth = spec_il @ synthetic_defs in
+      List.iteri (fun i cmd ->
+        Printf.printf "\n[Quickcheck %d: " i;
+        dispatch ~use_manual:(List.mem i manual) ~idx:i spec_with_synth cmd) cmds

@@ -19,14 +19,15 @@ let run_relation_fresh (filename : string) (builtins : Builtins.t)
 
 type error = region * string
 
-let run (module T : Target.S) (spec : spec) (rid : string) (values : value list)
-    (filename : string) : (Ctx.t * value list, error) result =
+let run ?(max_steps = -1) (module T : Target.S) (spec : spec) (rid : string)
+    (values : value list) (filename : string) : (Ctx.t * value list, error) result =
   let builtins = Builtins.make T.builtins in
   let cache =
     Cache.make ~is_impure_func:T.is_impure_func ~is_impure_rel:T.is_impure_rel
       ~state_version:T.state_version
   in
   let inner () =
+    Interp.step_budget := max_steps;
     run_relation_fresh filename builtins cache spec rid values |> Result.ok
   in
   try T.handler inner with Error.InterpError (at, msg) -> Error (at, msg)
@@ -35,38 +36,5 @@ let error_to_string = Error.to_string
 
 let error_to_diagnostic ((at, msg) : error) : Diagnostic.t =
   Diagnostic.error ~source:"il-interp" at msg
-
-(* Evaluate a list of IL premises against an initial variable environment.
-   Returns the updated bindings (initial + any newly bound by the premises).
-   Caller supplies the names of all variables it wants back; variables not
-   present in the context after evaluation are silently omitted. *)
-let run_prems ?(max_steps = -1) (module T : Target.S) (spec : spec)
-    (initial_bindings : (id' * value) list) (prems : prem list)
-    (filename : string) :
-    ((id' * value) list, error) result =
-  let builtins = Builtins.make T.builtins in
-  let cache =
-    Cache.make ~is_impure_func:T.is_impure_func ~is_impure_rel:T.is_impure_rel
-      ~state_version:T.state_version
-  in
-  let inner () =
-    Interp.step_budget := max_steps;
-    Cache.clear cache;
-    let ctx = Interp.load_spec filename builtins cache spec in
-    let ctx =
-      List.fold_left
-        (fun ctx (id, v) -> Ctx.add_value ctx (id $ no_region, []) v)
-        ctx initial_bindings
-    in
-    let+ ctx = Interp.eval_prems ctx prems in
-    let bindings =
-      List.filter_map
-        (fun ((id, iters), v) ->
-          if iters = [] then Some (id.it, v) else None)
-        (Ctx.Local.VEnv.bindings ctx.local.venv)
-    in
-    Result.ok bindings
-  in
-  try T.handler inner with Error.InterpError (at, msg) -> Error (at, msg)
 
 module Ctx = Ctx

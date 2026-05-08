@@ -1848,7 +1848,7 @@ let ctx_of_il_spec (spec_il : Il.spec) : Ctx.t =
 
 let elab_prems_in_spec (spec_il : Il.spec)
     (var_decls : (El.id * El.plaintyp) list) (el_prems : El.prem list) :
-    Il.prem list Error.result =
+    (Il.prem list * (Il.id' * Il.typ) list) Error.result =
   try
     let ctx = ctx_of_il_spec spec_il in
     let ctx =
@@ -1859,8 +1859,16 @@ let elab_prems_in_spec (spec_il : Il.spec)
           { ctx with Ctx.venv = Ctx.VEnv.add id (typ_il, []) ctx.venv })
         ctx var_decls
     in
-    let _ctx, prems_il = elab_prems_with_bind ctx el_prems in
-    Ok prems_il
+    let ctx_final, prems_il = elab_prems_with_bind ctx el_prems in
+    let initial_ids = List.map (fun (id, _) -> id.it) var_decls in
+    let output_vars =
+      Ctx.VEnv.bindings ctx_final.venv
+      |> List.filter_map (fun (key, (typ, iters)) ->
+        if iters = [] && not (List.mem key.it initial_ids)
+        then Some (key.it, typ)
+        else None)
+    in
+    Ok (prems_il, output_vars)
   with Error.ElabError e -> Error [ e ]
 
 type single_error = Error.single_error

@@ -11,6 +11,7 @@ val error_to_string : error -> string
 val error_to_diagnostic : error -> Diagnostic.t
 
 val eval_il :
+  ?max_steps:int ->
   (module Target.S) ->
   Lang.Il.spec ->
   string ->
@@ -25,12 +26,3 @@ val eval_sl :
   Lang.Il.Value.t list ->
   string ->
   (ctx_sl * Lang.Il.Value.t list, error) result
-
-val run_prems :
-  ?max_steps:int ->
-  (module Target.S) ->
-  Lang.Il.spec ->
-  (Lang.Il.id' * Lang.Il.Value.t) list ->
-  Lang.Il.prem list ->
-  string ->
-  ((Lang.Il.id' * Lang.Il.Value.t) list, error) result
