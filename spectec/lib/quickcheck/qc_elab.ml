@@ -42,6 +42,82 @@ let make_synth_rel_def (rel_id : id') (all_vars : (id' * typ) list)
   in
   RelD (rel_id $ no_region, nottyp, inputs, [rule]) $ no_region
 
+(* --- output variable pre-declaration ------------------------------------ *)
+
+(* Reverse of elab_plaintyp: Il.typ → El.plaintyp, for VarPr injection. *)
+let rec il_typ_to_el_plaintyp (typ : typ) : El.plaintyp =
+  (match typ.it with
+   | BoolT            -> El.BoolT
+   | NumT t           -> El.NumT t
+   | TextT            -> El.TextT
+   | TupleT ts        -> El.TupleT (List.map il_typ_to_el_plaintyp ts)
+   | IterT (t, Opt)   -> El.IterT (il_typ_to_el_plaintyp t, El.Opt)
+   | IterT (t, List)  -> El.IterT (il_typ_to_el_plaintyp t, El.List)
+   | VarT (id, targs) -> El.VarT (id, List.map il_typ_to_el_plaintyp targs)
+   | FuncT -> El.VarT ("func" $ typ.at, []))
+  $ typ.at
+
+(* Look up a relation's (nottyp, input-indices) in the IL spec by name. *)
+let find_rel_in_spec (spec : spec) (rel_name : string) :
+    (nottyp * int list) option =
+  List.find_map (fun def ->
+    match def.it with
+    | RelD (id, nottyp, inputs, _) when id.it = rel_name ->
+      Some (nottyp, inputs)
+    | _ -> None
+  ) spec
+
+(* Extract non-atom EL sub-expressions from a notexp in argument order,
+   mirroring the structural decomposition of elab_exp_not_inner. *)
+let rec collect_el_args (exp : El.exp) : El.exp list =
+  match exp.it with
+  | El.AtomE _           -> []
+  | El.SeqE exps         -> List.concat_map collect_el_args exps
+  | El.InfixE (l, _, r)  -> collect_el_args l @ collect_el_args r
+  | El.BrackE (_, e, _)  -> collect_el_args e
+  | El.ParenE e          -> collect_el_args e
+  | _                    -> [exp]
+
+(* For one EL premise, return (id, el_plaintyp) pairs for named output
+   variables (VarE id where id ≠ "_") found in relation output positions. *)
+let rec output_vars_of_el_prem (spec : spec) (prem : El.prem) :
+    (El.id * El.plaintyp) list =
+  match prem.it with
+  | El.RulePr (rel_id, exp) ->
+    (match find_rel_in_spec spec rel_id.it with
+     | None -> []
+     | Some (nottyp, inputs) ->
+       let arg_types = Mixfix.args nottyp.it in
+       let el_args   = collect_el_args exp in
+       let n = min (List.length arg_types) (List.length el_args) in
+       List.init n Fun.id
+       |> List.filter (fun i -> not (List.mem i inputs))
+       |> List.filter_map (fun i ->
+          match List.nth_opt el_args i with
+          | Some { it = El.VarE id; _ } when id.it <> "_" ->
+            Some (id, il_typ_to_el_plaintyp (List.nth arg_types i))
+          | _ -> None))
+  | El.IterPr (inner, _) -> output_vars_of_el_prem spec inner
+  | _ -> []
+
+(* Prepend VarPr premises for any named output variables in [prems] that are
+   not already declared in [var_decls].  VarPr produces no IL premise, so
+   existing index arithmetic in elab_block is unaffected. *)
+let prepend_output_varpr_prems (spec : spec)
+    (var_decls : (El.id * El.plaintyp) list)
+    (prems : El.prem list) : El.prem list =
+  let known = ref (List.map (fun (id, _) -> id.it) var_decls) in
+  let extra = ref [] in
+  List.iter (fun prem ->
+    List.iter (fun (id, plaintyp) ->
+      if not (List.mem id.it !known) then begin
+        known := id.it :: !known;
+        extra := (El.VarPr (id, plaintyp) $ no_region) :: !extra
+      end
+    ) (output_vars_of_el_prem spec prem)
+  ) prems;
+  List.rev !extra @ prems
+
 let block_counter = ref 0
 
 (* --- block elaboration ------------------------------------------------ *)
@@ -65,11 +141,17 @@ let elab_block (spec_il : spec) (block : Qc_ast.ast_block) :
     (* Elaborate prems alone to get only prems-bound output vars.
        The goal may introduce locals (e.g. wildcards → _0) that must NOT
        appear as outputs of the prems relation. *)
-    (match Elaborate.elab_prems_in_spec spec_il var_decls prems with
+    let prems_with_decls =
+      prepend_output_varpr_prems spec_il var_decls prems
+    in
+    (match Elaborate.elab_prems_in_spec spec_il var_decls prems_with_decls with
      | Error e -> Error (Elaborate.error_to_string e)
      | Ok (il_prems, prems_output_vars) ->
        (* Elaborate prems @ [goal] together so the goal sees prems-bound vars. *)
-       match Elaborate.elab_prems_in_spec spec_il var_decls (prems @ [goal]) with
+       let all_with_decls =
+         prepend_output_varpr_prems spec_il var_decls (prems @ [goal])
+       in
+       match Elaborate.elab_prems_in_spec spec_il var_decls all_with_decls with
        | Error e -> Error (Elaborate.error_to_string e)
        | Ok (il_all, _) ->
          let il_goal =
@@ -121,7 +203,10 @@ let elab_block (spec_il : spec) (block : Qc_ast.ast_block) :
     let var_decls =
       List.map (fun p -> (p.Qc_ast.p_id, p.Qc_ast.p_typ)) params
     in
-    (match Elaborate.elab_prems_in_spec spec_il var_decls prems with
+    let prems_with_decls =
+      prepend_output_varpr_prems spec_il var_decls prems
+    in
+    (match Elaborate.elab_prems_in_spec spec_il var_decls prems_with_decls with
      | Error e ->
        Error (Elaborate.error_to_string e)
      | Ok (il_prems, output_vars) ->
