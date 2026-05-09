@@ -160,25 +160,40 @@ module M : Instrumentation_api.Handler.S = struct
 
       (* Breakdown for if-premises *)
       let total_if = !State.total_if_prems in
-      let attempted_if =
+      let succeeded_if =
         Hashtbl.fold
           (fun k _ acc -> if is_if_prem_key k then acc + 1 else acc)
-          State.prems_attempted 0
+          State.prems_succeeded 0
       in
       let failed_if =
         Hashtbl.fold
           (fun k _ acc -> if is_if_prem_key k then acc + 1 else acc)
           State.prems_failed 0
       in
-      let never_attempted = total_if - attempted_if in
-      let attempted_failed = failed_if in
-      let attempted_never_failed = attempted_if - failed_if in
+      let both_if =
+        Hashtbl.fold
+          (fun k _ acc ->
+            if is_if_prem_key k && Hashtbl.mem State.prems_succeeded k then
+              acc + 1
+            else acc)
+          State.prems_failed 0
+      in
+      let neither_if = total_if - (succeeded_if + failed_if - both_if) in
+      let total_score = succeeded_if + failed_if in
+      let twice_total_if = 2 * total_if in
 
       Format.fprintf !fmt "%d rule premises\n" !State.total_rule_prems;
       Format.fprintf !fmt
-        "%d if-premises : %d never attempted, %d attempted but never failed, \
-         %d attempted and failed\n"
-        total_if never_attempted attempted_never_failed attempted_failed)
+        "%d if-premises: succeeded %d/%d (%.2f%%), failed %d/%d (%.2f%%), \
+         neither %d/%d (%.2f%%), total %d/%d (%.2f%%)\n"
+        total_if succeeded_if total_if
+        (percentage succeeded_if total_if)
+        failed_if total_if
+        (percentage failed_if total_if)
+        neither_if total_if
+        (percentage neither_if total_if)
+        total_score twice_total_if
+        (percentage total_score twice_total_if))
 
   let print_uncovered () =
     let total = !State.total_prems in
@@ -260,15 +275,15 @@ module M : Instrumentation_api.Handler.S = struct
       Format.fprintf !fmt "%4d: %s     %s-- %s\n" uid (format_count succ) indent
         content
 
-  let print_prems indent prems =
+  let print_prems indent result_str prems =
     List.iter (print_prem indent) prems;
     (* Print success count for final premise *)
     match List.rev prems with
     | last :: _ ->
         let key = prem_key last in
         let succ = get_prem_succeeded key in
-        Format.fprintf !fmt "      %s      %sSUCCESS\n" (format_count succ)
-          indent
+        Format.fprintf !fmt "      %s      %s%s\n" (format_count succ) indent
+          result_str
     | [] -> ()
 
   let print_full () =
@@ -279,17 +294,23 @@ module M : Instrumentation_api.Handler.S = struct
             Format.fprintf !fmt "\nrelation %s:\n" id.it;
             List.iter
               (fun rule ->
-                let rule_id, _, prems = rule.it in
+                let rule_id, notexp, prems = rule.it in
+                let result_str =
+                  Print.string_of_notexp notexp |> normalize_whitespace
+                in
                 Format.fprintf !fmt "      rule %s:\n" rule_id.it;
-                print_prems "    " prems)
+                print_prems "    " result_str prems)
               rules
         | DecD (id, _, _, _, clauses) ->
             Format.fprintf !fmt "\ndef $%s:\n" id.it;
             List.iteri
               (fun idx clause ->
-                let _, _, prems = clause.it in
+                let _, exp, prems = clause.it in
+                let result_str =
+                  Print.string_of_exp exp |> normalize_whitespace
+                in
                 Format.fprintf !fmt "      clause %d:\n" idx;
-                print_prems "    " prems)
+                print_prems "    " result_str prems)
               clauses
         | _ -> ())
       !State.il_spec
