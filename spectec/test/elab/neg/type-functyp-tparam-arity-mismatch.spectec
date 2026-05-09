@@ -1,0 +1,9 @@
+;; Pass a function with 1 type parameter where a function with 2 type
+;; parameters is expected.
+
+dec $g<T>(T) : T
+
+dec $caller(def $h<U, V>(nat) : nat) : nat
+
+dec $bad : nat
+def $bad = $caller(def $g)

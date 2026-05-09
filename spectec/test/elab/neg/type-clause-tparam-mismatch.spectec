@@ -1,0 +1,4 @@
+;; A def clause's type parameter list disagrees with its dec declaration.
+
+dec $f<T> : nat
+def $f<U, V> = 0

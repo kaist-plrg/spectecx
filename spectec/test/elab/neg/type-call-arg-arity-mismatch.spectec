@@ -1,0 +1,6 @@
+;; Call a function with 1 value argument where it expects 2.
+
+dec $f(nat, nat) : nat
+
+dec $g : nat
+def $g = $f(0)

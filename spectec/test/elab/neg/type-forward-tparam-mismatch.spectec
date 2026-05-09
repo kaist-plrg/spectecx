@@ -1,0 +1,5 @@
+;; Forward-declare a syntax with no type parameters, then define it
+;; with one.
+
+syntax foo
+syntax foo<T> = T

@@ -1,0 +1,6 @@
+;; Call a function with 2 type arguments where it expects 1.
+
+dec $f<T>(T) : T
+
+dec $g : nat
+def $g = $f<nat, nat>(0)

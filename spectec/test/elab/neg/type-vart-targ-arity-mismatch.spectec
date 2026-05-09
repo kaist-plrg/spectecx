@@ -1,0 +1,5 @@
+;; Reference a parameterized type without supplying its type argument.
+
+syntax foo<T> = T
+
+syntax bar = foo
