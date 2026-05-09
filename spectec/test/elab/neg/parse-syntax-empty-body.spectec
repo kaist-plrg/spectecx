@@ -1,0 +1,3 @@
+;; Type definition body is empty (no leading bar, no cases).
+
+syntax foo =

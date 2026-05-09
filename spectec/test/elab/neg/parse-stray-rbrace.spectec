@@ -1,0 +1,3 @@
+;; Stray closing brace — generic menhir fallback "unexpected token".
+
+}

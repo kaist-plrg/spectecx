@@ -1,0 +1,3 @@
+;; Variant type body with a leading bar but no cases.
+
+syntax foo = |
