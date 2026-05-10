@@ -1,0 +1,13 @@
+Running typechecker test on 1 files
+
+>>> Running typechecker test on ../../../../../spectec/testdata/interp/impty/base/_errors_undeclared.imp
+Expected typechecker failure: ../../../../../spectec/testdata/interp/impty/base/_errors_undeclared.imp
+  ../../../../../spectec/examples/impty/base/spec.spectec:137:6-137:19:Error: relation was not matched
+
+Typechecker (sl) summary
+  Ran:          1 / 1      (100.00%)
+  Passed:       1 (100.00% of ran)
+  Failed:       0 (0.00% of ran)
+  Skipped:      0 (0.00% of total)
+
+

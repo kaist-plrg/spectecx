@@ -1,0 +1,154 @@
+(** impty target — typed imperative language.
+
+    Two specs share one parser:
+    - [examples/impty/base] — imperative core (arithmetic, conditionals, loops).
+    - [examples/impty/closure] — adds function values and call expressions. *)
+
+let test_base_dir = "spectec/testdata/interp/impty"
+
+let collect_files_recursive ~suffix dir =
+  let rec gather acc path =
+    if Sys.file_exists path && Sys.is_directory path then (
+      let entries = Sys.readdir path in
+      Array.sort String.compare entries;
+      Array.fold_left
+        (fun acc name -> gather acc (Filename.concat path name))
+        acc entries)
+    else if Filename.check_suffix path suffix then path :: acc
+    else acc
+  in
+  if Sys.file_exists dir then gather [] dir |> List.rev else []
+
+let contains_substring s sub =
+  try
+    let _ = Str.search_forward (Str.regexp_string sub) s 0 in
+    true
+  with Not_found -> false
+
+module Target : Spectec.Target.S = struct
+  let name = "impty"
+  let spec_dir = "spectec/examples/impty/base"
+
+  (* The impty spec is fully self-contained: arithmetic, comparison, boolean,
+     and list/map operations are SpecTec primitives or defined in the spec. *)
+  let builtins : (string * Builtins.Define.t) list = []
+
+  let handler f =
+    let vid_counter = ref 0 in
+    let fresh_vid () =
+      let v = !vid_counter in
+      incr vid_counter;
+      v
+    in
+    Lang.Il.Value.GlobalVidProvider.set fresh_vid;
+    f ()
+
+  let is_impure_func _ = false
+  let is_impure_rel _ = false
+  let state_version = ref 0
+end
+
+type input = { filename : string; expect : Spectec.Task.expectation }
+
+let collect_with ~classify ?dir () =
+  let test_dir = Option.value dir ~default:test_base_dir in
+  collect_files_recursive ~suffix:".imp" test_dir
+  |> List.map (fun filename -> { filename; expect = classify filename })
+
+(* [_errors_X.imp] = static error (Check_prog fails); [_errors_runtime_X.imp] =
+   runtime error (Check_prog succeeds, Eval_prog fails). The eval task gates on
+   typecheck via the spec's Run_prog rule, so static errors fail eval too. *)
+let typecheck_classify filename =
+  if
+    contains_substring filename "_errors"
+    && not (contains_substring filename "_errors_runtime")
+  then Spectec.Task.Negative
+  else Spectec.Task.Positive
+
+let eval_classify filename =
+  if contains_substring filename "_errors" then Spectec.Task.Negative
+  else Spectec.Task.Positive
+
+module Task_common = struct
+  module Target = Target
+
+  let test_dir = test_base_dir
+
+  type nonrec input = input
+
+  let unparse = Parse.unparse
+  let parse_string = Parse.parse_string
+  let source ({ filename; _ } : input) = filename
+  let expectation ({ expect; _ } : input) = expect
+  let save_output _ _ = ()
+end
+
+module Typecheck = struct
+  include Task_common
+
+  let name = "typechecker"
+  let collect = collect_with ~classify:typecheck_classify
+
+  let parse_input ~spec:_ { filename; _ } =
+    Parse.parse_file ~handler:Target.handler filename
+    |> Result.map (fun v -> ("Check_prog", [ v ]))
+
+  let format_output _ = "Typecheck succeeded"
+end
+
+module Eval = struct
+  include Task_common
+
+  let name = "evaluator"
+  let collect = collect_with ~classify:eval_classify
+
+  let parse_input ~spec:_ { filename; _ } =
+    Parse.parse_file ~handler:Target.handler filename
+    |> Result.map (fun v -> ("Run_prog", [ v ]))
+
+  let format_output = function
+    | [] -> "Eval succeeded (no output)"
+    | vs -> vs |> List.map Lang.Il.Print.string_of_value |> String.concat ", "
+end
+
+let cli_flags =
+  let open Core.Command.Let_syntax in
+  let open Core.Command.Param in
+  let%map filename = flag "-p" (required string) ~doc:"FILE impty file" in
+  { filename; expect = Spectec.Task.Positive }
+
+module Typecheck_cli : Cli.Task_cli.S = struct
+  module Task = Typecheck
+
+  let flags = cli_flags
+end
+
+module Eval_cli : Cli.Task_cli.S = struct
+  module Task = Eval
+
+  let flags = cli_flags
+end
+
+module Cli : Cli.Target_cli.S = struct
+  module Target = Target
+
+  let name = Target.name
+
+  let command =
+    let target = (module Target : Spectec.Target.S) in
+    let module Subcommand = Cli.Subcommand in
+    Core.Command.group ~summary:"impty commands"
+      [
+        Subcommand.make_task target ~name:"typecheck"
+          ~summary:"Run impty typechecker"
+          (module Typecheck_cli);
+        Subcommand.make_task target ~name:"eval" ~summary:"Run impty evaluator"
+          (module Eval_cli);
+        Subcommand.make_parse target ~name:"parse"
+          ~summary:"parse an impty program to an IL value"
+          (module Typecheck_cli);
+        Subcommand.make_batch target ~name:"batch"
+          [ (module Typecheck_cli); (module Eval_cli) ];
+        Subcommand.make_checkpoint target ~name:"checkpoint";
+      ]
+end
