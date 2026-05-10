@@ -1,0 +1,13 @@
+// Static-vs-dynamic scope demo.
+
+int x = 1;
+(int -> int) add_one = fun(int n) -> int { x + n };
+
+// First call: Dynamic and static both yield 11.
+int ten_plus_one = add_one(10);
+
+// Shadow x with a value of a different type.
+bool x = true;
+
+// Second call: Dynamic fails, static succeeds.
+int still_eleven = add_one(10)
