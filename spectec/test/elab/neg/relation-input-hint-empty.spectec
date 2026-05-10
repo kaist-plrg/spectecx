@@ -1,0 +1,6 @@
+;; A relation's input hint is present but lists no input positions.
+
+syntax foo = nat
+
+relation R: foo |- foo
+  hint(input)

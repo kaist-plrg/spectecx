@@ -1,0 +1,7 @@
+;; A relation's input hint contains an expression that isn't an
+;; indexed hole.
+
+syntax foo = nat
+
+relation R: foo |- foo
+  hint(input 0)
