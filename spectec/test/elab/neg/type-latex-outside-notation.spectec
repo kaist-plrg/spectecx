@@ -1,0 +1,5 @@
+;; A %latex literal appears in regular expression position rather
+;; than inside a notation declaration.
+
+dec $f : nat
+def $f = %latex("hello")

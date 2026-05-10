@@ -1,0 +1,6 @@
+;; Two variant cases share the same leading atom, making them
+;; indistinguishable by mixfix shape.
+
+syntax foo =
+  | FOO nat
+  | FOO int
