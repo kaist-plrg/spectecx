@@ -47,13 +47,27 @@ clean:
 #   make test-il-old     - IL tests for p4-old (pos + neg)
 #   make test-sl-old     - SL tests for p4-old (pos + neg)
 #   make test-old        - All p4-old interpreter tests
-#   make test            - All tests excluding p4-old (quick + new p4 il/sl)
+#
+# impty interpreter tests (per-variant: base, closure):
+#   make test-impty-<v>-il-pos / -il-neg / -sl-pos / -sl-neg
+#   make test-impty-<v>-il / -sl                     - per-variant pos+neg
+#   make test-impty-<v>                              - per-variant il+sl
+#   make test-impty                                  - all impty tests
+#
+#   make test            - quick + new p4 il/sl + impty
 
 .PHONY: test test-quick test-elab test-struct
 .PHONY: test-il test-il-pos test-il-neg
 .PHONY: test-sl test-sl-pos test-sl-neg
 .PHONY: test-old test-il-old test-il-pos-old test-il-neg-old
 .PHONY: test-sl-old test-sl-pos-old test-sl-neg-old
+.PHONY: test-impty test-impty-base test-impty-closure
+.PHONY: test-impty-base-il test-impty-base-sl
+.PHONY: test-impty-closure-il test-impty-closure-sl
+.PHONY: test-impty-base-il-pos test-impty-base-il-neg
+.PHONY: test-impty-base-sl-pos test-impty-base-sl-neg
+.PHONY: test-impty-closure-il-pos test-impty-closure-il-neg
+.PHONY: test-impty-closure-sl-pos test-impty-closure-sl-neg
 .PHONY: promote
 
 test-elab:
@@ -116,5 +130,50 @@ test-sl-old: test-sl-pos-old test-sl-neg-old
 test-old: test-il-old test-sl-old
 	@echo "#### p4-old interpreter tests passed"
 
-test: test-quick test-il test-sl
-	@echo "#### All quick tests + p4 interpreter tests passed"
+test-impty-base-il-pos:
+	$(call run_interp_test,impty-base,il,pos)
+
+test-impty-base-il-neg:
+	$(call run_interp_test,impty-base,il,neg)
+
+test-impty-base-sl-pos:
+	$(call run_interp_test,impty-base,sl,pos)
+
+test-impty-base-sl-neg:
+	$(call run_interp_test,impty-base,sl,neg)
+
+test-impty-closure-il-pos:
+	$(call run_interp_test,impty-closure,il,pos)
+
+test-impty-closure-il-neg:
+	$(call run_interp_test,impty-closure,il,neg)
+
+test-impty-closure-sl-pos:
+	$(call run_interp_test,impty-closure,sl,pos)
+
+test-impty-closure-sl-neg:
+	$(call run_interp_test,impty-closure,sl,neg)
+
+test-impty-base-il: test-impty-base-il-pos test-impty-base-il-neg
+	@echo "#### IL (impty-base) tests passed"
+
+test-impty-base-sl: test-impty-base-sl-pos test-impty-base-sl-neg
+	@echo "#### SL (impty-base) tests passed"
+
+test-impty-closure-il: test-impty-closure-il-pos test-impty-closure-il-neg
+	@echo "#### IL (impty-closure) tests passed"
+
+test-impty-closure-sl: test-impty-closure-sl-pos test-impty-closure-sl-neg
+	@echo "#### SL (impty-closure) tests passed"
+
+test-impty-base: test-impty-base-il test-impty-base-sl
+	@echo "#### impty-base interpreter tests passed"
+
+test-impty-closure: test-impty-closure-il test-impty-closure-sl
+	@echo "#### impty-closure interpreter tests passed"
+
+test-impty: test-impty-base test-impty-closure
+	@echo "#### impty interpreter tests passed"
+
+test: test-quick test-il test-sl test-impty
+	@echo "#### All quick tests + p4 + impty interpreter tests passed"

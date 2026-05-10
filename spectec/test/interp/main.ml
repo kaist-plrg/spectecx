@@ -56,8 +56,8 @@ let run_with_task (type i) (module T : Spectec.Task.S with type input = i)
         (Spectec.Error.string_of_error err)
 
 (** P4 Typecheck test - uses P4_Target.spec_dir *)
-let run_p4_typecheck ~p4_old ~negative ~sl_mode ~includes ~exclude_dirs ~testdir
-    =
+let run_p4_typecheck ~p4_old ~negative ~sl_mode ~includes ~exclude_dirs
+    ~testdirs =
   let expectation =
     if negative then Spectec.Task.Negative else Spectec.Task.Positive
   in
@@ -67,7 +67,8 @@ let run_p4_typecheck ~p4_old ~negative ~sl_mode ~includes ~exclude_dirs ~testdir
     let spec_dir = repo_root ^ Targets_p4.P4.Target_old.spec_dir in
     let spec_files = Files.collect ~suffix:".spectec" spec_dir in
     let inputs =
-      Targets_p4.P4.Typecheck_old.collect ~dir:testdir ()
+      List.concat_map testdirs ~f:(fun dir ->
+          Targets_p4.P4.Typecheck_old.collect ~dir ())
       |> List.map ~f:(fun input ->
              {
                Targets_p4.P4.Typecheck_old.includes;
@@ -82,7 +83,8 @@ let run_p4_typecheck ~p4_old ~negative ~sl_mode ~includes ~exclude_dirs ~testdir
     let spec_dir = repo_root ^ Targets_p4.P4.Target.spec_dir in
     let spec_files = Files.collect ~suffix:".spectec" spec_dir in
     let inputs =
-      Targets_p4.P4.Typecheck.collect ~dir:testdir ()
+      List.concat_map testdirs ~f:(fun dir ->
+          Targets_p4.P4.Typecheck.collect ~dir ())
       |> List.map ~f:(fun input ->
              {
                Targets_p4.P4.Typecheck.includes;
@@ -94,6 +96,30 @@ let run_p4_typecheck ~p4_old ~negative ~sl_mode ~includes ~exclude_dirs ~testdir
       (module Targets_p4.P4.Typecheck)
       ~sl_mode ~spec_files ~inputs ~exclude_dirs
 
+(** Impty Typecheck test - per-variant spec dispatch *)
+let run_impty_typecheck ~variant ~negative ~sl_mode ~testdirs =
+  let expectation =
+    if negative then Spectec.Task.Negative else Spectec.Task.Positive
+  in
+  let repo_root = "../../../../../" in
+  let spec_dir = repo_root ^ "spectec/examples/impty/" ^ variant in
+  let spec_files = Files.collect ~suffix:".spectec" spec_dir in
+  let inputs =
+    List.concat_map testdirs ~f:(fun dir ->
+        Targets_impty.Impty.Typecheck.collect ~dir ())
+    |> List.filter ~f:(fun input ->
+           match
+             ( Targets_impty.Impty.Typecheck.expectation input,
+               expectation )
+           with
+           | Spectec.Task.Positive, Spectec.Task.Positive -> true
+           | Spectec.Task.Negative, Spectec.Task.Negative -> true
+           | _ -> false)
+  in
+  run_with_task
+    (module Targets_impty.Impty.Typecheck)
+    ~sl_mode ~spec_files ~inputs ~exclude_dirs:[]
+
 let command =
   Command.basic ~summary:"run interpreter typing test (IL or SL)"
   @@
@@ -101,11 +127,26 @@ let command =
   let open Command.Param in
   let%map includes = flag "-i" (listed string) ~doc:"DIR include paths"
   and exclude_dirs = flag "-e" (listed string) ~doc:"DIR exclude paths"
-  and testdir = flag "-d" (required string) ~doc:"DIR test directory"
+  and testdirs =
+    flag "-d" (listed string) ~doc:"DIR test directory (repeatable)"
   and negative = flag "-neg" no_arg ~doc:" expect failures (negative mode)"
   and sl_mode = flag "--sl" no_arg ~doc:" use SL interpreter (default: IL)"
-  and p4_old = flag "--p4-old" no_arg ~doc:" use p4-old target (default: p4)" in
+  and p4_old = flag "--p4-old" no_arg ~doc:" use p4-old target (default: p4)"
+  and impty = flag "--impty" no_arg ~doc:" use impty target (default: p4)"
+  and variant =
+    flag "--variant" (optional string)
+      ~doc:"VARIANT impty variant (base|closure); required with --impty"
+  in
   fun () ->
-    run_p4_typecheck ~p4_old ~negative ~sl_mode ~includes ~exclude_dirs ~testdir
+    if impty then
+      let v =
+        match variant with
+        | Some v -> v
+        | None -> failwith "--variant is required when using --impty"
+      in
+      run_impty_typecheck ~variant:v ~negative ~sl_mode ~testdirs
+    else
+      run_p4_typecheck ~p4_old ~negative ~sl_mode ~includes ~exclude_dirs
+        ~testdirs
 
 let () = Command_unix.run command
