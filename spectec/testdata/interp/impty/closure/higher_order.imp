@@ -1,0 +1,3 @@
+// Pass a function as an argument (anonymous higher-order function).
+(int -> int) inc = fun(int n) -> int { n + 1 };
+int one = (fun((int -> int) f) -> int { f(0) })(inc)
