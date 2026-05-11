@@ -102,7 +102,7 @@ let run_impty_typecheck ~variant ~negative ~sl_mode ~testdirs =
     if negative then Spectec.Task.Negative else Spectec.Task.Positive
   in
   let repo_root = "../../../../../" in
-  let spec_dir = repo_root ^ "spectec/examples/impty/" ^ variant in
+  let spec_dir = repo_root ^ "spectec/specs/impty/" ^ variant in
   let spec_files = Files.collect ~suffix:".spectec" spec_dir in
   let inputs =
     List.concat_map testdirs ~f:(fun dir ->
