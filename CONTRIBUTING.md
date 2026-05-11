@@ -67,6 +67,11 @@ type(scope): imperative summary
 Standard types apply (`feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `perf`, `style`). Plus:
 
 - **`spec`** — changes to `.spectec` files. *All other commits are assumed to be OCaml changes* under the appropriate standard type. A spec rule update is `spec(...)`; a change to the elaborator that consumes it is `refactor(elaborate): ...`.
+- **`reorg`** — directory renames, file moves, or layout-only changes that don't restructure code or alter behavior. Distinct from `refactor` (changes code structure) and `chore` (build config or deps). When a rename forces caller updates, the change stays `reorg` if the caller updates are mechanical path/identifier swaps; promote to `refactor` when the rename motivates a real API or structure change.
+
+  The type exists because behavior preservation is a useful property to advertise — tools and reviewers can act differently when they know a change is layout-only. Reviewers seeing `reorg:` skip semantic review and focus on the mechanical check ("did all references update? did anything break the build?"). `git bisect skip $(git log --grep "^reorg" bad..good --format=%H)` removes layout noise from regression bisects. Cherry-picks and reverts are mechanical (paths or identifiers) rather than requiring behavioral analysis.
+
+  Examples: renaming a directory, splitting a corpus into subdirectories, consolidating duplicated test data.
 
 Scope is the narrowest area that honestly describes the change: `cli`, `elaborate`, `il`, `interp`, `instrumentation`, `mixop`, `lang`, `targets/p4`, etc.
 
@@ -91,6 +96,8 @@ The motivation paragraph is **optional when the motivation is self-evident from 
 Name actual identifiers in the body — modules, functions, flags. Plain English is for framing; identifiers are for specifics.
 
 Bullets only when the change spans distinct scopes that don't flow as prose. A single-scope commit gets a prose paragraph.
+
+**ASCII only.** Commit messages flow through varied consumers (`git log`, `gh`, CI logs, `git send-email`, changelog generators), not all of which render UTF-8 reliably. Prefer `->` over `→`. Avoid em-dashes (`—`) entirely rather than substituting `--`; restructure with commas, parens, or periods instead. PR bodies render as Markdown and are fair game for typography; commit messages aren't.
 
 ### Trailers
 
@@ -199,18 +206,21 @@ The commit-message conventions above still apply: a direct-to-main commit isn't 
 
 ## Pull Requests
 
-PRs fall into four shapes. The shape determines title prefix and body structure:
+PRs fall into five shapes. The shape determines title prefix and body structure:
 
 | Type     | Title                          | Body skeleton                                                                |
 | -------- | ------------------------------ | ---------------------------------------------------------------------------- |
-| Refactor | `Refactor <concept>`           | `## Motivation` → optional `## Core Concept(s)` → optional `## Scope of Refactor` → `## Commit Log` |
-| Feature  | concept-led, no prefix         | `## Motivation` → `## Core Concept(s)` → optional `## Scope of Feature` → `## Commit Log` |
-| Port     | concept-led, no prefix         | `## Motivation` (cite original PR) → `## Scope of Port` (Ported / Adapted / Omitted) → `## Commit Log` |
-| Sync     | `Sync <area>`                  | `## Motivation` → `## Scope of Sync` (Ported / Adapted / Local Changes) → `## Commit Log` |
+| Refactor | `Refactor <concept>`           | `## Motivation` → optional `## Core Concept(s)` → optional `## Scope` → `## Commit Log` |
+| Feature  | concept-led, no prefix         | `## Motivation` → `## Core Concept(s)` → optional `## Scope` → `## Commit Log` |
+| Port     | concept-led, no prefix         | `## Motivation` (cite original PR) → `## Scope` (Ported / Adapted / Omitted) → `## Commit Log` |
+| Sync     | `Sync <area>`                  | `## Motivation` → `## Scope` (Ported / Adapted / Local Changes) → `## Commit Log` |
+| Reorg    | `Reorg <concept>`              | `## Motivation` → optional `## Scope` (rename list) → `## Commit Log` |
 
 `## Future Work` is optional on any type for deferred follow-ups and open design questions. `## Minor Changes` holds commits that ship in the PR but don't fit the main story.
 
 The Port/Sync distinction is intentional: a **Port** tracks one upstream PR end-to-end and contains only the adaptations needed to land it locally; a **Sync** is a catch-up that may bundle several upstream commits *and* genuinely local fixes or features. The two share vocabulary but differ in what each is allowed to bundle.
+
+**Reorgs** typically fast-forward (single-commit) and use `## Scope` to list the moves explicitly. Behavior preservation is the implicit precondition — if the change has any semantic shift, it's a Refactor.
 
 ### Title
 
@@ -219,7 +229,7 @@ One clean angle, not a two-sided story. If you reach for `X and Y`, ask whether 
 - One concept: [`#34 Refactor CLI into per-target modules`](https://github.com/kaist-plrg/spectec-core/pull/34) — clearer than `Refactor CLI to define subcommand interfaces and consolidate target modules`, even though the diff does both.
 - Two genuinely independent threads, joined explicitly: [`#32 Refactor instrumentation architecture and make lifecycle exception-safe`](https://github.com/kaist-plrg/spectec-core/pull/32).
 
-`Refactor` and `Sync` lead with the verb. Features and Ports lead with the concept directly ([`#30 Simplify elaboration using IL types`](https://github.com/kaist-plrg/spectec-core/pull/30)) — the verb prefix is dropped because the concept already names the change.
+`Refactor`, `Sync`, and `Reorg` lead with the verb. Features and Ports lead with the concept directly ([`#30 Simplify elaboration using IL types`](https://github.com/kaist-plrg/spectec-core/pull/30)) — the verb prefix is dropped because the concept already names the change.
 
 When themes mix, pick the dominant one for the title and let off-arc commits live under `## Minor Changes` in the body. Avoid abstract nouns like `composition` or `orchestration` in the title; reserve those for the body where they have room to be defined.
 
@@ -227,7 +237,7 @@ When themes mix, pick the dominant one for the title and let off-arc commits liv
 
 Open every PR with `## Motivation` — the problem, pressure, or design goal. The remaining sections depend on the type.
 
-**Refactors and Features** share the skeleton shown in the table above, with optional `## Scope of Refactor` / `## Scope of Feature` and `## Future Work` when the change needs more explanation. The criterion for adding `Scope of …` mirrors the criterion for bullets in a commit message: the concept is coherent at the top level, but it touches enough distinct scopes that prose alone leaves the reader without a map. A small refactor in one module needs `Motivation` and `Commit Log` only; a cross-cutting one needs the scoped breakdown.
+**Refactors and Features** share the skeleton shown in the table above, with optional `## Scope` and `## Future Work` when the change needs more explanation. The criterion for adding `## Scope` mirrors the criterion for bullets in a commit message: the concept is coherent at the top level, but it touches enough distinct scopes that prose alone leaves the reader without a map. A small refactor in one module needs `Motivation` and `Commit Log` only; a cross-cutting one needs the scoped breakdown.
 
 `## Core Concept(s)` typically lists ideas as bolded bullets and closes with one paragraph naming the direction the PR moves the code in. The bullets are the *what*; the closing paragraph is *why this hangs together*. Drop it when the motivation already names the concept clearly.
 
@@ -258,20 +268,20 @@ Drafting the body in a file produces cleaner prose than typing it into the `gh` 
 
 ### Worked examples
 
-- **Refactor:** [#34 — Refactor CLI into per-target modules](https://github.com/kaist-plrg/spectec-core/pull/34): scoped refactor with `Core Concepts` + `Scope of Refactor` and an off-arc `feat(cli)` bullet under `Minor Changes`.
+- **Refactor:** [#34 — Refactor CLI into per-target modules](https://github.com/kaist-plrg/spectec-core/pull/34): scoped refactor with `Core Concepts` + `Scope` and an off-arc `feat(cli)` bullet under `Minor Changes`.
 - **Refactor (two-threaded):** [#32 — Refactor instrumentation architecture and make lifecycle exception-safe](https://github.com/kaist-plrg/spectec-core/pull/32): legitimate two-threaded title; the cover letter splits the threads in the scope bullets.
-- **Port:** [#30 — Simplify elaboration using IL types](https://github.com/kaist-plrg/spectec-core/pull/30): concept-led title (no `Refactor` prefix) tracking one upstream PR, with `Scope of Port` split into `Ported` / `Adapted` / `Omitted`.
-- **Sync:** [#35 — Sync new P4 concrete spec](https://github.com/kaist-plrg/spectec-core/pull/35): catch-up bundling upstream ports with local changes, with `Scope of Sync` split into `Ported` / `Adapted` / `Local Changes`.
+- **Port:** [#30 — Simplify elaboration using IL types](https://github.com/kaist-plrg/spectec-core/pull/30): concept-led title (no `Refactor` prefix) tracking one upstream PR, with `Scope` split into `Ported` / `Adapted` / `Omitted`.
+- **Sync:** [#35 — Sync new P4 concrete spec](https://github.com/kaist-plrg/spectec-core/pull/35): catch-up bundling upstream ports with local changes, with `Scope` split into `Ported` / `Adapted` / `Local Changes`.
 
 When unsure, run `git log --merges` and find the most recent merge whose shape matches yours. (Single-commit ff-merged PRs — see below — won't appear in `--merges`; scan `git log` directly for those.)
 
 ## Merge Commits
 
-Merge commits are *cover letters*, not rewritten commit logs. One framing paragraph summarizing the branch-level outcome, then a short scoped breakdown only when it helps orient the reader.
+Merge commits are *cover letters*, not rewritten commit logs. Their reader is scanning `git log` to answer "what landed, where, and what's deferred" without opening individual commits or PRs. Structure follows that role: one framing paragraph summarizing the branch-level outcome, then scoped bullets only when they make the cover letter quicker to parse than prose alone.
 
 Subject: `Merge: <lowercase summary> (#PR)`. The summary mirrors the PR title (lowercased) so a reader scanning `git log` sees consistent phrasing on both sides.
 
-Avoid one-bullet-per-commit. Prefer scoped summaries (`refactor(instrumentation): ...`, `fix(interp): ...`) describing the merged result. Apply the same thematic grouping as `## Scope of Refactor`: a six-commit branch may merit only three or four scoped bullets.
+Avoid one-bullet-per-commit. Prefer scoped summaries (`refactor(instrumentation): ...`, `fix(interp): ...`) describing the merged result. Apply the same thematic grouping as `## Scope`: a six-commit branch may merit only three or four scoped bullets.
 
 Off-arc commits (the `## Minor Changes` of the PR body) get their own bullet at the end of the scoped block in their original `feat(...)` / `fix(...)` form, so the reader sees them as distinct from the refactor arc.
 
@@ -282,6 +292,23 @@ git push origin main
 ```
 
 Squash merges are never used: they discard the per-commit history that the rest of this guide is built around. Fast-forward merges are reserved for the single-commit-PR exception below.
+
+### Scoped sections
+
+A single thematic bullet list needs no header; bullets sit directly under the framing paragraph. Use section headers only when the cover letter benefits from peer grouping. A Port or Sync may lift its `### Ported / ### Adapted / ### Omitted / ### Local Changes` distinctions to peer sections (`Ported:`, `Adapted:`, …) instead of mixing them inside one bullet list. Mixing `PORTED:`, `ADAPTED:`, `OMITTED:` prefixes inside a single list makes the cover letter obscure: a reader has to disambiguate every bullet by prefix instead of skimming uniform peer lists.
+
+Bullets, whether in a peer section or as a single list, take the form `type(scope): Description.` (matching the corresponding commit subject's prefix). Optional `Original: <ref>` suffix when citing upstream provenance, in the same form the PR body uses (full URL, GitHub shorthand, bare SHA, or absent).
+
+### Deferred items
+
+Deferred items appear as a bullet group with a `DEFERRED:` prefix per bullet and no section header:
+
+```
+- DEFERRED: <description>.
+- DEFERRED: <description>.
+```
+
+The prefix is the signal: `git log --grep "DEFERRED:"` collects backlogs scattered across history. A wrapping section header would only repeat that signal, so it is omitted.
 
 ### Single-commit PRs (exception)
 
