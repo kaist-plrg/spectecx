@@ -6,7 +6,7 @@ module Excludes = Set.Make (String)
 type t = Excludes.t
 
 let normalize line =
-  let local_prefix = "spectec/testdata/interp/p4-tests/tests/" in
+  let local_prefix = "spectec/testdata/interp/p4/" in
   let upstream_prefix = "p4c/testdata/" in
   let already_normalized = "../../../../../" ^ local_prefix in
   let chop_prefix prefix s = String.drop_prefix s (String.length prefix) in

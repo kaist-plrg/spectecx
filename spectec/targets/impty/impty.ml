@@ -1,8 +1,8 @@
 (** impty target — typed imperative language.
 
     Two specs share one parser:
-    - [examples/impty/base] — imperative core (arithmetic, conditionals, loops).
-    - [examples/impty/closure] — adds function values and call expressions. *)
+    - [specs/impty/base] — imperative core (arithmetic, conditionals, loops).
+    - [specs/impty/closure] — adds function values and call expressions. *)
 
 let test_base_dir = "spectec/testdata/interp/impty"
 
@@ -27,7 +27,7 @@ let contains_substring s sub =
 
 module Target : Spectec.Target.S = struct
   let name = "impty"
-  let spec_dir = "spectec/examples/impty/base"
+  let spec_dir = "spectec/specs/impty/base"
 
   (* The impty spec is fully self-contained: arithmetic, comparison, boolean,
      and list/map operations are SpecTec primitives or defined in the spec. *)

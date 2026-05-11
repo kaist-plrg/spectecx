@@ -21,10 +21,10 @@
 (rule
  (target p4-old-il-pos.actual)
  (deps
-  (source_tree ../../examples/p4-concrete-old)
-  (source_tree ../../testdata/interp/p4-tests/includes)
-  (source_tree ../../testdata/interp/p4-tests/excludes)
-  (source_tree ../../testdata/interp/p4-tests/tests/p4_16_samples))
+  (source_tree ../../specs/p4-old)
+  (source_tree ../../testdata/interp/p4/p4c/includes)
+  (source_tree ../../testdata/interp/p4/excludes)
+  (source_tree ../../testdata/interp/p4/p4c/p4_16_samples))
  (action
   (with-stdout-to
    %{target}
@@ -34,11 +34,11 @@
      ./main.exe
      --p4-old
      -i
-     ../../../../../spectec/testdata/interp/p4-tests/includes
+     ../../../../../spectec/testdata/interp/p4/p4c/includes
      -e
-     ../../../../../spectec/testdata/interp/p4-tests/excludes
+     ../../../../../spectec/testdata/interp/p4/excludes
      -d
-     ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples)))))
+     ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples)))))
 
 (rule
  (alias p4-old-il-pos)
@@ -51,10 +51,10 @@
 (rule
  (target p4-old-il-neg.actual)
  (deps
-  (source_tree ../../examples/p4-concrete-old)
-  (source_tree ../../testdata/interp/p4-tests/includes)
-  (source_tree ../../testdata/interp/p4-tests/excludes)
-  (source_tree ../../testdata/interp/p4-tests/tests/p4_16_errors))
+  (source_tree ../../specs/p4-old)
+  (source_tree ../../testdata/interp/p4/p4c/includes)
+  (source_tree ../../testdata/interp/p4/excludes)
+  (source_tree ../../testdata/interp/p4/p4c/p4_16_errors))
  (action
   (with-stdout-to
    %{target}
@@ -65,11 +65,11 @@
      --p4-old
      -neg
      -i
-     ../../../../../spectec/testdata/interp/p4-tests/includes
+     ../../../../../spectec/testdata/interp/p4/p4c/includes
      -e
-     ../../../../../spectec/testdata/interp/p4-tests/excludes
+     ../../../../../spectec/testdata/interp/p4/excludes
      -d
-     ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_errors)))))
+     ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors)))))
 
 (rule
  (alias p4-old-il-neg)
@@ -82,10 +82,10 @@
 (rule
  (target p4-old-sl-pos.actual)
  (deps
-  (source_tree ../../examples/p4-concrete-old)
-  (source_tree ../../testdata/interp/p4-tests/includes)
-  (source_tree ../../testdata/interp/p4-tests/excludes)
-  (source_tree ../../testdata/interp/p4-tests/tests/p4_16_samples))
+  (source_tree ../../specs/p4-old)
+  (source_tree ../../testdata/interp/p4/p4c/includes)
+  (source_tree ../../testdata/interp/p4/excludes)
+  (source_tree ../../testdata/interp/p4/p4c/p4_16_samples))
  (action
   (with-stdout-to
    %{target}
@@ -96,11 +96,11 @@
      --p4-old
      --sl
      -i
-     ../../../../../spectec/testdata/interp/p4-tests/includes
+     ../../../../../spectec/testdata/interp/p4/p4c/includes
      -e
-     ../../../../../spectec/testdata/interp/p4-tests/excludes
+     ../../../../../spectec/testdata/interp/p4/excludes
      -d
-     ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples)))))
+     ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples)))))
 
 (rule
  (alias p4-old-sl-pos)
@@ -113,10 +113,10 @@
 (rule
  (target p4-old-sl-neg.actual)
  (deps
-  (source_tree ../../examples/p4-concrete-old)
-  (source_tree ../../testdata/interp/p4-tests/includes)
-  (source_tree ../../testdata/interp/p4-tests/excludes)
-  (source_tree ../../testdata/interp/p4-tests/tests/p4_16_errors))
+  (source_tree ../../specs/p4-old)
+  (source_tree ../../testdata/interp/p4/p4c/includes)
+  (source_tree ../../testdata/interp/p4/excludes)
+  (source_tree ../../testdata/interp/p4/p4c/p4_16_errors))
  (action
   (with-stdout-to
    %{target}
@@ -128,11 +128,11 @@
      --sl
      -neg
      -i
-     ../../../../../spectec/testdata/interp/p4-tests/includes
+     ../../../../../spectec/testdata/interp/p4/p4c/includes
      -e
-     ../../../../../spectec/testdata/interp/p4-tests/excludes
+     ../../../../../spectec/testdata/interp/p4/excludes
      -d
-     ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_errors)))))
+     ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors)))))
 
 (rule
  (alias p4-old-sl-neg)
@@ -149,10 +149,10 @@
 (rule
  (target p4-il-pos.actual)
  (deps
-  (source_tree ../../examples/p4-concrete)
-  (source_tree ../../testdata/interp/p4-tests/includes)
-  (source_tree ../../testdata/interp/p4-tests/excludes)
-  (source_tree ../../testdata/interp/p4-tests/tests/p4_16_samples))
+  (source_tree ../../specs/p4)
+  (source_tree ../../testdata/interp/p4/p4c/includes)
+  (source_tree ../../testdata/interp/p4/excludes)
+  (source_tree ../../testdata/interp/p4/p4c/p4_16_samples))
  (action
   (with-stdout-to
    %{target}
@@ -161,11 +161,11 @@
     (run
      ./main.exe
      -i
-     ../../../../../spectec/testdata/interp/p4-tests/includes
+     ../../../../../spectec/testdata/interp/p4/p4c/includes
      -e
-     ../../../../../spectec/testdata/interp/p4-tests/excludes
+     ../../../../../spectec/testdata/interp/p4/excludes
      -d
-     ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples)))))
+     ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples)))))
 
 (rule
  (alias p4-il-pos)
@@ -178,10 +178,10 @@
 (rule
  (target p4-il-neg.actual)
  (deps
-  (source_tree ../../examples/p4-concrete)
-  (source_tree ../../testdata/interp/p4-tests/includes)
-  (source_tree ../../testdata/interp/p4-tests/excludes)
-  (source_tree ../../testdata/interp/p4-tests/tests/p4_16_errors))
+  (source_tree ../../specs/p4)
+  (source_tree ../../testdata/interp/p4/p4c/includes)
+  (source_tree ../../testdata/interp/p4/excludes)
+  (source_tree ../../testdata/interp/p4/p4c/p4_16_errors))
  (action
   (with-stdout-to
    %{target}
@@ -191,11 +191,11 @@
      ./main.exe
      -neg
      -i
-     ../../../../../spectec/testdata/interp/p4-tests/includes
+     ../../../../../spectec/testdata/interp/p4/p4c/includes
      -e
-     ../../../../../spectec/testdata/interp/p4-tests/excludes
+     ../../../../../spectec/testdata/interp/p4/excludes
      -d
-     ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_errors)))))
+     ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors)))))
 
 (rule
  (alias p4-il-neg)
@@ -208,10 +208,10 @@
 (rule
  (target p4-sl-pos.actual)
  (deps
-  (source_tree ../../examples/p4-concrete)
-  (source_tree ../../testdata/interp/p4-tests/includes)
-  (source_tree ../../testdata/interp/p4-tests/excludes)
-  (source_tree ../../testdata/interp/p4-tests/tests/p4_16_samples))
+  (source_tree ../../specs/p4)
+  (source_tree ../../testdata/interp/p4/p4c/includes)
+  (source_tree ../../testdata/interp/p4/excludes)
+  (source_tree ../../testdata/interp/p4/p4c/p4_16_samples))
  (action
   (with-stdout-to
    %{target}
@@ -221,11 +221,11 @@
      ./main.exe
      --sl
      -i
-     ../../../../../spectec/testdata/interp/p4-tests/includes
+     ../../../../../spectec/testdata/interp/p4/p4c/includes
      -e
-     ../../../../../spectec/testdata/interp/p4-tests/excludes
+     ../../../../../spectec/testdata/interp/p4/excludes
      -d
-     ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_samples)))))
+     ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples)))))
 
 (rule
  (alias p4-sl-pos)
@@ -238,10 +238,10 @@
 (rule
  (target p4-sl-neg.actual)
  (deps
-  (source_tree ../../examples/p4-concrete)
-  (source_tree ../../testdata/interp/p4-tests/includes)
-  (source_tree ../../testdata/interp/p4-tests/excludes)
-  (source_tree ../../testdata/interp/p4-tests/tests/p4_16_errors))
+  (source_tree ../../specs/p4)
+  (source_tree ../../testdata/interp/p4/p4c/includes)
+  (source_tree ../../testdata/interp/p4/excludes)
+  (source_tree ../../testdata/interp/p4/p4c/p4_16_errors))
  (action
   (with-stdout-to
    %{target}
@@ -252,11 +252,11 @@
      --sl
      -neg
      -i
-     ../../../../../spectec/testdata/interp/p4-tests/includes
+     ../../../../../spectec/testdata/interp/p4/p4c/includes
      -e
-     ../../../../../spectec/testdata/interp/p4-tests/excludes
+     ../../../../../spectec/testdata/interp/p4/excludes
      -d
-     ../../../../../spectec/testdata/interp/p4-tests/tests/p4_16_errors)))))
+     ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors)))))
 
 (rule
  (alias p4-sl-neg)
@@ -273,7 +273,7 @@
 (rule
  (target impty-base-il-pos.actual)
  (deps
-  (source_tree ../../examples/impty/base)
+  (source_tree ../../specs/impty/base)
   (source_tree ../../testdata/interp/impty/base))
  (action
   (with-stdout-to
@@ -299,7 +299,7 @@
 (rule
  (target impty-base-il-neg.actual)
  (deps
-  (source_tree ../../examples/impty/base)
+  (source_tree ../../specs/impty/base)
   (source_tree ../../testdata/interp/impty/base))
  (action
   (with-stdout-to
@@ -326,7 +326,7 @@
 (rule
  (target impty-base-sl-pos.actual)
  (deps
-  (source_tree ../../examples/impty/base)
+  (source_tree ../../specs/impty/base)
   (source_tree ../../testdata/interp/impty/base))
  (action
   (with-stdout-to
@@ -353,7 +353,7 @@
 (rule
  (target impty-base-sl-neg.actual)
  (deps
-  (source_tree ../../examples/impty/base)
+  (source_tree ../../specs/impty/base)
   (source_tree ../../testdata/interp/impty/base))
  (action
   (with-stdout-to
@@ -385,7 +385,7 @@
 (rule
  (target impty-closure-il-pos.actual)
  (deps
-  (source_tree ../../examples/impty/closure)
+  (source_tree ../../specs/impty/closure)
   (source_tree ../../testdata/interp/impty/base)
   (source_tree ../../testdata/interp/impty/closure))
  (action
@@ -414,7 +414,7 @@
 (rule
  (target impty-closure-il-neg.actual)
  (deps
-  (source_tree ../../examples/impty/closure)
+  (source_tree ../../specs/impty/closure)
   (source_tree ../../testdata/interp/impty/base)
   (source_tree ../../testdata/interp/impty/closure))
  (action
@@ -444,7 +444,7 @@
 (rule
  (target impty-closure-sl-pos.actual)
  (deps
-  (source_tree ../../examples/impty/closure)
+  (source_tree ../../specs/impty/closure)
   (source_tree ../../testdata/interp/impty/base)
   (source_tree ../../testdata/interp/impty/closure))
  (action
@@ -474,7 +474,7 @@
 (rule
  (target impty-closure-sl-neg.actual)
  (deps
-  (source_tree ../../examples/impty/closure)
+  (source_tree ../../specs/impty/closure)
   (source_tree ../../testdata/interp/impty/base)
   (source_tree ../../testdata/interp/impty/closure))
  (action
