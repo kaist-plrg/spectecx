@@ -1,0 +1,6 @@
+;; A relation's input hint references the same position twice.
+
+syntax foo = nat
+
+relation R: foo |- foo
+  hint(input %0 %0)

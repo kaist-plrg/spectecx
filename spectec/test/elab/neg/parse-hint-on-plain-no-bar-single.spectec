@@ -1,0 +1,4 @@
+;; Plain-type alias declared without a leading bar carries a hint, which
+;; is only allowed on variant cases.
+
+syntax foo = nat hint(blah)

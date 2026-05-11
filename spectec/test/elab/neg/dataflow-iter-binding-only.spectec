@@ -1,0 +1,13 @@
+;; An iterated premise's iteration variables are all fresh bindings,
+;; so the iteration's dimension can't be inferred from a prior use.
+
+syntax foo = nat
+
+var x : foo
+
+relation R: foo |- foo
+  hint(input %0)
+
+rule R/foo:
+  0 |- 0
+  -- (if x = 0)*

@@ -1,0 +1,4 @@
+;; A def clause's argument count disagrees with its dec declaration.
+
+dec $f(nat) : nat
+def $f(x, y) = x

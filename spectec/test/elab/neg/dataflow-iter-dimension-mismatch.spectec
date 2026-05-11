@@ -1,0 +1,11 @@
+;; A variable is bound at one iteration depth but used at another.
+
+syntax foo = nat
+
+var x : foo
+
+relation R: foo* |- foo
+  hint(input %0)
+
+rule R/foo:
+  x* |- x

@@ -1,0 +1,4 @@
+;; Triggers ctx/ctx.ml:244 — declaring the same dec twice.
+
+dec $f(nat) : nat
+dec $f(nat) : nat

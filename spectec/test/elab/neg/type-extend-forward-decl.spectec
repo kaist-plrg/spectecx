@@ -1,0 +1,8 @@
+;; A variant tries to inline a forward-declared type as a case before
+;; its body has been given.
+
+syntax incomplete
+
+syntax extendIncomplete =
+  | incomplete
+  | OTHER nat

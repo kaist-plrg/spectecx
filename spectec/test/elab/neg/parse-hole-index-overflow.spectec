@@ -1,0 +1,8 @@
+;; Numeric token `%N` whose value overflows OCaml int (the lexer rule
+;; misnames this case "hex literal" — it triggers from any out-of-range
+;; %-indexed hint hole).
+
+relation R: foo |- foo
+  hint(input %99999999999999999999)
+
+syntax foo = nat

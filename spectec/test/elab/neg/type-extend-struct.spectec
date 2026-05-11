@@ -1,0 +1,8 @@
+;; A variant tries to inline a struct type as a case. Only variant
+;; types are inlinable as variant cases.
+
+syntax myStruct = { X nat }
+
+syntax extendStruct =
+  | myStruct
+  | OTHER nat

@@ -1,0 +1,4 @@
+;; Triggers elaborate.ml:1481 — defining a syntax body twice.
+
+syntax foo = nat
+syntax foo = int

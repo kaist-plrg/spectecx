@@ -1,0 +1,9 @@
+  $ ./main.exe parse-unclosed-block-comment.spectec 2>&1
+  error: unclosed comment
+    --> parse-unclosed-block-comment.spectec:3:1
+    |
+  3 | (; this never closes
+    | ^^^^^^^^^^^^^^^^^^^^
+    | ...
+    = source: parse
+  [1]

@@ -1,0 +1,10 @@
+;; Pass a function with 1 value parameter where a function with 2 value
+;; parameters is expected (type-parameter counts both zero, so the
+;; tparam check passes and the param check fires).
+
+dec $g(nat) : nat
+
+dec $caller(def $h(nat, nat) : nat) : nat
+
+dec $bad : nat
+def $bad = $caller(def $g)

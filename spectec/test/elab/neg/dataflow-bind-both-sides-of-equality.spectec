@@ -1,0 +1,14 @@
+;; An if-premise asserts equality between two expressions, both of
+;; which contain only unbound variables.
+
+syntax foo = nat
+
+var x : foo
+var y : foo
+
+relation R: foo |- foo
+  hint(input %0)
+
+rule R/eq:
+  0 |- 0
+  -- if x = y

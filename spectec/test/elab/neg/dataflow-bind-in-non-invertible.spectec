@@ -1,0 +1,13 @@
+;; A binding identifier appears inside a non-invertible operator
+;; (unary minus), where it cannot be solved for during inversion.
+
+syntax foo = int
+
+var x : foo
+
+relation R: foo |- foo
+  hint(input %0)
+
+rule R/neg:
+  0 |- 0
+  -- if -x = 5

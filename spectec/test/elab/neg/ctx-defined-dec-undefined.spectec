@@ -1,0 +1,3 @@
+;; Triggers ctx/ctx.ml:153 — a def clause with no preceding dec declaration.
+
+def $missing(n) = n

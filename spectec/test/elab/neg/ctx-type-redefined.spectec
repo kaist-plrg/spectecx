@@ -1,0 +1,4 @@
+;; Triggers ctx/ctx.ml:207 — forward-declaring the same syntax name twice.
+
+syntax foo
+syntax foo

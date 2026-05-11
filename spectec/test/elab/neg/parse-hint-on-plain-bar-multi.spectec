@@ -1,0 +1,4 @@
+;; Variant body with a leading bar; one of the cases is a plain type
+;; carrying a hint, which is disallowed.
+
+syntax foo = | nat hint(blah) | int

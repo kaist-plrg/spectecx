@@ -1,0 +1,14 @@
+;; A rule's output expression references a variable that no input or
+;; premise ever binds.
+
+syntax val = nat
+syntax exp = nat
+
+var v : val
+var u : val
+
+relation E: exp |- val
+  hint(input %0)
+
+rule E/foo:
+  v |- u

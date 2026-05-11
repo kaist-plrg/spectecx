@@ -1,0 +1,9 @@
+;; Triggers ctx/ctx.ml:221 — declaring the same relation twice.
+
+syntax foo = nat
+
+relation R: nat |- foo
+  hint(input %0)
+
+relation R: nat |- foo
+  hint(input %0)

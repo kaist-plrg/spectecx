@@ -1,0 +1,3 @@
+;; A non-ASCII Unicode character appears where a token is expected.
+
+α

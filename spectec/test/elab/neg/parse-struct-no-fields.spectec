@@ -1,0 +1,3 @@
+;; Struct type definition with no fields.
+
+syntax foo = {}
