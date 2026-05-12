@@ -1,8 +1,8 @@
 (** Recursive-descent parser for impty.
 
     Consumes the token stream from {!Lexer} and emits an IL [value] tree shaped
-    to match the surface syntax in [specs/impty/*/spec.spectec]. Precedence
-    is encoded by the call structure of [parse_expr] and friends. *)
+    to match the surface syntax in [specs/impty/*/spec.spectec]. Precedence is
+    encoded by the call structure of [parse_expr] and friends. *)
 
 open Common.Source
 open Lang.Il
