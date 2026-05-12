@@ -16,22 +16,23 @@ let fresh_id (ids : IdSet.t) (id : Id.t) : Id.t =
   in
   fresh_id' id
 
-let rec fresh_var_from_typ (at : region) (typ : Il.typ) :
-    Id.t * Il.typ * Il.iter list =
+let rec fresh_var_from_typ (at : region) (typ : Il.typ) : Il.var =
   match typ.it with
-  | IterT (typ, iter) ->
-      let id, typ, iters = fresh_var_from_typ at typ in
-      (id, typ, iters @ [ iter ])
+  | IterT { typ; iter } ->
+      let var = fresh_var_from_typ at typ in
+      { var with iters = var.iters @ [ iter ] }
   | _ ->
-      let id = Il.Print.string_of_typ typ $ at in
-      (id, typ, [])
+      let varid = Il.Print.string_of_typ typ $ at in
+      { varid; typ; iters = [] }
 
 let fresh_var_from_exp ?(wildcard = false) (ids : IdSet.t) (exp : Il.exp) :
-    Id.t * Il.typ * Il.iter list =
-  let id, typ, iters = fresh_var_from_typ exp.at (exp.note $ exp.at) in
-  let id = if wildcard then "_" ^ id.it $ id.at else id in
-  let id = fresh_id ids id in
-  (id, typ, iters)
+    Il.var =
+  let var = fresh_var_from_typ exp.at (exp.note $ exp.at) in
+  let varid =
+    if wildcard then "_" ^ var.varid.it $ var.varid.at else var.varid
+  in
+  let varid = fresh_id ids varid in
+  { var with varid }
 
 let fresh_id_from_plaintyp ?(wildcard = false) (ids : IdSet.t)
     (plaintyp : El.plaintyp) : Id.t =
@@ -40,15 +41,17 @@ let fresh_id_from_plaintyp ?(wildcard = false) (ids : IdSet.t)
   fresh_id ids id
 
 let fresh_exp_from_typ (ids : IdSet.t) (typ : Il.typ) : Il.exp * IdSet.t =
-  let id_base, typ_base, iters = fresh_var_from_typ typ.at typ in
+  let { Il.varid = id_base; typ = typ_base; iters } =
+    fresh_var_from_typ typ.at typ
+  in
   let id_base = fresh_id ids id_base in
   let ids = IdSet.add id_base ids in
   let exp_base = Il.VarE id_base $$ (typ_base.at, typ_base.it) in
   let exp_match, _ =
     List.fold_left
       (fun (exp_match, iters) iter ->
-        let typ = Il.IterT (exp_match.note $ exp_match.at, iter) in
-        let var = (id_base, typ_base, iters) in
+        let typ = Il.IterT { typ = exp_match.note $ exp_match.at; iter } in
+        let var = { Il.varid = id_base; typ = typ_base; iters } in
         let iterexp = (iter, [ var ]) in
         let exp_match = Il.IterE (exp_match, iterexp) $$ (exp_match.at, typ) in
         (exp_match, iters @ [ iter ]))

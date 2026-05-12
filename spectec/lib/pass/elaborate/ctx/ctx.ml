@@ -230,7 +230,7 @@ let add_typdef (ctx : t) (tid : TId.t) (td : Typdef.t) : t =
 
 let add_tparam (ctx : t) (tparam : tparam) : t =
   let ctx = add_typdef ctx tparam Typdef.Param in
-  add_metavar ctx tparam (Il.VarT (tparam, []) $ tparam.at)
+  add_metavar ctx tparam (Il.VarT { synid = tparam; targs = [] } $ tparam.at)
 
 let add_tparams (ctx : t) (tparams : tparam list) : t =
   List.fold_left add_tparam ctx tparams

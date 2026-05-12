@@ -53,13 +53,13 @@ module M : Instrumentation_api.Handler.S = struct
         List.iter
           (fun def ->
             match def.it with
-            | Il.RelD (id, _, _, rules) ->
+            | Il.RelD { relid = id; rules; _ } ->
                 List.iter
                   (fun rule ->
-                    let rule_id, _, _ = rule.it in
+                    let { Il.ruleid = rule_id; _ } = rule.it in
                     State.all_rules := (id.it, rule_id.it) :: !State.all_rules)
                   rules
-            | Il.DecD (id, _, _, _, clauses) ->
+            | Il.DecD { defid = id; clauses; _ } ->
                 List.iteri
                   (fun idx _ ->
                     State.all_clauses := (id.it, idx) :: !State.all_clauses)

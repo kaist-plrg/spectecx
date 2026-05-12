@@ -28,13 +28,13 @@ let union (occurs_a : VEnv.t) (occurs_b : VEnv.t) : VEnv.t =
     occurs_a occurs_b
 
 let collect_itervars (bounds : VEnv.t) (occurs : VEnv.t) (iter : iter) :
-    (id * typ * iter list) list =
+    var list =
   occurs |> VEnv.bindings
   |> List.filter_map (fun (id, typ) ->
          let typ_expect = VEnv.find id bounds in
          if Typ.sub (Typ.add_iter iter typ) typ_expect then
            let typ, iters = typ in
-           Some (id, typ, iters)
+           Some { varid = id; typ; iters }
          else None)
 
 (* Expression *)
@@ -170,8 +170,8 @@ let rec annotate_exp (bounds : VEnv.t) (exp : exp) : VEnv.t * exp =
           let exp = IterE (exp, (iter, itervars)) $$ (at, note) in
           let occurs =
             List.fold_left
-              (fun occurs (id, typ, iters) ->
-                VEnv.add id (typ, iters @ [ iter ]) occurs)
+              (fun occurs { varid; typ; iters } ->
+                VEnv.add varid (typ, iters @ [ iter ]) occurs)
               occurs itervars
           in
           (occurs, exp))
@@ -237,27 +237,27 @@ and annotate_prem (binds : VEnv.t) (bounds : VEnv.t) (prem : prem) :
     VEnv.t * prem =
   let at = prem.at in
   match prem.it with
-  | RulePr (id, notexp) ->
+  | RulePr { relid = id; notexp } ->
       let mixop, exps = Mixop.split notexp in
       let occurs, exps = annotate_exps bounds exps in
       let notexp = Mixop.fill mixop exps in
-      let prem = RulePr (id, notexp) $ at in
+      let prem = RulePr { relid = id; notexp } $ at in
       (occurs, prem)
   | IfPr exp ->
       let occurs, exp = annotate_exp bounds exp in
       let prem = IfPr exp $ at in
       (occurs, prem)
-  | IfHoldPr (id, notexp) ->
+  | IfHoldPr { relid = id; notexp } ->
       let mixop, exps = Mixop.split notexp in
       let occurs, exps = annotate_exps bounds exps in
       let notexp = Mixop.fill mixop exps in
-      let prem = IfHoldPr (id, notexp) $ at in
+      let prem = IfHoldPr { relid = id; notexp } $ at in
       (occurs, prem)
-  | IfNotHoldPr (id, notexp) ->
+  | IfNotHoldPr { relid = id; notexp } ->
       let mixop, exps = Mixop.split notexp in
       let occurs, exps = annotate_exps bounds exps in
       let notexp = Mixop.fill mixop exps in
-      let prem = IfNotHoldPr (id, notexp) $ at in
+      let prem = IfNotHoldPr { relid = id; notexp } $ at in
       (occurs, prem)
   | ElsePr -> (empty, prem)
   | LetPr (exp_l, exp_r) ->
@@ -280,8 +280,8 @@ and annotate_prem (binds : VEnv.t) (bounds : VEnv.t) (prem : prem) :
                already been consumed by surrounding iterations."
       | _
         when List.for_all
-               (fun (id, typ, iters) ->
-                 match VEnv.find_opt id binds with
+               (fun { varid; typ; iters } ->
+                 match VEnv.find_opt varid binds with
                  | Some (typ_bind, iters_bind) ->
                      Typ.sub (typ.it, iters) (typ_bind, iters_bind)
                  | None -> false)
@@ -301,8 +301,8 @@ and annotate_prem (binds : VEnv.t) (bounds : VEnv.t) (prem : prem) :
           let prem = IterPr (prem, (iter, itervars)) $ at in
           let occurs =
             List.fold_left
-              (fun occurs (id, typ, iters) ->
-                VEnv.add id (typ, iters @ [ iter ]) occurs)
+              (fun occurs { varid; typ; iters } ->
+                VEnv.add varid (typ, iters @ [ iter ]) occurs)
               occurs itervars
           in
           (occurs, prem))

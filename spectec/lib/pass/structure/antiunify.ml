@@ -112,10 +112,10 @@ let rec antiunify_exp (frees : IdSet.t) (uenv : UEnv.t) (exp_template : exp)
         let vars_template =
           vars_template @ vars
           |> List.fold_left
-               (fun vars_template (id, typ, iters) ->
-                 match UEnv.find_opt id uenv with
+               (fun vars_template { varid; typ; iters } ->
+                 match UEnv.find_opt varid uenv with
                  | Some id_unifier ->
-                     let var = (id_unifier, typ, iters) in
+                     let var = { varid = id_unifier; typ; iters } in
                      if List.exists (Il.Eq.eq_var var) vars_template then
                        vars_template
                      else vars_template @ [ var ]
@@ -251,9 +251,9 @@ let antiunify_rules (inputs : int list) (rules : rule list) :
   let exps_input_group, exps_output_group, prems_group, frees =
     List.fold_left
       (fun (exps_input_group, exps_output_group, prems_group, frees) rule ->
-        let _, notexp, prems = rule.it in
+        let { concl; prems; _ } = rule.it in
         let exps_input, exps_output =
-          Envs.Hint.split_exps_without_idx inputs (Il.Mixfix.args notexp)
+          Envs.Hint.split_exps_without_idx inputs (Il.Mixfix.args concl)
         in
         let exps_input_group = exps_input_group @ [ exps_input ] in
         let exps_output_group = exps_output_group @ [ exps_output ] in
@@ -282,7 +282,7 @@ let antiunify_clauses (clauses : clause list) :
   let args_input_group, exp_output_group, prems_group, frees =
     List.fold_left
       (fun (args_input_group, exp_output_group, prems_group, frees) clause ->
-        let args_input, exp_output, prems = clause.it in
+        let { args = args_input; body = exp_output; prems } = clause.it in
         let args_input_group = args_input_group @ [ args_input ] in
         let exp_output_group = exp_output_group @ [ exp_output ] in
         let prems_group = prems_group @ [ prems ] in

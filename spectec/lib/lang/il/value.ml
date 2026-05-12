@@ -196,18 +196,18 @@ let case_v ~(var : string) (mixemes : t Mixfix.t) : t =
 
 let id_of_case_v (v : t) : string =
   match (v.it, v.note.typ) with
-  | CaseV _, VarT (id, _) -> id.it
+  | CaseV _, VarT { synid; _ } -> synid.it
   | _ -> failwith "not a case value"
 
 let flatten_case_v (value : t) : string * string list * t list =
   match (value.it, value.note.typ) with
-  | CaseV valuecase, VarT (id, _) ->
+  | CaseV valuecase, VarT { synid; _ } ->
       let shape, values = Mixfix.split valuecase in
       let atoms =
         Mixfix.atoms shape
         |> List.map (fun a -> Xl.Atom.string_of_atom a.Common.Source.it)
       in
-      (id.it, atoms, values)
+      (synid.it, atoms, values)
   | _ -> failwith "Expected a CaseV value"
 
 let flatten_case_v' (value : t) : string * string list * value' list =

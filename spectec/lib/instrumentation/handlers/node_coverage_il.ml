@@ -100,16 +100,16 @@ module M : Instrumentation_api.Handler.S = struct
         List.iter
           (fun def ->
             match def.it with
-            | RelD (_, _, _, rules) ->
+            | RelD { rules; _ } ->
                 List.iter
                   (fun rule ->
-                    let _, _, prems = rule.it in
+                    let ({ prems; _ } : rule') = rule.it in
                     List.iter (fun prem -> count_prem prem) prems)
                   rules
-            | DecD (_, _, _, _, clauses) ->
+            | DecD { clauses; _ } ->
                 List.iter
                   (fun clause ->
-                    let _, _, prems = clause.it in
+                    let { prems; _ } = clause.it in
                     List.iter (fun prem -> count_prem prem) prems)
                   clauses
             | _ -> ())
@@ -203,10 +203,10 @@ module M : Instrumentation_api.Handler.S = struct
       List.iter
         (fun def ->
           match def.it with
-          | RelD (id, _, _, rules) ->
+          | RelD { relid = id; rules; _ } ->
               List.iter
                 (fun rule ->
-                  let rule_id, _, prems = rule.it in
+                  let ({ ruleid = rule_id; prems; _ } : rule') = rule.it in
                   List.iter
                     (fun prem ->
                       if not (Hashtbl.mem State.prems_succeeded (prem_key prem))
@@ -216,10 +216,10 @@ module M : Instrumentation_api.Handler.S = struct
                           :: !uncovered)
                     prems)
                 rules
-          | DecD (id, _, _, _, clauses) ->
+          | DecD { defid = id; clauses; _ } ->
               List.iteri
                 (fun idx clause ->
-                  let _, _, prems = clause.it in
+                  let { prems; _ } = clause.it in
                   List.iter
                     (fun prem ->
                       if not (Hashtbl.mem State.prems_succeeded (prem_key prem))
@@ -290,24 +290,24 @@ module M : Instrumentation_api.Handler.S = struct
     List.iter
       (fun def ->
         match def.it with
-        | RelD (id, _, _, rules) ->
+        | RelD { relid = id; rules; _ } ->
             Format.fprintf !fmt "\nrelation %s:\n" id.it;
             List.iter
               (fun rule ->
-                let rule_id, notexp, prems = rule.it in
+                let ({ ruleid = rule_id; concl; prems; _ } : rule') = rule.it in
                 let result_str =
-                  Print.string_of_notexp notexp |> normalize_whitespace
+                  Print.string_of_notexp concl |> normalize_whitespace
                 in
                 Format.fprintf !fmt "      rule %s:\n" rule_id.it;
                 print_prems "    " result_str prems)
               rules
-        | DecD (id, _, _, _, clauses) ->
+        | DecD { defid = id; clauses; _ } ->
             Format.fprintf !fmt "\ndef $%s:\n" id.it;
             List.iteri
               (fun idx clause ->
-                let _, exp, prems = clause.it in
+                let { body; prems; _ } = clause.it in
                 let result_str =
-                  Print.string_of_exp exp |> normalize_whitespace
+                  Print.string_of_exp body |> normalize_whitespace
                 in
                 Format.fprintf !fmt "      clause %d:\n" idx;
                 print_prems "    " result_str prems)

@@ -6,10 +6,7 @@ module Fresh : sig
     Common.Domain.IdSet.t -> Common.Domain.Id.t -> Common.Domain.Id.t
 
   val fresh_var_from_exp :
-    ?wildcard:bool ->
-    Common.Domain.IdSet.t ->
-    Lang.Il.exp ->
-    Common.Domain.Id.t * Lang.Il.typ * Lang.Il.iter list
+    ?wildcard:bool -> Common.Domain.IdSet.t -> Lang.Il.exp -> Lang.Il.var
 
   val fresh_exp_from_typ :
     Common.Domain.IdSet.t -> Lang.Il.typ -> Lang.Il.exp * Common.Domain.IdSet.t

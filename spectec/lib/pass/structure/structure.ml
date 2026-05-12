@@ -29,7 +29,7 @@ and struct_prems' (prems_internalized : (prem * iterexp list) list)
   | (prem_h, iterexps_h) :: prems_internalized_t -> (
       let at = prem_h.at in
       match prem_h.it with
-      | RulePr (id, notexp) ->
+      | RulePr { relid = id; notexp } ->
           let instrs_t = struct_prems' prems_internalized_t instr_ret in
           let instr_h = Ol.Ast.RuleI (id, notexp, iterexps_h, instrs_t) $ at in
           [ instr_h ]
@@ -37,13 +37,13 @@ and struct_prems' (prems_internalized : (prem * iterexp list) list)
           let instrs_t = struct_prems' prems_internalized_t instr_ret in
           let instr_h = Ol.Ast.IfI (exp, iterexps_h, instrs_t) $ at in
           [ instr_h ]
-      | IfHoldPr (id, notexp) ->
+      | IfHoldPr { relid = id; notexp } ->
           let instrs_t = struct_prems' prems_internalized_t instr_ret in
           let instr_h =
             Ol.Ast.IfHoldI (id, notexp, iterexps_h, instrs_t) $ at
           in
           [ instr_h ]
-      | IfNotHoldPr (id, notexp) ->
+      | IfNotHoldPr { relid = id; notexp } ->
           let instrs_t = struct_prems' prems_internalized_t instr_ret in
           let instr_h =
             Ol.Ast.IfNotHoldI (id, notexp, iterexps_h, instrs_t) $ at
@@ -119,12 +119,12 @@ let struct_clause_path ((prems, exp_output) : prem list * exp) :
 let rec struct_def (henv : HEnv.t) (tdenv : TDEnv.t) (def : def) : Sl.def =
   let at = def.at in
   match def.it with
-  | TypD (id, tparams, deftyp) -> Sl.TypD (id, tparams, deftyp) $ at
-  | RelD (id, nottyp, inputs, rules) ->
-      struct_rel_def henv tdenv at id nottyp inputs rules
-  | BuiltinDecD (id, tparams, params, _typ, _hints) ->
+  | TypD { synid = id; tparams; deftyp } -> Sl.TypD (id, tparams, deftyp) $ at
+  | RelD { relid = id; notation; inputs; rules } ->
+      struct_rel_def henv tdenv at id notation inputs rules
+  | BuiltinDecD { defid = id; tparams; params; _ } ->
       struct_builtin_dec_def at id tparams params
-  | DecD (id, tparams, _params, _typ, clauses) ->
+  | DecD { defid = id; tparams; clauses; _ } ->
       struct_dec_def henv tdenv at id tparams clauses
 
 (* Structuring relation definitions *)
@@ -160,7 +160,7 @@ and struct_builtin_dec_def (at : region) (id_dec : id) (tparams : tparam list)
               in
               let arg_input = ExpA exp_input $ param.at in
               (arg_input, frees)
-          | DefP (id_def, _, _, _) ->
+          | DefP { defid = id_def; _ } ->
               let arg_input = DefA id_def $ param.at in
               (arg_input, frees)
         in
@@ -191,11 +191,11 @@ and struct_dec_def (henv : HEnv.t) (tdenv : TDEnv.t) (at : region) (id_dec : id)
 
 let load_def (henv : HEnv.t) (tdenv : TDEnv.t) (def : def) : HEnv.t * TDEnv.t =
   match def.it with
-  | TypD (id, tparams, deftyp) ->
+  | TypD { synid = id; tparams; deftyp } ->
       let typdef = (tparams, deftyp) in
       let tdenv = TDEnv.add id typdef tdenv in
       (henv, tdenv)
-  | RelD (id, _, inputs, _) ->
+  | RelD { relid = id; inputs; _ } ->
       let henv = HEnv.add id inputs henv in
       (henv, tdenv)
   | _ -> (henv, tdenv)

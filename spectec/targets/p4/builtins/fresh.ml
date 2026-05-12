@@ -16,7 +16,7 @@ end
 let fresh_tid ~at : Value.t result =
   at |> ignore;
   let tid = GlobalTidProvider.fresh () in
-  let typ = VarT ("tid" $ no_region, []) in
+  let typ = VarT { synid = "tid" $ no_region; targs = [] } in
   Ok (Il.Value.Make.text typ tid)
 
 let builtins = [ ("fresh_typeId", Define.T0.a0 fresh_tid) ]

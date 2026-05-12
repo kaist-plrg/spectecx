@@ -39,7 +39,7 @@ let rec assign_exp (ctx : Ctx.t) (exp : exp) (value : value) : Ctx.t =
       (* Per iterated variable, make an option out of the value *)
       let bindings =
         List.map
-          (fun (id, typ, iters) ->
+          (fun { varid = id; typ; iters } ->
             let value_sub =
               let typ = Lang.Il.Typ.iterate typ (iters @ [ Opt ]) in
               None |> Value.Make.opt typ.it
@@ -54,7 +54,7 @@ let rec assign_exp (ctx : Ctx.t) (exp : exp) (value : value) : Ctx.t =
       (* Per iterated variable, make an option out of the value *)
       let bindings =
         List.map
-          (fun (id, typ, iters) ->
+          (fun { varid = id; typ; iters } ->
             let value_sub =
               let value = Ctx.find_value ctx (id, iters) in
               let typ = Lang.Il.Typ.iterate typ (iters @ [ Opt ]) in
@@ -80,7 +80,7 @@ let rec assign_exp (ctx : Ctx.t) (exp : exp) (value : value) : Ctx.t =
       (* Per iterated variable, collect its elementwise value,
          then make a sequence out of them *)
       List.fold_left
-        (fun ctx (id, typ, iters) ->
+        (fun ctx { varid = id; typ; iters } ->
           let values =
             List.map (fun ctx -> Ctx.find_value ctx (id, iters)) ctxs
           in
@@ -157,7 +157,7 @@ let rec upcast (ctx : Ctx.t) (typ : typ) (value : value) : value =
       | NumV (`Nat n) -> Value.int n
       | NumV (`Int _) -> value
       | _ -> assert false)
-  | VarT (tid, targs) -> (
+  | VarT { synid = tid; targs } -> (
       let tparams, deftyp = Ctx.find_typdef ctx tid in
       let theta = List.combine tparams targs |> TIdMap.of_list in
       match deftyp.it with
@@ -186,7 +186,7 @@ let rec downcast (ctx : Ctx.t) (typ : typ) (value : value) : value =
       | NumV (`Nat _) -> value
       | NumV (`Int i) when Bigint.(i >= zero) -> Value.nat i
       | _ -> assert false)
-  | VarT (tid, targs) -> (
+  | VarT { synid = tid; targs } -> (
       let tparams, deftyp = Ctx.find_typdef ctx tid in
       let theta = List.combine tparams targs |> TIdMap.of_list in
       match deftyp.it with
@@ -218,7 +218,7 @@ let rec subtyp (ctx : Ctx.t) (typ : typ) (value : value) : bool =
       | _ -> false)
   | NumT `IntT -> ( match value.it with NumV _ -> true | _ -> false)
   | TextT -> ( match value.it with TextV _ -> true | _ -> false)
-  | VarT (tid, targs) -> (
+  | VarT { synid = tid; targs } -> (
       let tparams, deftyp = Ctx.find_typdef ctx tid in
       let theta = List.combine tparams targs |> TIdMap.of_list in
       match (deftyp.it, value.it) with
@@ -228,7 +228,7 @@ let rec subtyp (ctx : Ctx.t) (typ : typ) (value : value) : bool =
       | VariantT typcases, CaseV valuecase ->
           List.exists
             (fun typcase ->
-              let nottyp, _, _ = typcase in
+              let { notation = nottyp; _ } = typcase in
               Mixfix.eq_mixop nottyp.it valuecase
               && subtyps ctx
                    (List.map (Typ.subst_typ theta) (Mixfix.args nottyp.it))
@@ -241,14 +241,14 @@ let rec subtyp (ctx : Ctx.t) (typ : typ) (value : value) : bool =
           List.length typs = List.length values
           && List.for_all2 (subtyp ctx) typs values
       | _ -> false)
-  | IterT (typ_inner, Opt) -> (
+  | IterT { typ = typ_inner; iter = Opt } -> (
       match value.it with
       | OptV value_opt -> (
           match value_opt with
           | Some value_inner -> subtyp ctx typ_inner value_inner
           | None -> true)
       | _ -> false)
-  | IterT (typ_inner, List) -> (
+  | IterT { typ = typ_inner; iter = List } -> (
       match value.it with
       | ListV values -> List.for_all (subtyp ctx typ_inner) values
       | _ -> false)
@@ -924,10 +924,10 @@ and eval_prem (ctx : Ctx.t) (prem : prem) : Ctx.t attempt =
       Instrumentation.Dispatcher.emit (Events.Prem_enter { prem; at = prem.at }));
   let result =
     match prem.it with
-    | RulePr (id, notexp) -> eval_rule_prem ctx id notexp
+    | RulePr { relid; notexp } -> eval_rule_prem ctx relid notexp
     | IfPr exp_cond -> eval_if_prem ctx exp_cond
-    | IfHoldPr (id, notexp) -> eval_if_hold_prem ctx id notexp
-    | IfNotHoldPr (id, notexp) -> eval_if_not_hold_prem ctx id notexp
+    | IfHoldPr { relid; notexp } -> eval_if_hold_prem ctx relid notexp
+    | IfNotHoldPr { relid; notexp } -> eval_if_not_hold_prem ctx relid notexp
     | ElsePr -> Ok ctx
     | LetPr (exp_l, exp_r) -> eval_let_prem ctx exp_l exp_r
     | IterPr (prem, iterexp) -> eval_iter_prem ctx prem iterexp
@@ -954,7 +954,7 @@ and eval_iter_prem_list (ctx : Ctx.t) (prem : prem) (vars : var list) :
   (* Discriminate between bound and binding variables *)
   let vars_bound, vars_binding =
     List.partition
-      (fun (id, _typ, iters) -> Ctx.bound_value ctx (id, iters @ [ List ]))
+      (fun { varid; iters; _ } -> Ctx.bound_value ctx (varid, iters @ [ List ]))
       vars
   in
   (* Create a subcontext for each batch of bound values *)
@@ -982,7 +982,7 @@ and eval_iter_prem_list (ctx : Ctx.t) (prem : prem) (vars : var list) :
                 (Events.Iter_prem_exit { at = prem.at });
               let value_binding_batch =
                 List.map
-                  (fun (id_binding, _typ_binding, iters_binding) ->
+                  (fun { varid = id_binding; iters = iters_binding; _ } ->
                     Ctx.find_value ctx_sub (id_binding, iters_binding))
                   vars_binding
               in
@@ -1001,7 +1001,8 @@ and eval_iter_prem_list (ctx : Ctx.t) (prem : prem) (vars : var list) :
   (* Finally, bind the resulting binding batches *)
   let bindings =
     List.map2
-      (fun (id_binding, typ_binding, iters_binding) values_binding ->
+      (fun { varid = id_binding; typ = typ_binding; iters = iters_binding }
+           values_binding ->
         let value_binding =
           let typ =
             Lang.Il.Typ.iterate typ_binding (iters_binding @ [ List ])
@@ -1021,7 +1022,8 @@ and eval_iter_prem (ctx : Ctx.t) (prem : prem) (iterexp : iterexp) :
     (* Discriminate between bound and binding variables *)
     let vars_bound, vars_binding =
       List.partition
-        (fun (id, _typ, iters) -> Ctx.bound_value ctx (id, iters @ [ List ]))
+        (fun { varid; iters; _ } ->
+          Ctx.bound_value ctx (varid, iters @ [ List ]))
         vars
     in
     (* Create a subcontext for each batch of bound values *)
@@ -1050,7 +1052,7 @@ and eval_iter_prem (ctx : Ctx.t) (prem : prem) (iterexp : iterexp) :
                   (Events.Iter_prem_exit { at = prem.at });
                 let value_binding_batch =
                   List.map
-                    (fun (id_binding, _typ_binding, iters_binding) ->
+                    (fun { varid = id_binding; iters = iters_binding; _ } ->
                       Ctx.find_value ctx_sub (id_binding, iters_binding))
                     vars_binding
                 in
@@ -1069,7 +1071,9 @@ and eval_iter_prem (ctx : Ctx.t) (prem : prem) (iterexp : iterexp) :
     (* Finally, bind the resulting binding batches *)
     let ctx =
       List.fold_left2
-        (fun ctx (id_binding, typ_binding, iters_binding) values_binding ->
+        (fun ctx
+             { varid = id_binding; typ = typ_binding; iters = iters_binding }
+             values_binding ->
           let value_binding =
             let typ =
               Lang.Il.Typ.iterate typ_binding (iters_binding @ [ List ])
@@ -1094,9 +1098,9 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
     (Events.Rel_enter { id = id.it; at = id.at; inputs = values_input });
   (* Rule matching *)
   let match_rule ctx inputs rule values_input =
-    let _, notexp, prems = rule.it in
+    let { concl; prems; _ } = rule.it in
     let exps_input, exps_output =
-      Hint.split_exps_without_idx inputs (Mixfix.args notexp)
+      Hint.split_exps_without_idx inputs (Mixfix.args concl)
     in
     check
       (List.length exps_input = List.length values_input)
@@ -1114,7 +1118,7 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
       let attempt_rules' =
         List.map
           (fun rule ->
-            let id_rule, _, _ = rule.it in
+            let { ruleid = id_rule; _ } = rule.it in
             let attempt_rule' (ctx_local : Ctx.t) (prems : prem list)
                 (exps_output : exp list) : (Ctx.t * value list) attempt =
               let* ctx_local = eval_prems ctx_local prems in
@@ -1177,7 +1181,7 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     (Events.Func_enter { id = id.it; at = id.at; inputs = values_input });
   (* Clause matching *)
   let match_clause ctx_caller ctx_callee clause values_input =
-    let args_input, exp_output, prems = clause.it in
+    let { args = args_input; body = exp_output; prems } = clause.it in
     check
       (List.length args_input = List.length values_input)
       clause.at "arity mismatch while matching clause";
@@ -1332,14 +1336,14 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
 
 let load_def (l : Ctx.global_loader) (def : def) : unit =
   match def.it with
-  | TypD (id, tparams, deftyp) ->
+  | TypD { synid = id; tparams; deftyp } ->
       let typdef = (tparams, deftyp) in
       Ctx.load_typdef l id typdef
-  | RelD (id, _, inputs, rules) ->
+  | RelD { relid = id; inputs; rules; _ } ->
       let rel = (inputs, rules) in
       Ctx.load_rel l id rel
-  | BuiltinDecD (id, _, _, _, _) -> Ctx.load_func l id Ctx.Func.Builtin
-  | DecD (id, tparams, _, _, clauses) ->
+  | BuiltinDecD { defid = id; _ } -> Ctx.load_func l id Ctx.Func.Builtin
+  | DecD { defid = id; tparams; clauses; _ } ->
       let func = Ctx.Func.Defined (tparams, clauses) in
       Ctx.load_func l id func
 

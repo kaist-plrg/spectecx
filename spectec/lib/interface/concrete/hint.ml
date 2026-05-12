@@ -9,7 +9,7 @@ let hintid = "print"
 (* Types *)
 
 let hints_of_typcase hmap (id : id) (typcase : typcase) : hmap =
-  let nottyp, _, hints = typcase in
+  let { notation = nottyp; hints; _ } = typcase in
   match List.find_opt (fun hint -> hint.hintid.it = hintid) hints with
   | Some hint ->
       let hint = (nottyp, hint.hintexp) in
@@ -34,7 +34,7 @@ let hints_of_deftyp hmap (id : id) (deftyp : deftyp) : hmap =
 
 let hints_of_def hmap (def : def) : hmap =
   match def.it with
-  | TypD (id, _, deftyp) -> hints_of_deftyp hmap id deftyp
+  | TypD { synid = id; deftyp; _ } -> hints_of_deftyp hmap id deftyp
   | _ -> hmap
 
 (* Spec *)

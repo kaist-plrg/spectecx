@@ -75,16 +75,16 @@ let init spec =
       List.iter
         (fun def ->
           match def.it with
-          | Il.RelD (_, _, _, rules) ->
+          | Il.RelD { rules; _ } ->
               List.iter
                 (fun rule ->
-                  let _, _, prems = rule.it in
+                  let ({ Il.prems; _ } : Il.rule') = rule.it in
                   List.iter (fun prem -> assign_premise_uid prem) prems)
                 rules
-          | Il.DecD (_, _, _, _, clauses) ->
+          | Il.DecD { clauses; _ } ->
               List.iter
                 (fun clause ->
-                  let _, _, prems = clause.it in
+                  let ({ Il.prems; _ } : Il.clause') = clause.it in
                   List.iter (fun prem -> assign_premise_uid prem) prems)
                 clauses
           | _ -> ())

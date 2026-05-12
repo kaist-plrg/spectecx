@@ -210,7 +210,7 @@ module Bind = struct
     let iterexps =
       List.map
         (fun (iter, vars) ->
-          let vars = List.filter (fun (id, _, _) -> IdSet.mem id ids) vars in
+          let vars = List.filter (fun var -> IdSet.mem var.Il.varid ids) vars in
           (iter, vars))
         iterexps
     in
@@ -581,14 +581,15 @@ let guard_as_exp (exp_target : exp) (guard : guard) : exp =
 
 let rec typ_as_variant (tdenv : TDEnv.t) (typ : typ) : mixop list option =
   match typ.it with
-  | VarT (tid, _) -> (
+  | VarT { synid = tid; _ } -> (
       let _, deftyp = TDEnv.find tid tdenv in
       match deftyp.it with
       | PlainT typ -> typ_as_variant tdenv typ
       | VariantT typcases ->
           let mixops =
             typcases
-            |> List.map (fun (nottyp, _, _) -> Il.Mixfix.to_mixop nottyp.it)
+            |> List.map (fun { Il.notation; _ } ->
+                   Il.Mixfix.to_mixop notation.it)
           in
           Some mixops
       | _ -> None)

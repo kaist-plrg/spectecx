@@ -69,10 +69,10 @@ and free_args (args : arg list) : t =
 
 let rec free_prem (prem : prem) : t =
   match prem.it with
-  | RulePr (_, notexp) -> free_exps (Mixfix.args notexp)
+  | RulePr { notexp; _ } -> free_exps (Mixfix.args notexp)
   | IfPr exp -> free_exp exp
-  | IfHoldPr (_, notexp) -> free_exps (Mixfix.args notexp)
-  | IfNotHoldPr (_, notexp) -> free_exps (Mixfix.args notexp)
+  | IfHoldPr { notexp; _ } -> free_exps (Mixfix.args notexp)
+  | IfNotHoldPr { notexp; _ } -> free_exps (Mixfix.args notexp)
   | LetPr (exp_l, exp_r) -> free_exp exp_l + free_exp exp_r
   | ElsePr -> empty
   | IterPr (prem, _) -> free_prem prem
@@ -84,21 +84,21 @@ and free_prems (prems : prem list) : t =
 (* Definitions *)
 
 let free_rule (rule : rule) : t =
-  let _, notexp, prems = rule.it in
-  free_exps (Mixfix.args notexp) + free_prems prems
+  let { concl; prems; _ } = rule.it in
+  free_exps (Mixfix.args concl) + free_prems prems
 
 let free_rules (rules : rule list) : t =
   rules |> List.map free_rule |> List.fold_left ( + ) empty
 
 let free_clause (clause : clause) : t =
-  let args, exp, prems = clause.it in
-  free_args args + free_exp exp + free_prems prems
+  let { args; body; prems } = clause.it in
+  free_args args + free_exp body + free_prems prems
 
 let free_clauses (clauses : clause list) : t =
   clauses |> List.map free_clause |> List.fold_left ( + ) empty
 
 let free_def (def : def) : t =
   match def.it with
-  | RelD (_, _, _, rules) -> free_rules rules
-  | DecD (_, _, _, _, clauses) -> free_clauses clauses
+  | RelD { rules; _ } -> free_rules rules
+  | DecD { clauses; _ } -> free_clauses clauses
   | _ -> empty
