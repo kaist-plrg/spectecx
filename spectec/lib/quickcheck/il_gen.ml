@@ -126,14 +126,6 @@ let shrink (spec : spec) =
   let rec shrink (v : Value.t) : Value.t list =
     let t = v.note.typ in
     match v.it with
-    | TextV s ->
-      if String.length s <= 1 then []
-      else
-        let n = String.length s in
-        Value.make_val t (TextV "") ::
-        List.init (n - 1) (fun i ->
-          let s' = String.sub s 0 i ^ String.sub s (i + 1) (n - i - 1) in
-          Value.make_val t (TextV s'))
     | ListV vs ->
       let n = List.length vs in
       if n = 0 then []
