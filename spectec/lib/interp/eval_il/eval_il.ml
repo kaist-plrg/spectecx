@@ -3,6 +3,8 @@ module F = Format
 open Attempt
 open Common.Source
 
+exception StepLimitExceeded = Error.StepLimitExceeded
+
 let run_relation (filename : string) (builtins : Builtins.t) (cache : Cache.t)
     (spec : spec) (rid : id') (values : value list) : Ctx.t * value list =
   let ctx = Interp.load_spec filename builtins cache spec in
@@ -17,8 +19,8 @@ let run_relation_fresh (filename : string) (builtins : Builtins.t)
 
 type error = region * string
 
-let run (module T : Target.S) (spec : spec) (rid : string) (values : value list)
-    (filename : string) : (Ctx.t * value list, error) result =
+let run (module T : Target.S) (spec : spec) (rid : string)
+    (values : value list) (filename : string) : (Ctx.t * value list, error) result =
   let builtins = Builtins.make T.builtins in
   let cache =
     Cache.make ~is_impure_func:T.is_impure_func ~is_impure_rel:T.is_impure_rel
@@ -35,3 +37,5 @@ let error_to_diagnostic ((at, msg) : error) : Diagnostic.t =
   Diagnostic.error ~source:"il-interp" at msg
 
 module Ctx = Ctx
+
+let step_hook = Interp.step_hook

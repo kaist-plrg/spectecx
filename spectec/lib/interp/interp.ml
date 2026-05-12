@@ -5,6 +5,8 @@ type error = EvalIlError of Eval_il.error | EvalSlError of Eval_sl.error
 type ctx_il = Eval_il.Ctx.t
 type ctx_sl = Eval_sl.Ctx.t
 
+exception StepLimitExceeded = Eval_il.StepLimitExceeded
+
 let error_to_string = function
   | EvalIlError e -> Eval_il.error_to_string e
   | EvalSlError e -> Eval_sl.error_to_string e

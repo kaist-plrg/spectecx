@@ -20,5 +20,12 @@ module Fresh : sig
 end
 
 val elab_spec : Lang.El.spec -> Lang.Il.spec result
+
+val elab_prems_in_spec :
+  Lang.Il.spec ->
+  (Lang.El.id * Lang.El.plaintyp) list ->
+  Lang.El.prem list ->
+  (Lang.Il.prem list * (Lang.Il.id' * Lang.Il.typ) list) result
+
 val error_to_string : error -> string
 val error_to_diagnostics : error -> Diagnostic.Bag.t
