@@ -1537,10 +1537,9 @@ let rec elab_def (ctx : Ctx.t) (def : def) : Ctx.t * Il.def option =
 and elab_syn_def (ctx : Ctx.t) (syns : (id * tparam list) list) : Ctx.t =
   List.fold_left
     (fun ctx (id, tparams) ->
-      check
-        (List.map it tparams |> distinct ( = ))
-        id.at "type parameters are not distinct";
-      check (valid_tid id) id.at "invalid type identifier";
+      (* Invariant: EL parser only emits synid with empty tparams. *)
+      assert (tparams = []);
+      check (valid_tid id) id.at "invalid type identifier" ~code:Syn_invalid_id;
       let td = Typdef.Defining tparams in
       let ctx = Ctx.add_typdef ctx id td in
       if tparams = [] then
@@ -1773,7 +1772,9 @@ let populate_rule (ctx : Ctx.t) (def_il : Il.def) : Il.def =
   | Il.RelD (id, nottyp_il, inputs, []) ->
       let rules_il = Ctx.find_rules ctx id in
       Il.RelD (id, nottyp_il, inputs, rules_il) $ def_il.at
-  | Il.RelD _ -> error def_il.at "relation was already populated"
+  | Il.RelD _ ->
+      (* unreachable: elab_rel_def constructs RelD only with []. *)
+      assert false
   | _ -> def_il
 
 let populate_rules (ctx : Ctx.t) (spec_il : Il.spec) : Il.spec =
@@ -1795,7 +1796,9 @@ let populate_clause (ctx : Ctx.t) (def_il : Il.def) : Il.def =
   | Il.DecD (id, tparams_il, params_il, typ_il, []) ->
       let _, _, _, clauses_il = Ctx.find_defined_dec ctx id in
       Il.DecD (id, tparams_il, params_il, typ_il, clauses_il) $ def_il.at
-  | Il.DecD _ -> error def_il.at "declaration was already populated"
+  | Il.DecD _ ->
+      (* unreachable: elab_dec_def constructs DecD only with []. *)
+      assert false
   | _ -> def_il
 
 let populate_clauses (ctx : Ctx.t) (spec_il : Il.spec) : Il.spec =

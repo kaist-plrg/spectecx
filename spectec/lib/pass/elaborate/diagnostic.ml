@@ -18,7 +18,6 @@ type code =
   | Funarg_expected_exp_got_fun
   | Funarg_expected_fun_got_exp
   | Funparam_tparam_not_distinct
-  | Syn_tparam_not_distinct
   | Builtin_dec_tparam_not_distinct
   | Dec_tparam_not_distinct
   | Typ_tparam_mismatch
@@ -87,7 +86,6 @@ let string_of_code = function
   | Funarg_expected_exp_got_fun -> "funarg-expected-exp-got-fun"
   | Funarg_expected_fun_got_exp -> "funarg-expected-fun-got-exp"
   | Funparam_tparam_not_distinct -> "funparam-tparam-not-distinct"
-  | Syn_tparam_not_distinct -> "syn-tparam-not-distinct"
   | Builtin_dec_tparam_not_distinct -> "builtin-dec-tparam-not-distinct"
   | Dec_tparam_not_distinct -> "dec-tparam-not-distinct"
   | Typ_tparam_mismatch -> "typ-tparam-mismatch"

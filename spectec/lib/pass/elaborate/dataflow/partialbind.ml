@@ -2,7 +2,6 @@ open Common.Domain
 open Common.Source
 open Lang.Il
 open Envs.Make
-open Diagnostic
 open Ctx
 module Mixop = Lang.Il.Mixfix
 
@@ -274,12 +273,7 @@ and rename_exp_bind (dctx : Dctx.t) (binds : IdSet.t) (renv : REnv.t)
       let dctx, renv, exp_t = rename_exp dctx binds renv exp_t in
       let exp_renamed = ConsE (exp_h, exp_t) $$ (at, note) in
       rename_exp_bind_match dctx renv (ListP `Cons) exp_renamed
-  | IterE (_, ((_, _ :: _) as iterexp)) ->
-      error at
-        (Format.asprintf
-           "iterated expression should initially have no annotations, but got \
-            %s"
-           (Il.Print.string_of_iterexp iterexp))
+  | IterE (_, (_, _ :: _)) -> assert false
   | IterE (exp, (iter, [])) ->
       let renv_pre = renv in
       let dctx, renv_post, exp = rename_exp dctx binds renv_pre exp in

@@ -39,7 +39,6 @@ type code =
   | Funarg_expected_exp_got_fun
   | Funarg_expected_fun_got_exp
   | Funparam_tparam_not_distinct
-  | Syn_tparam_not_distinct
   | Builtin_dec_tparam_not_distinct
   | Dec_tparam_not_distinct
   | Typ_tparam_mismatch

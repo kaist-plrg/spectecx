@@ -108,12 +108,9 @@ let rec analyze_prem (dctx : Dctx.t) (prem : prem) :
   | IfNotHoldPr (id, notexp) -> analyze_if_not_hold_prem dctx prem.at id notexp
   | ElsePr -> (dctx, VEnv.empty, prem, [])
   | LetPr _ ->
-      error prem.at "let premise should appear only after bind analysis"
-  | IterPr (_, ((_, _ :: _) as iterexp)) ->
-      error prem.at
-        (Format.asprintf
-           "iterated premise should initially have no annotations, but got %s"
-           (Il.Print.string_of_iterexp iterexp))
+      (* unreachable: analyze_let_prem produces LetPr within this pass. *)
+      assert false
+  | IterPr (_, (_, _ :: _)) -> assert false
   | IterPr (prem, (iter, [])) -> analyze_iter_prem dctx prem.at prem iter
   | DebugPr exp -> analyze_debug_prem dctx prem.at exp
 

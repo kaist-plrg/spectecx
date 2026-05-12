@@ -108,11 +108,6 @@ let bound_typdef (ctx : t) (tid : TId.t) : bool =
 let find_metavar_opt (ctx : t) (tid : TId.t) : Il.typ option =
   MEnv.find_opt tid ctx.menv
 
-let find_metavar (ctx : t) (tid : TId.t) : Il.typ =
-  match find_metavar_opt ctx tid with
-  | Some typ -> typ
-  | None -> error_undef tid.at "meta-variable" tid.it
-
 let bound_metavar (ctx : t) (tid : TId.t) : bool =
   find_metavar_opt ctx tid |> Option.is_some
 
@@ -136,7 +131,9 @@ let find_rules_opt (ctx : t) (rid : RId.t) : Il.rule list option =
 let find_rules (ctx : t) (rid : RId.t) : Il.rule list =
   match find_rules_opt ctx rid with
   | Some rules -> rules
-  | None -> error_undef rid.at "relation" rid.it
+  | None ->
+      (* unreachable: add_rel registers every RelD's id before populate_rule runs. *)
+      assert false
 
 (* Finders for definitions *)
 
@@ -215,7 +212,9 @@ let add_rel (ctx : t) (rid : RId.t) (nottyp : Il.nottyp) (inputs : int list) : t
   { ctx with renv }
 
 let add_rule (ctx : t) (rid : RId.t) (rule : Il.rule) : t =
-  if not (bound_rel ctx rid) then error_undef rid.at "relation" rid.it;
+  if not (bound_rel ctx rid) then
+    (* unreachable: elab_rule_def calls find_rel on the same rid first. *)
+    assert false;
   let nottyp, inputs, rules = REnv.find rid ctx.renv in
   let rel = (nottyp, inputs, rules @ [ rule ]) in
   let renv = REnv.add rid rel ctx.renv in
@@ -239,7 +238,8 @@ let add_defined_dec (ctx : t) (fid : FId.t) (tparams : Il.tparam list)
 
 let add_defined_clause (ctx : t) (fid : FId.t) (clause : Il.clause) : t =
   if not (bound_defined_dec ctx fid) then
-    error_undef clause.at "defined dec" fid.it;
+    (* unreachable: elab_def_def calls find_defined_dec on the same fid first. *)
+    assert false;
   let tparams, params, typ, clauses = find_defined_dec ctx fid in
   let func = Func.Defined (tparams, params, typ, clauses @ [ clause ]) in
   let fenv = FEnv.add fid func ctx.fenv in
@@ -248,7 +248,9 @@ let add_defined_clause (ctx : t) (fid : FId.t) (clause : Il.clause) : t =
 (* Updaters *)
 
 let update_typdef (ctx : t) (tid : TId.t) (td : Typdef.t) : t =
-  if not (bound_typdef ctx tid) then error_undef tid.at "type" tid.it;
+  if not (bound_typdef ctx tid) then
+    (* unreachable: elab_typ_def binds the tid before reaching update_typdef. *)
+    assert false;
   let tdenv = TDEnv.add tid td ctx.tdenv in
   { ctx with tdenv }
 

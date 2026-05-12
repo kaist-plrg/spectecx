@@ -154,12 +154,7 @@ let rec annotate_exp (bounds : VEnv.t) (exp : exp) : VEnv.t * exp =
       let occurs, args = annotate_args bounds args in
       let exp = CallE (id, targs, args) $$ (at, note) in
       (occurs, exp)
-  | IterE (_, ((_, _ :: _) as iterexp)) ->
-      error exp.at
-        (Format.asprintf
-           "iterated expression should initially have no annotations, but got \
-            %s"
-           (Il.Print.string_of_iterexp iterexp))
+  | IterE (_, (_, _ :: _)) -> assert false
   | IterE (exp, (iter, [])) -> (
       let occurs, exp = annotate_exp bounds exp in
       let itervars = collect_itervars bounds occurs iter in
@@ -265,8 +260,7 @@ and annotate_prem (binds : VEnv.t) (bounds : VEnv.t) (prem : prem) :
       let prem = LetPr (exp_l, exp_r) $ at in
       let occurs = union occurs_l occurs_r in
       (occurs, prem)
-  | IterPr (_, (_, _ :: _)) ->
-      error at "iterated premise should initially have no annotations"
+  | IterPr (_, (_, _ :: _)) -> assert false
   | IterPr (prem, (iter, [])) -> (
       let occurs, prem = annotate_prem binds bounds prem in
       let itervars = collect_itervars bounds occurs iter in
