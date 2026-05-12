@@ -1,6 +1,6 @@
 open Common.Source
 open Lang.Il
-open Error
+open Diagnostic
 open Ctx
 module Mixop = Lang.Il.Mixfix
 

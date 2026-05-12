@@ -3,7 +3,7 @@ open Common.Source
 open Lang.Il
 open Envs.Make
 open Ctx
-open Error
+open Diagnostic
 
 (* Binding occurrences of identifiers, singular or multiple (parallel) *)
 

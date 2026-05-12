@@ -1,8 +1,4 @@
-open Common.Source
-open Common.Attempt
-
-type single_error = region * failtrace list
-type error
+type error = Diag.t list
 type 'a result = ('a, error) Stdlib.result
 
 module Fresh : sig

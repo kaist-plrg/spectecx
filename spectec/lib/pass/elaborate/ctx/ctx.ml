@@ -2,7 +2,7 @@ open Common.Domain
 open Common.Source
 open Lang.El
 module Il = Lang.Il
-open Error
+open Diagnostic
 open Envs.Make
 
 (* Error *)

@@ -2,7 +2,7 @@ open Common.Domain
 open Common.Source
 open Lang.Il
 open Envs.Make
-open Error
+open Diagnostic
 open Ctx
 module Mixop = Lang.Il.Mixfix
 

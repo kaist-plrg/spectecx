@@ -3,7 +3,7 @@ open Common.Source
 open Lang
 open Il
 open Ctx
-open Error
+open Diagnostic
 module Mixop = Lang.Il.Mixfix
 
 (* Dimension analysis :

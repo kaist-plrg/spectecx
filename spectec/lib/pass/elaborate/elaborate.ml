@@ -7,7 +7,7 @@ module Il = Lang.Il
 module Hint = Envs.Hint
 open Envs.Make
 open Attempt
-open Error
+open Diagnostic
 open Ctx
 module Fresh = Dataflow.Fresh
 
@@ -1813,7 +1813,7 @@ let populate_clauses (ctx : Ctx.t) (spec_il : Il.spec) : Il.spec =
 (* Elaborate and collect failtraces *)
 
 let elab_defs_with_errors (ctx : Ctx.t) (defs : def list) :
-    Ctx.t * Il.def list * Error.single_error list =
+    Ctx.t * Il.def list * Diag.t list =
   List.fold_left
     (fun (ctx, defs_il, errors) def ->
       try
@@ -1821,20 +1821,19 @@ let elab_defs_with_errors (ctx : Ctx.t) (defs : def list) :
         match def_il_opt with
         | Some def_il -> (ctx, defs_il @ [ def_il ], errors)
         | None -> (ctx, defs_il, errors)
-      with Error.ElabError e -> (ctx, defs_il, e :: errors))
+      with Diagnostic.ElabError e -> (ctx, defs_il, e :: errors))
     (ctx, [], []) defs
 
-let elab_spec (spec : spec) : Lang.Il.spec Error.result =
+let elab_spec (spec : spec) : Lang.Il.spec Diagnostic.result =
   try
     let ctx = Ctx.init () in
     let ctx, spec_il, errors = elab_defs_with_errors ctx spec in
     let spec_il = spec_il |> populate_rules ctx |> populate_clauses ctx in
     if errors = [] then Ok spec_il else Error errors
-  with Error.ElabError e -> Error [ e ]
+  with Diagnostic.ElabError e -> Error [ e ]
 
-type single_error = Error.single_error
-type error = Error.error
-type 'a result = 'a Error.result
+type error = Diagnostic.error
+type 'a result = 'a Diagnostic.result
 
-let error_to_string = Error.to_string
-let error_to_diagnostics = Error.to_diagnostics
+let error_to_string = Diagnostic.to_string
+let error_to_diagnostics = Diagnostic.to_diagnostics

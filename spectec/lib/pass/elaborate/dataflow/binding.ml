@@ -2,7 +2,7 @@ open Common.Domain
 open Common.Source
 open Lang.Il
 module Hint = Envs.Hint
-open Error
+open Diagnostic
 open Ctx
 open Bind
 module Mixop = Lang.Il.Mixfix
