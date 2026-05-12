@@ -8,7 +8,7 @@ type config = {
 }
 
 let default_config = {
-  num_tests = 200;
+  num_tests = 300;
   max_size = 50;
   seed = `Deterministic 42;
   verbose = false;

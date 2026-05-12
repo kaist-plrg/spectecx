@@ -100,7 +100,7 @@ let rec gen_expr (spec : spec) (ctx : ctx) (ty : impty_ty) : Value.t Gen.t =
                  let* e2 = scale (fun n -> n / 2) (gen_expr spec ctx TBool) in
                  return (expr_and e1 e2))) ]
       in
-      frequency (base @ recursive @ [(5, random_expr)])
+      frequency (base @ recursive @ [(1, random_expr)])
   )
 
 (* Returns the generated command together with the output context, because
@@ -137,9 +137,9 @@ and gen_command (spec : spec) (ctx : ctx) : (Value.t * ctx) Gen.t =
                return (cmd_while e c, ctx))) ]
     in
     let random_case =
-      (5, (let* cmd = Il_gen.gen_of_typ spec cmd_typ in return (cmd, ctx)))
+      (1, (let* cmd = Il_gen.gen_of_typ spec cmd_typ in return (cmd, ctx)))
     in
-    frequency (base @ [(2, decl)] @ assign @ recursive @ [random_case])
+    frequency (base @ [(3, decl)] @ assign @ recursive @ [random_case])
   )
 
 let gen_well_typed_prog (spec : spec) : (string * value) list Gen.t =
@@ -204,9 +204,13 @@ let rec gen_cexpr (spec : spec) (ctx : cctx) (ty : closure_ty) : Value.t Gen.t =
         else
           [(1, (let* e1 = scale (fun n -> n / 2) (gen_cexpr spec ctx CInt) in
                 let* e2 = scale (fun n -> n / 2) (gen_cexpr spec ctx CInt) in
-                return (expr_add e1 e2)))] @
+                return (expr_add e1 e2)));
+           (1, (let* ta = gen_simple_cty in
+                let* ef = scale (fun n -> n / 2) (gen_cexpr spec ctx (CFun (ta, CInt))) in
+                let* ea = scale (fun n -> n / 2) (gen_cexpr spec ctx ta) in
+                return (expr_call ef ea)))] @
           (if fvars <> [] then
-             [(1, (let* (fname, at) = elements fvars in
+             [(2, (let* (fname, at) = elements fvars in
                    let* ea = scale (fun n -> n / 2) (gen_cexpr spec ctx at) in
                    return (expr_call (expr_var fname) ea)))]
            else [])
@@ -231,9 +235,13 @@ let rec gen_cexpr (spec : spec) (ctx : cctx) (ty : closure_ty) : Value.t Gen.t =
                  return (expr_not e)));
             (1, (let* e1 = scale (fun n -> n / 2) (gen_cexpr spec ctx CBool) in
                  let* e2 = scale (fun n -> n / 2) (gen_cexpr spec ctx CBool) in
-                 return (expr_and e1 e2))) ] @
+                 return (expr_and e1 e2)));
+            (1, (let* ta = gen_simple_cty in
+                 let* ef = scale (fun n -> n / 2) (gen_cexpr spec ctx (CFun (ta, CBool))) in
+                 let* ea = scale (fun n -> n / 2) (gen_cexpr spec ctx ta) in
+                 return (expr_call ef ea))) ] @
           (if fvars <> [] then
-             [(1, (let* (fname, at) = elements fvars in
+             [(2, (let* (fname, at) = elements fvars in
                    let* ea = scale (fun n -> n / 2) (gen_cexpr spec ctx at) in
                    return (expr_call (expr_var fname) ea)))]
            else [])
@@ -241,19 +249,31 @@ let rec gen_cexpr (spec : spec) (ctx : cctx) (ty : closure_ty) : Value.t Gen.t =
       frequency (base @ recursive @ [(1, random_expr)])
     | CFun (ta, tr) ->
       let fvars = cvars_of ctx ty in
-      let param = fresh_name ctx in
+      (* variables x : CFun(X, CFun(ta,tr)) — calling x(arg) yields CFun(ta,tr) *)
+      let hof_vars = cfun_vars_of ctx ty in
+      (* Use "p" prefix so params never collide with decl names ("x" prefix).
+         Without this, f(a)(b) can still find the param in EC via the function binding,
+         so the env_clo bug would not cause a lookup failure. *)
+      let param = Printf.sprintf "p%d" (List.length ctx) in
       let ext_ctx = (param, ta) :: ctx in
-      (* Body is always generated at half size; since gen_cty uses depth=1,
-         ta and tr are always simple types, so this terminates. *)
       let base =
-        [(2, (let* body = scale (fun n -> n / 2) (gen_cexpr spec ext_ctx tr) in
+        [(4, (let* body = scale (fun n -> n / 2) (gen_cexpr spec ext_ctx tr) in
               return (expr_fun (ctype_val ta) (id_val param) (ctype_val tr) body)))] @
         (if fvars <> [] then
            [(2, (let* v = elements fvars in return (expr_var v)))]
          else []) @
         [(1, random_expr)]
       in
-      frequency base
+      let recursive =
+        if size <= 0 then []
+        else
+          (if hof_vars <> [] then
+             [(1, (let* (fname, at) = elements hof_vars in
+                   let* ea = scale (fun n -> n / 2) (gen_cexpr spec ctx at) in
+                   return (expr_call (expr_var fname) ea)))]
+           else [])
+      in
+      frequency (base @ recursive)
   )
 
 and gen_ccommand (spec : spec) (ctx : cctx) : (Value.t * cctx) Gen.t =
@@ -269,9 +289,24 @@ and gen_ccommand (spec : spec) (ctx : cctx) : (Value.t * cctx) Gen.t =
     let assign =
       if ctx = [] then []
       else
-        [(1, (let* (name, ty) = elements ctx in
+        [(2, (let* (name, ty) = elements ctx in
               let* e = gen_cexpr spec ctx ty in
               return (cmd_assign (id_val name) e, ctx)))]
+    in
+    let partial_app =
+      let cfun_funs = List.filter_map (fun (name, t) ->
+        match t with
+        | CFun (at, (CFun _ as ret_ty)) -> Some (name, at, ret_ty)
+        | _ -> None) ctx
+      in
+      if cfun_funs = [] then []
+      else
+        let name = fresh_name ctx in
+        [(3, (let* (fname, at, ret_ty) = elements cfun_funs in
+              let* arg = gen_cexpr spec ctx at in
+              return (cmd_decl (ctype_val ret_ty) (id_val name)
+                        (expr_call (expr_var fname) arg),
+                      (name, ret_ty) :: ctx)))]
     in
     let recursive =
       if size <= 0 then []
@@ -288,9 +323,9 @@ and gen_ccommand (spec : spec) (ctx : cctx) : (Value.t * cctx) Gen.t =
                return (cmd_while e c, ctx))) ]
     in
     let random_case =
-      (5, (let* cmd = Il_gen.gen_of_typ spec cmd_typ in return (cmd, ctx)))
+      (1, (let* cmd = Il_gen.gen_of_typ spec cmd_typ in return (cmd, ctx)))
     in
-    frequency (base @ [(2, decl)] @ assign @ recursive @ [random_case])
+    frequency (base @ [(3, decl)] @ partial_app @ assign @ recursive @ [random_case])
   )
 
 let gen_closure_prog (spec : spec) : (string * value) list Gen.t =
@@ -298,11 +333,44 @@ let gen_closure_prog (spec : spec) : (string * value) list Gen.t =
   let* (cmd, _) = gen_ccommand spec [] in
   return [("prog", cmd)]
 
+(* Generates programs that specifically exercise curried closure calls, designed
+   to expose the env_clo bug in Eval_expr/call.  The pattern is always:
+     f : at -> (bt -> at) = FUN (at p0) -> bt->at { FUN (bt p1) -> at { p0 } }
+     r : at               = f(arg_a)(arg_b)
+   With the buggy rule the second call evaluates the body `p0` in the call-site
+   env (which never contains p0), causing a lookup failure. *)
+let gen_closure_fun_prog (spec : spec) : (string * value) list Gen.t =
+  let open Gen in
+  let ctx = [] in
+  let p_outer = Printf.sprintf "p%d" (List.length ctx) in
+  let p_inner = Printf.sprintf "p%d" (List.length ctx + 1) in
+  let name_f = fresh_name ctx in
+  let name_r = fresh_name ((name_f, CInt) :: ctx) in
+  let* at = gen_simple_cty in
+  let* bt = gen_simple_cty in
+  let fun_ty = CFun (at, CFun (bt, at)) in
+  let ctx_f = (name_f, fun_ty) :: ctx in
+  let ctx_r = (name_r, at) :: ctx_f in
+  let inner_fun =
+    expr_fun (ctype_val bt) (id_val p_inner) (ctype_val at) (expr_var p_outer)
+  in
+  let outer_fun =
+    expr_fun (ctype_val at) (id_val p_outer) (ctype_val (CFun (bt, at))) inner_fun
+  in
+  let* arg_a = gen_cexpr spec ctx_f at in
+  let* arg_b = gen_cexpr spec ctx_f bt in
+  let cmd_f = cmd_decl (ctype_val fun_ty) (id_val name_f) outer_fun in
+  let cmd_r = cmd_decl (ctype_val at) (id_val name_r)
+                (expr_call (expr_call (expr_var name_f) arg_a) arg_b) in
+  ignore ctx_r;
+  return [("prog", cmd_seq cmd_f cmd_r)]
+
 (* ===== Dispatch ===== *)
 
 let gen_inputs (spec : spec) (name : string) :
     (string * value) list Gen.t option =
   match name with
-  | "base_prog" -> Some (gen_well_typed_prog spec)
-  | "closure_prog" -> Some (gen_closure_prog spec)
+  | "base_prog"        -> Some (gen_well_typed_prog spec)
+  | "closure_prog"     -> Some (gen_closure_prog spec)
+  | "closure_fun_prog" -> Some (gen_closure_fun_prog spec)
   | _ -> None
