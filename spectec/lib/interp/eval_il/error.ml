@@ -5,7 +5,7 @@ exception InterpError of region * string
 (* Interpreter errors *)
 
 let error (at : region) (msg : string) = raise (InterpError (at, msg))
-let warn (at : region) (msg : string) = Diagnostic.warn at "il-interp" msg
+let warn (at : region) (msg : string) = Diag.warn at "il-interp" msg
 
 (* Builtin errors *)
 

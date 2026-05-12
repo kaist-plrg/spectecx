@@ -31,7 +31,7 @@ let run (module T : Target.S) (spec : spec) (rid : string) (values : value list)
 
 let error_to_string = Error.to_string
 
-let error_to_diagnostic ((at, msg) : error) : Diagnostic.t =
-  Diagnostic.error ~source:"il-interp" at msg
+let error_to_diagnostic ((at, msg) : error) : Diag.t =
+  Diag.error ~source:"il-interp" at msg
 
 module Ctx = Ctx

@@ -1,5 +1,4 @@
 (library
- (name diagnostic)
+ (name diag)
  (public_name spectec.diagnostic)
- (wrapped false)
  (libraries spectec.common))

@@ -6,15 +6,7 @@
 module Error = Error
 module Task = Task
 module Target = Target
-
-module Diagnostic : sig
-  include module type of struct
-    include Diagnostic
-  end
-
-  module Render = Render
-  module Ansi = Ansi
-end
+module Diagnostic = Diag
 
 type 'a result = ('a, Error.t) Stdlib.result
 
@@ -30,7 +22,7 @@ type 'a result = ('a, Error.t) Stdlib.result
     reset on entry, so sequential calls are independent. If [f] raises, the
     exception propagates and diagnostics emitted so far are discarded (the next
     call to [with_diagnostics] resets the sink regardless). *)
-val with_diagnostics : (unit -> 'a) -> 'a * Diagnostic.Bag.t
+val with_diagnostics : (unit -> 'a) -> 'a * Diag.Bag.t
 
 (** {1 Pipeline transformations} *)
 
