@@ -4,7 +4,7 @@ open Lang.Xl
 open Lang.El
 module El = Lang.El
 module Il = Lang.Il
-module Hint = Envs.Hint
+module Hint = Hints.Input
 open Envs.Make
 open Attempt
 open Diagnostic

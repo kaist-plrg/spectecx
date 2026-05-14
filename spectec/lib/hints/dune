@@ -1,0 +1,4 @@
+(library
+ (name hints)
+ (public_name spectec.hints)
+ (libraries spectec.common spectec.lang))

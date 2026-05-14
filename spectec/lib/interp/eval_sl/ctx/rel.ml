@@ -3,11 +3,11 @@ open Lang.Sl.Print
 
 (* Relation *)
 
-type t = Envs.Hint.t * exp list * block * elseblock option
+type t = Hints.Input.t * exp list * block * elseblock option
 
 let to_string (inputs, exps, block, elseblock_opt) =
-  Envs.Hint.to_string inputs ^ string_of_exps ", " exps ^ "\n\n"
-  ^ string_of_block block
+  Hints.Input.to_string inputs
+  ^ string_of_exps ", " exps ^ "\n\n" ^ string_of_block block
   ^
   match elseblock_opt with
   | None -> ""

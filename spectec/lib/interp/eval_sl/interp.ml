@@ -5,7 +5,7 @@ module Mixop = Lang.Il.Mixfix
 module Value = Lang.Il.Value
 open Lang.Sl
 open Envs.Make
-module Hint = Envs.Hint
+module Hint = Hints.Input
 module Typ = Envs.Il.Typ
 open Error
 module Events = Instrumentation.Event

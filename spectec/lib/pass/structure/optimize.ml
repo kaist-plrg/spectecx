@@ -3,7 +3,7 @@ open Common.Domain
 open Lang
 open Lang.Xl
 open Ol.Ast
-module Hint = Envs.Hint
+module Hint = Hints.Input
 module HEnv = Envs.HEnv
 module TDEnv = Envs.Il.TDEnv
 
