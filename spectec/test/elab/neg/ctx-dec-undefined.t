@@ -5,7 +5,7 @@
   5 | dec $caller(nat) : nat
     | ^^^^^^^^^^^^^^^^^^^^^^
     = source: elab
-  error: dec `missing` is undefined
+  error[elab/ctx-dec-undefined]: dec `missing` is undefined
     --> ctx-dec-undefined.spectec:6:19
     |
   6 | def $caller(n) = $missing(n)

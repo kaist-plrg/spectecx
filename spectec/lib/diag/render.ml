@@ -92,15 +92,24 @@ let render_detail ~ansi (d : Record.t) : string option =
   | None -> None
   | Some s -> Some (Ansi.style ansi [ Bold; Cyan ] "  = note: " ^ s)
 
-let render_related ~ansi (d : Record.t) : string option =
+let render_related ~ansi ~cache (d : Record.t) : string option =
   if d.related = [] then None
   else
     let one (r : Record.related) =
-      let loc =
-        if r.region = no_region then ""
-        else Ansi.style ansi [ Dim ] (string_of_region r.region) ^ " "
-      in
-      Ansi.style ansi [ Bold; Blue ] "  = related: " ^ loc ^ r.message
+      let header = Ansi.style ansi [ Bold; Blue ] "  = related: " ^ r.message in
+      if r.region = no_region then header
+      else
+        let arrow = Ansi.style ansi [ Bold; Blue ] "  --> " in
+        let loc =
+          Printf.sprintf "%s:%d:%d" r.region.left.file r.region.left.line
+            (r.region.left.column + 1)
+        in
+        let loc_line = arrow ^ loc in
+        match
+          render_snippet ~ansi ~cache ~left:r.region.left ~right:r.region.right
+        with
+        | None -> String.concat "\n" [ header; loc_line ]
+        | Some snippet -> String.concat "\n" [ header; loc_line; snippet ]
     in
     Some (List.map one d.related |> String.concat "\n")
 
@@ -146,7 +155,7 @@ let render ~ansi ~cache (d : Record.t) : string =
     render_location ~ansi ~cache d;
     render_source_tag ~ansi d;
     render_detail ~ansi d;
-    render_related ~ansi d;
+    render_related ~ansi ~cache d;
     render_trace ~ansi d;
   ]
   |> List.filter_map Fun.id |> String.concat "\n"

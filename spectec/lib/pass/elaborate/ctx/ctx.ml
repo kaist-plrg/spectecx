@@ -7,11 +7,12 @@ open Envs.Make
 
 (* Error *)
 
-let error_undef (at : region) (kind : string) (id : string) =
-  error at (Format.asprintf "%s `%s` is undefined" kind id)
+let error_undef ?code (at : region) (kind : string) (id : string) =
+  error ?code at (Format.asprintf "%s `%s` is undefined" kind id)
 
-let error_dup (at : region) (kind : string) (id : string) =
-  error at (Format.asprintf "%s `%s` was already defined" kind id)
+let error_dup ?code ?related (at : region) (kind : string) (id : string) =
+  error ?code ?related at
+    (Format.asprintf "%s `%s` was already defined" kind id)
 
 (* Environments *)
 
@@ -90,6 +91,29 @@ let init () : t =
 
 (* Finders *)
 
+(* Locate the region of an original declaration whose key compares equal to the
+   given id. Used to populate [~related] spans on redefinition diagnostics. *)
+
+let metavar_prior_at (ctx : t) (tid : TId.t) : region option =
+  match MEnv.find_first_opt (fun k -> Id.compare k tid >= 0) ctx.menv with
+  | Some (k, _) when Id.compare k tid = 0 -> Some k.at
+  | _ -> None
+
+let typdef_prior_at (ctx : t) (tid : TId.t) : region option =
+  match TDEnv.find_first_opt (fun k -> Id.compare k tid >= 0) ctx.tdenv with
+  | Some (k, _) when Id.compare k tid = 0 -> Some k.at
+  | _ -> None
+
+let rel_prior_at (ctx : t) (rid : RId.t) : region option =
+  match REnv.find_first_opt (fun k -> Id.compare k rid >= 0) ctx.renv with
+  | Some (k, _) when Id.compare k rid = 0 -> Some k.at
+  | _ -> None
+
+let dec_prior_at (ctx : t) (fid : FId.t) : region option =
+  match FEnv.find_first_opt (fun k -> Id.compare k fid >= 0) ctx.fenv with
+  | Some (k, _) when Id.compare k fid = 0 -> Some k.at
+  | _ -> None
+
 (* Finders for type definitions *)
 
 let find_typdef_opt (ctx : t) (tid : TId.t) : Typdef.t option =
@@ -98,7 +122,7 @@ let find_typdef_opt (ctx : t) (tid : TId.t) : Typdef.t option =
 let find_typdef (ctx : t) (tid : TId.t) : Typdef.t =
   match find_typdef_opt ctx tid with
   | Some td -> td
-  | None -> error_undef tid.at "type" tid.it
+  | None -> error_undef tid.at "type" tid.it ~code:Ctx_type_undefined
 
 let bound_typdef (ctx : t) (tid : TId.t) : bool =
   find_typdef_opt ctx tid |> Option.is_some
@@ -120,7 +144,7 @@ let find_rel_opt (ctx : t) (rid : RId.t) : (Il.nottyp * int list) option =
 let find_rel (ctx : t) (rid : RId.t) : Il.nottyp * int list =
   match find_rel_opt ctx rid with
   | Some result -> result
-  | None -> error_undef rid.at "relation" rid.it
+  | None -> error_undef rid.at "relation" rid.it ~code:Ctx_relation_undefined
 
 let bound_rel (ctx : t) (rid : RId.t) : bool =
   find_rel_opt ctx rid |> Option.is_some
@@ -148,7 +172,8 @@ let find_defined_dec (ctx : t) (fid : FId.t) :
     Il.tparam list * Il.param list * Il.typ * Il.clause list =
   match find_defined_dec_opt ctx fid with
   | Some result -> result
-  | None -> error_undef fid.at "defined dec" fid.it
+  | None ->
+      error_undef fid.at "defined dec" fid.it ~code:Ctx_defined_dec_undefined
 
 let bound_defined_dec (ctx : t) (fid : FId.t) : bool =
   find_defined_dec_opt ctx fid |> Option.is_some
@@ -165,7 +190,7 @@ let find_dec_signature (ctx : t) (fid : FId.t) :
     Il.tparam list * Il.param list * Il.typ =
   match find_dec_signature_opt ctx fid with
   | Some result -> result
-  | None -> error_undef fid.at "dec" fid.it
+  | None -> error_undef fid.at "dec" fid.it ~code:Ctx_dec_undefined
 
 let bound_dec (ctx : t) (fid : FId.t) : bool =
   find_dec_signature_opt ctx fid |> Option.is_some
@@ -184,16 +209,24 @@ let add_frees (ctx : t) (ids : IdSet.t) : t =
 (* Adders for meta-variables *)
 
 let add_metavar (ctx : t) (tid : TId.t) (typ : Il.typ) : t =
-  if bound_metavar ctx tid then error_dup tid.at "meta-variable" tid.it;
-  let menv = MEnv.add tid typ ctx.menv in
-  { ctx with menv }
+  match metavar_prior_at ctx tid with
+  | Some prior_at ->
+      error_dup tid.at "meta-variable" tid.it ~code:Ctx_metavar_redefined
+        ~related:[ (prior_at, "originally defined here") ]
+  | None ->
+      let menv = MEnv.add tid typ ctx.menv in
+      { ctx with menv }
 
 (* Adders for type definitions *)
 
 let add_typdef (ctx : t) (tid : TId.t) (td : Typdef.t) : t =
-  if bound_typdef ctx tid then error_dup tid.at "type" tid.it;
-  let tdenv = TDEnv.add tid td ctx.tdenv in
-  { ctx with tdenv }
+  match typdef_prior_at ctx tid with
+  | Some prior_at ->
+      error_dup tid.at "type" tid.it ~code:Ctx_type_redefined
+        ~related:[ (prior_at, "originally defined here") ]
+  | None ->
+      let tdenv = TDEnv.add tid td ctx.tdenv in
+      { ctx with tdenv }
 
 let add_tparam (ctx : t) (tparam : tparam) : t =
   let ctx = add_typdef ctx tparam Typdef.Param in
@@ -206,10 +239,14 @@ let add_tparams (ctx : t) (tparams : tparam list) : t =
 
 let add_rel (ctx : t) (rid : RId.t) (nottyp : Il.nottyp) (inputs : int list) : t
     =
-  if bound_rel ctx rid then error_dup rid.at "relation" rid.it;
-  let rel = (nottyp, inputs, []) in
-  let renv = REnv.add rid rel ctx.renv in
-  { ctx with renv }
+  match rel_prior_at ctx rid with
+  | Some prior_at ->
+      error_dup rid.at "relation" rid.it ~code:Ctx_relation_redefined
+        ~related:[ (prior_at, "originally defined here") ]
+  | None ->
+      let rel = (nottyp, inputs, []) in
+      let renv = REnv.add rid rel ctx.renv in
+      { ctx with renv }
 
 let add_rule (ctx : t) (rid : RId.t) (rule : Il.rule) : t =
   if not (bound_rel ctx rid) then
@@ -224,17 +261,25 @@ let add_rule (ctx : t) (rid : RId.t) (rule : Il.rule) : t =
 
 let add_builtin_dec (ctx : t) (fid : FId.t) (tparams : Il.tparam list)
     (params : Il.param list) (typ : Il.typ) : t =
-  if bound_dec ctx fid then error_dup fid.at "dec" fid.it;
-  let func = Func.Builtin (tparams, params, typ) in
-  let fenv = FEnv.add fid func ctx.fenv in
-  { ctx with fenv }
+  match dec_prior_at ctx fid with
+  | Some prior_at ->
+      error_dup fid.at "dec" fid.it ~code:Ctx_builtin_dec_redefined
+        ~related:[ (prior_at, "originally defined here") ]
+  | None ->
+      let func = Func.Builtin (tparams, params, typ) in
+      let fenv = FEnv.add fid func ctx.fenv in
+      { ctx with fenv }
 
 let add_defined_dec (ctx : t) (fid : FId.t) (tparams : Il.tparam list)
     (params : Il.param list) (typ : Il.typ) : t =
-  if bound_dec ctx fid then error_dup fid.at "dec" fid.it;
-  let func = Func.Defined (tparams, params, typ, []) in
-  let fenv = FEnv.add fid func ctx.fenv in
-  { ctx with fenv }
+  match dec_prior_at ctx fid with
+  | Some prior_at ->
+      error_dup fid.at "dec" fid.it ~code:Ctx_dec_redefined
+        ~related:[ (prior_at, "originally defined here") ]
+  | None ->
+      let func = Func.Defined (tparams, params, typ, []) in
+      let fenv = FEnv.add fid func ctx.fenv in
+      { ctx with fenv }
 
 let add_defined_clause (ctx : t) (fid : FId.t) (clause : Il.clause) : t =
   if not (bound_defined_dec ctx fid) then
