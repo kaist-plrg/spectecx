@@ -1,0 +1,10 @@
+;; Iterating a `var` declaration premise.
+
+syntax foo = nat
+
+relation R: foo |- foo
+  hint(input %0)
+
+rule R/iter:
+  0 |- 0
+  -- (var x : foo)*
