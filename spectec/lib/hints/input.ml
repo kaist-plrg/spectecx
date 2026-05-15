@@ -31,3 +31,24 @@ let combine_exps (exps_input : (int * Il.exp) list)
 let is_conditional (hint : t) (exps : Il.exp list) : bool =
   let _, exps_output = split_exps hint exps in
   exps_output = []
+
+(* Parsing *)
+
+let parse (hintexp : El.exp) : t option =
+  let open Common.Source in
+  let collect_hole (exp : El.exp) =
+    match exp.it with El.HoleE (`Num input) -> Some input | _ -> None
+  in
+  match hintexp.it with
+  | El.SeqE exps ->
+      List.fold_left
+        (fun acc exp ->
+          match acc with
+          | None -> None
+          | Some inputs -> (
+              match collect_hole exp with
+              | Some input -> Some (inputs @ [ input ])
+              | None -> None))
+        (Some []) exps
+  | El.HoleE (`Num input) -> Some [ input ]
+  | _ -> None
