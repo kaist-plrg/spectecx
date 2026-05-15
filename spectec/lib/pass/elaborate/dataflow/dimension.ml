@@ -159,7 +159,13 @@ let rec annotate_exp (bounds : VEnv.t) (exp : exp) : VEnv.t * exp =
       let occurs, exp = annotate_exp bounds exp in
       let itervars = collect_itervars bounds occurs iter in
       match itervars with
-      | [] -> error at "empty iteration"
+      | [] ->
+          error at "empty iteration" ~code:Dataflow_empty_iter_expression
+            ~detail:
+              "Each iteration consumes one `*` (or `?`) from a variable inside \
+               it. Here, no variable has an iteration left to consume: either \
+               the body has no variables, or every variable's `*`s have \
+               already been consumed by surrounding iterations."
       | _ ->
           let exp = IterE (exp, (iter, itervars)) $$ (at, note) in
           let occurs =
@@ -265,7 +271,13 @@ and annotate_prem (binds : VEnv.t) (bounds : VEnv.t) (prem : prem) :
       let occurs, prem = annotate_prem binds bounds prem in
       let itervars = collect_itervars bounds occurs iter in
       match itervars with
-      | [] -> error at "empty iteration"
+      | [] ->
+          error at "empty iteration" ~code:Dataflow_empty_iter_premise
+            ~detail:
+              "Each iteration consumes one `*` (or `?`) from a variable inside \
+               it. Here, no variable has an iteration left to consume: either \
+               the body has no variables, or every variable's `*`s have \
+               already been consumed by surrounding iterations."
       | _
         when List.for_all
                (fun (id, typ, iters) ->
@@ -279,6 +291,12 @@ and annotate_prem (binds : VEnv.t) (bounds : VEnv.t) (prem : prem) :
             ^ String.concat ", " (List.map Il.Print.string_of_var itervars)
             ^ " "
             ^ Il.Print.string_of_prem prem)
+            ~code:Dataflow_iter_binding_only
+            ~detail:
+              "An iteration needs a loop variable inside it: a variable \
+               already bound outside whose values it iterates over. Here, \
+               every variable inside is newly bound rather than already bound, \
+               so there is no loop variable."
       | _ ->
           let prem = IterPr (prem, (iter, itervars)) $ at in
           let occurs =
@@ -317,7 +335,8 @@ let analyze (annotate : VEnv.t -> 'a -> VEnv.t * 'a) (bounds : VEnv.t)
           (Format.asprintf
              "mismatched iteration dimensions for identifier `%s`: expected \
               %s, but got %s"
-             (Id.to_string id) (Typ.to_string typ_expect) (Typ.to_string typ)))
+             (Id.to_string id) (Typ.to_string typ_expect) (Typ.to_string typ))
+          ~code:Dataflow_iter_dimension_mismatch)
     occurs;
   construct
 
