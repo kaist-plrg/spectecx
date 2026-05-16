@@ -1,5 +1,5 @@
   $ ./main.exe ctx-dec-redefined.spectec 2>&1
-  warning: dec $f has no clauses defined
+  warning[elab/dec-missing-clauses]: dec $f has no clauses defined
     --> ctx-dec-redefined.spectec:3:1
     |
   3 | dec $f(nat) : nat

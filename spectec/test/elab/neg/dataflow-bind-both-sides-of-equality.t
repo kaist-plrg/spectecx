@@ -1,5 +1,5 @@
   $ ./main.exe dataflow-bind-both-sides-of-equality.spectec 2>&1
-  warning: relation R has no rules defined
+  warning[elab/relation-missing-rules]: relation R has no rules defined
     --> dataflow-bind-both-sides-of-equality.spectec:9:1
     |
   9 | relation R: foo |- foo

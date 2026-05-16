@@ -1,5 +1,5 @@
   $ ./main.exe type-clause-arg-arity-mismatch.spectec 2>&1
-  warning: dec $f has no clauses defined
+  warning[elab/dec-missing-clauses]: dec $f has no clauses defined
     --> type-clause-arg-arity-mismatch.spectec:3:1
     |
   3 | dec $f(nat) : nat

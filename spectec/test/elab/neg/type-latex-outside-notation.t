@@ -1,5 +1,5 @@
   $ ./main.exe type-latex-outside-notation.spectec 2>&1
-  warning: dec $f has no clauses defined
+  warning[elab/dec-missing-clauses]: dec $f has no clauses defined
     --> type-latex-outside-notation.spectec:4:1
     |
   4 | dec $f : nat

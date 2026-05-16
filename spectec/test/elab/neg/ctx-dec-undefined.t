@@ -1,5 +1,5 @@
   $ ./main.exe ctx-dec-undefined.spectec 2>&1
-  warning: dec $caller has no clauses defined
+  warning[elab/dec-missing-clauses]: dec $caller has no clauses defined
     --> ctx-dec-undefined.spectec:5:1
     |
   5 | dec $caller(nat) : nat

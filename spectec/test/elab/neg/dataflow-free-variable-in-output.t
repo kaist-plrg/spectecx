@@ -1,5 +1,5 @@
   $ ./main.exe dataflow-free-variable-in-output.spectec 2>&1
-  warning: relation E has no rules defined
+  warning[elab/relation-missing-rules]: relation E has no rules defined
     --> dataflow-free-variable-in-output.spectec:10:1
      |
   10 | relation E: exp |- val

@@ -1,5 +1,5 @@
   $ ./main.exe dataflow-multibind-dimension-mismatch.spectec 2>&1
-  warning: relation R has no rules defined
+  warning[elab/relation-missing-rules]: relation R has no rules defined
     --> dataflow-multibind-dimension-mismatch.spectec:7:1
     |
   7 | relation R: (foo, foo*) |- bool

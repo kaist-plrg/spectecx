@@ -1,5 +1,5 @@
   $ ./main.exe dataflow-empty-iteration-expression.spectec 2>&1
-  warning: dec $f has no clauses defined
+  warning[elab/dec-missing-clauses]: dec $f has no clauses defined
     --> dataflow-empty-iteration-expression.spectec:6:1
     |
   6 | dec $f : foo*

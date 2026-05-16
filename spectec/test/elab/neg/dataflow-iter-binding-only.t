@@ -1,5 +1,5 @@
   $ ./main.exe dataflow-iter-binding-only.spectec 2>&1
-  warning: relation R has no rules defined
+  warning[elab/relation-missing-rules]: relation R has no rules defined
     --> dataflow-iter-binding-only.spectec:8:1
     |
   8 | relation R: foo |- foo

@@ -1466,7 +1466,12 @@ and elab_rule_not_prem (ctx : Ctx.t) (id : id) (exp : exp) : Ctx.t * Il.prem' =
   let exps_il = Il.Mixfix.args notexp_il in
   check
     (Hint.is_conditional inputs exps_il)
-    exp.at "negated rule premises do not take inputs";
+    exp.at "negated rule premises do not take inputs"
+    ~code:Negated_premise_takes_inputs
+    ~detail:
+      "A negated rule premise asserts that a relation does not hold for given \
+       inputs. The relation must therefore have only input positions: outputs \
+       would have no value to produce when the relation fails.";
   let prem_il = Il.IfNotHoldPr (id, notexp_il) in
   (ctx, prem_il)
 
@@ -1487,7 +1492,12 @@ and elab_iter_prem (ctx : Ctx.t) (prem : prem) (iter : iter) : Ctx.t * Il.prem'
     =
   check
     (match prem.it with VarPr _ | ElsePr -> false | _ -> true)
-    prem.at "only rule or if premises can be iterated";
+    prem.at "only rule or if premises can be iterated"
+    ~code:Iter_only_rule_or_if_premise
+    ~detail:
+      "Each iteration of `(prem)*` runs `prem` once. Variable declarations and \
+       `otherwise` are declared once per rule, not per iteration, so iterating \
+       them has no meaning.";
   let iter_il = elab_iter iter in
   let ctx, prem_il_opt = elab_prem ctx prem in
   let prem_il = Option.get prem_il_opt in
@@ -1620,19 +1630,22 @@ and fetch_rel_input_hint (at : region) (nottyp_il : Il.nottyp)
       match inputs_opt with
       | Some [] ->
           error at "malformed input hint: at least one input should be provided"
+            ~code:Relation_input_hint_empty
       | Some inputs when not (distinct ( = ) inputs) ->
           error at "malformed input hint: inputs should be distinct"
+            ~code:Relation_input_hint_duplicate_index
       | Some inputs -> inputs
       | None ->
           warn at
             (Format.asprintf
                "malformed input hint: should be a sequence of indexed holes \
                 %%N (N < %d)"
-               len);
+               len)
+            ~code:Relation_input_hint_non_hole;
           hint_input_default)
   (* If no hint is provided, assume all fields are inputs *)
   | None ->
-      warn at "no input hint provided";
+      warn at "no input hint provided" ~code:Relation_no_input_hint;
       hint_input_default
 
 and elab_rel_def (ctx : Ctx.t) (at : region) (id : id) (nottyp : nottyp)
@@ -1785,6 +1798,7 @@ let populate_rules (ctx : Ctx.t) (spec_il : Il.spec) : Il.spec =
       | Il.RelD (id, _, _, []) ->
           warn def_il.at
             (Format.asprintf "relation %s has no rules defined" id.it)
+            ~code:Relation_missing_rules
       | _ -> ())
     spec_il;
   spec_il
@@ -1809,6 +1823,7 @@ let populate_clauses (ctx : Ctx.t) (spec_il : Il.spec) : Il.spec =
       | Il.DecD (id, _, _, _, []) ->
           warn def_il.at
             (Format.asprintf "dec $%s has no clauses defined" id.it)
+            ~code:Dec_missing_clauses
       | _ -> ())
     spec_il;
   spec_il

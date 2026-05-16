@@ -1,5 +1,5 @@
   $ ./main.exe ctx-relation-redefined.spectec 2>&1
-  warning: relation R has no rules defined
+  warning[elab/relation-missing-rules]: relation R has no rules defined
     --> ctx-relation-redefined.spectec:5:1
     |
   5 | relation R: nat |- foo
