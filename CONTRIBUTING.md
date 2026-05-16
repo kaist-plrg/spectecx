@@ -20,6 +20,8 @@ OCaml conventions: `snake_case` for values and types, `PascalCase` for modules a
 
 **No backward-compatibility aliases during refactors.** A rename worth doing is worth completing. Transitional names accumulate.
 
+**Prefer self-documenting code over comments.** Before writing a comment, ask whether a clearer name, a smaller function, or a tighter type makes it unnecessary. Comments that survive that test capture what the code genuinely can't: a non-obvious choice taken over the obvious alternative, an invariant relied on but not visible locally, the spec rule being implemented. Comments that paraphrase the next line, restate a function name, or mark sections do not survive.
+
 **Public APIs reflect the final semantic model.** Internal module paths can differ when dependency direction forces it, but the user-facing surface should preserve the clearest ownership story.
 
 **Boundary between `lib/` and `bin/`.** Reusable code — domain presentation, CLI infrastructure, error rendering — lives in `lib/`. CLI machinery specifically lives in `lib/cli/` so targets can instantiate it. `bin/` holds only the top-level entrypoint that registers each target's `Cli` module into the command group and dispatches to `Command_unix.run`. New logic should land in `lib/`, not `bin/`.
@@ -84,12 +86,12 @@ The subject is **imperative**, present-tense — `extract error handling`, not `
 
 ### Body
 
+The body answers **why** (motivation: what was wrong or limiting) and **what** (solution: the shape the code is in now). The **how** is in the diff — do not restate it in prose.
+
 Two parts, distinguished by **tense**:
 
 - **Motivation** — describes the prior state, one or two sentences. Past tense (`The diagnostic helper lived inline in subcommand.ml, duplicated across multiple consumers.`) or a `Currently, …` framing (`Currently, errors and warnings print immediately when encountered.`); past tense is the default and preferred form.
 - **Solution** — third-person present, reading as if narrating what *this commit* does (`The helper is extracted to error_handling.ml…`, `Adds…`, `Replaces…`, `Updates…`). Avoid first-person (`We extract…`) and avoid future tense (`Will extract…`). Bullets follow the same voice.
-
-The diff shows the mechanics; the body should leave the reader with the *shape* of the result.
 
 The motivation paragraph is **optional when the motivation is self-evident from the subject** — adding tests, syncing with upstream, a one-line typo fix. Where it earns its keep is `fix` and `refactor` commits: both must justify themselves against the prior state, so a short past-tense sentence on what was wrong or what was limiting is almost always worth writing.
 
