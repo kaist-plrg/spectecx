@@ -1,5 +1,5 @@
 ;; Token-concatenation `#` appears in regular expression position
-;; rather than inside a notation declaration.
+;; rather than inside a hint expression.
 
 dec $f : nat
 def $f = 0 # 1

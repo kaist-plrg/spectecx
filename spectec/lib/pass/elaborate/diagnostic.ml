@@ -34,10 +34,10 @@ type code =
   | Variant_mixop_collision
   | Typ_fully_redefined
   (* misplaced notation atoms *)
-  | Hole_outside_notation
-  | Fuse_outside_notation
-  | Unparen_outside_notation
-  | Latex_outside_notation
+  | Hole_outside_hint
+  | Fuse_outside_hint
+  | Unparen_outside_hint
+  | Latex_outside_hint
   (* var declarations / var premises *)
   | Var_prem_invalid_metavar
   | Var_prem_type_redefined
@@ -99,10 +99,10 @@ let string_of_code = function
   | Extend_non_variant_primitive -> "extend-non-variant-primitive"
   | Variant_mixop_collision -> "variant-mixop-collision"
   | Typ_fully_redefined -> "typ-fully-redefined"
-  | Hole_outside_notation -> "hole-outside-notation"
-  | Fuse_outside_notation -> "fuse-outside-notation"
-  | Unparen_outside_notation -> "unparen-outside-notation"
-  | Latex_outside_notation -> "latex-outside-notation"
+  | Hole_outside_hint -> "hole-outside-hint"
+  | Fuse_outside_hint -> "fuse-outside-hint"
+  | Unparen_outside_hint -> "unparen-outside-hint"
+  | Latex_outside_hint -> "latex-outside-hint"
   | Var_prem_invalid_metavar -> "var-prem-invalid-metavar"
   | Var_prem_type_redefined -> "var-prem-type-redefined"
   | Var_def_invalid_metavar -> "var-def-invalid-metavar"

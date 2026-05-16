@@ -471,10 +471,30 @@ and infer_exp' (ctx : Ctx.t) (at : region) (exp : exp') :
   | SeqE _ -> fail_infer at "sequence expression"
   | InfixE _ -> fail_infer at "infix expression"
   | BrackE _ -> fail_infer at "bracket expression"
-  | HoleE _ -> error at "misplaced hole"
-  | FuseE _ -> error at "misplaced token concatenation"
-  | UnparenE _ -> error at "misplaced unparenthesize"
-  | LatexE _ -> error at "misplaced LaTeX literal"
+  | HoleE _ ->
+      error at "misplaced hole" ~code:Hole_outside_hint
+        ~detail:
+          "A `%`, `%N`, `%%`, or `!%` marks an argument slot inside a \
+           `hint(...)` expression, like `hint(input %0 %1)`. Outside a hint, \
+           it has no meaning."
+  | FuseE _ ->
+      error at "misplaced token concatenation" ~code:Fuse_outside_hint
+        ~detail:
+          "The `#` operator joins two fragments without a space inside a \
+           `hint(...)` expression's rendered output, like `hint(prose \
+           %0#suffix)`. Outside a hint, it has no meaning."
+  | UnparenE _ ->
+      error at "misplaced unparenthesize" ~code:Unparen_outside_hint
+        ~detail:
+          "The `##` operator strips enclosing parentheses from its operand \
+           when a `hint(...)` expression is rendered, giving finer control \
+           over the rendered form. Outside a hint, it has no meaning."
+  | LatexE _ ->
+      error at "misplaced LaTeX literal" ~code:Latex_outside_hint
+        ~detail:
+          "A `%latex(\"...\")` literal embeds raw LaTeX source inside a \
+           `hint(...)` expression, for use by a LaTeX rendering backend. \
+           Outside a hint, it has no meaning."
 
 and infer_exps (ctx : Ctx.t) (exps : exp list) :
     (Ctx.t * Il.exp list * Il.typ list) attempt =

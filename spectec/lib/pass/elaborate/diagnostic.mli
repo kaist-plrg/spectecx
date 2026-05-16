@@ -55,10 +55,10 @@ type code =
   | Variant_mixop_collision
   | Typ_fully_redefined
   (* misplaced notation atoms *)
-  | Hole_outside_notation
-  | Fuse_outside_notation
-  | Unparen_outside_notation
-  | Latex_outside_notation
+  | Hole_outside_hint
+  | Fuse_outside_hint
+  | Unparen_outside_hint
+  | Latex_outside_hint
   (* var declarations / var premises *)
   | Var_prem_invalid_metavar
   | Var_prem_type_redefined
