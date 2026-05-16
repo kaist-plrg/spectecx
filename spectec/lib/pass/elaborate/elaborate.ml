@@ -334,9 +334,37 @@ and elab_typcase_plain (ctx : Ctx.t) (typ_il : Il.typ) : Il.typcase list =
           | Il.VariantT typcases_il ->
               let theta = List.combine tparams targs |> TIdMap.of_list in
               List.map (Envs.Il.Typ.subst_typcase theta) typcases_il
-          | _ -> error typ_il.at "cannot extend a non-variant type")
-      | _ -> error typ_il.at "cannot extend an incomplete type")
-  | _ -> error typ_il.at "cannot extend a non-variant type"
+          | _ ->
+              let related =
+                match Ctx.typdef_prior_at ctx tid with
+                | Some prior_at -> [ (prior_at, "originally defined here") ]
+                | None -> []
+              in
+              error typ_il.at "cannot extend a non-variant type"
+                ~code:Extend_non_variant_struct ~related
+                ~detail:
+                  "A case-line `| T` extends the surrounding variant with the \
+                   cases of `T`. The type named here has a body that is not a \
+                   variant, so it has no cases to contribute.")
+      | _ ->
+          let related =
+            match Ctx.typdef_prior_at ctx tid with
+            | Some prior_at -> [ (prior_at, "originally declared here") ]
+            | None -> []
+          in
+          error typ_il.at "cannot extend an incomplete type"
+            ~code:Extend_incomplete ~related
+            ~detail:
+              "A case-line `| T` extends the surrounding variant with the \
+               cases of `T`. The type named here was declared with `syntax T;` \
+               but has no body yet, so there are no cases to contribute.")
+  | _ ->
+      error typ_il.at "cannot extend a non-variant type"
+        ~code:Extend_non_variant_primitive
+        ~detail:
+          "A case-line `| T` extends the surrounding variant with the cases of \
+           `T`. The expression here is a primitive type, not a named variant, \
+           so there are no cases to contribute."
 
 and elab_typcase (ctx : Ctx.t) (typorigin_il : Il.typorigin) (typcase : typcase)
     : Il.typcase list =
@@ -359,13 +387,25 @@ and elab_deftyp_variant (ctx : Ctx.t) (at : region) (id : id)
     (id, targs_il) $ id.at
   in
   let typcases_il = List.concat_map (elab_typcase ctx typorigin_il) typcases in
-  let mixops_il =
+  let mixops_with_at =
     typcases_il
-    |> List.map (fun (nottyp_il, _, _) -> Il.Mixfix.to_mixop nottyp_il.it)
+    |> List.map (fun (nottyp_il, _, _) ->
+           (Il.Mixfix.to_mixop nottyp_il.it, nottyp_il.at))
   in
-  let mixop_groups = groupby Il.Mixfix.eq_mixop mixops_il in
+  let mixop_groups =
+    groupby (fun (m1, _) (m2, _) -> Il.Mixfix.eq_mixop m1 m2) mixops_with_at
+  in
   let mixop_duplicates =
     List.filter (fun mixop_group -> List.length mixop_group > 1) mixop_groups
+  in
+  let related =
+    mixop_duplicates
+    |> List.concat_map (fun group ->
+           let mixop, _ = List.hd group in
+           let label =
+             Printf.sprintf "case with shape %s" (Il.Mixfix.to_string mixop)
+           in
+           List.map (fun (_, at) -> (at, label)) group)
   in
   check
     (List.length mixop_duplicates = 0)
@@ -373,8 +413,16 @@ and elab_deftyp_variant (ctx : Ctx.t) (at : region) (id : id)
     ("variant cases are ambiguous: "
     ^ String.concat ", "
         (List.map
-           (fun mixop_group -> Il.Mixfix.to_string (List.hd mixop_group))
-           mixop_duplicates));
+           (fun mixop_group ->
+             let mixop, _ = List.hd mixop_group in
+             Il.Mixfix.to_string mixop)
+           mixop_duplicates))
+    ~code:Variant_mixop_collision ~related
+    ~detail:
+      "Variant cases must differ in their literal tokens or argument \
+       positions; differences in argument types do not register. The cases \
+       shown here share the same sequence, so the elaborator cannot pick \
+       between them.";
   let deftyp_il = Il.VariantT typcases_il $ at in
   let td = Typdef.Defined (tparams, deftyp_il) in
   (td, deftyp_il)
@@ -1581,7 +1629,14 @@ and elab_typ_def (ctx : Ctx.t) (id : id) (tparams : tparam list)
           let typ_il = Il.VarT (id, []) $ id.at in
           Ctx.add_metavar ctx id typ_il
         else ctx
-    | _ -> error id.at "type was already defined"
+    | _ ->
+        let related =
+          match Ctx.typdef_prior_at ctx id with
+          | Some prior_at -> [ (prior_at, "originally defined here") ]
+          | None -> []
+        in
+        error id.at "type was already defined" ~code:Typ_fully_redefined
+          ~related
   in
   check (List.for_all valid_tid tparams) id.at "invalid type parameter";
   let ctx_local = Ctx.add_tparams ctx tparams in
