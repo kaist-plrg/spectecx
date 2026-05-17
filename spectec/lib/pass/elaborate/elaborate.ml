@@ -1683,7 +1683,8 @@ and elab_typ_def (ctx : Ctx.t) (id : id) (tparams : tparam list)
              the same order.";
         ctx
     | None ->
-        check (valid_tid id) id.at "invalid type identifier";
+        check (valid_tid id) id.at "invalid type identifier"
+          ~code:Typ_invalid_id;
         let td = Typdef.Defining tparams in
         let ctx = Ctx.add_typdef ctx id td in
         if tparams = [] then
@@ -1699,7 +1700,9 @@ and elab_typ_def (ctx : Ctx.t) (id : id) (tparams : tparam list)
         error id.at "type was already defined" ~code:Typ_fully_redefined
           ~related
   in
-  check (List.for_all valid_tid tparams) id.at "invalid type parameter";
+  check
+    (List.for_all valid_tid tparams)
+    id.at "invalid type parameter" ~code:Typ_invalid_tparam;
   let ctx_local = Ctx.add_tparams ctx tparams in
   let td, deftyp_il = elab_deftyp ctx_local id tparams deftyp in
   let def_il = Il.TypD (id, tparams, deftyp_il) $ deftyp.at in
