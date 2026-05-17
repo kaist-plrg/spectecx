@@ -6,7 +6,7 @@
     | ^^^^^^^^^^^^^^^^^^^^^^
     | ...
     = source: elab
-  error: invalid meta-variable identifier
+  error[elab/var-prem-invalid-metavar]: invalid meta-variable identifier
     --> ctx-invalid-metavar-in-prem.spectec:11:10
      |
   11 |   -- var x_1 : foo

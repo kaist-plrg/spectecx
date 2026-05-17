@@ -106,7 +106,8 @@ module Types = struct
       bool =
     check
       (List.length tparams_a = List.length tparams_b)
-      no_region "type parameters do not match";
+      no_region "type parameters do not match"
+      ~code:Functyp_tparam_arity_mismatch;
     let tdenv, theta_a, theta_b =
       List.fold_left2
         (fun (tdenv, theta_a, theta_b) tparam_a tparam_b ->
@@ -121,7 +122,7 @@ module Types = struct
     in
     check
       (List.length params_a = List.length params_b)
-      at "parameters do not match";
+      at "parameters do not match" ~code:Functyp_param_arity_mismatch;
     let params_a = Envs.Il.Typ.subst_params theta_a params_a in
     let params_b = Envs.Il.Typ.subst_params theta_b params_b in
     let typ_a = Envs.Il.Typ.subst_typ theta_a typ_a in
@@ -237,7 +238,7 @@ and elab_plaintyp' (ctx : Ctx.t) (plaintyp : plaintyp') : Il.typ' =
       let tparams = Typdef.get_tparams td in
       check
         (List.length tparams = List.length targs)
-        tid.at "type arguments do not match";
+        tid.at "type arguments do not match" ~code:Vart_targ_arity_mismatch;
       let targs_il = List.map (elab_plaintyp ctx) targs in
       Il.VarT (tid, targs_il)
   | ParenT plaintyp -> elab_plaintyp' ctx plaintyp.it
@@ -873,7 +874,7 @@ and infer_call_exp (ctx : Ctx.t) (at : region) (id : id) (targs : targ list)
   let tparams, params_il, typ_il = Ctx.find_dec_signature ctx id in
   check
     (List.length targs = List.length tparams)
-    id.at "type arguments do not match";
+    id.at "type arguments do not match" ~code:Call_targ_arity_mismatch;
   let targs_il = List.map (elab_plaintyp ctx) targs in
   let theta = List.combine tparams targs_il |> TIdMap.of_list in
   let params_il = Envs.Il.Typ.subst_params theta params_il in
@@ -1405,7 +1406,8 @@ and elab_param (ctx : Ctx.t) (param : param) : Il.param =
   | DefP (id, tparams, params, plaintyp) ->
       check
         (List.map it tparams |> distinct ( = ))
-        id.at "type parameters are not distinct";
+        id.at "type parameters are not distinct"
+        ~code:Funparam_tparam_not_distinct;
       let ctx_local = ctx in
       let ctx_local = Ctx.add_tparams ctx_local tparams in
       let params_il = List.map (elab_param ctx_local) params in
@@ -1431,7 +1433,13 @@ and elab_arg ?(as_def = false) (ctx : Ctx.t) (param_il : Il.param) (arg : arg) :
       check (id_p.it = id_a.it) arg.at
         (Format.asprintf
            "function argument does not match the declared function parameter %s"
-           (Id.to_string id_p));
+           (Id.to_string id_p))
+        ~code:Funarg_shape_mismatch_sig
+        ~related:[ (id_p.at, "declared here") ]
+        ~detail:
+          "A function argument in a `def` clause must bind to the same name as \
+           the declared function parameter in the `dec`. The clause body uses \
+           that name to call the function.";
       let ctx =
         Ctx.add_defined_dec ctx id_p tparams_il_p params_il_p typ_il_p
       in
@@ -1441,25 +1449,40 @@ and elab_arg ?(as_def = false) (ctx : Ctx.t) (param_il : Il.param) (arg : arg) :
       let tparams_il_a, params_il_a, typ_il_a =
         Ctx.find_dec_signature ctx id_a
       in
+      let related =
+        match Ctx.dec_prior_at ctx id_a with
+        | Some prior_at -> [ (prior_at, "passed function declared here") ]
+        | None -> []
+      in
       check
         (Types.equiv_functyp ctx.tdenv arg.at tparams_il_p params_il_p typ_il_p
            tparams_il_a params_il_a typ_il_a)
         arg.at
         (Format.asprintf
            "function argument does not match the declared function parameter %s"
-           (Id.to_string id_p));
+           (Id.to_string id_p))
+        ~code:Funarg_shape_mismatch_call ~related
+        ~detail:
+          "A function argument at a call site must have the same signature \
+           (type parameters, parameter types, and return type) as the declared \
+           function parameter. The function passed here was declared with a \
+           different signature.";
       let arg_il = Il.DefA id_a $ arg.at in
       (ctx, arg_il)
   | ExpP _, DefA _ ->
       error arg.at
         "expected an expression argument, but got a function argument"
+        ~code:Funarg_expected_exp_got_fun
   | DefP _, ExpA _ ->
       error arg.at
         "expected a function argument, but got an expression argument"
+        ~code:Funarg_expected_fun_got_exp
 
 and elab_args ?(as_def = false) (at : region) (ctx : Ctx.t)
     (params_il : Il.param list) (args : arg list) : Ctx.t * Il.arg list =
-  check (List.length args = List.length params_il) at "arguments do not match";
+  check
+    (List.length args = List.length params_il)
+    at "arguments do not match" ~code:Call_arg_arity_mismatch;
   List.fold_left2
     (fun (ctx, args_il) param_il arg ->
       let ctx, arg_il = elab_arg ~as_def ctx param_il arg in
@@ -1508,8 +1531,16 @@ and elab_prems_with_bind (ctx : Ctx.t) (prems : prem list) :
 (* Elaboration of variable premises *)
 
 and elab_var_prem (ctx : Ctx.t) (id : id) (plaintyp : plaintyp) : Ctx.t =
-  check (valid_tid id) id.at "invalid meta-variable identifier";
-  check (not (Ctx.bound_typdef ctx id)) id.at "type already defined";
+  check (valid_tid id) id.at "invalid meta-variable identifier"
+    ~code:Var_prem_invalid_metavar;
+  let related =
+    match Ctx.typdef_prior_at ctx id with
+    | Some prior_at -> [ (prior_at, "originally defined here") ]
+    | None -> []
+  in
+  check
+    (not (Ctx.bound_typdef ctx id))
+    id.at "type already defined" ~code:Var_prem_type_redefined ~related;
   let typ_il = elab_plaintyp ctx plaintyp in
   Ctx.add_metavar ctx id typ_il
 
@@ -1634,12 +1665,22 @@ and elab_typ_def (ctx : Ctx.t) (id : id) (tparams : tparam list)
   let ctx =
     match td_opt with
     | Some (Typdef.Defining tparams_defining) ->
+        let related =
+          match Ctx.typdef_prior_at ctx id with
+          | Some prior_at -> [ (prior_at, "forward-declared here") ]
+          | None -> []
+        in
         let tparams = List.map it tparams in
         let tparams_defining = List.map it tparams_defining in
         check
           (List.length tparams = List.length tparams_defining
           && List.for_all2 ( = ) tparams tparams_defining)
-          id.at "type parameters do not match";
+          id.at "type parameters do not match" ~code:Typ_tparam_mismatch
+          ~related
+          ~detail:
+            "A `syntax T<...> = ...` body must repeat the type parameters from \
+             its forward declaration with the same count and the same names in \
+             the same order.";
         ctx
     | None ->
         check (valid_tid id) id.at "invalid type identifier";
@@ -1787,7 +1828,8 @@ and elab_builtin_dec_def (ctx : Ctx.t) (at : region) (id : id)
     (hints : hint list) : Ctx.t * Il.def =
   check
     (List.map it tparams |> distinct ( = ))
-    id.at "type parameters are not distinct";
+    id.at "type parameters are not distinct"
+    ~code:Builtin_dec_tparam_not_distinct;
   let ctx_local = ctx in
   let ctx_local = Ctx.add_tparams ctx_local tparams in
   let params_il = List.map (elab_param ctx_local) params in
@@ -1801,7 +1843,7 @@ and elab_dec_def (ctx : Ctx.t) (at : region) (id : id) (tparams : tparam list)
     (params : param list) (plaintyp : plaintyp) : Ctx.t * Il.def =
   check
     (List.map it tparams |> distinct ( = ))
-    id.at "type parameters are not distinct";
+    id.at "type parameters are not distinct" ~code:Dec_tparam_not_distinct;
   let ctx_local = ctx in
   let ctx_local = Ctx.add_tparams ctx_local tparams in
   let params_il = List.map (elab_param ctx_local) params in
@@ -1830,12 +1872,23 @@ and elab_def_output_with_bind (ctx : Ctx.t) (typ_il : Il.typ) (exp : exp) :
 and elab_def_def (ctx : Ctx.t) (at : region) (id : id) (tparams : tparam list)
     (args : arg list) (exp : exp) (prems : prem list) : Ctx.t =
   let tparams_expected, params_il, typ_il, _ = Ctx.find_defined_dec ctx id in
+  let related =
+    match Ctx.dec_prior_at ctx id with
+    | Some prior_at -> [ (prior_at, "declared here") ]
+    | None -> []
+  in
   check
     (List.length tparams = List.length tparams_expected
     && List.for_all2 ( = ) (List.map it tparams) (List.map it tparams_expected)
     )
-    id.at "type arguments do not match";
-  check (List.length params_il = List.length args) at "arguments do not match";
+    id.at "type parameters do not match" ~code:Clause_tparam_mismatch ~related
+    ~detail:
+      "A `def $f<...> = ...` clause must repeat the type parameters from its \
+       `dec` declaration with the same count and the same names in the same \
+       order.";
+  check
+    (List.length params_il = List.length args)
+    at "arguments do not match" ~code:Clause_arg_arity_mismatch;
   let ctx_local = { ctx with frees = IdSet.empty } in
   let ctx_local =
     let def = DefD (id, tparams, args, exp, prems) $ at in

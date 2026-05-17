@@ -17,7 +17,7 @@
   9 | dec $bad : nat
     | ^^^^^^^^^^^^^^
     = source: elab
-  error: parameters do not match
+  error[elab/functyp-param-arity-mismatch]: parameters do not match
     --> type-functyp-param-arity-mismatch.spectec:10:20
      |
   10 | def $bad = $caller(def $g)

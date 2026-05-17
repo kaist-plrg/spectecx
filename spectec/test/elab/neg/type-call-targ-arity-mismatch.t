@@ -11,7 +11,7 @@
   5 | dec $g : nat
     | ^^^^^^^^^^^^
     = source: elab
-  error: type arguments do not match
+  error[elab/call-targ-arity-mismatch]: type arguments do not match
     --> type-call-targ-arity-mismatch.spectec:6:11
     |
   6 | def $g = $f<nat, nat>(0)

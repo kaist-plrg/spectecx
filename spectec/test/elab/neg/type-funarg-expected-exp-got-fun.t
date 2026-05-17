@@ -17,7 +17,7 @@
   8 | dec $main : nat
     | ^^^^^^^^^^^^^^^
     = source: elab
-  error: expected an expression argument, but got a function argument
+  error[elab/funarg-expected-exp-got-fun]: expected an expression argument, but got a function argument
     --> type-funarg-expected-exp-got-fun.spectec:9:21
     |
   9 | def $main = $caller(def $g)

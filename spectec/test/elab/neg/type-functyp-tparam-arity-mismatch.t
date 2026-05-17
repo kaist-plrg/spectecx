@@ -1,5 +1,5 @@
   $ ./main.exe type-functyp-tparam-arity-mismatch.spectec 2>&1
-  error: type parameters do not match
+  error[elab/functyp-tparam-arity-mismatch]: type parameters do not match
     = source: elab
   warning[elab/dec-missing-clauses]: dec $g has no clauses defined
     --> type-functyp-tparam-arity-mismatch.spectec:4:1
