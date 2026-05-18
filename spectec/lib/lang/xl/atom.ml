@@ -210,8 +210,6 @@ let string_of_atom_exact : t -> string = function
   | RBrace `Tick2 -> "``}"
   | a -> string_of_atom a
 
-(* NOTE: ".", ":", ";", "..", "..." map to their `Tick variants rather than
-   `Plain. This is because the helper is used by user-facing parsers. *)
 let of_string : string -> t = function
   | "<:" -> Sub
   | ":>" -> Sup
@@ -227,12 +225,17 @@ let of_string : string -> t = function
   | "=>_" -> DoubleArrowSub
   | "~>" -> SqArrow
   | "~>*" -> SqArrowStar
-  | "." | "`." -> Dot `Tick
-  | ".." | "`.." -> Dot2 `Tick
-  | "..." | "`..." -> Dot3 `Tick
+  | "." -> Dot `Plain
+  | "`." -> Dot `Tick
+  | ".." -> Dot2 `Plain
+  | "`.." -> Dot2 `Tick
+  | "..." -> Dot3 `Plain
+  | "`..." -> Dot3 `Tick
   | "," -> Comma
-  | ";" | "`;" -> Semicolon `Tick
-  | ":" | "`:" -> Colon `Tick
+  | ";" -> Semicolon `Plain
+  | "`;" -> Semicolon `Tick
+  | ":" -> Colon `Plain
+  | "`:" -> Colon `Tick
   | "#" -> Hash
   | "$" -> Dollar
   | "@" -> At

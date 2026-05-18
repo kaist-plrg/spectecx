@@ -204,7 +204,7 @@ and parse_primary c : value =
 
 (* Sequencing is left-associative via `;`. *)
 and parse_stmt c =
-  left_assoc ~op_token:Lexer.Semi ~op_atom:";" ~var:"command"
+  left_assoc ~op_token:Lexer.Semi ~op_atom:"`;" ~var:"command"
     ~next:parse_stmt_atom c
 
 and parse_stmt_atom c : value =
