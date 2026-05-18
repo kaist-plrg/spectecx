@@ -7,7 +7,7 @@ DUNE = cd spectec && $(OPAM_EXEC) dune
 
 # Compile & Format
 
-.PHONY: exe fmt fmt-check promote clean
+.PHONY: exe check fmt fmt-check promote clean
 
 EXESPEC = spectec/_build/default/bin/main.exe
 
@@ -16,6 +16,9 @@ exe:
 	$(DUNE) build bin/main.exe
 	@echo
 	ln -f $(EXESPEC) ./$(NAME)
+
+check:
+	$(DUNE) build @check
 
 fmt:
 	$(DUNE) fmt
