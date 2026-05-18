@@ -92,11 +92,11 @@ let split (mixfix : 'a t) : mixop * 'a list =
 (* Rendering *)
 
 let is_open_bracket : Xl.Atom.t -> bool = function
-  | LParen | LBrack | LBrace | LAngle -> true
+  | LParen | LBrack _ | LBrace _ | LAngle _ -> true
   | _ -> false
 
 let is_close_bracket : Xl.Atom.t -> bool = function
-  | RParen | RBrack | RBrace | RAngle -> true
+  | RParen | RBrack _ | RBrace _ | RAngle _ -> true
   | _ -> false
 
 let opens_bracket = function Atom a -> is_open_bracket a.it | Arg _ -> false
