@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      # Matches the switch name setup-ocaml creates for ocaml-compiler
+      # "5.1.1"; consumed by the Makefile's `opam exec --switch=$(SWITCH)`.
+      SWITCH: "5.1.1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up OCaml
+        uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: "5.1.1"
+          opam-pin: false
+
+      - name: Install dependencies
+        working-directory: spectec
+        run: opam install . --deps-only --locked
+
+      - name: Format check
+        run: make fmt-check
+
+      - name: Type check
+        run: make check
+
+      - name: Build
+        run: make exe
+
+      - name: Quick tests
+        run: make test-quick
+
+      - name: Full tests
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: make test
