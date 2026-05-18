@@ -25,7 +25,7 @@ SpecTec was originally developed for WebAssembly (Wasm-SpecTec), then adapted/ge
 make exe
 ```
 
-This creates an executable `spectec-core` in the project root.
+This creates an executable `spectecx` in the project root.
 
 ### Structure
 
@@ -53,18 +53,18 @@ spectec/testdata/        test inputs
 ### Commands
 ```bash
 # print out the IL representation of a SpecTec spec
-./spectec-core elab spec/*.spectec
+./spectecx elab spec/*.spectec
 # print the SL representation of a SpecTec spec
-./spectec-core struct spec/*.spectec
+./spectecx struct spec/*.spectec
 
 ## P4-specific commands
 
 # parse a P4 program to an IL value (-r to do a roundtrip test)
-./spectec-core p4 parse spec/*.spectec -i spectec/testdata/interp/p4-tests/includes -p target/file.p4 [-r]
+./spectecx p4 parse spec/*.spectec -i spectec/testdata/interp/p4-tests/includes -p target/file.p4 [-r]
 
 # run a P4 program based on SpecTec IL/SL
-./spectec-core p4 typecheck -i spectec/testdata/interp/p4-tests/includes -p target/file.p4
-./spectec-core p4 typecheck -i spectec/testdata/interp/p4-tests/includes -p target/file.p4 --sl
+./spectecx p4 typecheck -i spectec/testdata/interp/p4-tests/includes -p target/file.p4
+./spectecx p4 typecheck -i spectec/testdata/interp/p4-tests/includes -p target/file.p4 --sl
 ```
 
 ### Testing
