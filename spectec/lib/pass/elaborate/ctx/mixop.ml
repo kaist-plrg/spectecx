@@ -84,20 +84,17 @@ let of_il (mixemes : Lang.Il.Mixfix.mixop) : t =
             | M.Atom atom_r :: tail when bracket_matches atom.it atom_r.it ->
                 Some (Brack (atom, inner, atom_r), tail)
             | _ ->
-                Error.error atom.at
-                  (Format.asprintf "unmatched bracket `%s`"
-                     (Atom.string_of_atom_exact atom.it)))
+                (* unreachable: EL's BrackT lifts bracket atoms only in matched pairs. *)
+                assert false)
         | Atom.BracketR | Atom.Infix _ -> None)
     | [] -> None
   in
   let tree, mixemes_remaining = parse_expr 0 mixemes in
   match mixemes_remaining with
   | [] -> tree
-  | M.Atom atom :: _ ->
-      Error.error atom.at
-        (Format.asprintf "stray mixfix atom `%s`"
-           (Atom.string_of_atom_exact atom.it))
-  | M.Arg () :: _ -> Error.error no_region "stray argument marker in mixop"
+  | _ ->
+      (* unreachable: parse_expr / parse_primary_seq consume every EL-emitted atom. *)
+      assert false
 
 (* Conversion to the flat IL representation *)
 

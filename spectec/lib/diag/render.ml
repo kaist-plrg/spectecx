@@ -9,13 +9,13 @@ open Common.Source
 
 (* --- Severity styling --- *)
 
-let severity_label : Diagnostic.severity -> string = function
+let severity_label : Record.severity -> string = function
   | Error -> "error"
   | Warning -> "warning"
   | Info -> "info"
   | Hint -> "hint"
 
-let severity_styles : Diagnostic.severity -> Ansi.style list = function
+let severity_styles : Record.severity -> Ansi.style list = function
   | Error -> [ Bold; Red ]
   | Warning -> [ Bold; Yellow ]
   | Info -> [ Bold; Blue ]
@@ -23,7 +23,7 @@ let severity_styles : Diagnostic.severity -> Ansi.style list = function
 
 (* --- Header --- *)
 
-let render_header ~ansi (d : Diagnostic.t) : string =
+let render_header ~ansi (d : Record.t) : string =
   let label = severity_label d.severity in
   let code = match d.code with Some c -> "[" ^ c ^ "]" | None -> "" in
   let prefix =
@@ -66,7 +66,7 @@ let render_snippet ~ansi ~cache ~(left : pos) ~(right : pos) : string option =
         (Printf.sprintf "%s |\n%s | %s\n%s | %s%s" gutter lineno_str line_text
            gutter underline cont)
 
-let render_location ~ansi ~cache (d : Diagnostic.t) : string option =
+let render_location ~ansi ~cache (d : Record.t) : string option =
   if d.region = no_region then None
   else
     let arrow = Ansi.style ansi [ Bold; Blue ] "  --> " in
@@ -83,32 +83,41 @@ let render_location ~ansi ~cache (d : Diagnostic.t) : string option =
 
 (* --- Annotations: source tag, note, related --- *)
 
-let render_source_tag ~ansi (d : Diagnostic.t) : string option =
+let render_source_tag ~ansi (d : Record.t) : string option =
   if d.source = "" then None
   else Some (Ansi.style ansi [ Dim ] (Printf.sprintf "  = source: %s" d.source))
 
-let render_detail ~ansi (d : Diagnostic.t) : string option =
+let render_detail ~ansi (d : Record.t) : string option =
   match d.detail with
   | None -> None
   | Some s -> Some (Ansi.style ansi [ Bold; Cyan ] "  = note: " ^ s)
 
-let render_related ~ansi (d : Diagnostic.t) : string option =
+let render_related ~ansi ~cache (d : Record.t) : string option =
   if d.related = [] then None
   else
-    let one (r : Diagnostic.related) =
-      let loc =
-        if r.region = no_region then ""
-        else Ansi.style ansi [ Dim ] (string_of_region r.region) ^ " "
-      in
-      Ansi.style ansi [ Bold; Blue ] "  = related: " ^ loc ^ r.message
+    let one (r : Record.related) =
+      let header = Ansi.style ansi [ Bold; Blue ] "  = related: " ^ r.message in
+      if r.region = no_region then header
+      else
+        let arrow = Ansi.style ansi [ Bold; Blue ] "  --> " in
+        let loc =
+          Printf.sprintf "%s:%d:%d" r.region.left.file r.region.left.line
+            (r.region.left.column + 1)
+        in
+        let loc_line = arrow ^ loc in
+        match
+          render_snippet ~ansi ~cache ~left:r.region.left ~right:r.region.right
+        with
+        | None -> String.concat "\n" [ header; loc_line ]
+        | Some snippet -> String.concat "\n" [ header; loc_line; snippet ]
     in
     Some (List.map one d.related |> String.concat "\n")
 
 (* --- Trace --- *)
 
-let rec render_trace_node ~ansi ~indent ~is_last (node : Diagnostic.trace_node)
-    : string =
-  let { Diagnostic.region; message; children } = node in
+let rec render_trace_node ~ansi ~indent ~is_last (node : Record.trace_node) :
+    string =
+  let { Record.region; message; children } = node in
   let connector = if is_last then "└── " else "├── " in
   let region_str =
     if region = no_region then ""
@@ -125,7 +134,7 @@ let rec render_trace_node ~ansi ~indent ~is_last (node : Diagnostic.trace_node)
   in
   String.concat "\n" (line :: child_lines)
 
-let render_trace ~ansi (d : Diagnostic.t) : string option =
+let render_trace ~ansi (d : Record.t) : string option =
   if d.trace = [] then None
   else
     let header = Ansi.style ansi [ Bold; Blue ] "  = trace:" in
@@ -140,19 +149,19 @@ let render_trace ~ansi (d : Diagnostic.t) : string option =
 
 (* --- Public API --- *)
 
-let render ~ansi ~cache (d : Diagnostic.t) : string =
+let render ~ansi ~cache (d : Record.t) : string =
   [
     Some (render_header ~ansi d);
     render_location ~ansi ~cache d;
     render_source_tag ~ansi d;
     render_detail ~ansi d;
-    render_related ~ansi d;
+    render_related ~ansi ~cache d;
     render_trace ~ansi d;
   ]
   |> List.filter_map Fun.id |> String.concat "\n"
 
 let render_bag ~ansi bag =
   let cache = Source_cache.create () in
-  Diagnostic.Bag.to_sorted_list bag
+  Record.Bag.to_sorted_list bag
   |> List.map (render ~ansi ~cache)
   |> String.concat "\n"

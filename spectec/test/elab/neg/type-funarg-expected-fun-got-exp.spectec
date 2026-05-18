@@ -1,0 +1,8 @@
+;; A call passes an expression argument where a function-argument
+;; is expected.
+
+dec $caller(def $f(nat) : nat) : nat
+def $caller(def $f) = $f(0)
+
+dec $main : nat
+def $main = $caller(0)

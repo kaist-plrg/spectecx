@@ -1,0 +1,16 @@
+;; A negated premise applied to a relation that declares an output.
+
+syntax foo = nat
+
+relation R: foo |- foo
+  hint(input %0)
+
+rule R/refl:
+  0 |- 0
+
+relation P: foo |- foo
+  hint(input %0)
+
+rule P/notr:
+  0 |- 0
+  -- R:/ 0 |- 0

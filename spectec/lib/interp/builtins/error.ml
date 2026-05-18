@@ -36,6 +36,6 @@ let region_and_message = function
   | MissingImplError (at, msg) ->
       (at, Printf.sprintf "Missing builtin implementation: %s" msg)
 
-let to_diagnostic (err : t) : Diagnostic.t =
+let to_diagnostic (err : t) : Diag.t =
   let at, message = region_and_message err in
-  Diagnostic.error ~source:"builtins" at message
+  Diag.error ~source:"builtins" at message

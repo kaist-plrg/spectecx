@@ -1,15 +1,20 @@
   $ ./main.exe ctx-relation-redefined.spectec 2>&1
-  warning: relation R has no rules defined
+  warning[elab/relation-missing-rules]: relation R has no rules defined
     --> ctx-relation-redefined.spectec:5:1
     |
   5 | relation R: nat |- foo
     | ^^^^^^^^^^^^^^^^^^^^^^
     | ...
     = source: elab
-  error: relation `R` was already defined
+  error[elab/ctx-relation-redefined]: relation `R` was already defined
     --> ctx-relation-redefined.spectec:8:10
     |
   8 | relation R: nat |- foo
     |          ^
     = source: elab
+    = related: originally defined here
+    --> ctx-relation-redefined.spectec:5:10
+    |
+  5 | relation R: nat |- foo
+    |          ^
   [1]

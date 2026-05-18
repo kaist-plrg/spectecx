@@ -1,0 +1,4 @@
+;; A typdef's type-parameter identifier carries a numeric suffix
+;; that strip_var_suffix would remove.
+
+syntax foo<T_1> = nat

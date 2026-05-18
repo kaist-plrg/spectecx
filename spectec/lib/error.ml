@@ -24,23 +24,23 @@ let string_of_error = function
 
 let to_diagnostics = function
   | PassError e -> Pass.error_to_diagnostics e
-  | InterpError e -> Diagnostic.Bag.singleton (Interp.error_to_diagnostic e)
+  | InterpError e -> Diag.Bag.singleton (Interp.error_to_diagnostic e)
   | UnhandledException msg ->
-      Diagnostic.Bag.singleton
-        (Diagnostic.error ~source:"internal" Common.Source.no_region
+      Diag.Bag.singleton
+        (Diag.error ~source:"internal" Common.Source.no_region
            ("Unhandled exception: " ^ msg))
   | TaskParseError (at, msg) ->
-      Diagnostic.Bag.singleton (Diagnostic.error ~source:"task-parse" at msg)
+      Diag.Bag.singleton (Diag.error ~source:"task-parse" at msg)
   | RoundtripError (at, msg) ->
-      Diagnostic.Bag.singleton (Diagnostic.error ~source:"roundtrip" at msg)
+      Diag.Bag.singleton (Diag.error ~source:"roundtrip" at msg)
   | SpecMismatchError (expected, actual) ->
-      Diagnostic.Bag.singleton
-        (Diagnostic.error ~source:"config" Common.Source.no_region
+      Diag.Bag.singleton
+        (Diag.error ~source:"config" Common.Source.no_region
            (Printf.sprintf
               "Spec version mismatch: expected spec hash %s but got %s."
               expected actual))
   | DirectoryError msg ->
-      Diagnostic.Bag.singleton
-        (Diagnostic.error ~source:"config" Common.Source.no_region msg)
+      Diag.Bag.singleton
+        (Diag.error ~source:"config" Common.Source.no_region msg)
   | ConfigError (at, msg) ->
-      Diagnostic.Bag.singleton (Diagnostic.error ~source:"config" at msg)
+      Diag.Bag.singleton (Diag.error ~source:"config" at msg)

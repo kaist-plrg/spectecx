@@ -1,0 +1,4 @@
+;; A builtin dec declaration carries the same type-parameter name
+;; twice.
+
+builtin dec $f<T, T> : nat

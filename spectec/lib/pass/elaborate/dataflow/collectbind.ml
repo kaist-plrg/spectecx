@@ -1,6 +1,6 @@
 open Common.Source
 open Lang.Il
-open Error
+open Diagnostic
 open Ctx
 module Mixop = Lang.Il.Mixfix
 
@@ -14,6 +14,12 @@ let collect_noninvertible (at : region) (construct : string)
     error at
       (Format.asprintf "invalid binding position(s) for %s in non-invertible %s"
          (Bind.BEnv.to_string benv) construct)
+      ~code:Dataflow_bind_in_non_invertible
+      ~detail:
+        "The elaborator assigns each variable a specific piece of the \
+         surrounding value: a tuple element, a variant case's argument, a \
+         struct field, or a list element. It does not invert operators, even \
+         when their inverse would be unique."
 
 (* Expressions *)
 
@@ -110,12 +116,7 @@ let rec collect_exp (dctx : Dctx.t) (exp : exp) : Bind.BEnv.t =
       let binds = collect_args dctx args in
       collect_noninvertible exp.at "call operator" binds;
       Bind.BEnv.empty
-  | IterE (_, ((_, _ :: _) as iterexp)) ->
-      error exp.at
-        (Format.asprintf
-           "iterated expression should initially have no annotations, but got \
-            %s"
-           (Il.Print.string_of_iterexp iterexp))
+  | IterE (_, (_, _ :: _)) -> assert false
   | IterE (exp, (iter, [])) ->
       let binds = collect_exp dctx exp in
       let binds = Bind.BEnv.map (Bind.Occ.add_iter iter) binds in

@@ -2,7 +2,7 @@ open Common.Domain
 open Common.Source
 open Lang.Il
 module Hint = Envs.Hint
-open Error
+open Diagnostic
 open Ctx
 open Bind
 module Mixop = Lang.Il.Mixfix
@@ -73,6 +73,10 @@ let analyze_exp_as_bound (dctx : Dctx.t) (exp : exp) : unit =
     error exp.at
       (Format.asprintf "expression has free variable(s): %s"
          (BEnv.to_string binds))
+      ~code:Dataflow_free_variable_in_output
+      ~detail:
+        "Every variable here must already be bound by an earlier part of the \
+         rule (the conclusion's input slot or a preceding premise)."
 
 let analyze_exps_as_bound (dctx : Dctx.t) (exps : exp list) : unit =
   List.iter (analyze_exp_as_bound dctx) exps
@@ -108,12 +112,9 @@ let rec analyze_prem (dctx : Dctx.t) (prem : prem) :
   | IfNotHoldPr (id, notexp) -> analyze_if_not_hold_prem dctx prem.at id notexp
   | ElsePr -> (dctx, VEnv.empty, prem, [])
   | LetPr _ ->
-      error prem.at "let premise should appear only after bind analysis"
-  | IterPr (_, ((_, _ :: _) as iterexp)) ->
-      error prem.at
-        (Format.asprintf
-           "iterated premise should initially have no annotations, but got %s"
-           (Il.Print.string_of_iterexp iterexp))
+      (* unreachable: analyze_let_prem produces LetPr within this pass. *)
+      assert false
+  | IterPr (_, (_, _ :: _)) -> assert false
   | IterPr (prem, (iter, [])) -> analyze_iter_prem dctx prem.at prem iter
   | DebugPr exp -> analyze_debug_prem dctx prem.at exp
 
@@ -152,6 +153,11 @@ and analyze_if_eq_prem (dctx : Dctx.t) (at : region) (note : typ')
         (Format.asprintf
            "cannot bind on both sides of an equality: (left) %s, (right) %s"
            (BEnv.to_string binds_l) (BEnv.to_string binds_r))
+        ~code:Dataflow_bind_both_sides_of_equality
+        ~detail:
+          "An `=` premise reads as a comparison when both sides are already \
+           bound, or as a binder when one side is. With new variables on both \
+           sides it fits neither."
 
 and analyze_if_prem (dctx : Dctx.t) (at : region) (exp : exp) :
     Dctx.t * VEnv.t * prem * prem list =

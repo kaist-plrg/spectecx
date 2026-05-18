@@ -1,5 +1,5 @@
 ;; The `##` unparenthesize operator appears in regular expression
-;; position rather than inside a notation declaration.
+;; position rather than inside a hint expression.
 
 dec $f : nat
 def $f = ## 0

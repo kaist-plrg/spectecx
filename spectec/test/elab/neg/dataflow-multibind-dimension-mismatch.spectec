@@ -1,0 +1,11 @@
+;; Two binders for the same variable at different dimensions.
+
+syntax foo = nat
+
+var x : foo
+
+relation R: (foo, foo*) |- bool
+  hint(input %0)
+
+rule R/multibind:
+  (x, x*) |- true

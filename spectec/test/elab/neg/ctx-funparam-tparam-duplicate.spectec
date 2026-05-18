@@ -1,0 +1,4 @@
+;; A function-parameter's type-parameter list carries the same name
+;; twice.
+
+dec $f(def $g<T, T> : nat) : nat

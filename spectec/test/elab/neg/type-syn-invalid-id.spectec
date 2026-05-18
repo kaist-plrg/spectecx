@@ -1,0 +1,4 @@
+;; A forward declaration's identifier carries a numeric suffix that
+;; strip_var_suffix would remove.
+
+syntax x_1

@@ -1,0 +1,9 @@
+;; A call passes a function-argument whose signature does not match
+;; the declared function-parameter's signature.
+
+dec $h(text) : nat
+
+dec $caller(def $f(nat) : nat) : nat
+
+dec $main : nat
+def $main = $caller(def $h)

@@ -1,8 +1,4 @@
-open Common.Source
-open Common.Attempt
-
-type single_error = region * failtrace list
-type error
+type error = Diag.t list
 type 'a result = ('a, error) Stdlib.result
 
 module Fresh : sig
@@ -21,4 +17,4 @@ end
 
 val elab_spec : Lang.El.spec -> Lang.Il.spec result
 val error_to_string : error -> string
-val error_to_diagnostics : error -> Diagnostic.Bag.t
+val error_to_diagnostics : error -> Diag.Bag.t

@@ -1,0 +1,4 @@
+;; A typdef body's identifier carries a numeric suffix that
+;; strip_var_suffix would remove.
+
+syntax x_1 = nat

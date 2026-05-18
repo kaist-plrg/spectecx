@@ -1,5 +1,5 @@
 ;; A %-hole expression appears in regular expression position rather
-;; than inside a notation declaration.
+;; than inside a hint expression.
 
 dec $f : nat
 def $f = %0
