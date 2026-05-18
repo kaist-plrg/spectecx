@@ -11,13 +11,14 @@ SpecTec was originally developed for WebAssembly (Wasm-SpecTec), then adapted/ge
   opam init
   ```
 
-* Create OCaml switch for version 5.1.0 and install the project's declared dependencies:
+* Create an OCaml switch and install the project's pinned dependency versions:
   ```bash
-  opam switch create spectec-core 5.1.0
+  opam switch create spectec-core 5.1.1
   eval $(opam env)
-  opam install . --deps-only
+  cd spectec
+  opam install . --deps-only --locked
   ```
-  Versions are pinned in `spectec/dune-project` and surface as constraints in the generated `spectec/spectec.opam`.
+  The lockfile (`spectec/spectec.opam.locked`) records the exact transitive dep set CI uses; `--locked` recreates that set. The unlocked constraints live in `spectec/dune-project` and surface in `spectec/spectec.opam`.
 
 ### Building the Project
 
