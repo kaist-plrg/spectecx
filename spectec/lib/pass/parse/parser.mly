@@ -41,9 +41,9 @@ let exit_scope () = vars := List.hd !scopes; scopes := List.tl !scopes
 %token<string> TICK_UPID
 %token TICK_TICK TICK_DOUBLE_QUOTE TICK_UNDERSCORE TICK_ARROW TICK_DOUBLE_ARROW
 %token TICK_DOT TICK_DOT2 TICK_DOT3
-%token TICK_COMMA TICK_SEMICOLON TICK_COLON
+%token TICK_COMMA TICK_SEMICOLON TICK_COLON TICK_COLON_EQ
 %token TICK_HASH TICK_DOLLAR TICK_AT TICK_QUEST
-%token TICK_BANG TICK_BANG_EQ TICK_TILDE
+%token TICK_BANG TICK_BANG_EQ TICK_TILDE TICK_TILDE2
 %token TICK2_LANGLE TICK_LANGLE TICK_LANGLE2 TICK_LANGLE_EQ TICK_LANGLE2_EQ
 %token TICK2_RANGLE TICK_RANGLE2 TICK_RANGLE_EQ TICK_RANGLE2_EQ
 %token TICK_LPAREN TICK_LBRACK TICK2_LBRACK TICK2_RBRACK
@@ -63,7 +63,7 @@ let exit_scope () = vars := List.hd !scopes; scopes := List.tl !scopes
 %token SQARROW SQARROW_STAR
 %token AND OR
 %token DOT DOT2 DOT3
-%token COMMA COMMA_NL SEMICOLON COLON COLON2 COLON_SLASH
+%token COMMA COMMA_NL SEMICOLON COLON COLON2 COLON_SLASH COLON_EQ
 %token HASH HASH2 DOLLAR QUEST TILDE TILDE2
 %token LANGLE LANGLE_DASH LANGLE_EQ
 %token RANGLE RANGLE_EQ RANGLE_LPAREN
@@ -90,6 +90,7 @@ let exit_scope () = vars := List.hd !scopes; scopes := List.tl !scopes
 %nonassoc TILESTURN
 %right SQARROW SQARROW_STAR
 %left COLON SUB TILDE2
+%right COLON_EQ
 %right EQ NEQ LANGLE RANGLE LANGLE_EQ RANGLE_EQ LANGLE_DASH
 %right COLON2
 %right ARROW ARROW_SUB
@@ -208,6 +209,7 @@ atom_escape :
   | TICK_COMMA { Atom.Comma }
   | TICK_SEMICOLON { Atom.Semicolon `Tick }
   | TICK_COLON { Atom.Colon `Tick }
+  | TICK_COLON_EQ { Atom.ColonEq `Tick }
   | TICK_HASH { Atom.Hash }
   | TICK_DOLLAR { Atom.Dollar }
   | TICK_AT { Atom.At }
@@ -215,6 +217,7 @@ atom_escape :
   | TICK_BANG { Atom.Bang }
   | TICK_BANG_EQ { Atom.BangEq }
   | TICK_TILDE { Atom.Tilde }
+  | TICK_TILDE2 { Atom.Tilde2 `Tick }
   | TICK2_LANGLE { Atom.LAngle `Tick2 }
   | TICK_LANGLE2 { Atom.LAngle2 }
   | TICK_LANGLE_EQ { Atom.LAngleEq }
@@ -455,12 +458,13 @@ deftyp_ :
   | ARROW_SUB { Atom.ArrowSub }
   | DOUBLE_ARROW_SUB { Atom.DoubleArrowSub }
   | DOUBLE_ARROW_LONG { Atom.DoubleArrowLong }
+  | COLON_EQ { Atom.ColonEq `Plain }
 
 %inline relop :
   | relop_ { $1 @@@ $sloc }
 %inline relop_ :
   | COLON { Atom.Colon `Plain }
-  | TILDE2 { Atom.Tilde2 }
+  | TILDE2 { Atom.Tilde2 `Plain }
   | SQARROW { Atom.SqArrow }
   | SQARROW_STAR { Atom.SqArrowStar }
   | TILESTURN { Atom.Tilesturn }

@@ -30,6 +30,7 @@ type t =
   | Comma                           (* ``,` *)
   | Semicolon of [ `Plain | `Tick ] (* `;` or ``;` *)
   | Colon of [ `Plain | `Tick ]     (* `:` or ``:` *)
+  | ColonEq of [ `Plain | `Tick ]   (* `:=` or ``:=` *)
   | Hash                            (* ``#` *)
   | Dollar                          (* ``$` *)
   | At                              (* ``@` *)
@@ -37,7 +38,7 @@ type t =
   | Bang                            (* ``!` *)
   | BangEq                          (* ``!=` *)
   | Tilde                           (* ``~` *)
-  | Tilde2                          (* `~~` *)
+  | Tilde2 of [ `Plain | `Tick ]    (* `~~` or ``~~` *)
   | LAngle of [ `Tick | `Tick2 ]    (* ``<` or ```<` *)
   | LAngle2                         (* `<<` *)
   | LAngleEq                        (* ``<=` *)
@@ -104,8 +105,9 @@ let kind : t -> kind = function
   | Turnstile -> Infix { assoc = Non; level = 1 }
   | Tilesturn -> Infix { assoc = Non; level = 2 }
   | SqArrow | SqArrowStar -> Infix { assoc = Right; level = 3 }
-  | Colon `Plain | Tilde2 -> Infix { assoc = Left; level = 4 }
-  | DoubleArrowSub | DoubleArrowLong -> Infix { assoc = Right; level = 5 }
+  | Colon `Plain | Tilde2 `Plain -> Infix { assoc = Left; level = 4 }
+  | ColonEq `Plain | DoubleArrowSub | DoubleArrowLong ->
+      Infix { assoc = Right; level = 5 }
   | Arrow `Plain | ArrowSub -> Infix { assoc = Right; level = 6 }
   | Semicolon `Plain -> Infix { assoc = Left; level = 7 }
   | Dot `Plain | Dot2 `Plain | Dot3 `Plain -> Infix { assoc = Left; level = 8 }
@@ -143,6 +145,7 @@ let string_of_atom = function
   | Comma -> ","
   | Semicolon _ -> ";"
   | Colon _ -> ":"
+  | ColonEq _ -> ":="
   | Hash -> "#"
   | Dollar -> "$"
   | At -> "@"
@@ -150,7 +153,7 @@ let string_of_atom = function
   | Bang -> "!"
   | BangEq -> "!="
   | Tilde -> "~"
-  | Tilde2 -> "~~"
+  | Tilde2 _ -> "~~"
   | LAngle _ -> "<"
   | LAngle2 -> "<<"
   | LAngleEq -> "<="
@@ -202,6 +205,8 @@ let string_of_atom_exact : t -> string = function
   | Dot3 `Tick -> "`..."
   | Semicolon `Tick -> "`;"
   | Colon `Tick -> "`:"
+  | ColonEq `Tick -> "`:="
+  | Tilde2 `Tick -> "`~~"
   | LAngle `Tick2 -> "``<"
   | RAngle `Tick2 -> "``>"
   | LBrack `Tick2 -> "``["
@@ -236,6 +241,8 @@ let of_string : string -> t = function
   | "`;" -> Semicolon `Tick
   | ":" -> Colon `Plain
   | "`:" -> Colon `Tick
+  | ":=" -> ColonEq `Plain
+  | "`:=" -> ColonEq `Tick
   | "#" -> Hash
   | "$" -> Dollar
   | "@" -> At
@@ -243,7 +250,8 @@ let of_string : string -> t = function
   | "!" -> Bang
   | "!=" -> BangEq
   | "~" -> Tilde
-  | "~~" -> Tilde2
+  | "~~" -> Tilde2 `Plain
+  | "`~~" -> Tilde2 `Tick
   | "<" -> LAngle `Tick
   | "``<" -> LAngle `Tick2
   | "<<" -> LAngle2
