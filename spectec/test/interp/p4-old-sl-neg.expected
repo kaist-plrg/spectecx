@@ -96,7 +96,7 @@ Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_1
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/default-initializer-err.p4
 Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/default-initializer-err.p4
-  ../../../../../spectec/specs/p4-old/5.10-typing-statement.spectec:441:10-441:23:Error: function was not matched
+  ../../../../../spectec/specs/p4-old/5.06.2-typing-expression.spectec:684:7-684:14:Error: relation was not matched
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/default-last-switch.p4
 Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/default-last-switch.p4
@@ -1181,7 +1181,7 @@ Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/width
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/wrong-cast.p4
 Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/wrong-cast.p4
-  ../../../../../spectec/specs/p4-old/5.11-typing-declaration.spectec:21:10-21:23:Error: function was not matched
+  ../../../../../spectec/specs/p4-old/5.11-typing-declaration.spectec:16:6-16:13:Error: relation was not matched
 
 Typechecker (sl) summary
   Ran:        253 / 310    (81.61%)
