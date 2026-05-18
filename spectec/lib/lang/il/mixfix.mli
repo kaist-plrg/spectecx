@@ -24,6 +24,23 @@ val to_mixop : 'a t -> unit t
 
 val map : ('a -> 'b) -> 'a t -> 'b t
 
+(** Apply [f] to each atom; argument positions and payloads are untouched. *)
+val map_atoms : (atom -> atom) -> 'a t -> 'a t
+
+(** {1 Walks}
+
+    Each walk visits only one kind of mixeme. To visit every position in order,
+    fold over the list directly. *)
+
+(** Apply [f] to each argument in order; atom positions are skipped. *)
+val iter_args : ('a -> unit) -> 'a t -> unit
+
+(** Left fold over arguments in order; atom positions are skipped. *)
+val fold_args : ('acc -> 'a -> 'acc) -> 'acc -> 'a t -> 'acc
+
+(** Apply [f] to each atom in order; argument positions are skipped. *)
+val iter_atoms : (atom -> unit) -> 'a t -> unit
+
 (** {1 Construction / deconstruction} *)
 
 (** Attach arguments to the [Arg] positions of a mixop. Raises [Arity_mismatch]
