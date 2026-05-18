@@ -7,6 +7,7 @@ For project orientation, build, and run instructions, see [README.md](README.md)
 A few `make` targets matter mostly to contributors:
 
 - `make fmt` — runs `dune fmt`. Run before committing.
+- `make fmt-check` — runs `dune build @fmt`; fails if anything is unformatted. CI runs the same check.
 - `make test-quick` — elaboration and structuring only; a fast inner loop while iterating.
 - `make promote` — regenerates `.expected` files. The test suite is diff-based, so a spec or interpreter change that shifts output requires this before the commit lands, otherwise `make test` is red.
 
