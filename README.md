@@ -11,13 +11,14 @@ SpecTec was originally developed for WebAssembly (Wasm-SpecTec), then adapted/ge
   opam init
   ```
 
-* Create OCaml switch for version 5.1.0
-  Install `dune` version 3.16.1, `bignum` version v0.17.0, `menhir` version 20240715, `core` version v0.17.1, `core_unix` version v0.17.0, and `bisect_ppx` version 2.8.3 via `opam`.
+* Create an OCaml switch and install the project's pinned dependency versions:
   ```bash
-  opam switch create spectec-core 5.1.0
+  opam switch create spectec-core 5.1.1
   eval $(opam env)
-  opam install dune bignum menhir core core_unix bisect_ppx
+  cd spectec
+  opam install . --deps-only --locked
   ```
+  The lockfile (`spectec/spectec.opam.locked`) records the exact transitive dep set CI uses; `--locked` recreates that set. The unlocked constraints live in `spectec/dune-project` and surface in `spectec/spectec.opam`.
 
 ### Building the Project
 
@@ -25,7 +26,7 @@ SpecTec was originally developed for WebAssembly (Wasm-SpecTec), then adapted/ge
 make exe
 ```
 
-This creates an executable `spectec-core` in the project root.
+This creates an executable `spectecx` in the project root.
 
 ### Structure
 
@@ -53,18 +54,18 @@ spectec/testdata/        test inputs
 ### Commands
 ```bash
 # print out the IL representation of a SpecTec spec
-./spectec-core elab spec/*.spectec
+./spectecx elab spec/*.spectec
 # print the SL representation of a SpecTec spec
-./spectec-core struct spec/*.spectec
+./spectecx struct spec/*.spectec
 
 ## P4-specific commands
 
 # parse a P4 program to an IL value (-r to do a roundtrip test)
-./spectec-core p4 parse spec/*.spectec -i spectec/testdata/interp/p4-tests/includes -p target/file.p4 [-r]
+./spectecx p4 parse spec/*.spectec -i spectec/testdata/interp/p4-tests/includes -p target/file.p4 [-r]
 
 # run a P4 program based on SpecTec IL/SL
-./spectec-core p4 typecheck -i spectec/testdata/interp/p4-tests/includes -p target/file.p4
-./spectec-core p4 typecheck -i spectec/testdata/interp/p4-tests/includes -p target/file.p4 --sl
+./spectecx p4 typecheck -i spectec/testdata/interp/p4-tests/includes -p target/file.p4
+./spectecx p4 typecheck -i spectec/testdata/interp/p4-tests/includes -p target/file.p4 --sl
 ```
 
 ### Testing

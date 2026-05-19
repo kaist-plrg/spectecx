@@ -1,13 +1,13 @@
-NAME = spectec-core
+NAME = spectecx
 
-SWITCH ?= $(NAME)
+SWITCH ?= spectec-core
 
 OPAM_EXEC = opam exec --switch=$(SWITCH) --
 DUNE = cd spectec && $(OPAM_EXEC) dune
 
 # Compile & Format
 
-.PHONY: exe fmt promote clean
+.PHONY: exe check fmt fmt-check promote clean
 
 EXESPEC = spectec/_build/default/bin/main.exe
 
@@ -17,8 +17,14 @@ exe:
 	@echo
 	ln -f $(EXESPEC) ./$(NAME)
 
+check:
+	$(DUNE) build @check
+
 fmt:
 	$(DUNE) fmt
+
+fmt-check:
+	$(DUNE) build @fmt
 
 promote:
 	$(DUNE) promote

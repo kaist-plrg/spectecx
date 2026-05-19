@@ -1,10 +1,9 @@
 # ocaml build artifacts
 _build
 _test
-*.opam
 
 # spectec build and executables
-spectec-core
+spectecx
 
 # MacOS
 *.DS_Store
