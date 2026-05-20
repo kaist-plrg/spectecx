@@ -85,13 +85,21 @@ let linearize_def (def : Sl.def) : Ll.def =
   let at = def.at in
   match def.it with
   | Sl.TypD (id, tparams, deftyp) -> Ll.TypD (id, tparams, deftyp) $ at
-  | Sl.RelD (id, sig_, exps, block, elseblock_opt) ->
+  | Sl.RelD (id, mode, block, elseblock_opt) ->
+      let mixop = Lang.Il.Mixfix.to_mixop mode in
+      let inputs =
+        Lang.Il.Mixfix.args mode
+        |> List.mapi (fun i arg ->
+               match arg with Lang.Il.Mode.In _ -> Some i | Out _ -> None)
+        |> List.filter_map Fun.id
+      in
+      let exps = Lang.Il.Mode.inputs mode in
       let block_ll = linearize_block block in
       let elseblock_ll = linearize_elseblock_opt elseblock_opt in
       let elseblock_opt_ll =
         if elseblock_ll = [] then None else Some elseblock_ll
       in
-      Ll.RelD (id, sig_, exps, block_ll, elseblock_opt_ll) $ at
+      Ll.RelD (id, (mixop, inputs), exps, block_ll, elseblock_opt_ll) $ at
   | Sl.BuiltinDecD (id, tparams, args) ->
       Ll.BuiltinDecD (id, tparams, args) $ at
   | Sl.DecD (id, tparams, args, block, elseblock_opt) ->

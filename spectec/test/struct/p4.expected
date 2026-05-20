@@ -15955,7 +15955,7 @@ dec $definable_constructor(typeIR'')
 2. Return false
 
 ;; ../../../../../spectec/specs/p4/5-typing/5.04-typing-relation.spectec:6:1-11:21:
-relation ExternFunctionCall_eval_lctk: 
+relation ExternFunctionCall_eval_lctk: typingContext, nameIR, nameIR'*
 
 
 

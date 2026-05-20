@@ -2,7 +2,6 @@ open Common.Source
 open Lang.Xl
 open Lang.Il
 open Envs.Make
-module Hint = Hints.Input
 module Typ = Envs.Il.Typ
 open Error
 open Attempt
@@ -876,10 +875,9 @@ and eval_args (ctx : Ctx.t) (args : arg list) : Ctx.t * value list =
 
 and eval_prem (ctx : Ctx.t) (prem : prem) : Ctx.t attempt =
   let eval_rule_prem ctx id notexp =
-    let rel = Ctx.find_rel ctx id in
+    let reltyp, _ = Ctx.find_rel ctx id in
     let exps_input, exps_output =
-      let inputs, _ = rel in
-      Hint.split_exps_without_idx inputs (Mixfix.args notexp)
+      Mode.partition reltyp.it (Mixfix.args notexp)
     in
     let ctx, values_input = eval_exps ctx exps_input in
     let* ctx, values_output = invoke_rel ctx id values_input in
@@ -1097,10 +1095,10 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
   Instrumentation.Dispatcher.emit
     (Events.Rel_enter { id = id.it; at = id.at; inputs = values_input });
   (* Rule matching *)
-  let match_rule ctx inputs rule values_input =
+  let match_rule ctx reltyp rule values_input =
     let { concl; prems; _ } = rule.it in
     let exps_input, exps_output =
-      Hint.split_exps_without_idx inputs (Mixfix.args concl)
+      Mode.partition reltyp.it (Mixfix.args concl)
     in
     check
       (List.length exps_input = List.length values_input)
@@ -1111,7 +1109,7 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
   (* Main invocation logic *)
   let invoke_rel' () =
     (* Find the relation *)
-    let inputs, rules = Ctx.find_rel ctx id in
+    let reltyp, rules = Ctx.find_rel ctx id in
     check_warn (rules <> []) id.at "relation has no rules";
     (* Apply the first matching rule *)
     let attempt_rules () =
@@ -1133,7 +1131,7 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
               let ctx_local = Ctx.localize ctx in
               (* Try to match the rule *)
               let ctx_local, prems, exps_output =
-                match_rule ctx_local inputs rule values_input
+                match_rule ctx_local reltyp rule values_input
               in
               (* Try evaluating the rule *)
               let result =
@@ -1339,8 +1337,8 @@ let load_def (l : Ctx.global_loader) (def : def) : unit =
   | TypD { synid = id; tparams; deftyp } ->
       let typdef = (tparams, deftyp) in
       Ctx.load_typdef l id typdef
-  | RelD { relid = id; inputs; rules; _ } ->
-      let rel = (inputs, rules) in
+  | RelD { relid = id; reltyp; rules } ->
+      let rel = (reltyp, rules) in
       Ctx.load_rel l id rel
   | BuiltinDecD { defid = id; _ } -> Ctx.load_func l id Ctx.Func.Builtin
   | DecD { defid = id; tparams; clauses; _ } ->

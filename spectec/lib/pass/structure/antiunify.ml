@@ -246,14 +246,14 @@ let antiunify_args_group (frees : IdSet.t) (args_group : arg list list) :
 
 (* Anti-unification of rules *)
 
-let antiunify_rules (inputs : int list) (rules : rule list) :
+let antiunify_rules (reltyp : Il.reltyp') (rules : rule list) :
     exp list * (prem list * exp list) list =
   let exps_input_group, exps_output_group, prems_group, frees =
     List.fold_left
       (fun (exps_input_group, exps_output_group, prems_group, frees) rule ->
         let { concl; prems; _ } = rule.it in
         let exps_input, exps_output =
-          Hints.Input.split_exps_without_idx inputs (Il.Mixfix.args concl)
+          Il.Mode.partition reltyp (Il.Mixfix.args concl)
         in
         let exps_input_group = exps_input_group @ [ exps_input ] in
         let exps_output_group = exps_output_group @ [ exps_output ] in

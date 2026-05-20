@@ -70,7 +70,7 @@ module M : Instrumentation_api.Handler.S = struct
         List.iter
           (fun def ->
             match def.it with
-            | Sl.RelD (id, _, _, _, _) ->
+            | Sl.RelD (id, _, _, _) ->
                 State.all_rules := (id.it, "0") :: !State.all_rules
             | Sl.DecD (id, _, _, _, _) ->
                 State.all_clauses := (id.it, 0) :: !State.all_clauses

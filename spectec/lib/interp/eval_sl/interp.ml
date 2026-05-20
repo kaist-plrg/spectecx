@@ -5,7 +5,6 @@ module Mixop = Lang.Il.Mixfix
 module Value = Lang.Il.Value
 open Lang.Sl
 open Envs.Make
-module Hint = Hints.Input
 module Typ = Envs.Il.Typ
 open Error
 module Events = Instrumentation.Event
@@ -1297,10 +1296,9 @@ and eval_rule_instr (ctx : Ctx.t) (id : id) (notexp : notexp)
     let rec eval_rule_iter' ctx id notexp iterexps =
       (* Single rule evaluation *)
       let eval_rule ctx id notexp =
-        let rel = Ctx.find_rel Local ctx id in
+        let mode, _, _ = Ctx.find_rel Local ctx id in
         let exps_input, exps_output =
-          let inputs, _, _, _ = rel in
-          Hint.split_exps_without_idx inputs (Mixop.args notexp)
+          Lang.Il.Mode.partition mode (Mixop.args notexp)
         in
         let ctx, values_input = eval_exps ctx exps_input in
         let ctx, values_output =
@@ -1401,7 +1399,8 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
     (Ctx.t * value list) option =
   Instrumentation.Dispatcher.emit
     (Events.Rel_enter { id = id.it; at = id.at; inputs = values_input });
-  let _inputs, exps_input, block, elseblock_opt = Ctx.find_rel Local ctx id in
+  let mode, block, elseblock_opt = Ctx.find_rel Local ctx id in
+  let exps_input = Lang.Il.Mode.inputs mode in
   check
     (block <> [] || Option.is_some elseblock_opt)
     id.at "relation has no instructions";
@@ -1573,8 +1572,8 @@ let load_def (ctx : Ctx.t) (def : def) : Ctx.t =
   | TypD (id, tparams, deftyp) ->
       let typdef = (tparams, deftyp) in
       Ctx.add_typdef Global ctx id typdef
-  | RelD (id, (_, inputs), exps_input, block, elseblock_opt) ->
-      let rel = (inputs, exps_input, block, elseblock_opt) in
+  | RelD (id, mode, block, elseblock_opt) ->
+      let rel = (mode, block, elseblock_opt) in
       Ctx.add_rel Global ctx id rel
   | BuiltinDecD (id, _, _) -> Ctx.add_func Global ctx id Ctx.Func.Builtin
   | DecD (id, tparams, args_input, block, elseblock_opt) ->

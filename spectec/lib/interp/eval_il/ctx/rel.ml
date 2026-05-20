@@ -2,10 +2,10 @@ open Lang.Il
 
 (* Relation *)
 
-type t = Hints.Input.t * rule list
+type t = reltyp * rule list
 
-let to_string (inputs, rules) =
+let to_string (reltyp, rules) =
   "rel "
-  ^ Hints.Input.to_string inputs
+  ^ Print.string_of_reltyp reltyp
   ^ "\n"
   ^ String.concat "\n   " (List.map Print.string_of_rule rules)
