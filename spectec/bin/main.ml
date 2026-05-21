@@ -53,13 +53,15 @@ let quickcheck_command =
   and num_tests =
     flag "--num-tests" (optional_with_default 100 int)
       ~doc:"N number of test cases to generate (default 100)"
+  and save =
+    flag "--save" no_arg ~doc:" save passing test inputs to {property}.json"
   and color = Cli.Cli_args.Output.color_flag in
   fun () ->
     Cli.Error_handling.guard_unit ~color
     @@ fun () ->
     let* spec = parse_spec_files filenames in
     let* spec_il = elaborate spec in
-    Quickcheck.quickcheck_file ~generalize ~max_steps ~num_tests spec_il quickcheck_file
+    Quickcheck.quickcheck_file ~generalize ~max_steps ~num_tests ~save spec_il quickcheck_file
     |> Result.map_error (fun e -> Error.QuickcheckError (Quickcheck.error_to_string e))
     
 let command =

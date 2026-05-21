@@ -1,6 +1,42 @@
 open Il_gen
 open Lang.Il
 
+let json_escape s =
+  let buf = Buffer.create (String.length s + 2) in
+  String.iter (fun c ->
+    match c with
+    | '"'  -> Buffer.add_string buf "\\\""
+    | '\\' -> Buffer.add_string buf "\\\\"
+    | '\n' -> Buffer.add_string buf "\\n"
+    | '\r' -> Buffer.add_string buf "\\r"
+    | '\t' -> Buffer.add_string buf "\\t"
+    | c when Char.code c < 0x20 ->
+      Printf.bprintf buf "\\u%04x" (Char.code c)
+    | c    -> Buffer.add_char buf c) s;
+  Buffer.contents buf
+
+let json_string s = "\"" ^ json_escape s ^ "\""
+
+let save_cases_to_json ~name ~num_tests (cases : (id' * value) list list) =
+  if cases <> [] then
+    let filename = name ^ ".json" in
+    let oc = open_out filename in
+    let w = output_string oc in
+    w "{\n";
+    w ("  \"property\": " ^ json_string name ^ ",\n");
+    w ("  \"num_tests\": " ^ string_of_int num_tests ^ ",\n");
+    w "  \"cases\": [\n";
+    List.iteri (fun i bindings ->
+      w "    {";
+      List.iteri (fun j (id, v) ->
+        if j > 0 then w ", ";
+        w (json_string id ^ ": " ^ json_string (Print.string_of_value v))) bindings;
+      w "}";
+      if i < List.length cases - 1 then w ",";
+      w "\n") cases;
+    w "  ]\n}\n";
+    close_out oc
+
 type error =
   | ParseError of string
   | ElabError of string
@@ -77,8 +113,8 @@ let call_rel ~max_steps spec rel_id input_vals =
          spec rel_id input_vals "")
   with Qc_eval_il.StepLimitExceeded -> `Timeout
 
-let run_command ~generalize ~max_steps ~num_tests spec (command : Qc_ir.qc_command) :
-    (Test.outcome * Test.opt, error) Stdlib.result =
+let run_command ~generalize ~max_steps ~num_tests ~save spec (command : Qc_ir.qc_command) :
+    (Test.outcome * Test.opt * (id' * value) list list, error) Stdlib.result =
   let config = { Test.default_config with Test.num_tests } in
   match command with
   | Qc_ir.QcProp { name = _; free_vars; generator; prems_rel; goal_rel } ->
@@ -90,8 +126,12 @@ let run_command ~generalize ~max_steps ~num_tests spec (command : Qc_ir.qc_comma
       let generalize_fn =
         if generalize then Some (Generalize.generalize_env spec) else None
       in
+      let env_cell : (id' * value) list ref = ref [] in
+      let capturing_gen =
+        if save then Gen.map (fun env -> env_cell := env; env) gen else gen
+      in
       let prop =
-        Property.for_all ~shrink:(shrink_env spec) ?generalize:generalize_fn ~show:show_env gen (fun initial_env ->
+        Property.for_all ~shrink:(shrink_env spec) ?generalize:generalize_fn ~show:show_env capturing_gen (fun initial_env ->
           let prems_inputs =
             List.map (fun id -> List.assoc id initial_env) prems_rel.Qc_ir.sr_inputs
           in
@@ -112,7 +152,19 @@ let run_command ~generalize ~max_steps ~num_tests spec (command : Qc_ir.qc_comma
              | `R (Error _) -> Property.Bool_testable.property false
              | `R (Ok _) -> Property.Bool_testable.property true))
       in
-      Ok (Test.check ~config prop, Test.Prop))
+      let collected = ref [] in
+      let tracking_prop =
+        if save then
+          let g = Property.evaluate prop in
+          Property.Prop (Gen.map (fun result ->
+            (match result.Property.Result.ok with
+             | Some true -> collected := !env_cell :: !collected
+             | _ -> ());
+            result) g)
+        else prop
+      in
+      let outcome = Test.check ~config tracking_prop in
+      Ok (outcome, Test.Prop, List.rev !collected))
   | Qc_ir.QcGen { name = _; free_vars; generator; prems_rel } ->
     (match (match generator with
             | Some gen_name -> gen_free_vars_manual spec gen_name
@@ -137,9 +189,10 @@ let run_command ~generalize ~max_steps ~num_tests spec (command : Qc_ir.qc_comma
               (Property.of_result (Property.Result.with_ok true)))
       in
       let config = { config with Test.max_size = 5 } in
-      Ok (Test.check ~config prop, Test.Gen))
+      
+      Ok (Test.check ~config prop, Test.Gen, []))
 
-let quickcheck_file ~generalize ~max_steps ~num_tests spec_il path : unit result =
+let quickcheck_file ~generalize ~max_steps ~num_tests ~save spec_il path : unit result =
   match Qc_parse.parse_file path with
   | Error msg -> Error (ParseError msg)
   | Ok ast -> (
@@ -158,9 +211,13 @@ let quickcheck_file ~generalize ~max_steps ~num_tests spec_il path : unit result
                     | Qc_ir.QcGen { name; _ } -> (name, "Generation")
                   in
                   Printf.printf "[Quickcheck %s: %s]\n" name mode_label;
-                  match run_command ~generalize ~max_steps ~num_tests spec_with_synth cmd with
+                  match run_command ~generalize ~max_steps ~num_tests ~save spec_with_synth cmd with
                   | Error _ as e -> e
-                  | Ok (outcome, opt) ->
+                  | Ok (outcome, opt, collected) ->
                       Test.print_outcome opt outcome;
+                      (match outcome, opt with
+                       | Test.Pass { num_tests = n; _ }, Test.Prop when save ->
+                         save_cases_to_json ~name ~num_tests:n collected
+                       | _ -> ());
                       Ok ()))
             (Ok ()) cmds)
