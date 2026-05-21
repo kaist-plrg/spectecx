@@ -1,38 +1,26 @@
-(** QuickCheck test runner.
-
-    [check] runs a property and returns the result ([outcome]). [quickcheck]
-    prints the result and raises an exception on failure. *)
-
-(** {2 Configuration} *)
+(** QuickCheck test runner. *)
 
 type config = {
-  num_tests : int;  (** Number of test cases to run. Default: 100. *)
-  max_size : int;
-      (** Maximum size parameter. Grows from 0 to max_size incrementally.
-          Default: 20. *)
+  num_tests : int;  (** Number of test cases to run. Default: 300. *)
+  max_size : int;  (** Size grows from 0 to [max_size]. Default: 50. *)
   seed : [ `Deterministic of int | `Nondeterministic ];
-      (** PRNG seed. Default: [`Deterministic 43] (reproducible). *)
-  verbose : bool;  (** If true, prints each test case. Default: false. *)
+      (** PRNG seed. Default: [`Deterministic 42]. *)
+  verbose : bool;  (** Print each test case. Default: false. *)
 }
 
 val default_config : config
 
-(** {2 Outcome type} *)
-
 type outcome =
   | Pass of { num_tests : int; stamps : (string * int) list }
-      (** All tests passed. [stamps] holds label frequencies. *)
   | Fail of { num_tests : int; counterexample : string list }
-      (** Counterexample found. [counterexample] is the [Result.arguments]
-          field. *)
-  | Gave_up of { num_tests : int }  (** Too many neutral results; gave up. *)
+  | Gave_up of { num_tests : int }
+      (** Triggered when discarded trials exceed 10x [num_tests]. *)
 
-(** {2 Runner} *)
+(** [run prop] drives [prop] for [config.num_tests] trials, growing the size
+    parameter from 0 to [config.max_size], and returns the aggregate outcome. On
+    a failing trial, applies the shrink and generalize callbacks populated by
+    [Property.for_all] before reporting the counterexample. *)
+val run : ?config:config -> Property.t -> outcome
 
-(** [check prop] runs [prop] and returns [outcome]. *)
-val check : ?config:config -> Property.t -> outcome
-
-type opt = Prop | Gen
-
-(** [print_outcome opt outcome] prints a human-readable report for [outcome]. *)
-val print_outcome : opt -> outcome -> unit
+(** [print_outcome outcome] prints a human-readable report. *)
+val print_outcome : outcome -> unit

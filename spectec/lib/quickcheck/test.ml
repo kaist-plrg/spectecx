@@ -1,5 +1,3 @@
-(* QuickCheck test runner *)
-
 type config = {
   num_tests : int;
   max_size : int;
@@ -15,7 +13,6 @@ type outcome =
   | Fail of { num_tests : int; counterexample : string list }
   | Gave_up of { num_tests : int }
 
-(* Aggregates label frequencies and returns a sorted list *)
 let count_stamps stamps =
   let tbl = Hashtbl.create 16 in
   List.iter
@@ -26,19 +23,19 @@ let count_stamps stamps =
   Hashtbl.fold (fun k v acc -> (k, v) :: acc) tbl []
   |> List.sort (fun (_, a) (_, b) -> compare b a)
 
-let rec shrink_loop (r : Property.Result.t) : Property.Result.t =
-  let candidate_gens = r.Property.Result.shrink () in
+let rec shrink_loop (v : Property.Verdict.t) : Property.Verdict.t =
+  let candidate_gens = v.Property.Verdict.shrink () in
   let failing =
     List.find_map
       (fun gen ->
-        let r' = Gen.run gen ~size:0 ~rand:(Random.make 0) in
-        if r'.Property.Result.ok = Some false then Some r' else None)
+        let v' = Gen.run gen ~size:0 ~rand:(Random.make 0) in
+        if v'.Property.Verdict.status = `Fail then Some v' else None)
       candidate_gens
   in
-  match failing with None -> r | Some r' -> shrink_loop r'
+  match failing with None -> v | Some v' -> shrink_loop v'
 
-let rec generalize_loop (r : Property.Result.t) : Property.Result.t =
-  let candidates = r.Property.Result.generalize () in
+let rec generalize_loop (v : Property.Verdict.t) : Property.Verdict.t =
+  let candidates = v.Property.Verdict.generalize () in
   let found =
     List.find_map
       (fun (_, gens) ->
@@ -48,28 +45,26 @@ let rec generalize_loop (r : Property.Result.t) : Property.Result.t =
             List.map (fun gen -> Gen.run gen ~size:3 ~rand:(Random.make 0)) gens
           in
           if
-            List.exists (fun r' -> r'.Property.Result.ok = Some false) results
+            List.exists (fun v' -> v'.Property.Verdict.status = `Fail) results
             && List.for_all
-                 (fun r' -> r'.Property.Result.ok <> Some true)
+                 (fun v' -> v'.Property.Verdict.status <> `Pass)
                  results
           then Some (List.hd results)
           else None)
       candidates
   in
   match found with
-  | None -> r
-  | Some r' ->
-      if r'.Property.Result.arguments = r.Property.Result.arguments then r
-      else generalize_loop r'
+  | None -> v
+  | Some v' ->
+      if v'.Property.Verdict.arguments = v.Property.Verdict.arguments then v
+      else generalize_loop v'
 
-let check ?(config = default_config) prop =
+let run ?(config = default_config) prop =
   let rand =
     match config.seed with
     | `Deterministic n -> Random.make n
     | `Nondeterministic -> Random.make_self_init ()
   in
-  let gen = Property.evaluate prop in
-  (* Each trial derives an independent PRNG by splitting and advancing rand *)
   let rec loop i discarded all_stamps rand =
     if i >= config.num_tests then
       Pass { num_tests = i; stamps = count_stamps all_stamps }
@@ -80,46 +75,39 @@ let check ?(config = default_config) prop =
         else i * config.max_size / config.num_tests
       in
       let trial_rand, next_rand = Random.split rand in
-      let result = Gen.run gen ~size ~rand:trial_rand in
+      let verdict = Gen.run prop ~size ~rand:trial_rand in
       if config.verbose then
         Printf.printf "Test %d: %s\n%!" (i + 1)
-          (match result.Property.Result.ok with
-          | Some true -> "OK"
-          | Some false -> "FAIL"
-          | None -> "discarded");
-      match result.Property.Result.ok with
-      | Some false ->
-          let minimal = shrink_loop result in
+          (match verdict.Property.Verdict.status with
+          | `Pass -> "OK"
+          | `Fail -> "FAIL"
+          | `Discard -> "discarded");
+      match verdict.Property.Verdict.status with
+      | `Fail ->
+          let minimal = shrink_loop verdict in
           let generalized = generalize_loop minimal in
           Fail
             {
               num_tests = i + 1;
-              counterexample = generalized.Property.Result.arguments;
+              counterexample = generalized.Property.Verdict.arguments;
             }
-      | Some true ->
+      | `Pass ->
           loop (i + 1) discarded
-            (result.Property.Result.stamp @ all_stamps)
+            (verdict.Property.Verdict.stamp @ all_stamps)
             next_rand
-      | None -> loop i (discarded + 1) all_stamps next_rand
+      | `Discard -> loop i (discarded + 1) all_stamps next_rand
   in
   loop 0 0 [] rand
 
-type opt = Prop | Gen
-
-let print_outcome opt = function
+let print_outcome = function
   | Pass { num_tests; stamps } ->
-      (match opt with
-      | Prop -> Printf.printf "OK, passed %d samples.\n" num_tests
-      | Gen -> Printf.printf "OK, generated %d tests.\n" num_tests);
+      Printf.printf "OK, passed %d samples.\n" num_tests;
       List.iter
         (fun (lbl, count) ->
           Printf.printf "%3d%% %s\n\n" (count * 100 / num_tests) lbl)
         stamps
-  | Fail { num_tests; counterexample } -> (
-      match opt with
-      | Prop ->
-          Printf.printf "Falsifiable, after %d tests:\n" num_tests;
-          List.iter (fun s -> Printf.printf "  %s\n" s) counterexample
-      | Gen -> ())
+  | Fail { num_tests; counterexample } ->
+      Printf.printf "Falsifiable, after %d tests:\n" num_tests;
+      List.iter (fun s -> Printf.printf "  %s\n" s) counterexample
   | Gave_up { num_tests } ->
       Printf.printf "Gave up after %d tests (too many discarded).\n" num_tests

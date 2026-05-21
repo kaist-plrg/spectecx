@@ -102,7 +102,7 @@ let gen_free_vars_manual ~(manual_gens : (string * manual_gen) list)
 let run_property ~target ~generalize ~max_steps ~num_tests ~save
     ~(manual_gens : (string * manual_gen) list) (core_spec : spec)
     ~(side_prems : prem list) ~(goal : prem) ~(hints : hint list) :
-    (Test.outcome * Test.opt * (id' * value) list list, error) Stdlib.result =
+    (Test.outcome * (id' * value) list list, error) Stdlib.result =
   let config = { Test.default_config with Test.num_tests } in
   let generator = find_generator_hint hints in
   let inputs = Free_vars.of_premises ~core_spec (side_prems @ [ goal ]) in
@@ -134,30 +134,30 @@ let run_property ~target ~generalize ~max_steps ~num_tests ~save
             match Premise_eval.eval_side eval_env ~bindings side_prems with
             | Premise_eval.Holds -> (
                 match Premise_eval.eval eval_env ~bindings goal with
-                | Premise_eval.Holds -> Property.Bool_testable.property true
-                | Premise_eval.Fails -> Property.Bool_testable.property false
+                | Premise_eval.Holds ->
+                    Property.of_verdict Property.Verdict.pass
+                | Premise_eval.Fails ->
+                    Property.of_verdict Property.Verdict.fail
                 | Premise_eval.StepLimit | Premise_eval.Unsupported _ ->
-                    Property.of_result Property.Result.nothing)
+                    Property.of_verdict Property.Verdict.discard)
             | Premise_eval.Fails | Premise_eval.StepLimit
             | Premise_eval.Unsupported _ ->
-                Property.of_result Property.Result.nothing)
+                Property.of_verdict Property.Verdict.discard)
       in
       let collected = ref [] in
       let tracking_prop =
         if save then
-          let g = Property.evaluate prop in
-          Property.Prop
-            (Gen.map
-               (fun result ->
-                 (match result.Property.Result.ok with
-                 | Some true -> collected := !env_cell :: !collected
-                 | _ -> ());
-                 result)
-               g)
+          Gen.map
+            (fun verdict ->
+              (match verdict.Property.Verdict.status with
+              | `Pass -> collected := !env_cell :: !collected
+              | _ -> ());
+              verdict)
+            prop
         else prop
       in
-      let outcome = Test.check ~config tracking_prop in
-      Ok (outcome, Test.Prop, List.rev !collected)
+      let outcome = Test.run ~config tracking_prop in
+      Ok (outcome, List.rev !collected)
 
 let check ~target ~generalize ~max_steps ~num_tests ~save ~manual_gens
     (spec_il : spec) (qc_spec : Qc_il.spec) : unit result =
@@ -176,10 +176,10 @@ let check ~target ~generalize ~max_steps ~num_tests ~save ~manual_gens
                   ~manual_gens spec_il ~side_prems ~goal ~hints
               with
               | Error _ as e -> e
-              | Ok (outcome, opt, collected) ->
-                  Test.print_outcome opt outcome;
-                  (match (outcome, opt) with
-                  | Test.Pass { num_tests = n; _ }, Test.Prop when save ->
+              | Ok (outcome, collected) ->
+                  Test.print_outcome outcome;
+                  (match outcome with
+                  | Test.Pass { num_tests = n; _ } when save ->
                       save_cases_to_json ~name ~num_tests:n collected
                   | _ -> ());
                   Ok ())))
