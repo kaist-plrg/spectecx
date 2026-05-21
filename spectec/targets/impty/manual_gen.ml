@@ -1,6 +1,7 @@
 open Lang.Il
 open Common.Source
 open Value
+open Quickcheck
 
 (* ===== Shared value construction helpers ===== *)
 
@@ -486,12 +487,9 @@ let gen_closure_fun_prog (spec : spec) : (string * value) list Gen.t =
   ignore ctx_r;
   return [ ("prog", cmd_seq cmd_f cmd_r) ]
 
-(* ===== Dispatch ===== *)
-
-let gen_inputs (spec : spec) (name : string) :
-    (string * value) list Gen.t option =
-  match name with
-  | "base_prog" -> Some (Base.gen_well_typed_prog spec)
-  | "closure_prog" -> Some (gen_closure_prog spec)
-  | "closure_fun_prog" -> Some (gen_closure_fun_prog spec)
-  | _ -> None
+let manual_gens : (string * (spec -> (string * value) list Gen.t)) list =
+  [
+    ("base_prog", Base.gen_well_typed_prog);
+    ("closure_prog", gen_closure_prog);
+    ("closure_fun_prog", gen_closure_fun_prog);
+  ]

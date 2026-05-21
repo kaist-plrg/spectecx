@@ -1,3 +1,6 @@
+module Arbitrary = Arbitrary
+module Gen = Gen
+module Il_gen = Il_gen
 open Il_gen
 open Lang.Il
 open Common.Source
@@ -121,10 +124,13 @@ let gen_free_vars (spec_il : spec) (inputs : (id * typ) list) :
          Gen.map (fun value -> (id.it, value)) (gen_of_typ spec_il typ))
        inputs)
 
-let gen_free_vars_manual (spec_il : spec) (name : string) :
+type manual_gen = spec -> (id' * value) list Gen.t
+
+let gen_free_vars_manual ~(manual_gens : (string * manual_gen) list)
+    (spec_il : spec) (name : string) :
     ((id' * value) list Gen.t, error) Stdlib.result =
-  match Manual_gen.gen_inputs spec_il name with
-  | Some gen -> Ok gen
+  match List.assoc_opt name manual_gens with
+  | Some gen_fn -> Ok (gen_fn spec_il)
   | None -> Error (NoManualGenerator name)
 
 let call_rel ~max_steps spec rel_id input_vals =
@@ -134,7 +140,8 @@ let call_rel ~max_steps spec rel_id input_vals =
         `R (Eval_il.run (module Nop_target) spec rel_id input_vals ""))
   with Step_budget.StepLimitExceeded -> `Timeout
 
-let run_property ~generalize ~max_steps ~num_tests ~save (core_spec : spec)
+let run_property ~generalize ~max_steps ~num_tests ~save
+    ~(manual_gens : (string * manual_gen) list) (core_spec : spec)
     ~(name : string) ~(side_prems : prem list) ~(goal : prem)
     ~(hints : hint list) :
     (Test.outcome * Test.opt * (id' * value) list list, error) Stdlib.result =
@@ -158,7 +165,7 @@ let run_property ~generalize ~max_steps ~num_tests ~save (core_spec : spec)
   let goal_input_ids = List.map fst prems_all in
   match
     match generator with
-    | Some gen_name -> gen_free_vars_manual core_spec gen_name
+    | Some gen_name -> gen_free_vars_manual ~manual_gens core_spec gen_name
     | None -> Ok (gen_free_vars core_spec inputs)
   with
   | Error _ as e -> e
@@ -218,8 +225,8 @@ let run_property ~generalize ~max_steps ~num_tests ~save (core_spec : spec)
       let outcome = Test.check ~config tracking_prop in
       Ok (outcome, Test.Prop, List.rev !collected)
 
-let quickcheck_spec ~generalize ~max_steps ~num_tests ~save (spec_il : spec)
-    (qc_spec : Qc_il.spec) : unit result =
+let quickcheck_spec ~generalize ~max_steps ~num_tests ~save ~manual_gens
+    (spec_il : spec) (qc_spec : Qc_il.spec) : unit result =
   List.fold_left
     (fun acc qc_def ->
       match acc with
@@ -231,8 +238,8 @@ let quickcheck_spec ~generalize ~max_steps ~num_tests ~save (spec_il : spec)
               let name = name_id.it in
               Printf.printf "[Quickcheck %s: Test]\n" name;
               match
-                run_property ~generalize ~max_steps ~num_tests ~save spec_il
-                  ~name ~side_prems ~goal ~hints
+                run_property ~generalize ~max_steps ~num_tests ~save
+                  ~manual_gens spec_il ~name ~side_prems ~goal ~hints
               with
               | Error _ as e -> e
               | Ok (outcome, opt, collected) ->
