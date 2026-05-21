@@ -37,7 +37,8 @@ let structure_command =
     Ok spec_sl
 
 let quickcheck_command =
-  Core.Command.basic ~summary:"run a quickcheck property from a .quickcheck file"
+  Core.Command.basic
+    ~summary:"run a quickcheck property from a .quickcheck file"
   @@
   let open Core.Command.Let_syntax in
   let open Core.Command.Param in
@@ -50,13 +51,13 @@ let quickcheck_command =
         match Quickcheck.quickcheck_file spec_il quickcheck_file with
         | Ok () -> ()
         | Error e ->
-          Printf.eprintf "%s\n%!" (Quickcheck.error_to_string e);
-          exit 1)
+            Printf.eprintf "%s\n%!" (Quickcheck.error_to_string e);
+            exit 1)
     @@ fun () ->
     let* spec = parse_spec_files filenames in
     let* spec_il = elaborate spec in
     Ok spec_il
-    
+
 let command =
   let module P4 = Targets_p4.P4.Cli in
   let module Impty = Targets_impty.Impty.Cli in

@@ -1838,8 +1838,7 @@ let ctx_of_il_spec (spec_il : Il.spec) : Ctx.t =
       match def.it with
       | Il.TypD (id, tparams, deftyp) ->
           Ctx.add_typdef ctx id (Typdef.Defined (tparams, deftyp))
-      | Il.RelD (id, nottyp, inputs, _rules) ->
-          Ctx.add_rel ctx id nottyp inputs
+      | Il.RelD (id, nottyp, inputs, _rules) -> Ctx.add_rel ctx id nottyp inputs
       | Il.DecD (id, tparams, params, typ, _clauses) ->
           Ctx.add_defined_dec ctx id tparams params typ
       | Il.BuiltinDecD (id, tparams, params, typ, _hints) ->
@@ -1864,9 +1863,9 @@ let elab_prems_in_spec (spec_il : Il.spec)
     let output_vars =
       Ctx.VEnv.bindings ctx_final.venv
       |> List.filter_map (fun (key, (typ, iters)) ->
-        if iters = [] && not (List.mem key.it initial_ids)
-        then Some (key.it, typ)
-        else None)
+             if iters = [] && not (List.mem key.it initial_ids) then
+               Some (key.it, typ)
+             else None)
     in
     Ok (prems_il, output_vars)
   with Error.ElabError e -> Error [ e ]

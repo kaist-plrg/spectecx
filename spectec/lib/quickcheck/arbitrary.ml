@@ -2,6 +2,7 @@
 
 module type ARBITRARY = sig
   type t
+
   val arbitrary : t Gen.t
 end
 
@@ -9,6 +10,7 @@ end
    arbitrary  = elements [True, False] *)
 module Bool = struct
   type t = bool
+
   let arbitrary = Gen.elements [ true; false ]
 end
 
@@ -18,9 +20,11 @@ module Text = struct
 
   let arbitrary =
     let open Gen in
-    let gen_char = Gen.of_fun (fun _n r ->
-      Stdlib.Char.chr (Stdlib.Char.code 'a' + Random.int ~lo:0 ~hi:25 r)) in
-    let* len = Gen.elements [1] in
+    let gen_char =
+      Gen.of_fun (fun _n r ->
+          Stdlib.Char.chr (Stdlib.Char.code 'a' + Random.int ~lo:0 ~hi:25 r))
+    in
+    let* len = Gen.elements [ 1 ] in
     let* chars = Gen.sequence (List.init len (fun _ -> gen_char)) in
     return (String.init (List.length chars) (List.nth chars))
 end

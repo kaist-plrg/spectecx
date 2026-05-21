@@ -1,19 +1,18 @@
 (** QuickCheck test runner.
 
-    [check] runs a property and returns the result ([outcome]).
-    [quickcheck] prints the result and raises an exception on failure. *)
+    [check] runs a property and returns the result ([outcome]). [quickcheck]
+    prints the result and raises an exception on failure. *)
 
 (** {2 Configuration} *)
 
 type config = {
-  num_tests : int;
-  (** Number of test cases to run. Default: 100. *)
+  num_tests : int;  (** Number of test cases to run. Default: 100. *)
   max_size : int;
-  (** Maximum size parameter. Grows from 0 to max_size incrementally. Default: 20. *)
+      (** Maximum size parameter. Grows from 0 to max_size incrementally.
+          Default: 20. *)
   seed : [ `Deterministic of int | `Nondeterministic ];
-  (** PRNG seed. Default: [`Deterministic 43] (reproducible). *)
-  verbose : bool;
-  (** If true, prints each test case. Default: false. *)
+      (** PRNG seed. Default: [`Deterministic 43] (reproducible). *)
+  verbose : bool;  (** If true, prints each test case. Default: false. *)
 }
 
 val default_config : config
@@ -22,21 +21,21 @@ val default_config : config
 
 type outcome =
   | Pass of { num_tests : int; stamps : (string * int) list }
-  (** All tests passed. [stamps] holds label frequencies. *)
+      (** All tests passed. [stamps] holds label frequencies. *)
   | Fail of { num_tests : int; counterexample : string list }
-  (** Counterexample found. [counterexample] is the [Result.arguments] field. *)
-  | Gave_up of { num_tests : int }
-  (** Too many neutral results; gave up. *)
+      (** Counterexample found. [counterexample] is the [Result.arguments]
+          field. *)
+  | Gave_up of { num_tests : int }  (** Too many neutral results; gave up. *)
 
 (** {2 Runner} *)
 
-val check : ?config:config -> Property.t -> outcome
 (** [check prop] runs [prop] and returns [outcome]. *)
+val check : ?config:config -> Property.t -> outcome
 
 type opt = Prop | Gen
 
-val quickcheck : ?config:config -> Property.t -> opt -> outcome
 (** [quickcheck prop opt] runs [check] and returns the outcome. *)
+val quickcheck : ?config:config -> Property.t -> opt -> outcome
 
-val print_outcome : opt -> outcome -> unit
 (** [print_outcome opt outcome] prints a human-readable report for [outcome]. *)
+val print_outcome : opt -> outcome -> unit
