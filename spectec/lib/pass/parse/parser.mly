@@ -74,7 +74,7 @@ let exit_scope () = vars := List.hd !scopes; scopes := List.tl !scopes
 %token HOLE_MULTI HOLE_NIL
 %token EQ NEQ UP BAR
 %token LATEX BOOL NAT INT TEXT
-%token SYNTAX RELATION RULE VAR BUILTIN DEC DEF
+%token SYNTAX RELATION RULE VAR BUILTIN DEC DEF GENERATOR PROPERTY
 %token IF OTHERWISE DEBUG HINT_LPAREN EPS
 %token<bool> BOOLLIT
 %token<Bigint.t> NATLIT HEXLIT
@@ -98,11 +98,9 @@ let exit_scope () = vars := List.hd !scopes; scopes := List.tl !scopes
 %left PLUS MINUS PLUS2 
 %left STAR SLASH BACKSLASH
 
-%start spec check_atom plaintyp_entry prem_entry
+%start spec check_atom
 %type<El.spec> spec
 %type<bool> check_atom
-%type<El.plaintyp> plaintyp_entry
-%type<El.prem> prem_entry
 
 %%
 
@@ -115,12 +113,6 @@ exit_scope :
 
 check_atom :
   | UPID EOF { is_var (Var.strip_var_suffix ($1 @@@ $sloc)).it }
-
-plaintyp_entry :
-  | plaintyp EOF { $1 }
-
-prem_entry :
-  | prem EOF { $1 }
 
 (* Lists *)
 
@@ -190,7 +182,7 @@ defid : id { $1 @@@ $sloc }
 defid_lparen : id_lparen { $1 @@@ $sloc }
 defid_langle : id_langle { $1 @@@ $sloc }
 
-hintid : id { $1 }
+hintid : id { $1 } | GENERATOR { "generator" }
 
 synid :
   | varid { ($1, []) }
@@ -741,6 +733,10 @@ def_ :
   | RULE relid ruleids COLON exp prem_list
     { let id = if $3 = "" then "" else String.sub $3 1 (String.length $3 - 1) in
       RuleD ($2, id @@@ $loc($3), $5, $6) }
+  | BUILTIN GENERATOR DOLLAR defid COLON plaintyp hint*
+    { BuiltinGeneratorD ($4, $6, $7) }
+  | PROPERTY DOLLAR defid hint* COLON prem prem_list
+    { PropertyD ($3, $7, $6, $4) }
   | BUILTIN DEC DOLLAR defid COLON plaintyp hint*
     { BuiltinDecD ($4, [], [], $6, $7) }
   | BUILTIN DEC DOLLAR defid_lparen enter_scope comma_list(param) RPAREN COLON plaintyp hint* exit_scope

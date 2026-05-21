@@ -40,6 +40,8 @@ let collect_spec_files spec_dir =
 let parse_spec_files filenames =
   Pass.parse_files filenames |> Result.map_error (fun e -> Error.PassError e)
 
+type il = Pass.il = { lang : Lang.Il.spec; qc : Qc_il.spec }
+
 let elaborate spec_el =
   Pass.elaborate spec_el |> Result.map_error (fun e -> Error.PassError e)
 

@@ -1,17 +1,13 @@
-type error =
-  | ParseError of string
-  | ElabError of string
-  | NoManualGenerator of string
-
+type error = NoManualGenerator of string
 type 'a result = ('a, error) Stdlib.result
 
-val quickcheck_file :
+val quickcheck_spec :
   generalize:bool ->
   max_steps:int ->
   num_tests:int ->
   save:bool ->
   Lang.Il.spec ->
-  string ->
+  Qc_il.spec ->
   unit result
 
 val error_to_string : error -> string

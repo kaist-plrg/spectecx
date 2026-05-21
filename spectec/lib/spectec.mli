@@ -30,7 +30,12 @@ val with_diagnostics : (unit -> 'a) -> 'a * Diag.Bag.t
 val collect_spec_files : string -> string list
 
 val parse_spec_files : string list -> Lang.El.spec result
-val elaborate : Lang.El.spec -> Lang.Il.spec result
+
+(** The elaborator's output: the language IL spec, plus per-backend IL slices.
+*)
+type il = Pass.il = { lang : Lang.Il.spec; qc : Qc_il.spec }
+
+val elaborate : Lang.El.spec -> il result
 val structure : Lang.Il.spec -> Lang.Sl.spec
 
 (** Validate instrumentation config against the current mode. *)

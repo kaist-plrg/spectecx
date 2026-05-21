@@ -175,6 +175,11 @@ and def' =
   | DecD of id * tparam list * param list * plaintyp * hint list
   (* `def` id `<` list(tparam, `,`) `>` list(arg, `,`) `=` exp list(`--` prem, nl) *)
   | DefD of id * tparam list * arg list * exp * prem list
+  (* `builtin` `generator` `$`id `:` plaintyp hint* *)
+  | BuiltinGeneratorD of id * plaintyp * hint list
+  (* `property` `$`id hint* `:` prem list(`--` prem, nl)
+     side premises above the bar, goal premise below *)
+  | PropertyD of id * prem list * prem * hint list
   | SepD
 
 (* Spec *)

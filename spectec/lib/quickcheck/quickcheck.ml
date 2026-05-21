@@ -1,5 +1,6 @@
 open Il_gen
 open Lang.Il
+open Common.Source
 
 let json_escape s =
   let buf = Buffer.create (String.length s + 2) in
@@ -42,16 +43,10 @@ let save_cases_to_json ~name ~num_tests (cases : (id' * value) list list) =
     w "  ]\n}\n";
     close_out oc)
 
-type error =
-  | ParseError of string
-  | ElabError of string
-  | NoManualGenerator of string
-
+type error = NoManualGenerator of string
 type 'a result = ('a, error) Stdlib.result
 
 let error_to_string = function
-  | ParseError msg -> Printf.sprintf "parse error: %s" msg
-  | ElabError msg -> Printf.sprintf "elaboration error: %s" msg
   | NoManualGenerator name ->
       Printf.sprintf
         "quickcheck: no manual generator named '%s'. Add a case in \
@@ -77,6 +72,31 @@ module Nop_target : Interp.Target.S = struct
   let state_version = ref 0
 end
 
+let make_notexp (vars : (id' * typ) list) : notexp =
+  List.map
+    (fun (id, typ) ->
+      Mixfix.Arg { it = VarE (id $ no_region); note = typ.it; at = no_region })
+    vars
+
+let make_synth_rel_def (rel_id : id') (all_vars : (id' * typ) list)
+    (n_inputs : int) (prems : prem list) : def =
+  let notexp = make_notexp all_vars in
+  let inputs = List.init n_inputs Fun.id in
+  let rule_id = "rule" $ no_region in
+  let rule = (rule_id, notexp, prems) $ no_region in
+  let nottyp = List.map (fun (_, typ) -> Mixfix.Arg typ) all_vars $ no_region in
+  RelD (rel_id $ no_region, nottyp, inputs, [ rule ]) $ no_region
+
+let find_generator_hint (hints : hint list) : string option =
+  List.find_map
+    (fun (h : hint) ->
+      if h.hintid.it = "generator" then
+        match h.hintexp.it with
+        | Lang.El.CallE (id, [], []) -> Some id.it
+        | _ -> None
+      else None)
+    hints
+
 let shrink_env spec (env : (id' * value) list) : (id' * value) list list =
   let shrink_value = shrink spec in
   List.concat_map
@@ -93,15 +113,13 @@ let show_env (bindings : (id' * value) list) : string =
   String.concat ", "
     (List.map (fun (id, v) -> id ^ "=" ^ Print.string_of_value v) bindings)
 
-let gen_free_vars (spec_il : spec) (free_vars : Qc_ir.ir_var list) :
+let gen_free_vars (spec_il : spec) (inputs : (id * typ) list) :
     (id' * value) list Gen.t =
   Gen.sequence
     (List.map
-       (fun v ->
-         Gen.map
-           (fun value -> (v.Qc_ir.iv_id, value))
-           (gen_of_typ spec_il v.Qc_ir.iv_typ))
-       free_vars)
+       (fun (id, typ) ->
+         Gen.map (fun value -> (id.it, value)) (gen_of_typ spec_il typ))
+       inputs)
 
 let gen_free_vars_manual (spec_il : spec) (name : string) :
     ((id' * value) list Gen.t, error) Stdlib.result =
@@ -114,144 +132,112 @@ let call_rel ~max_steps spec rel_id input_vals =
     `R (Qc_eval_il.run ~max_steps (module Nop_target) spec rel_id input_vals "")
   with Qc_eval_il.StepLimitExceeded -> `Timeout
 
-let run_command ~generalize ~max_steps ~num_tests ~save spec
-    (command : Qc_ir.qc_command) :
+let run_property ~generalize ~max_steps ~num_tests ~save (core_spec : spec)
+    ~(name : string) ~(side_prems : prem list) ~(goal : prem)
+    ~(hints : hint list) :
     (Test.outcome * Test.opt * (id' * value) list list, error) Stdlib.result =
   let config = { Test.default_config with Test.num_tests } in
-  match command with
-  | Qc_ir.QcProp { name = _; free_vars; generator; prems_rel; goal_rel } -> (
-      match
-        match generator with
-        | Some gen_name -> gen_free_vars_manual spec gen_name
-        | None -> Ok (gen_free_vars spec free_vars)
-      with
-      | Error _ as e -> e
-      | Ok gen ->
-          let generalize_fn =
-            if generalize then Some (Generalize.generalize_env spec) else None
-          in
-          let env_cell : (id' * value) list ref = ref [] in
-          let capturing_gen =
-            if save then
-              Gen.map
-                (fun env ->
-                  env_cell := env;
-                  env)
-                gen
-            else gen
-          in
-          let prop =
-            Property.for_all ~shrink:(shrink_env spec) ?generalize:generalize_fn
-              ~show:show_env capturing_gen (fun initial_env ->
-                let prems_inputs =
-                  List.map
-                    (fun id -> List.assoc id initial_env)
-                    prems_rel.Qc_ir.sr_inputs
+  let generator = find_generator_hint hints in
+  let inputs = Free_vars.of_premises ~core_spec (side_prems @ [ goal ]) in
+  let prems_outputs = Free_vars.outputs_of_premises ~core_spec side_prems in
+  let input_pairs = List.map (fun (id, t) -> (id.it, t)) inputs in
+  let prems_rel_id = Printf.sprintf "__qc_%s_prems__" name in
+  let prems_all = input_pairs @ prems_outputs in
+  let prems_def =
+    make_synth_rel_def prems_rel_id prems_all (List.length input_pairs)
+      side_prems
+  in
+  let goal_rel_id = Printf.sprintf "__qc_%s_goal__" name in
+  let goal_def =
+    make_synth_rel_def goal_rel_id prems_all (List.length prems_all) [ goal ]
+  in
+  let spec = core_spec @ [ prems_def; goal_def ] in
+  let prems_input_ids = List.map fst input_pairs in
+  let goal_input_ids = List.map fst prems_all in
+  match
+    match generator with
+    | Some gen_name -> gen_free_vars_manual core_spec gen_name
+    | None -> Ok (gen_free_vars core_spec inputs)
+  with
+  | Error _ as e -> e
+  | Ok gen ->
+      let generalize_fn =
+        if generalize then Some (Generalize.generalize_env core_spec) else None
+      in
+      let env_cell : (id' * value) list ref = ref [] in
+      let capturing_gen =
+        if save then
+          Gen.map
+            (fun env ->
+              env_cell := env;
+              env)
+            gen
+        else gen
+      in
+      let prop =
+        Property.for_all ~shrink:(shrink_env core_spec)
+          ?generalize:generalize_fn ~show:show_env capturing_gen
+          (fun initial_env ->
+            let prems_inputs =
+              List.map (fun id -> List.assoc id initial_env) prems_input_ids
+            in
+            match call_rel ~max_steps spec prems_rel_id prems_inputs with
+            | `Timeout | `R (Error _) ->
+                Property.of_result Property.Result.nothing
+            | `R (Ok (_, output_vals)) -> (
+                let output_env =
+                  List.mapi
+                    (fun i (id, _) -> (id, List.nth output_vals i))
+                    prems_outputs
                 in
-                match
-                  call_rel ~max_steps spec prems_rel.Qc_ir.sr_id prems_inputs
-                with
-                | `Timeout | `R (Error _) ->
-                    Property.of_result Property.Result.nothing
-                | `R (Ok (_, output_vals)) -> (
-                    let output_env =
-                      List.mapi
-                        (fun i (id, _) -> (id, List.nth output_vals i))
-                        prems_rel.Qc_ir.sr_outputs
-                    in
-                    let full_env = initial_env @ output_env in
-                    let goal_inputs =
-                      List.map
-                        (fun id -> List.assoc id full_env)
-                        goal_rel.Qc_ir.sr_inputs
-                    in
-                    match
-                      call_rel ~max_steps spec goal_rel.Qc_ir.sr_id goal_inputs
-                    with
-                    | `Timeout -> Property.of_result Property.Result.nothing
-                    | `R (Error _) -> Property.Bool_testable.property false
-                    | `R (Ok _) -> Property.Bool_testable.property true))
-          in
-          let collected = ref [] in
-          let tracking_prop =
-            if save then
-              let g = Property.evaluate prop in
-              Property.Prop
-                (Gen.map
-                   (fun result ->
-                     (match result.Property.Result.ok with
-                     | Some true -> collected := !env_cell :: !collected
-                     | _ -> ());
-                     result)
-                   g)
-            else prop
-          in
-          let outcome = Test.check ~config tracking_prop in
-          Ok (outcome, Test.Prop, List.rev !collected))
-  | Qc_ir.QcGen { name = _; free_vars; generator; prems_rel } -> (
-      match
-        match generator with
-        | Some gen_name -> gen_free_vars_manual spec gen_name
-        | None -> Ok (gen_free_vars spec free_vars)
-      with
-      | Error _ as e -> e
-      | Ok gen ->
-          let prop =
-            Property.for_all ~show:show_env gen (fun initial_env ->
-                let prems_inputs =
-                  List.map
-                    (fun id -> List.assoc id initial_env)
-                    prems_rel.Qc_ir.sr_inputs
+                let full_env = initial_env @ output_env in
+                let goal_inputs =
+                  List.map (fun id -> List.assoc id full_env) goal_input_ids
                 in
-                match
-                  call_rel ~max_steps spec prems_rel.Qc_ir.sr_id prems_inputs
-                with
-                | `Timeout | `R (Error _) ->
-                    Property.of_result Property.Result.nothing
-                | `R (Ok (_, output_vals)) ->
-                    let output_env =
-                      List.mapi
-                        (fun i (id, _) -> (id, List.nth output_vals i))
-                        prems_rel.Qc_ir.sr_outputs
-                    in
-                    let full_env = initial_env @ output_env in
-                    Property.label (show_env full_env)
-                      (Property.of_result (Property.Result.with_ok true)))
-          in
-          let config = { config with Test.max_size = 5 } in
+                match call_rel ~max_steps spec goal_rel_id goal_inputs with
+                | `Timeout -> Property.of_result Property.Result.nothing
+                | `R (Error _) -> Property.Bool_testable.property false
+                | `R (Ok _) -> Property.Bool_testable.property true))
+      in
+      let collected = ref [] in
+      let tracking_prop =
+        if save then
+          let g = Property.evaluate prop in
+          Property.Prop
+            (Gen.map
+               (fun result ->
+                 (match result.Property.Result.ok with
+                 | Some true -> collected := !env_cell :: !collected
+                 | _ -> ());
+                 result)
+               g)
+        else prop
+      in
+      let outcome = Test.check ~config tracking_prop in
+      Ok (outcome, Test.Prop, List.rev !collected)
 
-          Ok (Test.check ~config prop, Test.Gen, []))
-
-let quickcheck_file ~generalize ~max_steps ~num_tests ~save spec_il path :
-    unit result =
-  match Qc_parse.parse_file path with
-  | Error msg -> Error (ParseError msg)
-  | Ok ast -> (
-      match Qc_elab.elaborate spec_il ast with
-      | Error msg -> Error (ElabError msg)
-      | Ok (cmds, synthetic_defs) ->
-          let spec_with_synth = spec_il @ synthetic_defs in
-          List.fold_left
-            (fun acc cmd ->
-              match acc with
-              | Error _ -> acc
-              | Ok () -> (
-                  let name, mode_label =
-                    match cmd with
-                    | Qc_ir.QcProp { name; _ } -> (name, "Test")
-                    | Qc_ir.QcGen { name; _ } -> (name, "Generation")
-                  in
-                  Printf.printf "[Quickcheck %s: %s]\n" name mode_label;
-                  match
-                    run_command ~generalize ~max_steps ~num_tests ~save
-                      spec_with_synth cmd
-                  with
-                  | Error _ as e -> e
-                  | Ok (outcome, opt, collected) ->
-                      Test.print_outcome opt outcome;
-                      (match (outcome, opt) with
-                      | Test.Pass { num_tests = n; _ }, Test.Prop when save ->
-                          save_cases_to_json ~name ~num_tests:n collected
-                      | _ -> ());
-                      Ok ()))
-            (Ok ()) cmds)
+let quickcheck_spec ~generalize ~max_steps ~num_tests ~save (spec_il : spec)
+    (qc_spec : Qc_il.spec) : unit result =
+  List.fold_left
+    (fun acc qc_def ->
+      match acc with
+      | Error _ -> acc
+      | Ok () -> (
+          match qc_def with
+          | Qc_il.BuiltinGeneratorD _ -> Ok ()
+          | Qc_il.PropertyD (name_id, side_prems, goal, hints) -> (
+              let name = name_id.it in
+              Printf.printf "[Quickcheck %s: Test]\n" name;
+              match
+                run_property ~generalize ~max_steps ~num_tests ~save spec_il
+                  ~name ~side_prems ~goal ~hints
+              with
+              | Error _ as e -> e
+              | Ok (outcome, opt, collected) ->
+                  Test.print_outcome opt outcome;
+                  (match (outcome, opt) with
+                  | Test.Pass { num_tests = n; _ }, Test.Prop when save ->
+                      save_cases_to_json ~name ~num_tests:n collected
+                  | _ -> ());
+                  Ok ())))
+    (Ok ()) qc_spec

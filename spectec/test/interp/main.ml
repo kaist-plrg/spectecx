@@ -9,7 +9,7 @@ let run_with_task (type i) (module T : Spectec.Task.S with type input = i)
   let open Core.Result.Let_syntax in
   let suite_result =
     let%bind spec = Spectec.parse_spec_files spec_files in
-    let%bind spec_il = Spectec.elaborate spec in
+    let%bind { lang = spec_il; _ } = Spectec.elaborate spec in
     let exclude_set = Exclude.load exclude_dirs in
     let mode_suffix = if sl_mode then "(sl)" else "(il)" in
     let config : Suite.config =
