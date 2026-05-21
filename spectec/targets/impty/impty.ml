@@ -135,7 +135,7 @@ let quickcheck_command =
   @@
   let open Core.Command.Let_syntax in
   let open Core.Command.Param in
-  let%map filenames = anon (sequence ("spec files" %: string))
+  let%map filenames_spec = Cli.Cli_args.Spec.files_flag
   and generalize =
     flag "--generalize" no_arg
       ~doc:" generalize counterexamples after shrinking"
@@ -152,15 +152,24 @@ let quickcheck_command =
   and color = Cli.Cli_args.Output.color_flag in
   fun () ->
     Cli.Error_handling.guard_unit ~color @@ fun () ->
+    (* Alias before [open Spectec] so [(module T)] packs impty's Target rather
+       than the Spectec.Target module type holder. *)
+    let module T = Target in
+    let open Spectec in
     let ( let* ) = Result.bind in
-    let* spec = Spectec.parse_spec_files filenames in
-    let* { Spectec.lang; qc } = Spectec.elaborate spec in
+    let filenames =
+      match filenames_spec with
+      | [] -> collect_spec_files T.spec_dir
+      | files -> files
+    in
+    let* spec = parse_spec_files filenames in
+    let* { lang; qc } = elaborate spec in
     Quickcheck.Driver.check
-      ~target:(module Target)
+      ~target:(module T)
       ~generalize ~max_steps ~num_tests ~save
       ~manual_gens:Manual_gen.manual_gens lang qc
     |> Result.map_error (fun e ->
-           Spectec.Error.QuickcheckError (Quickcheck.Driver.error_to_string e))
+           Error.QuickcheckError (Quickcheck.Driver.error_to_string e))
 
 module Cli : Cli.Target_cli.S = struct
   module Target = Target
