@@ -1,0 +1,10 @@
+quickcheck/closure_type_safety:
+    (prog : prog)
+    (hint generator closure_prog)
+    Eval_prog: |- prog -| _
+    -- Check_prog: |- prog
+
+quickcheck/closure_gen_prog:
+    (prog : prog)
+    (hint generator closure_prog)
+    -- Check_prog: |- prog

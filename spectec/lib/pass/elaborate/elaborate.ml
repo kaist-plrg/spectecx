@@ -1981,6 +1981,44 @@ let elab_spec (spec : spec) : Lang.Il.spec Diagnostic.result =
     if errors = [] then Ok spec_il else Error errors
   with Diagnostic.ElabError e -> Error [ e ]
 
+let ctx_of_il_spec (spec_il : Il.spec) : Ctx.t =
+  List.fold_left
+    (fun ctx def ->
+      match def.it with
+      | Il.TypD (id, tparams, deftyp) ->
+          Ctx.add_typdef ctx id (Typdef.Defined (tparams, deftyp))
+      | Il.RelD (id, nottyp, inputs, _rules) -> Ctx.add_rel ctx id nottyp inputs
+      | Il.DecD (id, tparams, params, typ, _clauses) ->
+          Ctx.add_defined_dec ctx id tparams params typ
+      | Il.BuiltinDecD (id, tparams, params, typ, _hints) ->
+          Ctx.add_builtin_dec ctx id tparams params typ)
+    (Ctx.init ()) spec_il
+
+let elab_prems_in_spec (spec_il : Il.spec)
+    (var_decls : (El.id * El.plaintyp) list) (el_prems : El.prem list) :
+    (Il.prem list * (Il.id' * Il.typ) list) Diagnostic.result =
+  try
+    let ctx = ctx_of_il_spec spec_il in
+    let ctx =
+      List.fold_left
+        (fun ctx (id, plaintyp) ->
+          let typ_il = elab_plaintyp ctx plaintyp in
+          let ctx = Ctx.add_metavar ctx id typ_il in
+          { ctx with Ctx.venv = Ctx.VEnv.add id (typ_il, []) ctx.venv })
+        ctx var_decls
+    in
+    let ctx_final, prems_il = elab_prems_with_bind ctx el_prems in
+    let initial_ids = List.map (fun (id, _) -> id.it) var_decls in
+    let output_vars =
+      Ctx.VEnv.bindings ctx_final.venv
+      |> List.filter_map (fun (key, (typ, iters)) ->
+             if iters = [] && not (List.mem key.it initial_ids) then
+               Some (key.it, typ)
+             else None)
+    in
+    Ok (prems_il, output_vars)
+  with Diagnostic.ElabError e -> Error [ e ]
+
 type error = Diagnostic.error
 type 'a result = 'a Diagnostic.result
 

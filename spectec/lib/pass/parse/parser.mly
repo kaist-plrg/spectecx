@@ -98,9 +98,11 @@ let exit_scope () = vars := List.hd !scopes; scopes := List.tl !scopes
 %left PLUS MINUS PLUS2 
 %left STAR SLASH BACKSLASH
 
-%start spec check_atom
+%start spec check_atom plaintyp_entry prem_entry
 %type<El.spec> spec
 %type<bool> check_atom
+%type<El.plaintyp> plaintyp_entry
+%type<El.prem> prem_entry
 
 %%
 
@@ -113,6 +115,12 @@ exit_scope :
 
 check_atom :
   | UPID EOF { is_var (Var.strip_var_suffix ($1 @@@ $sloc)).it }
+
+plaintyp_entry :
+  | plaintyp EOF { $1 }
+
+prem_entry :
+  | prem EOF { $1 }
 
 (* Lists *)
 
