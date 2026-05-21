@@ -95,10 +95,3 @@ let of_premises ~(core_spec : spec) (prems : prem list) : (id * typ) list =
   in
   let is_unbound (id, _) = not (List.mem id.it bound_ids) in
   free |> List.filter is_unbound |> dedup_by_id
-
-let outputs_of_premises ~(core_spec : spec) (prems : prem list) :
-    (id' * typ) list =
-  let vs = List.map (vars_of_prem (rel_inputs_of core_spec)) prems in
-  List.concat_map (fun v -> v.bound) vs
-  |> dedup_by_id
-  |> List.map (fun (id, t) -> (id.it, t))
