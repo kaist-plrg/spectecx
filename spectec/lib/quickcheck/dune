@@ -7,6 +7,9 @@
   spectec.quickcheck.il
   spectec.interp
   spectec.interp.eval_il
+  spectec.instrumentation
+  spectec.instrumentation.api
+  spectec.instrumentation.common
   spectec.common
   spectec.diagnostic
   bignum.bigint

@@ -128,9 +128,11 @@ let gen_free_vars_manual (spec_il : spec) (name : string) :
   | None -> Error (NoManualGenerator name)
 
 let call_rel ~max_steps spec rel_id input_vals =
+  let max_steps = if max_steps < 0 then None else Some max_steps in
   try
-    `R (Qc_eval_il.run ~max_steps (module Nop_target) spec rel_id input_vals "")
-  with Qc_eval_il.StepLimitExceeded -> `Timeout
+    Step_budget.with_budget ?max_steps spec (fun () ->
+        `R (Eval_il.run (module Nop_target) spec rel_id input_vals ""))
+  with Step_budget.StepLimitExceeded -> `Timeout
 
 let run_property ~generalize ~max_steps ~num_tests ~save (core_spec : spec)
     ~(name : string) ~(side_prems : prem list) ~(goal : prem)
