@@ -49,12 +49,6 @@ let shrink_env spec (env : (id' * value) list) : (id' * value) list list =
         (shrink_value vi))
     (List.mapi (fun i p -> (i, p)) env)
 
-let generalize_env _spec (_counter_env : (id' * value) list) :
-    (string * (id' * value) list Gen.t) list =
-  (* TO DO *)
-  (* output every generalized version of counter_env*)
-  []
-
 let show_env (bindings : (id' * value) list) : string =
   String.concat ", "
     (List.map (fun (id, v) -> id ^ "=" ^ Print.string_of_value v) bindings)
@@ -83,77 +77,63 @@ let call_rel spec rel_id input_vals =
          spec rel_id input_vals "")
   with Qc_eval_il.StepLimitExceeded -> `Timeout
 
-let dispatch spec (command : Qc_ir.qc_command) :
+let run_command spec (command : Qc_ir.qc_command) :
     (Test.outcome * Test.opt, error) Stdlib.result =
   match command with
-  | Qc_ir.QcProp { name = _; free_vars; generator; prems_rel; goal_rel } -> (
-      match
-        match generator with
-        | Some gen_name -> gen_free_vars_manual spec gen_name
-        | None -> Ok (gen_free_vars spec free_vars)
-      with
-      | Error _ as e -> e
-      | Ok gen ->
-          let prop =
-            Property.for_all ~shrink:(shrink_env spec)
-              ~generalize:(generalize_env spec) ~show:show_env gen
-              (fun initial_env ->
-                let prems_inputs =
-                  List.map
-                    (fun id -> List.assoc id initial_env)
-                    prems_rel.Qc_ir.sr_inputs
-                in
-                match call_rel spec prems_rel.Qc_ir.sr_id prems_inputs with
-                | `Timeout | `R (Error _) ->
-                    Property.of_result Property.Result.nothing
-                | `R (Ok (_, output_vals)) -> (
-                    let output_env =
-                      List.mapi
-                        (fun i (id, _) -> (id, List.nth output_vals i))
-                        prems_rel.Qc_ir.sr_outputs
-                    in
-                    let full_env = initial_env @ output_env in
-                    let goal_inputs =
-                      List.map
-                        (fun id -> List.assoc id full_env)
-                        goal_rel.Qc_ir.sr_inputs
-                    in
-                    match call_rel spec goal_rel.Qc_ir.sr_id goal_inputs with
-                    | `Timeout -> Property.of_result Property.Result.nothing
-                    | `R (Error _) -> Property.Bool_testable.property false
-                    | `R (Ok _) -> Property.Bool_testable.property true))
+  | Qc_ir.QcProp { name = _; free_vars; generator; prems_rel; goal_rel } ->
+    (match (match generator with
+            | Some gen_name -> gen_free_vars_manual spec gen_name
+            | None -> Ok (gen_free_vars spec free_vars)) with
+    | Error _ as e -> e
+    | Ok gen ->
+      let prop =
+        Property.for_all ~shrink:(shrink_env spec) ~generalize:(Generalize.generalize_env spec) ~show:show_env gen (fun initial_env ->
+          let prems_inputs =
+            List.map (fun id -> List.assoc id initial_env) prems_rel.Qc_ir.sr_inputs
           in
-          Ok (Test.quickcheck prop Test.Prop, Test.Prop))
-  | Qc_ir.QcGen { name = _; free_vars; generator; prems_rel } -> (
-      match
-        match generator with
-        | Some gen_name -> gen_free_vars_manual spec gen_name
-        | None -> Ok (gen_free_vars spec free_vars)
-      with
-      | Error _ as e -> e
-      | Ok gen ->
-          let prop =
-            Property.for_all ~show:show_env gen (fun initial_env ->
-                let prems_inputs =
-                  List.map
-                    (fun id -> List.assoc id initial_env)
-                    prems_rel.Qc_ir.sr_inputs
-                in
-                match call_rel spec prems_rel.Qc_ir.sr_id prems_inputs with
-                | `Timeout | `R (Error _) ->
-                    Property.of_result Property.Result.nothing
-                | `R (Ok (_, output_vals)) ->
-                    let output_env =
-                      List.mapi
-                        (fun i (id, _) -> (id, List.nth output_vals i))
-                        prems_rel.Qc_ir.sr_outputs
-                    in
-                    let full_env = initial_env @ output_env in
-                    Property.label (show_env full_env)
-                      (Property.of_result (Property.Result.with_ok true)))
+          match call_rel spec prems_rel.Qc_ir.sr_id prems_inputs with
+          | `Timeout | `R (Error _) ->
+            Property.of_result Property.Result.nothing
+          | `R (Ok (_, output_vals)) ->
+            let output_env =
+              List.mapi (fun i (id, _) -> (id, List.nth output_vals i))
+                prems_rel.Qc_ir.sr_outputs
+            in
+            let full_env = initial_env @ output_env in
+            let goal_inputs =
+              List.map (fun id -> List.assoc id full_env) goal_rel.Qc_ir.sr_inputs
+            in
+            (match call_rel spec goal_rel.Qc_ir.sr_id goal_inputs with
+             | `Timeout -> Property.of_result Property.Result.nothing
+             | `R (Error _) -> Property.Bool_testable.property false
+             | `R (Ok _) -> Property.Bool_testable.property true))
+      in
+      Ok (Test.check prop, Test.Prop))
+  | Qc_ir.QcGen { name = _; free_vars; generator; prems_rel } ->
+    (match (match generator with
+            | Some gen_name -> gen_free_vars_manual spec gen_name
+            | None -> Ok (gen_free_vars spec free_vars)) with
+    | Error _ as e -> e
+    | Ok gen ->
+      let prop =
+        Property.for_all ~show:show_env gen (fun initial_env ->
+          let prems_inputs =
+            List.map (fun id -> List.assoc id initial_env) prems_rel.Qc_ir.sr_inputs
           in
-          let config = { Test.default_config with Test.max_size = 5 } in
-          Ok (Test.quickcheck ~config prop Test.Gen, Test.Gen))
+          match call_rel spec prems_rel.Qc_ir.sr_id prems_inputs with
+          | `Timeout | `R (Error _) ->
+            Property.of_result Property.Result.nothing
+          | `R (Ok (_, output_vals)) ->
+            let output_env =
+              List.mapi (fun i (id, _) -> (id, List.nth output_vals i))
+                prems_rel.Qc_ir.sr_outputs
+            in
+            let full_env = initial_env @ output_env in
+            Property.label (show_env full_env)
+              (Property.of_result (Property.Result.with_ok true)))
+      in
+      let config = { Test.default_config with Test.max_size = 5 } in
+      Ok (Test.check ~config:config prop, Test.Gen))
 
 let quickcheck_file spec_il path : unit result =
   match Qc_parse.parse_file path with

@@ -56,7 +56,11 @@ let rec generalize_loop (r : Property.Result.t) : Property.Result.t =
           else None)
       candidates
   in
-  match found with None -> r | Some r' -> generalize_loop r'
+  match found with
+  | None    -> r
+  | Some r' ->
+    if r'.Property.Result.arguments = r.Property.Result.arguments then r
+    else generalize_loop r'
 
 let check ?(config = default_config) prop =
   let rand =
@@ -101,8 +105,6 @@ let check ?(config = default_config) prop =
   loop 0 0 [] rand
 
 type opt = Prop | Gen
-
-let quickcheck ?(config = default_config) prop _opt = check ~config prop
 
 let print_outcome opt = function
   | Pass { num_tests; stamps } ->

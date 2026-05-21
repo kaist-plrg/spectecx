@@ -34,8 +34,5 @@ val check : ?config:config -> Property.t -> outcome
 
 type opt = Prop | Gen
 
-(** [quickcheck prop opt] runs [check] and returns the outcome. *)
-val quickcheck : ?config:config -> Property.t -> opt -> outcome
-
 (** [print_outcome opt outcome] prints a human-readable report for [outcome]. *)
 val print_outcome : opt -> outcome -> unit

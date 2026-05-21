@@ -9,6 +9,7 @@ type t =
   | SpecMismatchError of string * string
   | DirectoryError of string
   | ConfigError of region * string
+  | QuickcheckError of string
 
 let string_of_error = function
   | PassError e -> Pass.error_to_string e
@@ -21,6 +22,7 @@ let string_of_error = function
         expected actual
   | DirectoryError msg -> msg
   | ConfigError (at, msg) -> Common.Error.string_of_located_error at msg
+  | QuickcheckError msg -> msg
 
 let to_diagnostics = function
   | PassError e -> Pass.error_to_diagnostics e
@@ -44,3 +46,6 @@ let to_diagnostics = function
         (Diagnostic.error ~source:"config" Common.Source.no_region msg)
   | ConfigError (at, msg) ->
       Diagnostic.Bag.singleton (Diagnostic.error ~source:"config" at msg)
+  | QuickcheckError msg ->
+      Diagnostic.Bag.singleton
+        (Diagnostic.error ~source:"quickcheck" Common.Source.no_region msg)
