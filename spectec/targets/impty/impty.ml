@@ -152,14 +152,15 @@ let quickcheck_command =
   and color = Cli.Cli_args.Output.color_flag in
   fun () ->
     Cli.Error_handling.guard_unit ~color @@ fun () ->
-    let open Spectec in
     let ( let* ) = Result.bind in
-    let* spec = parse_spec_files filenames in
-    let* { lang; qc } = elaborate spec in
-    Quickcheck.quickcheck_spec ~generalize ~max_steps ~num_tests ~save
+    let* spec = Spectec.parse_spec_files filenames in
+    let* { Spectec.lang; qc } = Spectec.elaborate spec in
+    Quickcheck.Driver.check
+      ~target:(module Target)
+      ~generalize ~max_steps ~num_tests ~save
       ~manual_gens:Manual_gen.manual_gens lang qc
     |> Result.map_error (fun e ->
-           Error.QuickcheckError (Quickcheck.error_to_string e))
+           Spectec.Error.QuickcheckError (Quickcheck.Driver.error_to_string e))
 
 module Cli : Cli.Target_cli.S = struct
   module Target = Target
