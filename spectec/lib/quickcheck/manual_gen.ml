@@ -5,37 +5,37 @@ open Value
 (* ===== Shared value construction helpers ===== *)
 
 let id_val name =
-  Value.case_v ~var:"id" [Value.atom "`ID"; Value.arg (Value.text name)]
+  case_v ~var:"id" [atom "`ID"; arg (text name)]
 
 (* expr values: literal and id cases are FLAT in the IL (elab_typcase_plain
    expands | literal and | id into expr's VariantT directly, no wrapper) *)
-let expr_num  n      = Value.case_v ~var:"expr" [Value.atom "`NUM";  Value.arg (Value.nat (Bigint.of_int n))]
-let expr_bool b      = Value.case_v ~var:"expr" [Value.atom "`BOOL"; Value.arg (Value.bool b)]
-let expr_var  s      = Value.case_v ~var:"expr" [Value.atom "`ID";   Value.arg (Value.text s)]
-let expr_add  e1 e2  = Value.case_v ~var:"expr" [Value.arg e1; Value.atom "+";  Value.arg e2]
-let expr_leq  e1 e2  = Value.case_v ~var:"expr" [Value.arg e1; Value.atom "<="; Value.arg e2]
-let expr_not  e      = Value.case_v ~var:"expr" [Value.atom "!";  Value.arg e]
-let expr_and  e1 e2  = Value.case_v ~var:"expr" [Value.arg e1; Value.atom "&&"; Value.arg e2]
+let expr_num  n      = case_v ~var:"expr" [atom "`NUM";  arg (nat (Bigint.of_int n))]
+let expr_bool b      = case_v ~var:"expr" [atom "`BOOL"; arg (bool b)]
+let expr_var  s      = case_v ~var:"expr" [atom "`ID";   arg (text s)]
+let expr_add  e1 e2  = case_v ~var:"expr" [arg e1; atom "+";  arg e2]
+let expr_leq  e1 e2  = case_v ~var:"expr" [arg e1; atom "<="; arg e2]
+let expr_not  e      = case_v ~var:"expr" [atom "!";  arg e]
+let expr_and  e1 e2  = case_v ~var:"expr" [arg e1; atom "&&"; arg e2]
 
 (* closure-only expr constructors *)
 let expr_fun ta xa tr e =
-  Value.case_v ~var:"expr"
-    [Value.atom "FUN"; Value.atom "("; Value.arg ta; Value.arg xa;
-     Value.atom ")"; Value.atom "->"; Value.arg tr;
-     Value.atom "{"; Value.arg e; Value.atom "}"]
+  case_v ~var:"expr"
+    [atom "FUN"; atom "("; arg ta; arg xa;
+     atom ")"; atom "->"; arg tr;
+     atom "{"; arg e; atom "}"]
 
 let expr_call ef ea =
-  Value.case_v ~var:"expr" [Value.arg ef; Value.atom "("; Value.arg ea; Value.atom ")"]
+  case_v ~var:"expr" [arg ef; atom "("; arg ea; atom ")"]
 
-let cmd_skip         = Value.case_v ~var:"command" [Value.atom "SKIP"]
-let cmd_decl ty id e = Value.case_v ~var:"command" [Value.arg ty; Value.arg id; Value.atom "="; Value.arg e]
-let cmd_assign id e  = Value.case_v ~var:"command" [Value.arg id; Value.atom "="; Value.arg e]
-let cmd_seq   c1 c2  = Value.case_v ~var:"command" [Value.arg c1; Value.atom ";"; Value.arg c2]
-let cmd_ite e c1 c2  = Value.case_v ~var:"command"
-    [Value.atom "IF"; Value.arg e; Value.atom "THEN"; Value.arg c1;
-     Value.atom "ELSE"; Value.arg c2; Value.atom "END"]
-let cmd_while e c    = Value.case_v ~var:"command"
-    [Value.atom "WHILE"; Value.arg e; Value.atom "DO"; Value.arg c; Value.atom "END"]
+let cmd_skip         = case_v ~var:"command" [atom "SKIP"]
+let cmd_decl ty id e = case_v ~var:"command" [arg ty; arg id; atom "="; arg e]
+let cmd_assign id e  = case_v ~var:"command" [arg id; atom "="; arg e]
+let cmd_seq   c1 c2  = case_v ~var:"command" [arg c1; atom ";"; arg c2]
+let cmd_ite e c1 c2  = case_v ~var:"command"
+    [atom "IF"; arg e; atom "THEN"; arg c1;
+     atom "ELSE"; arg c2; atom "END"]
+let cmd_while e c    = case_v ~var:"command"
+    [atom "WHILE"; arg e; atom "DO"; arg c; atom "END"]
 
 let fresh_name (ctx : ('a * 'b) list) = Printf.sprintf "x%d" (List.length ctx)
 
@@ -49,8 +49,8 @@ module Base = struct
   type ctx = (string * ty) list
 
 let type_val = function
-  | TInt  -> Value.case_v ~var:"type" [Value.atom "INT"]
-  | TBool -> Value.case_v ~var:"type" [Value.atom "BOOL"]
+  | TInt  -> case_v ~var:"type" [atom "INT"]
+  | TBool -> case_v ~var:"type" [atom "BOOL"]
 
   let vars_of ctx ty =
     List.filter_map (fun (name, t) -> if t = ty then Some name else None) ctx
@@ -58,7 +58,7 @@ let type_val = function
 let expr_typ = (VarT ("expr" $ no_region, [])) $ no_region
 let cmd_typ  = (VarT ("command" $ no_region, [])) $ no_region
 
-let rec gen_expr (spec : spec) (ctx : ctx) (ty : impty_ty) : Value.t Gen.t =
+let rec gen_expr (spec : spec) (ctx : ctx) (ty : ty) : t Gen.t =
   let open Gen in
   sized (fun size ->
     let random_expr = Il_gen.gen_of_typ spec expr_typ in
@@ -106,7 +106,7 @@ let rec gen_expr (spec : spec) (ctx : ctx) (ty : impty_ty) : Value.t Gen.t =
 
 (* Returns the generated command together with the output context, because
    seq must thread the context from c1 into c2. *)
-and gen_command (spec : spec) (ctx : ctx) : (Value.t * ctx) Gen.t =
+and gen_command (spec : spec) (ctx : ctx) : (t * ctx) Gen.t =
   let open Gen in
   sized (fun size ->
     let base = [(1, return (cmd_skip, ctx))] in
@@ -148,6 +148,8 @@ let gen_well_typed_prog (spec : spec) : (string * value) list Gen.t =
   let* (cmd, _) = gen_command spec [] in
   return [("prog", cmd)]
 
+end
+
 (* ===== Closure Impty generator (INT, BOOL, function types) ===== *)
 
 type closure_ty =
@@ -158,13 +160,13 @@ type closure_ty =
 type cctx = (string * closure_ty) list
 
 let rec ctype_val = function
-  | CInt  -> Value.case_v ~var:"type" [Value.atom "INT"]
-  | CBool -> Value.case_v ~var:"type" [Value.atom "BOOL"]
+  | CInt  -> case_v ~var:"type" [atom "INT"]
+  | CBool -> case_v ~var:"type" [atom "BOOL"]
   | CFun (t1, t2) ->
-    Value.case_v ~var:"type" [Value.arg (ctype_val t1); Value.atom "->"; Value.arg (ctype_val t2)]
+    case_v ~var:"type" [arg (ctype_val t1); atom "->"; arg (ctype_val t2)]
 
-  let vars_of (ctx : ctx) ty =
-    List.filter_map (fun (name, t) -> if t = ty then Some name else None) ctx
+let cvars_of (ctx : cctx) ty =
+  List.filter_map (fun (name, t) -> if t = ty then Some name else None) ctx
 
 (* Find variables with type (arg_ty -> ret_ty); return (name, arg_ty) pairs. *)
 let cfun_vars_of (ctx : cctx) ret_ty =
@@ -186,7 +188,7 @@ let rec gen_cty (depth : int) : closure_ty Gen.t =
              let* t2 = gen_cty (depth - 1) in
              return (CFun (t1, t2)))) ]
 
-let rec gen_cexpr (spec : spec) (ctx : cctx) (ty : closure_ty) : Value.t Gen.t =
+let rec gen_cexpr (spec : spec) (ctx : cctx) (ty : closure_ty) : t Gen.t =
   let open Gen in
   sized (fun size ->
     let random_expr = Il_gen.gen_of_typ spec expr_typ in
@@ -277,7 +279,7 @@ let rec gen_cexpr (spec : spec) (ctx : cctx) (ty : closure_ty) : Value.t Gen.t =
       frequency (base @ recursive)
   )
 
-and gen_ccommand (spec : spec) (ctx : cctx) : (Value.t * cctx) Gen.t =
+and gen_ccommand (spec : spec) (ctx : cctx) : (t * cctx) Gen.t =
   let open Gen in
   sized (fun size ->
     let base = [(1, return (cmd_skip, ctx))] in
@@ -371,7 +373,7 @@ let gen_closure_fun_prog (spec : spec) : (string * value) list Gen.t =
 let gen_inputs (spec : spec) (name : string) :
     (string * value) list Gen.t option =
   match name with
-  | "base_prog"        -> Some (gen_well_typed_prog spec)
+  | "base_prog"        -> Some (Base.gen_well_typed_prog spec)
   | "closure_prog"     -> Some (gen_closure_prog spec)
   | "closure_fun_prog" -> Some (gen_closure_fun_prog spec)
   | _ -> None

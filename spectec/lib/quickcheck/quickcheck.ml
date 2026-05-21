@@ -69,16 +69,17 @@ let gen_free_vars_manual (spec_il : spec) (name : string) :
   | Some gen -> Ok gen
   | None -> Error (NoManualGenerator name)
 
-let call_rel spec rel_id input_vals =
+let call_rel ~max_steps spec rel_id input_vals =
   try
     `R
-      (Qc_eval_il.run ~max_steps:100
+      (Qc_eval_il.run ~max_steps
          (module Nop_target)
          spec rel_id input_vals "")
   with Qc_eval_il.StepLimitExceeded -> `Timeout
 
-let run_command spec (command : Qc_ir.qc_command) :
+let run_command ~generalize ~max_steps ~num_tests spec (command : Qc_ir.qc_command) :
     (Test.outcome * Test.opt, error) Stdlib.result =
+  let config = { Test.default_config with Test.num_tests } in
   match command with
   | Qc_ir.QcProp { name = _; free_vars; generator; prems_rel; goal_rel } ->
     (match (match generator with
@@ -86,12 +87,15 @@ let run_command spec (command : Qc_ir.qc_command) :
             | None -> Ok (gen_free_vars spec free_vars)) with
     | Error _ as e -> e
     | Ok gen ->
+      let generalize_fn =
+        if generalize then Some (Generalize.generalize_env spec) else None
+      in
       let prop =
-        Property.for_all ~shrink:(shrink_env spec) ~generalize:(Generalize.generalize_env spec) ~show:show_env gen (fun initial_env ->
+        Property.for_all ~shrink:(shrink_env spec) ?generalize:generalize_fn ~show:show_env gen (fun initial_env ->
           let prems_inputs =
             List.map (fun id -> List.assoc id initial_env) prems_rel.Qc_ir.sr_inputs
           in
-          match call_rel spec prems_rel.Qc_ir.sr_id prems_inputs with
+          match call_rel ~max_steps spec prems_rel.Qc_ir.sr_id prems_inputs with
           | `Timeout | `R (Error _) ->
             Property.of_result Property.Result.nothing
           | `R (Ok (_, output_vals)) ->
@@ -103,12 +107,12 @@ let run_command spec (command : Qc_ir.qc_command) :
             let goal_inputs =
               List.map (fun id -> List.assoc id full_env) goal_rel.Qc_ir.sr_inputs
             in
-            (match call_rel spec goal_rel.Qc_ir.sr_id goal_inputs with
+            (match call_rel ~max_steps spec goal_rel.Qc_ir.sr_id goal_inputs with
              | `Timeout -> Property.of_result Property.Result.nothing
              | `R (Error _) -> Property.Bool_testable.property false
              | `R (Ok _) -> Property.Bool_testable.property true))
       in
-      Ok (Test.check prop, Test.Prop))
+      Ok (Test.check ~config prop, Test.Prop))
   | Qc_ir.QcGen { name = _; free_vars; generator; prems_rel } ->
     (match (match generator with
             | Some gen_name -> gen_free_vars_manual spec gen_name
@@ -120,7 +124,7 @@ let run_command spec (command : Qc_ir.qc_command) :
           let prems_inputs =
             List.map (fun id -> List.assoc id initial_env) prems_rel.Qc_ir.sr_inputs
           in
-          match call_rel spec prems_rel.Qc_ir.sr_id prems_inputs with
+          match call_rel ~max_steps spec prems_rel.Qc_ir.sr_id prems_inputs with
           | `Timeout | `R (Error _) ->
             Property.of_result Property.Result.nothing
           | `R (Ok (_, output_vals)) ->
@@ -132,10 +136,10 @@ let run_command spec (command : Qc_ir.qc_command) :
             Property.label (show_env full_env)
               (Property.of_result (Property.Result.with_ok true)))
       in
-      let config = { Test.default_config with Test.max_size = 5 } in
-      Ok (Test.check ~config:config prop, Test.Gen))
+      let config = { config with Test.max_size = 5 } in
+      Ok (Test.check ~config prop, Test.Gen))
 
-let quickcheck_file spec_il path : unit result =
+let quickcheck_file ~generalize ~max_steps ~num_tests spec_il path : unit result =
   match Qc_parse.parse_file path with
   | Error msg -> Error (ParseError msg)
   | Ok ast -> (
@@ -154,7 +158,7 @@ let quickcheck_file spec_il path : unit result =
                     | Qc_ir.QcGen { name; _ } -> (name, "Generation")
                   in
                   Printf.printf "[Quickcheck %s: %s]\n" name mode_label;
-                  match dispatch spec_with_synth cmd with
+                  match run_command ~generalize ~max_steps ~num_tests spec_with_synth cmd with
                   | Error _ as e -> e
                   | Ok (outcome, opt) ->
                       Test.print_outcome opt outcome;

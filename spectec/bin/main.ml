@@ -45,13 +45,21 @@ let quickcheck_command =
   let%map filenames = anon (sequence ("spec files" %: string))
   and quickcheck_file =
     flag "--qc" (required string) ~doc:"PATH path to .quickcheck input file"
+  and generalize =
+    flag "--generalize" no_arg ~doc:" generalize counterexamples after shrinking"
+  and max_steps =
+    flag "--max-steps" (optional_with_default 100 int)
+      ~doc:"N max steps per relation evaluation (default 100)"
+  and num_tests =
+    flag "--num-tests" (optional_with_default 100 int)
+      ~doc:"N number of test cases to generate (default 100)"
   and color = Cli.Cli_args.Output.color_flag in
   fun () ->
     Cli.Error_handling.guard_unit ~color
     @@ fun () ->
     let* spec = parse_spec_files filenames in
     let* spec_il = elaborate spec in
-    Quickcheck.quickcheck_file spec_il quickcheck_file
+    Quickcheck.quickcheck_file ~generalize ~max_steps ~num_tests spec_il quickcheck_file
     |> Result.map_error (fun e -> Error.QuickcheckError (Quickcheck.error_to_string e))
     
 let command =
