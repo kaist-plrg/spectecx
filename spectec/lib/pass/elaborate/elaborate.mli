@@ -15,13 +15,10 @@ module Fresh : sig
     Common.Domain.IdSet.t -> Lang.Il.typ -> Lang.Il.exp * Common.Domain.IdSet.t
 end
 
-val elab_spec : Lang.El.spec -> Lang.Il.spec result
+(** The elaborator's output: the language IL spec, plus per-backend IL slices.
+*)
+type il = { lang : Lang.Il.spec; qc : Qc_il.spec }
 
-val elab_prems_in_spec :
-  Lang.Il.spec ->
-  (Lang.El.id * Lang.El.plaintyp) list ->
-  Lang.El.prem list ->
-  (Lang.Il.prem list * (Lang.Il.id' * Lang.Il.typ) list) result
-
+val elab_spec : Lang.El.spec -> il result
 val error_to_string : error -> string
 val error_to_diagnostics : error -> Diag.Bag.t

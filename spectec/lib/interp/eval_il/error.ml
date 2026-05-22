@@ -1,7 +1,6 @@
 open Common.Source
 
 exception InterpError of region * string
-exception StepLimitExceeded
 
 (* Interpreter errors *)
 

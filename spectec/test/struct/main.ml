@@ -8,8 +8,8 @@ let run specdir =
   let spec_sl =
     let spec_files = Files.collect ~suffix:".spectec" specdir in
     let%bind spec = Spectec.parse_spec_files spec_files in
-    let%bind spec_il = Spectec.elaborate spec in
-    let spec_sl = Spectec.structure spec_il in
+    let%bind { lang; _ } = Spectec.elaborate spec in
+    let spec_sl = Spectec.structure lang in
     Ok spec_sl
   in
   match spec_sl with

@@ -1,0 +1,4 @@
+(library
+ (name qc_il)
+ (public_name spectec.quickcheck.il)
+ (libraries spectec.lang.il))

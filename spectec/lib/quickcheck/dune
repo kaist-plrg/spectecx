@@ -4,10 +4,12 @@
  (libraries
   spectec.lang.il
   spectec.lang.el
-  spectec.pipeline.frontend
-  spectec.pass.elaborate
+  spectec.quickcheck.il
   spectec.interp
   spectec.interp.eval_il
+  spectec.instrumentation
+  spectec.instrumentation.api
+  spectec.instrumentation.common
   spectec.common
   spectec.diagnostic
   bignum.bigint

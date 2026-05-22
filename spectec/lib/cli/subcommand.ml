@@ -9,8 +9,8 @@ let load_spec ~spec_dir filenames_spec =
     | files -> files
   in
   let* spec = Spectec.parse_spec_files filenames in
-  let* spec_il = Spectec.elaborate spec in
-  Ok (filenames, spec_il)
+  let* { Spectec.lang; _ } = Spectec.elaborate spec in
+  Ok (filenames, lang)
 
 let make_task (module Tgt : Spectec.Target.S) ~name ~summary
     (module TC : Task_cli.S) =

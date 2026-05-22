@@ -21,18 +21,6 @@ let parse_file file : Lang.El.spec result =
   | ParseError e -> Error e
   | Sys_error msg -> Error (Source.region_of_file file, "i/o error: " ^ msg)
 
-let parse_fragment name src start =
-  try
-    let lexbuf = Lexing.from_string src in
-    Ok (with_lexbuf name lexbuf start)
-  with ParseError e -> Error e
-
-let parse_plaintyp src : Lang.El.plaintyp result =
-  parse_fragment "<quickcheck>" src Parser.plaintyp_entry
-
-let parse_prem src : Lang.El.prem result =
-  parse_fragment "<quickcheck>" src Parser.prem_entry
-
 let parse_files filenames : Lang.El.spec result =
   let rec parse_files' acc = function
     | [] -> Ok (List.concat (List.rev acc))

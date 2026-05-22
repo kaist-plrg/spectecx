@@ -1,87 +1,49 @@
-(** Result types and the Testable interface for property-based testing.
+(** Properties for property-based testing.
 
-    Direct translation of the Haskell spec from goal.md:
-    - [Result] =
-      [{ ok :: Maybe Bool; stamp :: [String]; arguments :: [String] }]
-    - [Property] = [Prop (Gen Result)]
-    - [TESTABLE] = [class Testable a where property :: a -> Property] *)
+    A property is a generator of verdicts: each trial draws one verdict, which
+    the runner inspects to decide whether the property passed, failed, or should
+    discard the trial. *)
 
-(** {2 Test results} *)
+(** {2 Verdicts} *)
 
-module Result : sig
+module Verdict : sig
+  type status = [ `Pass | `Fail | `Discard ]
+
   type t = {
-    ok : bool option;
-        (** [None] = neutral/discarded, [Some true] = pass, [Some false] = fail
-        *)
-    stamp : string list;
-        (** Labels accumulated by [label]/[classify]. Used for statistics. *)
+    status : status;
     arguments : string list;
-        (** String representation of counterexample arguments recorded by
-            [for_all]. *)
+        (** Counterexample arguments recorded by [for_all]. *)
+    stamp : string list;
+        (** Labels accumulated by [label]. Used for statistics. *)
     shrink : unit -> t Gen.t list;
-        (** Lazy thunk: returns candidate generators to try for shrinking.
-            Populated by [for_all ~shrink]; evaluated and run by [Test.check].
+        (** Lazy thunk: candidate generators to try for shrinking a failing
+            verdict. Populated by [for_all ~shrink] and consumed by [Test.run].
         *)
     generalize : unit -> (string * t Gen.t list) list;
-        (** Lazy thunk: returns generalization candidates as [(label, samples)]
-            pairs. A candidate is accepted when ALL samples give
-            [ok = Some false]. Populated by [for_all ~generalize]; applied by
-            [Test.check] after shrinking. *)
+        (** Lazy thunk: generalization candidates as [(label, samples)] pairs. A
+            candidate is accepted when every sample still gives [`Fail].
+            Populated by [for_all ~generalize] and consumed by [Test.run] after
+            shrinking. *)
   }
 
-  (** Default neutral result: [{ ok = None; stamp = []; arguments = [] }]. *)
-  val nothing : t
-
-  (** [with_ok b] is [{ nothing with ok = Some b }]. *)
-  val with_ok : bool -> t
-
-  val add_argument : string -> t -> t
-  val add_stamp : string -> t -> t
+  val pass : t
+  val fail : t
+  val discard : t
 end
 
-(** {2 Property type} *)
+(** {2 Properties} *)
 
-type t = Prop of Result.t Gen.t  (** [Property] is a generator of [Result]. *)
+type t = Verdict.t Gen.t
 
-(** Alias to refer to the outer [t] from within a nested module type. *)
-type prop = t
-
-(** Lifts a fixed result into a property. *)
-val of_result : Result.t -> t
-
-(** Extracts the internal generator. *)
-val evaluate : t -> Result.t Gen.t
-
-(** {2 Testable type class} *)
-
-module type TESTABLE = sig
-  type t
-
-  (** [property x] converts [x] to a [Property]. *)
-  val property : t -> prop
-end
-
-(** {2 Primitive Testable instances} *)
-
-module Bool_testable : TESTABLE with type t = bool
-module Prop_testable : TESTABLE with type t = prop
-
-(** {2 Derived Testable Functor} *)
-
-(** Derives [Testable (a -> b)] from [Arbitrary a] and [Testable b]. Direct
-    translation of Haskell's [property f = forAll arbitrary f]. *)
-module Make_fun_testable (A : Arbitrary.ARBITRARY) (B : TESTABLE) :
-  TESTABLE with type t = A.t -> B.t
-
-(** {2 Property combinators} *)
+(** Lifts a fixed verdict into a property whose every trial returns that
+    verdict. *)
+val of_verdict : Verdict.t -> t
 
 (** [for_all ?shrink ?generalize ~show gen body] generates a value with [gen],
-    supplies it to [body], and records the string representation in [arguments].
-    If [shrink] is provided, [Test.check] uses it to find a minimal
-    counterexample. If [generalize] is provided, [Test.check] tries each
-    [(label, gen')] candidate after shrinking: a candidate is accepted when ALL
-    [generalize_n] samples drawn from [gen'] still give [ok = Some false],
-    replacing the argument with [label]. *)
+    passes it to [body], and records the [show]n value in the verdict's
+    arguments. If [shrink] is provided, [Test.run] uses it to find a minimal
+    counterexample. If [generalize] is provided, [Test.run] tries each
+    [(label, gen')] candidate after shrinking. *)
 val for_all :
   ?shrink:('a -> 'a list) ->
   ?generalize:('a -> (string * 'a Gen.t) list) ->
@@ -90,16 +52,6 @@ val for_all :
   ('a -> t) ->
   t
 
-(** [cond ==> prop]: if [cond] is [true] returns [prop], otherwise returns
-    neutral. *)
-val ( ==> ) : bool -> t -> t
-
-(** [label s prop] adds [s] to the [stamp] of all results. *)
-val label : string -> t -> t
-
-(** [classify true name prop = label name prop], [classify false _ prop = prop].
+(** [label s prop] adds [s] to the stamp of every verdict the property produces.
 *)
-val classify : bool -> string -> t -> t
-
-(** [collect ~show v prop = label (show v) prop]. *)
-val collect : show:('a -> string) -> 'a -> t -> t
+val label : string -> t -> t

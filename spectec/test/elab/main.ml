@@ -8,8 +8,8 @@ let run specdir =
   let spec_il =
     let spec_files = Files.collect ~suffix:".spectec" specdir in
     let%bind spec = Spectec.parse_spec_files spec_files in
-    let%bind spec_il = Spectec.elaborate spec in
-    Ok spec_il
+    let%bind { lang; _ } = Spectec.elaborate spec in
+    Ok lang
   in
   match spec_il with
   | Ok spec_il -> Format.printf "%s\n" (Lang.Il.Print.string_of_spec spec_il)

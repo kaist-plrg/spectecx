@@ -1621,25 +1621,33 @@ and elab_hints (ctx : Ctx.t) (hints : hint list) : Il.hint list =
 
 (* Elaboration of definitions *)
 
-let rec elab_def (ctx : Ctx.t) (def : def) : Ctx.t * Il.def option =
-  let wrap_some (ctx, def) = (ctx, Some def) in
-  let wrap_none ctx = (ctx, None) in
+type def_il = Lang of Il.def | Qc of Qc_il.def | Empty
+
+let rec elab_def (ctx : Ctx.t) (def : def) : Ctx.t * def_il =
+  let as_lang (ctx, def) = (ctx, Lang def) in
+  let as_empty ctx = (ctx, Empty) in
   let at = def.at in
   match def.it with
-  | SynD syns -> elab_syn_def ctx syns |> wrap_none
+  | SynD syns -> elab_syn_def ctx syns |> as_empty
   | TypD (id, tparams, deftyp, _hints) ->
-      elab_typ_def ctx id tparams deftyp |> wrap_some
-  | VarD (id, plaintyp, _hints) -> elab_var_def ctx id plaintyp |> wrap_none
-  | RelD (id, nottyp, hints) -> elab_rel_def ctx at id nottyp hints |> wrap_some
+      elab_typ_def ctx id tparams deftyp |> as_lang
+  | VarD (id, plaintyp, _hints) -> elab_var_def ctx id plaintyp |> as_empty
+  | RelD (id, nottyp, hints) -> elab_rel_def ctx at id nottyp hints |> as_lang
   | RuleD (id_rel, id_rule, exp, prems) ->
-      elab_rule_def ctx at id_rel id_rule exp prems |> wrap_none
+      elab_rule_def ctx at id_rel id_rule exp prems |> as_empty
   | BuiltinDecD (id, tparams, params, plaintyp, hints) ->
-      elab_builtin_dec_def ctx at id tparams params plaintyp hints |> wrap_some
+      elab_builtin_dec_def ctx at id tparams params plaintyp hints |> as_lang
   | DecD (id, tparams, params, plaintyp, _hints) ->
-      elab_dec_def ctx at id tparams params plaintyp |> wrap_some
+      elab_dec_def ctx at id tparams params plaintyp |> as_lang
   | DefD (id, tparams, args, exp, prems) ->
-      elab_def_def ctx at id tparams args exp prems |> wrap_none
-  | SepD -> ctx |> wrap_none
+      elab_def_def ctx at id tparams args exp prems |> as_empty
+  | BuiltinGeneratorD (id, plaintyp, hints) ->
+      let ctx, qc_def = elab_builtin_generator_def ctx id plaintyp hints in
+      (ctx, Qc qc_def)
+  | PropertyD (id, side_prems, goal, hints) ->
+      let ctx, qc_def = elab_property_def ctx id side_prems goal hints in
+      (ctx, Qc qc_def)
+  | SepD -> ctx |> as_empty
 
 (* Elaboration of type declarations *)
 
@@ -1842,6 +1850,37 @@ and elab_builtin_dec_def (ctx : Ctx.t) (at : region) (id : id)
   let def_il = Il.BuiltinDecD (id, tparams, params_il, typ_il, hints_il) $ at in
   (ctx, def_il)
 
+and elab_builtin_generator_def (ctx : Ctx.t) (id : id) (plaintyp : plaintyp)
+    (hints : hint list) : Ctx.t * Qc_il.def =
+  let typ_il = elab_plaintyp ctx plaintyp in
+  let hints_il = elab_hints ctx hints in
+  (ctx, Qc_il.BuiltinGeneratorD (id, typ_il, hints_il))
+
+(* Quickcheck body premises bind free input-position variables at
+   runtime, not statically. Skip the binding analysis used by
+   elab_prems_with_bind and run elab_prem directly. *)
+and elab_body_prems (ctx : Ctx.t) (prems : prem list) : Ctx.t * Il.prem list =
+  List.fold_left
+    (fun (ctx, acc) prem ->
+      let ctx, prem_opt = elab_prem ctx prem in
+      match prem_opt with Some p -> (ctx, acc @ [ p ]) | None -> (ctx, acc))
+    (ctx, []) prems
+
+and elab_property_def (ctx : Ctx.t) (id : id) (side_prems : prem list)
+    (goal : prem) (hints : hint list) : Ctx.t * Qc_il.def =
+  let ctx_local = { ctx with frees = Common.Domain.IdSet.empty } in
+  let ctx_local =
+    El.Free.free_id_prems (side_prems @ [ goal ]) |> Ctx.add_frees ctx_local
+  in
+  let ctx_local, side_prems_il = elab_body_prems ctx_local side_prems in
+  let ctx_local, goal_il =
+    match elab_body_prems ctx_local [ goal ] with
+    | ctx, [ g ] -> (ctx, g)
+    | _ -> Diagnostic.error id.at "property goal failed to elaborate"
+  in
+  let hints_il = elab_hints ctx_local hints in
+  (ctx, Qc_il.PropertyD (id, side_prems_il, goal_il, hints_il))
+
 and elab_dec_def (ctx : Ctx.t) (at : region) (id : id) (tparams : tparam list)
     (params : param list) (plaintyp : plaintyp) : Ctx.t * Il.def =
   check
@@ -1962,61 +2001,26 @@ let populate_clauses (ctx : Ctx.t) (spec_il : Il.spec) : Il.spec =
 (* Elaborate and collect failtraces *)
 
 let elab_defs_with_errors (ctx : Ctx.t) (defs : def list) :
-    Ctx.t * Il.def list * Diag.t list =
+    Ctx.t * Il.def list * Qc_il.def list * Diag.t list =
   List.fold_left
-    (fun (ctx, defs_il, errors) def ->
+    (fun (ctx, lang_defs, qc_defs, errors) def ->
       try
-        let ctx, def_il_opt = elab_def ctx def in
-        match def_il_opt with
-        | Some def_il -> (ctx, defs_il @ [ def_il ], errors)
-        | None -> (ctx, defs_il, errors)
-      with Diagnostic.ElabError e -> (ctx, defs_il, e :: errors))
-    (ctx, [], []) defs
+        let ctx, def_il = elab_def ctx def in
+        match def_il with
+        | Lang lang_def -> (ctx, lang_defs @ [ lang_def ], qc_defs, errors)
+        | Qc qc_def -> (ctx, lang_defs, qc_defs @ [ qc_def ], errors)
+        | Empty -> (ctx, lang_defs, qc_defs, errors)
+      with Diagnostic.ElabError e -> (ctx, lang_defs, qc_defs, e :: errors))
+    (ctx, [], [], []) defs
 
-let elab_spec (spec : spec) : Lang.Il.spec Diagnostic.result =
+type il = { lang : Lang.Il.spec; qc : Qc_il.spec }
+
+let elab_spec (spec : spec) : il Diagnostic.result =
   try
     let ctx = Ctx.init () in
-    let ctx, spec_il, errors = elab_defs_with_errors ctx spec in
-    let spec_il = spec_il |> populate_rules ctx |> populate_clauses ctx in
-    if errors = [] then Ok spec_il else Error errors
-  with Diagnostic.ElabError e -> Error [ e ]
-
-let ctx_of_il_spec (spec_il : Il.spec) : Ctx.t =
-  List.fold_left
-    (fun ctx def ->
-      match def.it with
-      | Il.TypD (id, tparams, deftyp) ->
-          Ctx.add_typdef ctx id (Typdef.Defined (tparams, deftyp))
-      | Il.RelD (id, nottyp, inputs, _rules) -> Ctx.add_rel ctx id nottyp inputs
-      | Il.DecD (id, tparams, params, typ, _clauses) ->
-          Ctx.add_defined_dec ctx id tparams params typ
-      | Il.BuiltinDecD (id, tparams, params, typ, _hints) ->
-          Ctx.add_builtin_dec ctx id tparams params typ)
-    (Ctx.init ()) spec_il
-
-let elab_prems_in_spec (spec_il : Il.spec)
-    (var_decls : (El.id * El.plaintyp) list) (el_prems : El.prem list) :
-    (Il.prem list * (Il.id' * Il.typ) list) Diagnostic.result =
-  try
-    let ctx = ctx_of_il_spec spec_il in
-    let ctx =
-      List.fold_left
-        (fun ctx (id, plaintyp) ->
-          let typ_il = elab_plaintyp ctx plaintyp in
-          let ctx = Ctx.add_metavar ctx id typ_il in
-          { ctx with Ctx.venv = Ctx.VEnv.add id (typ_il, []) ctx.venv })
-        ctx var_decls
-    in
-    let ctx_final, prems_il = elab_prems_with_bind ctx el_prems in
-    let initial_ids = List.map (fun (id, _) -> id.it) var_decls in
-    let output_vars =
-      Ctx.VEnv.bindings ctx_final.venv
-      |> List.filter_map (fun (key, (typ, iters)) ->
-             if iters = [] && not (List.mem key.it initial_ids) then
-               Some (key.it, typ)
-             else None)
-    in
-    Ok (prems_il, output_vars)
+    let ctx, lang, qc, errors = elab_defs_with_errors ctx spec in
+    let lang = lang |> populate_rules ctx |> populate_clauses ctx in
+    if errors = [] then Ok { lang; qc } else Error errors
   with Diagnostic.ElabError e -> Error [ e ]
 
 type error = Diagnostic.error

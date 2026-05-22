@@ -7,6 +7,8 @@ let error_to_string = function
 let parse_files filenames =
   Parse.parse_files filenames |> Result.map_error (fun e -> ParseError e)
 
+type il = Elaborate.il = { lang : Lang.Il.spec; qc : Qc_il.spec }
+
 let elaborate spec_el =
   Elaborate.elab_spec spec_el |> Result.map_error (fun e -> ElaborateError e)
 

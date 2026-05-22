@@ -281,6 +281,8 @@ and token = parse
   | "builtin" { BUILTIN }
   | "dec" { DEC }
   | "def" { DEF }
+  | "generator" { GENERATOR }
+  | "property" { PROPERTY }
   | "if" { IF }
   | "otherwise" { OTHERWISE }
   | "debug" { DEBUG }

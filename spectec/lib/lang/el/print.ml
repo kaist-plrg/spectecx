@@ -266,6 +266,12 @@ let string_of_def def =
   | DefD (defid, tparams, args, exp, prems) ->
       "def " ^ string_of_defid defid ^ string_of_tparams tparams
       ^ string_of_args args ^ " = " ^ string_of_exp exp ^ string_of_prems prems
+  | BuiltinGeneratorD (defid, plaintyp, _hints) ->
+      "builtin generator $" ^ string_of_defid defid ^ " : "
+      ^ string_of_plaintyp plaintyp
+  | PropertyD (defid, prems, goal, _hints) ->
+      "property $" ^ string_of_defid defid ^ " : " ^ string_of_prem goal
+      ^ string_of_prems prems
   | SepD -> "\n\n"
 
 (* Spec *)
