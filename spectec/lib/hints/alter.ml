@@ -37,6 +37,58 @@ let rec parse (exp : El.exp) : t =
   | El.FuseE (l, r) -> FuseH (parse l, parse r)
   | _ -> OtherH exp
 
+let rec alternate ?(base_text : string -> string = fun x -> x)
+    ?(base_atom : Atom.t phrase -> string = fun a -> Atom.string_of_atom a.it)
+    ?(base_exp : El.exp -> string = El.Print.string_of_exp) (hint : t)
+    (print : 'a -> string) (items : 'a list) : string =
+  let _, result =
+    alternate' ~base_text ~base_atom ~base_exp hint print items 0
+  in
+  result
+
+and alternate' ?(base_text : string -> string = fun x -> x)
+    ?(base_atom : Atom.t phrase -> string = fun a -> Atom.string_of_atom a.it)
+    ?(base_exp : El.exp -> string = El.Print.string_of_exp) (hint : t)
+    (print : 'a -> string) (items : 'a list) (cursor : int) : int * string =
+  match hint with
+  | TextH str -> (cursor, base_text str)
+  | AtomH atom -> (cursor, base_atom atom)
+  | SeqH hints ->
+      let cursor, strs =
+        List.fold_left
+          (fun (cursor, strs) hint ->
+            let cursor, str =
+              alternate' ~base_text ~base_atom ~base_exp hint print items cursor
+            in
+            (cursor, strs @ [ str ]))
+          (cursor, []) hints
+      in
+      (cursor, String.concat " " strs)
+  | BrackH (atom_l, hint, atom_r) ->
+      let cursor, str =
+        alternate' ~base_text ~base_atom ~base_exp hint print items cursor
+      in
+      let strs =
+        [ base_atom atom_l; str; base_atom atom_r ]
+        |> List.filter (fun s -> String.length s > 0)
+      in
+      (cursor, String.concat " " strs)
+  | HoleH `Next ->
+      let item = List.nth items cursor in
+      (cursor + 1, print item)
+  | HoleH (`Num idx) ->
+      let item = List.nth items idx in
+      (cursor, print item)
+  | FuseH (hint_l, hint_r) ->
+      let cursor, str_l =
+        alternate' ~base_text ~base_atom ~base_exp hint_l print items cursor
+      in
+      let cursor, str_r =
+        alternate' ~base_text ~base_atom ~base_exp hint_r print items cursor
+      in
+      (cursor, str_l ^ str_r)
+  | OtherH exp -> (cursor, base_exp exp)
+
 let rec collect (hint : t) : int list = collect' [] hint
 
 and collect' (idxs : int list) (hint : t) : int list =

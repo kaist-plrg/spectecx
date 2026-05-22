@@ -37,12 +37,11 @@ let prose_extract (spec_pl : Pl.spec) : (string * string) list =
   List.filter_map
     (fun (def_pl : Pl.def) ->
       match def_pl.node.it with
-      | DecD (id, _, _, block, elseblock_opt) ->
+      | DecD (id, tparams, args, block, elseblock_opt) ->
           Some
             ( id.it,
-              Pl.Print.string_of_block block
-              ^ Pl.Print.string_of_elseblock_opt ~index:(List.length block)
-                  elseblock_opt )
+              Pl.Render.render_defined_func_def def_pl.hints
+                (id, tparams, args, block, elseblock_opt) )
       | _ -> None)
     spec_pl
 

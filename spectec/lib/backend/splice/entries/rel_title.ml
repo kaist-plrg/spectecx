@@ -28,15 +28,14 @@ let source : Anchor.Source.entry =
 
 (* Prose *)
 
-let prose_key_of_def (def_pl : Pl.def) : (string * Pl.def) option =
-  match def_pl.node.it with
-  | RelD (id, _, _, _, _) -> Some (id.it, def_pl)
-  | _ -> None
-
 let prose_extract (spec_pl : Pl.spec) : (string * string) list =
   spec_pl
-  |> List.filter_map prose_key_of_def
-  |> List.map (fun (key, def_pl) -> (key, Pl.Print.string_of_def def_pl))
+  |> List.filter_map (fun (def_pl : Pl.def) ->
+         match def_pl.node.it with
+         | RelD (id, sig_, exps, _, _) ->
+             Some
+               (id.it, Pl.Render.render_rel_title_adoc def_pl.hints id sig_ exps)
+         | _ -> None)
 
 let prose : Anchor.Prose.entry =
   {

@@ -48,6 +48,7 @@ let hints_of_rule_instr (ctx : Ctx.t) (id_rel : Il.id) : Pl.Annot.hints =
     Pl.Annot.empty with
     prose_in = Ctx.find_prose_in_rel ctx id_str;
     prose_out = lookup_prose_out_rel ctx id_str;
+    rel_inputs = Ctx.find_rel_inputs ctx id_str;
   }
 
 let hints_of_result_instr (ctx : Ctx.t) : Pl.Annot.hints =
@@ -105,7 +106,12 @@ let rec annotate_exp (ctx : Ctx.t) (exp : Sl.exp) : Pl.exp =
     | Il.MatchE (e, pat) -> (Pl.MatchE (annotate_exp ctx e, pat), Pl.Annot.empty)
     | Il.TupleE es ->
         (Pl.TupleE (List.map (annotate_exp ctx) es), Pl.Annot.empty)
-    | Il.CaseE notexp -> (Pl.CaseE (annotate_notexp ctx notexp), Pl.Annot.empty)
+    | Il.CaseE notexp ->
+        let mixop = Il.Mixfix.to_mixop notexp in
+        let hints =
+          { Pl.Annot.empty with prose = Ctx.find_prose_typcase ctx ~mixop }
+        in
+        (Pl.CaseE (annotate_notexp ctx notexp), hints)
     | Il.StrE fields ->
         ( Pl.StrE (List.map (fun (a, e) -> (a, annotate_exp ctx e)) fields),
           Pl.Annot.empty )
@@ -209,8 +215,19 @@ let rec annotate_instr (ctx : Ctx.t) (instr : Ll.instr) : Pl.instr =
     | Ll.TryI arms ->
         (Pl.TryI (List.map (annotate_block ctx) arms), Pl.Annot.empty)
     | Ll.LetI (exp_l, exp_r, iterexps) ->
-        ( Pl.LetI (annotate_exp ctx exp_l, annotate_exp ctx exp_r, iterexps),
-          Pl.Annot.empty )
+        let exp_l_pl = annotate_exp ctx exp_l in
+        let exp_r_pl = annotate_exp ctx exp_r in
+        let hints =
+          match exp_l_pl.node.it with
+          | Pl.CaseE notexp ->
+              let mixop = Il.Mixfix.to_mixop notexp in
+              {
+                Pl.Annot.empty with
+                prose_fields = Ctx.find_fields_typcase ctx ~mixop;
+              }
+          | _ -> Pl.Annot.empty
+        in
+        (Pl.LetI (exp_l_pl, exp_r_pl, iterexps), hints)
     | Ll.RuleI (id, notexp, iterexps) ->
         ( Pl.RuleI (id, annotate_notexp ctx notexp, iterexps),
           hints_of_rule_instr ctx id )

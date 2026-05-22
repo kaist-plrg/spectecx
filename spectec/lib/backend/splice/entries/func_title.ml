@@ -32,8 +32,6 @@ let source : Anchor.Source.entry =
     extract = source_extract;
   }
 
-(* Prose: PL header only (id + tparams + args), no body. *)
-
 let prose_extract (spec_pl : Pl.spec) : (string * string) list =
   List.filter_map
     (fun (def_pl : Pl.def) ->
@@ -41,9 +39,7 @@ let prose_extract (spec_pl : Pl.spec) : (string * string) list =
       | DecD (id, tparams, args, _, _) | BuiltinDecD (id, tparams, args) ->
           Some
             ( id.it,
-              Pl.Print.string_of_defid id
-              ^ Pl.Print.string_of_tparams tparams
-              ^ Pl.Print.string_of_args args )
+              Pl.Render.render_func_title_adoc def_pl.hints id tparams args )
       | _ -> None)
     spec_pl
 

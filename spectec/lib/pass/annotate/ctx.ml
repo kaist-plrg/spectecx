@@ -49,3 +49,13 @@ let find_prose_false_func (ctx : t) (id : string) : Hints.Alter.t option =
 
 let find_rel_inputs (ctx : t) (id : string) : Hints.Input.t option =
   Hints.Henv.find_rel_inputs ctx.henv ~rel:id
+
+(* Typcase lookups: keyed by the IL mixop of the constructor. *)
+
+let find_prose_typcase (ctx : t) ~(mixop : unit Lang.Il.Mixfix.t) :
+    Hints.Alter.t option =
+  Hints.Henv.find_alter_typcase ctx.henv ~hid:"prose" ~mixop
+
+let find_fields_typcase (ctx : t) ~(mixop : unit Lang.Il.Mixfix.t) :
+    Hints.Fields.t option =
+  Hints.Henv.find_fields ctx.henv ~mixop

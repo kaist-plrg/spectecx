@@ -37,9 +37,8 @@ let prose_extract (spec_pl : Pl.spec) : (string * string) list =
       | RelD (id, _, _, block, elseblock_opt) ->
           Some
             ( id.it,
-              Pl.Print.string_of_block block
-              ^ Pl.Print.string_of_elseblock_opt ~index:(List.length block)
-                  elseblock_opt )
+              Pl.Render.strip_leading_newline (Pl.Render.render_instrs block)
+              ^ Pl.Render.render_elseblock elseblock_opt )
       | _ -> None)
     spec_pl
 

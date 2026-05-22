@@ -45,6 +45,7 @@ let elaborate spec_el =
 
 let structure spec_il = Pass.structure spec_il
 let henv_of_el_spec spec_el = Pass.henv_of_el_spec spec_el
+let henv_with_il_spec henv spec_il = Pass.henv_with_il_spec henv spec_il
 let annotate ~henv spec_sl = Pass.annotate ~henv spec_sl
 let shorten spec_pl = Pass.shorten spec_pl
 

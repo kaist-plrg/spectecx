@@ -9,6 +9,11 @@ let table : entry list =
     { tag = "input"; kind = Input; subjects = [ Rel ] };
     { tag = "print"; kind = Alter; subjects = [ Typcase ] };
     { tag = "fields"; kind = Fields; subjects = [ Typcase ] };
+    { tag = "prose"; kind = Alter; subjects = [ Rel; Func; Typcase ] };
+    { tag = "prose_in"; kind = Alter; subjects = [ Rel; Func ] };
+    { tag = "prose_out"; kind = Alter; subjects = [ Rel ] };
+    { tag = "prose_true"; kind = Alter; subjects = [ Rel; Func ] };
+    { tag = "prose_false"; kind = Alter; subjects = [ Rel; Func ] };
   ]
 
 let lookup (tag : string) : entry option =

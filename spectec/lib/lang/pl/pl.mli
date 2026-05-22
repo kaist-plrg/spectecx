@@ -5,3 +5,4 @@
 include module type of Types
 module Annot : module type of Annot
 module Print : module type of Print
+module Render : module type of Render

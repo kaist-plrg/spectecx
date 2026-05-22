@@ -12,6 +12,7 @@ let elaborate spec_el =
 
 let structure spec = Structure.struct_spec spec
 let henv_of_el_spec spec = Hints.Henv.of_el_spec spec
+let henv_with_il_spec henv spec_il = Hints.Henv.load_il_spec henv spec_il
 
 let annotate ~henv spec_sl =
   spec_sl |> Annotate.Linearize.linearize_spec |> Annotate.annotate_spec henv

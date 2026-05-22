@@ -51,6 +51,7 @@ let annotate_command =
     let* spec_il = elaborate spec in
     let spec_sl = structure spec_il in
     let henv = henv_of_el_spec spec in
+    let henv = henv_with_il_spec henv spec_il in
     let spec_pl = annotate ~henv spec_sl |> shorten in
     Ok spec_pl
 
@@ -121,9 +122,10 @@ let splice_command =
         | None -> ())
     @@ fun () ->
     let* spec = parse_spec_files filenames in
-    let* { lang; _ } = elaborate spec in
-    let spec_sl = structure lang in
+    let* spec_il = elaborate spec in
+    let spec_sl = structure spec_il in
     let henv = henv_of_el_spec spec in
+    let henv = henv_with_il_spec henv spec_il in
     let spec_pl = annotate ~henv spec_sl |> shorten in
     Ok (spec, spec_pl)
 
