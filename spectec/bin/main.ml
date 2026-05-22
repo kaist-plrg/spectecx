@@ -36,6 +36,23 @@ let structure_command =
     let spec_sl = structure spec_il in
     Ok spec_sl
 
+let annotate_command =
+  Core.Command.basic ~summary:"annotate a structured spec into PL form"
+  @@
+  let open Core.Command.Let_syntax in
+  let open Core.Command.Param in
+  let%map filenames = anon (sequence ("spec files" %: string))
+  and color = Cli.Cli_args.Output.color_flag in
+  fun () ->
+    Cli.Error_handling.guard ~color ~on_ok:(fun spec_pl ->
+        Format.printf "%s\n" (Pl.Print.string_of_spec spec_pl))
+    @@ fun () ->
+    let* spec = parse_spec_files filenames in
+    let* spec_il = elaborate spec in
+    let spec_sl = structure spec_il in
+    let spec_pl = annotate spec_sl in
+    Ok spec_pl
+
 let command =
   let module P4 = Targets_p4.P4.Cli in
   let module Impty = Targets_impty.Impty.Cli in
@@ -43,6 +60,7 @@ let command =
     [
       ("elab", elab_command);
       ("struct", structure_command);
+      ("annotate", annotate_command);
       (P4.name, P4.command);
       (Impty.name, Impty.command);
     ]

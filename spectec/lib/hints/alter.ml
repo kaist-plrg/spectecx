@@ -1,5 +1,4 @@
 open Common.Source
-open Lang
 open Xl
 
 type hole = [ `Next | `Num of int ]

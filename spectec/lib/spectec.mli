@@ -32,6 +32,7 @@ val collect_spec_files : string -> string list
 val parse_spec_files : string list -> Lang.El.spec result
 val elaborate : Lang.El.spec -> Lang.Il.spec result
 val structure : Lang.Il.spec -> Lang.Sl.spec
+val annotate : Lang.Sl.spec -> Pl.spec
 
 (** Validate instrumentation config against the current mode. *)
 val validate_config : Instrumentation.Config.t -> sl_mode:bool -> unit result

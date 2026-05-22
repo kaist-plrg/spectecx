@@ -44,6 +44,7 @@ let elaborate spec_el =
   Pass.elaborate spec_el |> Result.map_error (fun e -> Error.PassError e)
 
 let structure spec_il = Pass.structure spec_il
+let annotate spec_sl = Pass.annotate spec_sl
 
 let validate_config config ~sl_mode =
   Instrumentation.Config.validate_mode config ~sl_mode

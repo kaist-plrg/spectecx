@@ -1,5 +1,3 @@
-open Lang
-
 (* Input hints for rules *)
 
 type t = int list
