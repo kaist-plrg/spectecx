@@ -50,7 +50,8 @@ let annotate_command =
     let* spec = parse_spec_files filenames in
     let* spec_il = elaborate spec in
     let spec_sl = structure spec_il in
-    let spec_pl = annotate spec_sl in
+    let henv = henv_of_el_spec spec in
+    let spec_pl = annotate ~henv spec_sl in
     Ok spec_pl
 
 let command =

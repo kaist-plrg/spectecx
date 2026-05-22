@@ -3,164 +3,265 @@ module Sl = Lang.Sl
 module Il = Lang.Il
 module Linearize = Linearize
 
-(* Structural LL-to-PL copy: wrap each instruction, definition, and
-   expression in Pl.Annot.bare. Hint inlining lands later. *)
+let wrap_instr (instr' : Pl.instr' phrase) (hints : Pl.Annot.hints) : Pl.instr =
+  { node = instr'; hints }
 
-let bare_instr (instr' : Pl.instr' phrase) : Pl.instr = Pl.Annot.bare instr'
-let bare_def (def' : Pl.def' phrase) : Pl.def = Pl.Annot.bare def'
+let wrap_def (def' : Pl.def' phrase) (hints : Pl.Annot.hints) : Pl.def =
+  { node = def'; hints }
 
-let bare_exp (inner : (Pl.exp', Pl.typ') note_phrase) : Pl.exp =
-  Pl.Annot.bare inner
+let wrap_exp (inner : (Pl.exp', Pl.typ') note_phrase) (hints : Pl.Annot.hints) :
+    Pl.exp =
+  { node = inner; hints }
 
-(* Expressions *)
+let bare_instr instr' = wrap_instr instr' Pl.Annot.empty
+let bare_def def' = wrap_def def' Pl.Annot.empty
+let bare_exp inner = wrap_exp inner Pl.Annot.empty
 
-let rec annotate_exp (exp : Sl.exp) : Pl.exp =
-  let exp_inner : Pl.exp' =
-    match exp.it with
-    | Il.BoolE b -> Pl.BoolE b
-    | Il.NumE n -> Pl.NumE n
-    | Il.TextE t -> Pl.TextE t
-    | Il.VarE id -> Pl.VarE id
-    | Il.UnE (op, optyp, e) -> Pl.UnE (op, optyp, annotate_exp e)
-    | Il.BinE (op, optyp, e1, e2) ->
-        Pl.BinE (op, optyp, annotate_exp e1, annotate_exp e2)
-    | Il.CmpE (op, optyp, e1, e2) ->
-        Pl.CmpE (op, optyp, annotate_exp e1, annotate_exp e2)
-    | Il.UpCastE (typ, e) -> Pl.UpCastE (typ, annotate_exp e)
-    | Il.DownCastE (typ, e) -> Pl.DownCastE (typ, annotate_exp e)
-    | Il.SubE (e, typ) -> Pl.SubE (annotate_exp e, typ)
-    | Il.MatchE (e, pat) -> Pl.MatchE (annotate_exp e, pat)
-    | Il.TupleE es -> Pl.TupleE (List.map annotate_exp es)
-    | Il.CaseE notexp -> Pl.CaseE (annotate_notexp notexp)
-    | Il.StrE fields ->
-        Pl.StrE (List.map (fun (a, e) -> (a, annotate_exp e)) fields)
-    | Il.OptE eo -> Pl.OptE (Option.map annotate_exp eo)
-    | Il.ListE es -> Pl.ListE (List.map annotate_exp es)
-    | Il.ConsE (e1, e2) -> Pl.ConsE (annotate_exp e1, annotate_exp e2)
-    | Il.CatE (e1, e2) -> Pl.CatE (annotate_exp e1, annotate_exp e2)
-    | Il.MemE (e1, e2) -> Pl.MemE (annotate_exp e1, annotate_exp e2)
-    | Il.LenE e -> Pl.LenE (annotate_exp e)
-    | Il.DotE (e, atom) -> Pl.DotE (annotate_exp e, atom)
-    | Il.IdxE (e1, e2) -> Pl.IdxE (annotate_exp e1, annotate_exp e2)
-    | Il.SliceE (e1, e2, e3) ->
-        Pl.SliceE (annotate_exp e1, annotate_exp e2, annotate_exp e3)
-    | Il.UpdE (e1, path, e2) ->
-        Pl.UpdE (annotate_exp e1, annotate_path path, annotate_exp e2)
-    | Il.CallE (id, targs, args) ->
-        Pl.CallE (id, targs, List.map annotate_arg args)
-    | Il.IterE (e, iterexp) -> Pl.IterE (annotate_exp e, iterexp)
+let lookup_prose_out_rel (ctx : Ctx.t) (id_str : string) : Hints.Alter.t option
+    =
+  match Ctx.find_prose_out_rel ctx id_str with
+  | None -> None
+  | Some alter -> (
+      match Ctx.find_rel_inputs ctx id_str with
+      | Some inputs -> Some (Hints.Alter.realign alter inputs)
+      | None -> Some alter)
+
+let hints_of_call_exp (ctx : Ctx.t) (id : Il.id) : Pl.Annot.hints =
+  let id_str = id.it in
+  {
+    Pl.Annot.empty with
+    prose_in = Ctx.find_prose_in_func ctx id_str;
+    prose_true = Ctx.find_prose_true_func ctx id_str;
+    prose_false = Ctx.find_prose_false_func ctx id_str;
+  }
+
+let hints_of_if_hold_instr (ctx : Ctx.t) (id_rel : Il.id) : Pl.Annot.hints =
+  { Pl.Annot.empty with prose_true = Ctx.find_prose_true_rel ctx id_rel.it }
+
+let hints_of_if_not_hold_instr (ctx : Ctx.t) (id_rel : Il.id) : Pl.Annot.hints =
+  { Pl.Annot.empty with prose_false = Ctx.find_prose_false_rel ctx id_rel.it }
+
+let hints_of_rule_instr (ctx : Ctx.t) (id_rel : Il.id) : Pl.Annot.hints =
+  let id_str = id_rel.it in
+  {
+    Pl.Annot.empty with
+    prose_in = Ctx.find_prose_in_rel ctx id_str;
+    prose_out = lookup_prose_out_rel ctx id_str;
+  }
+
+let hints_of_result_instr (ctx : Ctx.t) : Pl.Annot.hints =
+  match Ctx.current_rel ctx with
+  | None -> Pl.Annot.empty
+  | Some id_str ->
+      { Pl.Annot.empty with prose_out = lookup_prose_out_rel ctx id_str }
+
+let hints_of_rel_def (ctx : Ctx.t) (id_rel : Il.id) (inputs : int list) :
+    Pl.Annot.hints =
+  let id_str = id_rel.it in
+  let prose_out =
+    Ctx.find_prose_out_rel ctx id_str
+    |> Option.map (fun alter -> Hints.Alter.realign alter inputs)
   in
-  bare_exp (exp_inner $$ (exp.at, exp.note))
+  {
+    Pl.Annot.empty with
+    prose = Ctx.find_prose_rel ctx id_str;
+    prose_in = Ctx.find_prose_in_rel ctx id_str;
+    prose_out;
+    prose_true = Ctx.find_prose_true_rel ctx id_str;
+    prose_false = Ctx.find_prose_false_rel ctx id_str;
+  }
 
-and annotate_notexp (notexp : Sl.notexp) : Pl.notexp =
-  Il.Mixfix.map annotate_exp notexp
+let hints_of_func_def (ctx : Ctx.t) (id_func : Il.id) : Pl.Annot.hints =
+  let id_str = id_func.it in
+  {
+    Pl.Annot.empty with
+    prose = Ctx.find_prose_func ctx id_str;
+    prose_in = Ctx.find_prose_in_func ctx id_str;
+    prose_true = Ctx.find_prose_true_func ctx id_str;
+    prose_false = Ctx.find_prose_false_func ctx id_str;
+  }
 
-and annotate_path (path : Sl.path) : Pl.path =
+let rec annotate_exp (ctx : Ctx.t) (exp : Sl.exp) : Pl.exp =
+  let exp_inner, hints =
+    match exp.it with
+    | Il.BoolE b -> (Pl.BoolE b, Pl.Annot.empty)
+    | Il.NumE n -> (Pl.NumE n, Pl.Annot.empty)
+    | Il.TextE t -> (Pl.TextE t, Pl.Annot.empty)
+    | Il.VarE id -> (Pl.VarE id, Pl.Annot.empty)
+    | Il.UnE (op, optyp, e) ->
+        (Pl.UnE (op, optyp, annotate_exp ctx e), Pl.Annot.empty)
+    | Il.BinE (op, optyp, e1, e2) ->
+        ( Pl.BinE (op, optyp, annotate_exp ctx e1, annotate_exp ctx e2),
+          Pl.Annot.empty )
+    | Il.CmpE (op, optyp, e1, e2) ->
+        ( Pl.CmpE (op, optyp, annotate_exp ctx e1, annotate_exp ctx e2),
+          Pl.Annot.empty )
+    | Il.UpCastE (typ, e) ->
+        (Pl.UpCastE (typ, annotate_exp ctx e), Pl.Annot.empty)
+    | Il.DownCastE (typ, e) ->
+        (Pl.DownCastE (typ, annotate_exp ctx e), Pl.Annot.empty)
+    | Il.SubE (e, typ) -> (Pl.SubE (annotate_exp ctx e, typ), Pl.Annot.empty)
+    | Il.MatchE (e, pat) -> (Pl.MatchE (annotate_exp ctx e, pat), Pl.Annot.empty)
+    | Il.TupleE es ->
+        (Pl.TupleE (List.map (annotate_exp ctx) es), Pl.Annot.empty)
+    | Il.CaseE notexp -> (Pl.CaseE (annotate_notexp ctx notexp), Pl.Annot.empty)
+    | Il.StrE fields ->
+        ( Pl.StrE (List.map (fun (a, e) -> (a, annotate_exp ctx e)) fields),
+          Pl.Annot.empty )
+    | Il.OptE eo -> (Pl.OptE (Option.map (annotate_exp ctx) eo), Pl.Annot.empty)
+    | Il.ListE es -> (Pl.ListE (List.map (annotate_exp ctx) es), Pl.Annot.empty)
+    | Il.ConsE (e1, e2) ->
+        (Pl.ConsE (annotate_exp ctx e1, annotate_exp ctx e2), Pl.Annot.empty)
+    | Il.CatE (e1, e2) ->
+        (Pl.CatE (annotate_exp ctx e1, annotate_exp ctx e2), Pl.Annot.empty)
+    | Il.MemE (e1, e2) ->
+        (Pl.MemE (annotate_exp ctx e1, annotate_exp ctx e2), Pl.Annot.empty)
+    | Il.LenE e -> (Pl.LenE (annotate_exp ctx e), Pl.Annot.empty)
+    | Il.DotE (e, atom) -> (Pl.DotE (annotate_exp ctx e, atom), Pl.Annot.empty)
+    | Il.IdxE (e1, e2) ->
+        (Pl.IdxE (annotate_exp ctx e1, annotate_exp ctx e2), Pl.Annot.empty)
+    | Il.SliceE (e1, e2, e3) ->
+        ( Pl.SliceE
+            (annotate_exp ctx e1, annotate_exp ctx e2, annotate_exp ctx e3),
+          Pl.Annot.empty )
+    | Il.UpdE (e1, path, e2) ->
+        ( Pl.UpdE
+            (annotate_exp ctx e1, annotate_path ctx path, annotate_exp ctx e2),
+          Pl.Annot.empty )
+    | Il.CallE (id, targs, args) ->
+        ( Pl.CallE (id, targs, List.map (annotate_arg ctx) args),
+          hints_of_call_exp ctx id )
+    | Il.IterE (e, iterexp) ->
+        (Pl.IterE (annotate_exp ctx e, iterexp), Pl.Annot.empty)
+  in
+  wrap_exp (exp_inner $$ (exp.at, exp.note)) hints
+
+and annotate_notexp (ctx : Ctx.t) (notexp : Sl.notexp) : Pl.notexp =
+  Il.Mixfix.map (annotate_exp ctx) notexp
+
+and annotate_path (ctx : Ctx.t) (path : Sl.path) : Pl.path =
   let path_inner : Pl.path' =
     match path.it with
     | Il.RootP -> Pl.RootP
-    | Il.IdxP (p, e) -> Pl.IdxP (annotate_path p, annotate_exp e)
+    | Il.IdxP (p, e) -> Pl.IdxP (annotate_path ctx p, annotate_exp ctx e)
     | Il.SliceP (p, e1, e2) ->
-        Pl.SliceP (annotate_path p, annotate_exp e1, annotate_exp e2)
-    | Il.DotP (p, atom) -> Pl.DotP (annotate_path p, atom)
+        Pl.SliceP (annotate_path ctx p, annotate_exp ctx e1, annotate_exp ctx e2)
+    | Il.DotP (p, atom) -> Pl.DotP (annotate_path ctx p, atom)
   in
   path_inner $$ (path.at, path.note)
 
-and annotate_arg (arg : Sl.arg) : Pl.arg =
+and annotate_arg (ctx : Ctx.t) (arg : Sl.arg) : Pl.arg =
   let arg_inner : Pl.arg' =
     match arg.it with
-    | Il.ExpA e -> Pl.ExpA (annotate_exp e)
+    | Il.ExpA e -> Pl.ExpA (annotate_exp ctx e)
     | Il.DefA id -> Pl.DefA id
   in
   arg_inner $ arg.at
 
-(* Cases and guards *)
-
-let annotate_guard (g : Ll.guard) : Pl.guard =
+let annotate_guard (ctx : Ctx.t) (g : Ll.guard) : Pl.guard =
   match g with
   | Ll.BoolG b -> Pl.BoolG b
-  | Ll.CmpG (op, optyp, e) -> Pl.CmpG (op, optyp, annotate_exp e)
+  | Ll.CmpG (op, optyp, e) -> Pl.CmpG (op, optyp, annotate_exp ctx e)
   | Ll.SubG typ -> Pl.SubG typ
   | Ll.MatchG pat -> Pl.MatchG pat
-  | Ll.MemG e -> Pl.MemG (annotate_exp e)
+  | Ll.MemG e -> Pl.MemG (annotate_exp ctx e)
 
-(* Instructions *)
-
-let rec annotate_instr (instr : Ll.instr) : Pl.instr =
-  let instr_inner : Pl.instr' =
+let rec annotate_instr (ctx : Ctx.t) (instr : Ll.instr) : Pl.instr =
+  let instr_inner, hints =
     match instr.it with
     | Ll.IfI (cond, iterexps, block, phantom_opt) ->
-        Pl.IfI (annotate_exp cond, iterexps, annotate_block block, phantom_opt)
+        ( Pl.IfI
+            ( annotate_exp ctx cond,
+              iterexps,
+              annotate_block ctx block,
+              phantom_opt ),
+          Pl.Annot.empty )
     | Ll.IfHoldI (id, notexp, iterexps, block, phantom_opt) ->
-        Pl.IfHoldI
-          ( id,
-            annotate_notexp notexp,
-            iterexps,
-            annotate_block block,
-            phantom_opt )
+        ( Pl.IfHoldI
+            ( id,
+              annotate_notexp ctx notexp,
+              iterexps,
+              annotate_block ctx block,
+              phantom_opt ),
+          hints_of_if_hold_instr ctx id )
     | Ll.IfNotHoldI (id, notexp, iterexps, block, phantom_opt) ->
-        Pl.IfNotHoldI
-          ( id,
-            annotate_notexp notexp,
-            iterexps,
-            annotate_block block,
-            phantom_opt )
+        ( Pl.IfNotHoldI
+            ( id,
+              annotate_notexp ctx notexp,
+              iterexps,
+              annotate_block ctx block,
+              phantom_opt ),
+          hints_of_if_not_hold_instr ctx id )
     | Ll.CaseI (exp, cases, phantom_opt) ->
-        Pl.CaseI (annotate_exp exp, List.map annotate_case cases, phantom_opt)
+        ( Pl.CaseI
+            ( annotate_exp ctx exp,
+              List.map (annotate_case ctx) cases,
+              phantom_opt ),
+          Pl.Annot.empty )
     | Ll.OtherwiseI block -> (
-        let block = annotate_block block in
+        let block = annotate_block ctx block in
         match block with
-        | [ single ] -> Pl.OtherwiseI single
+        | [ single ] -> (Pl.OtherwiseI single, Pl.Annot.empty)
         | _ ->
-            (* Wrap multi-instruction otherwise blocks in a synthetic
-               instr by emitting them as a TryI of one arm. *)
-            Pl.OtherwiseI (bare_instr (Pl.TryI [ block ] $ instr.at)))
-    | Ll.TryI arms -> Pl.TryI (List.map annotate_block arms)
+            ( Pl.OtherwiseI (bare_instr (Pl.TryI [ block ] $ instr.at)),
+              Pl.Annot.empty ))
+    | Ll.TryI arms ->
+        (Pl.TryI (List.map (annotate_block ctx) arms), Pl.Annot.empty)
     | Ll.LetI (exp_l, exp_r, iterexps) ->
-        Pl.LetI (annotate_exp exp_l, annotate_exp exp_r, iterexps)
+        ( Pl.LetI (annotate_exp ctx exp_l, annotate_exp ctx exp_r, iterexps),
+          Pl.Annot.empty )
     | Ll.RuleI (id, notexp, iterexps) ->
-        Pl.RuleI (id, annotate_notexp notexp, iterexps)
-    | Ll.ResultI exps -> Pl.ResultI (List.map annotate_exp exps)
-    | Ll.ReturnI exp -> Pl.ReturnI (annotate_exp exp)
-    | Ll.DebugI exp -> Pl.DebugI (annotate_exp exp)
+        ( Pl.RuleI (id, annotate_notexp ctx notexp, iterexps),
+          hints_of_rule_instr ctx id )
+    | Ll.ResultI exps ->
+        ( Pl.ResultI (List.map (annotate_exp ctx) exps),
+          hints_of_result_instr ctx )
+    | Ll.ReturnI exp -> (Pl.ReturnI (annotate_exp ctx exp), Pl.Annot.empty)
+    | Ll.DebugI exp -> (Pl.DebugI (annotate_exp ctx exp), Pl.Annot.empty)
   in
-  bare_instr (instr_inner $ instr.at)
+  wrap_instr (instr_inner $ instr.at) hints
 
-and annotate_case (case : Ll.case) : Pl.case =
+and annotate_case (ctx : Ctx.t) (case : Ll.case) : Pl.case =
   let g, block = case in
-  (annotate_guard g, annotate_block block)
+  (annotate_guard ctx g, annotate_block ctx block)
 
-and annotate_block (block : Ll.block) : Pl.block = List.map annotate_instr block
+and annotate_block (ctx : Ctx.t) (block : Ll.block) : Pl.block =
+  List.map (annotate_instr ctx) block
 
-let annotate_elseblock_opt (elseblock_opt : Ll.elseblock option) :
+let annotate_elseblock_opt (ctx : Ctx.t) (elseblock_opt : Ll.elseblock option) :
     Pl.elseblock option =
-  Option.map annotate_block elseblock_opt
+  Option.map (annotate_block ctx) elseblock_opt
 
-(* Definitions *)
-
-let annotate_def (def : Ll.def) : Pl.def =
-  let def_inner : Pl.def' =
+let annotate_def (ctx : Ctx.t) (def : Ll.def) : Pl.def =
+  let def_inner, hints =
     match def.it with
-    | Ll.TypD (id, tparams, deftyp) -> Pl.TypD (id, tparams, deftyp)
+    | Ll.TypD (id, tparams, deftyp) ->
+        (Pl.TypD (id, tparams, deftyp), Pl.Annot.empty)
     | Ll.RelD (id, sig_, exps, block, elseblock_opt) ->
-        Pl.RelD
-          ( id,
-            sig_,
-            List.map annotate_exp exps,
-            annotate_block block,
-            annotate_elseblock_opt elseblock_opt )
+        let inputs = snd sig_ in
+        let ctx_rel = Ctx.enter_rel ctx id.it in
+        ( Pl.RelD
+            ( id,
+              sig_,
+              List.map (annotate_exp ctx_rel) exps,
+              annotate_block ctx_rel block,
+              annotate_elseblock_opt ctx_rel elseblock_opt ),
+          hints_of_rel_def ctx id inputs )
     | Ll.BuiltinDecD (id, tparams, args) ->
-        Pl.BuiltinDecD (id, tparams, List.map annotate_arg args)
+        ( Pl.BuiltinDecD (id, tparams, List.map (annotate_arg ctx) args),
+          hints_of_func_def ctx id )
     | Ll.DecD (id, tparams, args, block, elseblock_opt) ->
-        Pl.DecD
-          ( id,
-            tparams,
-            List.map annotate_arg args,
-            annotate_block block,
-            annotate_elseblock_opt elseblock_opt )
+        let ctx_func = Ctx.enter_func ctx id.it in
+        ( Pl.DecD
+            ( id,
+              tparams,
+              List.map (annotate_arg ctx_func) args,
+              annotate_block ctx_func block,
+              annotate_elseblock_opt ctx_func elseblock_opt ),
+          hints_of_func_def ctx id )
   in
-  bare_def (def_inner $ def.at)
+  wrap_def (def_inner $ def.at) hints
 
-(* Spec *)
-
-let annotate_spec (spec : Ll.spec) : Pl.spec = List.map annotate_def spec
+let annotate_spec (henv : Hints.Henv.t) (spec : Ll.spec) : Pl.spec =
+  let ctx = Ctx.init henv in
+  List.map (annotate_def ctx) spec

@@ -1,4 +1,10 @@
 (library
  (name pass)
  (public_name spectec.pass)
- (libraries spectec.diagnostic parse elaborate structure annotate))
+ (libraries
+  spectec.diagnostic
+  spectec.hints
+  parse
+  elaborate
+  structure
+  annotate))
