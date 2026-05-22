@@ -33,6 +33,33 @@ clean:
 	rm -f ./$(NAME)
 	$(DUNE) clean
 
+# Splice and render. `splice-html` requires `asciidoctor`; `splice-pdf`
+# requires `asciidoctor-pdf`.
+
+SPLICE_INPUT = spectec/examples/splice
+SPLICE_BUILD = spectec/examples/splice/_build
+IMPTY_SPEC = spectec/specs/impty/base/spec.spectec
+
+.PHONY: splice splice-html splice-pdf splice-clean
+
+splice: exe
+	mkdir -p $(SPLICE_BUILD)
+	./$(NAME) splice -i $(SPLICE_INPUT) -o $(SPLICE_BUILD) \
+	  --missing $(SPLICE_BUILD)/splice.missing $(IMPTY_SPEC)
+
+splice-html: splice
+	asciidoctor -q \
+	  -a docinfo=shared -a docinfodir=$(abspath $(SPLICE_INPUT)) \
+	  -o $(SPLICE_BUILD)/impty.html $(SPLICE_BUILD)/impty.adoc
+
+splice-pdf: splice
+	asciidoctor-pdf -q \
+	  -a docinfo=shared -a docinfodir=$(abspath $(SPLICE_INPUT)) \
+	  -o $(SPLICE_BUILD)/impty.pdf $(SPLICE_BUILD)/impty.adoc
+
+splice-clean:
+	rm -rf $(SPLICE_BUILD)
+
 # Tests
 #
 # Individual tests (run against the new p4 spec by default):
