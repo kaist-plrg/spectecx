@@ -1,0 +1,6 @@
+(include_subdirs qualified)
+
+(library
+ (name splice)
+ (public_name spectec.backend.splice)
+ (libraries unix spectec.common spectec.diagnostic lang))
