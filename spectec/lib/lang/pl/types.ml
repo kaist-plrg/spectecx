@@ -114,6 +114,9 @@ and guard =
   | SubG of typ
   | MatchG of pattern
   | MemG of exp
+  (* Shorthand guards — only emitted by the shorten pass *)
+  | CheckLetSubG of typ * exp        (* scrut <: typ, bind scrut as exp *)
+  | CheckLetMatchG of pattern * exp  (* scrut matches pattern, bind scrut as exp *)
 
 (* Instructions *)
 
@@ -130,6 +133,16 @@ and instr' =
   | ResultI of exp list
   | ReturnI of exp
   | DebugI of exp
+  (* Shorthands — only emitted by the shorten pass *)
+  (* DestructI: bind each [exp] from [exp_source]'s positional CaseV args;
+     [string option] is the prose field name (None = underscore, hidden). *)
+  | DestructI of (string option * exp) list * exp
+  (* CheckLetI: bind [exp_target] to [exp_source] after a subtype-or-match
+     check, then run [block]. *)
+  | CheckLetI of exp * exp * instr list
+  (* OptionGetI: bind [exp_target] to the inner value of [exp_source],
+     asserting it is [Some _]. *)
+  | OptionGetI of exp * exp
 
 and block = instr list
 and elseblock = instr list

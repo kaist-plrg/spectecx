@@ -1,6 +1,6 @@
 (* Hint tag registry *)
 
-type kind = Alter | Input
+type kind = Alter | Input | Fields
 type subject = Typcase | Typfield | Rel | Func | Var
 type entry = { tag : string; kind : kind; subjects : subject list }
 
@@ -8,6 +8,7 @@ let table : entry list =
   [
     { tag = "input"; kind = Input; subjects = [ Rel ] };
     { tag = "print"; kind = Alter; subjects = [ Typcase ] };
+    { tag = "fields"; kind = Fields; subjects = [ Typcase ] };
   ]
 
 let lookup (tag : string) : entry option =

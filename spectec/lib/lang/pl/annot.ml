@@ -7,6 +7,7 @@ type hints = {
   prose_out : Hints.Alter.t option;
   prose_true : Hints.Alter.t option;
   prose_false : Hints.Alter.t option;
+  prose_fields : Hints.Fields.t option;
   prose_input_exps : Sl.exp list option;
   prose_output_exps : Sl.exp list option;
 }
@@ -18,6 +19,7 @@ let empty : hints =
     prose_out = None;
     prose_true = None;
     prose_false = None;
+    prose_fields = None;
     prose_input_exps = None;
     prose_output_exps = None;
   }

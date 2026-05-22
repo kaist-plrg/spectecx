@@ -2,6 +2,7 @@ open Common.Source
 module Sl = Lang.Sl
 module Il = Lang.Il
 module Linearize = Linearize
+module Shorthand = Shorthand
 
 let wrap_instr (instr' : Pl.instr' phrase) (hints : Pl.Annot.hints) : Pl.instr =
   { node = instr'; hints }

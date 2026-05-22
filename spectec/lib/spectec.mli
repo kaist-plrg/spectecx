@@ -34,6 +34,7 @@ val elaborate : Lang.El.spec -> Lang.Il.spec result
 val structure : Lang.Il.spec -> Lang.Sl.spec
 val henv_of_el_spec : Lang.El.spec -> Hints.Henv.t
 val annotate : henv:Hints.Henv.t -> Lang.Sl.spec -> Pl.spec
+val shorten : Pl.spec -> Pl.spec
 
 (** Validate instrumentation config against the current mode. *)
 val validate_config : Instrumentation.Config.t -> sl_mode:bool -> unit result

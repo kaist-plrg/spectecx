@@ -2068,7 +2068,16 @@ let validate_hint (subject : Hints.Registry.subject) (hint : hint) : unit =
                      tag))
         | Hints.Registry.Alter ->
             let _ = Hints.Alter.parse hint.hintexp in
-            ())
+            ()
+        | Hints.Registry.Fields -> (
+            match Hints.Fields.parse hint.hintexp with
+            | Some _ -> ()
+            | None ->
+                warn at
+                  (Format.asprintf
+                     "hint \"%s\" payload malformed: expected a sequence of \
+                      text literals"
+                     tag)))
 
 let validate_hints_typfield (typfield : typfield) : unit =
   let _, _, hints = typfield in

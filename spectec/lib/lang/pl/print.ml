@@ -136,6 +136,11 @@ and string_of_guard guard =
   | SubG typ -> "(% has type " ^ string_of_typ typ ^ ")"
   | MatchG pattern -> "(% matches pattern " ^ string_of_pattern pattern ^ ")"
   | MemG exp -> "(% is in " ^ string_of_exp exp ^ ")"
+  | CheckLetSubG (typ, exp) ->
+      "(let " ^ string_of_exp exp ^ " = % has type " ^ string_of_typ typ ^ ")"
+  | CheckLetMatchG (pattern, exp) ->
+      "(let " ^ string_of_exp exp ^ " = % matches pattern "
+      ^ string_of_pattern pattern ^ ")"
 
 and string_of_case ?(level = 0) ?(index = 0) case =
   let indent = String.make (level * 2) ' ' in
@@ -244,6 +249,34 @@ and string_of_instr ?(short = false) ?(level = 0) ?(index = 0) instr =
       if short then s_short else Format.asprintf "%s%s" order s_short
   | DebugI exp ->
       let s_short = Format.asprintf "Debug: %s" (string_of_exp exp) in
+      if short then s_short else Format.asprintf "%s%s" order s_short
+  | DestructI (fields, exp_source) ->
+      let field_str =
+        fields
+        |> List.map (fun (name_opt, exp_target) ->
+               let label = match name_opt with Some n -> n | None -> "_" in
+               label ^ " = " ^ string_of_exp exp_target)
+        |> String.concat ", "
+      in
+      let s_short =
+        Format.asprintf "Destruct %s into { %s }" (string_of_exp exp_source)
+          field_str
+      in
+      if short then s_short else Format.asprintf "%s%s" order s_short
+  | CheckLetI (exp_target, exp_source, block) ->
+      let s_short =
+        Format.asprintf "Check let %s be %s" (string_of_exp exp_target)
+          (string_of_exp exp_source)
+      in
+      if short then s_short
+      else
+        Format.asprintf "%s%s\n\n%s" order s_short
+          (string_of_block ~level:(level + 1) block)
+  | OptionGetI (exp_target, exp_source) ->
+      let s_short =
+        Format.asprintf "Let %s = !%s" (string_of_exp exp_target)
+          (string_of_exp exp_source)
+      in
       if short then s_short else Format.asprintf "%s%s" order s_short
 
 and string_of_block ?(level = 0) ?(index = 0) block =

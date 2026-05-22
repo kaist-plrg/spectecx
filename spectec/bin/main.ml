@@ -51,7 +51,7 @@ let annotate_command =
     let* spec_il = elaborate spec in
     let spec_sl = structure spec_il in
     let henv = henv_of_el_spec spec in
-    let spec_pl = annotate ~henv spec_sl in
+    let spec_pl = annotate ~henv spec_sl |> shorten in
     Ok spec_pl
 
 (* Walks [root] recursively and returns every file path under it whose
@@ -124,7 +124,7 @@ let splice_command =
     let* { lang; _ } = elaborate spec in
     let spec_sl = structure lang in
     let henv = henv_of_el_spec spec in
-    let spec_pl = annotate ~henv spec_sl in
+    let spec_pl = annotate ~henv spec_sl |> shorten in
     Ok (spec, spec_pl)
 
 let command =
