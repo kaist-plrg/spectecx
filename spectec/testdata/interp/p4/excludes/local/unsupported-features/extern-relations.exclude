@@ -1,3 +1,3 @@
 # Uses static_assert, which is modeled through the upstream extern relation
-# ExternFunctionCall_eval_lctk. SpecTec-Core does not implement that hook yet.
+# ExternFunctionCall_eval_lctk. SpecTecX does not implement that hook yet.
 p4_16_samples/issue5231-const-int-concat.p4
