@@ -9,7 +9,7 @@ let rel_inputs_of (core_spec : spec) (rel_id : id) : int list option =
   List.find_map
     (fun def ->
       match def.it with
-      | RelD (id, _, inputs, _) when id.it = rel_id.it -> Some inputs
+      | RelD { relid = id; inputs; _ } when id.it = rel_id.it -> Some inputs
       | _ -> None)
     core_spec
 
@@ -64,9 +64,9 @@ let eval_rule_pr (env : env) ~(bindings : bindings) (rel_id : id)
 
 let eval (env : env) ~bindings (prem : prem) : outcome =
   match prem.it with
-  | RulePr (rel_id, notexp) | IfHoldPr (rel_id, notexp) ->
+  | RulePr { relid = rel_id; notexp } | IfHoldPr { relid = rel_id; notexp } ->
       eval_rule_pr env ~bindings rel_id (Mixfix.args notexp)
-  | IfNotHoldPr (rel_id, notexp) -> (
+  | IfNotHoldPr { relid = rel_id; notexp } -> (
       match eval_rule_pr env ~bindings rel_id (Mixfix.args notexp) with
       | Holds -> Fails
       | Fails -> Holds

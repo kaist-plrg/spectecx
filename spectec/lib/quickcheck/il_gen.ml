@@ -10,16 +10,17 @@ open Common.Source
 (* A case is recursive if any of its sub-types contains a VarT with the given name *)
 let rec typ_has_varname name (typ : typ) =
   match typ.it with
-  | VarT (id, _) -> id.it = name
+  | VarT { synid = id; _ } -> id.it = name
   | TupleT typs -> List.exists (typ_has_varname name) typs
-  | IterT (inner, _) -> typ_has_varname name inner
+  | IterT { typ = inner; _ } -> typ_has_varname name inner
   | _ -> false
 
 let find_typdef (spec : spec) (name : string) : (tparam list * deftyp) option =
   List.find_map
     (fun def ->
       match def.it with
-      | TypD (id, tparams, deftyp) when id.it = name -> Some (tparams, deftyp)
+      | TypD { synid = id; tparams; deftyp } when id.it = name ->
+          Some (tparams, deftyp)
       | _ -> None)
     spec
 
@@ -41,13 +42,13 @@ let rec gen_of_typ (spec : spec) (typ : typ) : Value.t Gen.t =
   | TupleT typs ->
       let* vs = Gen.sequence (List.map (gen_of_typ spec) typs) in
       return (Value.make_val (TupleT typs) (TupleV vs))
-  | IterT (inner, Opt) ->
+  | IterT { typ = inner; iter = Opt } ->
       let* v_opt = Gen.option_of (gen_of_typ spec inner) in
       return (Value.make_val typ.it (OptV v_opt))
-  | IterT (inner, List) ->
+  | IterT { typ = inner; iter = List } ->
       let* vs = Gen.list_of (gen_of_typ spec inner) in
       return (Value.make_val typ.it (ListV vs))
-  | VarT (id, targs) -> (
+  | VarT { synid = id; targs } -> (
       match find_typdef spec id.it with
       | Some (tparams, deftyp) ->
           (* generate recursively using an extended spec with type parameters
@@ -59,7 +60,11 @@ let rec gen_of_typ (spec : spec) (typ : typ) : Value.t Gen.t =
                 acc
                 @ [
                     TypD
-                      (tparam.it $ no_region, [], PlainT typ_of_targ $ no_region)
+                      {
+                        synid = tparam.it $ no_region;
+                        tparams = [];
+                        deftyp = PlainT typ_of_targ $ no_region;
+                      }
                     $ no_region;
                   ])
               spec tparams targs
@@ -89,16 +94,18 @@ and gen_of_deftyp (spec : spec) (outer_typ : typ) (deftyp : deftyp) :
       return (Value.make_val outer_typ.it (StructV vfields))
   | VariantT cases ->
       let outer_name =
-        match outer_typ.it with VarT (id, _) -> Some id.it | _ -> None
+        match outer_typ.it with
+        | VarT { synid = id; _ } -> Some id.it
+        | _ -> None
       in
-      let make_case_gen (nottyp, _, _) =
+      let make_case_gen { notation = nottyp; _ } =
         let mixop, typs = Mixfix.split nottyp.it in
         Gen.scale
           (fun n -> max 0 (n - 1))
           (let* vs = Gen.sequence (List.map (gen_of_typ spec) typs) in
            return (Value.make_val outer_typ.it (CaseV (Mixfix.fill mixop vs))))
       in
-      let is_recursive (nottyp, _, _) =
+      let is_recursive { notation = nottyp; _ } =
         let typs = Mixfix.args nottyp.it in
         match outer_name with
         | None -> false
@@ -167,7 +174,7 @@ let shrink (spec : spec) =
     | CaseV vc -> (
         let args = Mixfix.args vc in
         match v.note.typ with
-        | VarT (id, _) -> (
+        | VarT { synid = id; _ } -> (
             match find_typdef spec id.it with
             | Some (_, deftyp) -> (
                 match deftyp.it with
@@ -177,7 +184,7 @@ let shrink (spec : spec) =
                   by comparing atom structure after filling the type-level mixop *)
                     let current_case =
                       List.find_opt
-                        (fun (nottyp, _, _) ->
+                        (fun { notation = nottyp; _ } ->
                           let mixop, typs = Mixfix.split nottyp.it in
                           List.length typs = List.length args
                           &&
@@ -197,12 +204,13 @@ let shrink (spec : spec) =
                     let recursive_subcomponents =
                       match current_case with
                       | None -> []
-                      | Some (nottyp, _, _) ->
+                      | Some { notation = nottyp; _ } ->
                           let _, typs = Mixfix.split nottyp.it in
                           List.filter_map
                             (fun (typ, vi) ->
                               match typ.it with
-                              | VarT (sub_id, _) when sub_id.it = outer_name ->
+                              | VarT { synid = sub_id; _ }
+                                when sub_id.it = outer_name ->
                                   Some vi
                               | _ -> None)
                             (List.combine typs args)

@@ -42,9 +42,8 @@ let update_venv_partial (venv : VEnv.t) (renv_partial : Partialbind.REnv.t) :
     VEnv.t =
   List.fold_left
     (fun venv (to_, _, iters) ->
-      let id_to, typ_to, iters_to = to_ in
-      let iters = iters_to @ iters in
-      VEnv.add id_to (typ_to, iters) venv)
+      let iters = to_.iters @ iters in
+      VEnv.add to_.varid (to_.typ, iters) venv)
     venv renv_partial
 
 (* Expression binding analysis *)
@@ -106,10 +105,11 @@ let analyze_args_as_bind (dctx : Dctx.t) (args : arg list) :
 let rec analyze_prem (dctx : Dctx.t) (prem : prem) :
     Dctx.t * VEnv.t * prem * prem list =
   match prem.it with
-  | RulePr (id, notexp) -> analyze_rule_prem dctx prem.at id notexp
+  | RulePr { relid; notexp } -> analyze_rule_prem dctx prem.at relid notexp
   | IfPr exp -> analyze_if_prem dctx prem.at exp
-  | IfHoldPr (id, notexp) -> analyze_if_hold_prem dctx prem.at id notexp
-  | IfNotHoldPr (id, notexp) -> analyze_if_not_hold_prem dctx prem.at id notexp
+  | IfHoldPr { relid; notexp } -> analyze_if_hold_prem dctx prem.at relid notexp
+  | IfNotHoldPr { relid; notexp } ->
+      analyze_if_not_hold_prem dctx prem.at relid notexp
   | ElsePr -> (dctx, VEnv.empty, prem, [])
   | LetPr _ ->
       (* unreachable: analyze_let_prem produces LetPr within this pass. *)
@@ -134,7 +134,7 @@ and analyze_rule_prem (dctx : Dctx.t) (at : region) (id : id) (notexp : notexp)
   in
   let exps = Hint.combine_exps exps_input exps_output in
   let notexp = Mixop.fill mixop exps in
-  let prem = RulePr (id, notexp) $ at in
+  let prem = RulePr { relid = id; notexp } $ at in
   (dctx, venv, prem, sideconditions)
 
 and analyze_if_eq_prem (dctx : Dctx.t) (at : region) (note : typ')
@@ -177,14 +177,14 @@ and analyze_if_hold_prem (dctx : Dctx.t) (at : region) (id : id)
     (notexp : notexp) : Dctx.t * VEnv.t * prem * prem list =
   let exps = Mixop.args notexp in
   analyze_exps_as_bound dctx exps;
-  let prem = IfHoldPr (id, notexp) $ at in
+  let prem = IfHoldPr { relid = id; notexp } $ at in
   (dctx, VEnv.empty, prem, [])
 
 and analyze_if_not_hold_prem (dctx : Dctx.t) (at : region) (id : id)
     (notexp : notexp) : Dctx.t * VEnv.t * prem * prem list =
   let exps = Mixop.args notexp in
   analyze_exps_as_bound dctx exps;
-  let prem = IfNotHoldPr (id, notexp) $ at in
+  let prem = IfNotHoldPr { relid = id; notexp } $ at in
   (dctx, VEnv.empty, prem, [])
 
 and analyze_let_prem (dctx : Dctx.t) (exp_l : exp) (binds_l : BEnv.t)

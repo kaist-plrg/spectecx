@@ -62,7 +62,12 @@ module VSet = Set.Make (Value)
 let set : VSet.t t =
  fun at v ->
   match v.it with
-  | CaseV [ Atom { it = LBrace; _ }; Arg values; Atom { it = RBrace; _ } ] -> (
+  | CaseV
+      [
+        Atom { it = LBrace `Tick; _ };
+        Arg values;
+        Atom { it = RBrace `Plain; _ };
+      ] -> (
       match values.it with
       | ListV vs -> Ok (VSet.of_list vs)
       | _ -> Error (type_err at "Expected set's inner value to be a list" v))
@@ -74,7 +79,7 @@ module VMap = Map.Make (Value)
 let colon_pair : (Value.t * Value.t) t =
  fun at v ->
   match v.it with
-  | CaseV [ Arg key; Atom { it = TickColon; _ }; Arg value ] -> Ok (key, value)
+  | CaseV [ Arg key; Atom { it = Colon `Tick; _ }; Arg value ] -> Ok (key, value)
   | _ -> Error (type_err at "Expected a k `: v pair" v)
 
 (** Parses a map value into an OCaml VMap.t *)
@@ -82,7 +87,10 @@ let map : Value.t VMap.t t =
  fun at v ->
   let open Mixfix in
   match v.it with
-  | CaseV [ Atom { it = LBrace; _ }; Arg value; Atom { it = RBrace; _ } ] ->
+  | CaseV
+      [
+        Atom { it = LBrace `Tick; _ }; Arg value; Atom { it = RBrace `Plain; _ };
+      ] ->
       let* pairs = (list_of colon_pair) at value in
       Ok (VMap.of_list pairs)
   | _ -> Error (type_err at "Expected map notation `{ ... }" v)

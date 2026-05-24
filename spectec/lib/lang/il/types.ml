@@ -2,6 +2,7 @@ open Xl
 open Common.Source
 
 [@@@ocamlformat "disable"]
+[@@@warning "-30"]  (* Several AST records intentionally share semantic field names. *)
 
 (* Numbers *)
 
@@ -42,9 +43,9 @@ and typ' =
   | BoolT                   (* `bool` *)
   | NumT of Num.typ         (* numtyp *)
   | TextT                   (* `text` *)
-  | VarT of id * targ list  (* id (`<` list(targ, `,`) `>`)? *)
+  | VarT of { synid : id; targs : targ list }  (* id (`<` list(targ, `,`) `>`)? *)
   | TupleT of typ list      (* `(` list(typ, `,`) `)` *)
-  | IterT of typ * iter     (* typ iter *)
+  | IterT of { typ : typ; iter : iter }  (* typ iter *)
   | FuncT                   (* `func` *)
 
 (* Type arguments *)
@@ -54,7 +55,7 @@ and targ' = typ'
 
 (* Variables *)
 
-type var = id * typ * iter list
+type var = { varid : id; typ : typ; iters : iter list }
 
 type nottyp = nottyp' phrase
 and nottyp' = typ Mixfix.t
@@ -67,8 +68,8 @@ and deftyp' =
 
 and typfield = atom * typ
 and typorigin = typorigin' Common.Source.phrase
-and typorigin' = id * targ list
-and typcase = nottyp * typorigin * hint list
+and typorigin' = { synid : id; targs : targ list }
+and typcase = { notation : nottyp; origin : typorigin; hints : hint list }
 
 (* Values *)
 
@@ -155,7 +156,7 @@ and param' =
   (* typ *)
   | ExpP of typ
   (* `def` `$`id ` (`<` list(tparam, `,`) `>`)? (`(` list(param, `,`) `)`)? `:` typ *)
-  | DefP of id * tparam list * param list * typ
+  | DefP of { defid : id; tparams : tparam list; params : param list; typ : typ }
 
 (* Type parameters *)
 
@@ -172,21 +173,21 @@ and arg' =
 (* Rules *)
 
 and rule = rule' phrase
-and rule' = id * notexp * prem list
+and rule' = { ruleid : id; concl : notexp; prems : prem list }
 
 (* Clauses *)
 
 and clause = clause' phrase
-and clause' = arg list * exp * prem list
+and clause' = { args : arg list; body : exp; prems : prem list }
 
 (* Premises *)
 
 and prem = prem' phrase
 and prem' =
-  | RulePr of id * notexp          (* id `:` notexp *)
+  | RulePr of { relid : id; notexp : notexp }  (* id `:` notexp *)
   | IfPr of exp                    (* `if` exp *)
-  | IfHoldPr of id * notexp        (* `if` id `:` notexp `holds` *)
-  | IfNotHoldPr of id * notexp     (* `if` id `:` notexp `does not hold` *)
+  | IfHoldPr of { relid : id; notexp : notexp }  (* `if` id `:` notexp `holds` *)
+  | IfNotHoldPr of { relid : id; notexp : notexp }  (* `if` id `:` notexp `does not hold` *)
   | ElsePr                         (* `otherwise` *)
   | LetPr of exp * exp             (* `let` exp `=` exp *)
   | IterPr of prem * iterexp       (* prem iterexp *)
@@ -197,13 +198,13 @@ and prem' =
 type def = def' phrase
 and def' =
   (* `syntax` id `<` list(tparam, `,`) `>` `=` deftyp *)
-  | TypD of id * tparam list * deftyp
+  | TypD of { synid : id; tparams : tparam list; deftyp : deftyp }
   (* `relation` id `:` nottyp `hint(input` `%`int* `)` rule* *)
-  | RelD of id * nottyp * int list * rule list
+  | RelD of { relid : id; notation : nottyp; inputs : int list; rules : rule list }
   (* `dec` id `<` list(tparam, `,`) `>` list(param, `,`) `:` typ clause* *)
-  | DecD of id * tparam list * param list * typ * clause list
+  | DecD of { defid : id; tparams : tparam list; params : param list; typ : typ; clauses : clause list }
   (* `builtin` `dec` id `<` list(tparam, `,`) `>` list(param, `,`) `:` typ hint* *)
-  | BuiltinDecD of id * tparam list * param list * typ * hint list
+  | BuiltinDecD of { defid : id; tparams : tparam list; params : param list; typ : typ; hints : hint list }
 
 (* Spec *)
 

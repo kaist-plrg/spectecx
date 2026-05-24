@@ -24,6 +24,7 @@ jobs:
         with:
           ocaml-compiler: "5.1.1"
           opam-pin: false
+          opam-local-packages: spectec/*.opam
 
       - name: Discover opam switch name
         run: echo "SWITCH=$(opam switch show -s)" >> $GITHUB_ENV

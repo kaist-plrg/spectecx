@@ -41,8 +41,8 @@ let string_of_iter iter = match iter with Opt -> "?" | List -> "*"
 
 (* Variables *)
 
-let string_of_var (id, _typ, iters) =
-  string_of_varid id ^ String.concat "" (List.map string_of_iter iters)
+let string_of_var { varid; iters; _ } =
+  string_of_varid varid ^ String.concat "" (List.map string_of_iter iters)
 
 (* Types *)
 
@@ -51,9 +51,9 @@ let rec string_of_typ typ =
   | BoolT -> "bool"
   | NumT numtyp -> Num.string_of_typ numtyp
   | TextT -> "text"
-  | VarT (typid, targs) -> string_of_typid typid ^ string_of_targs targs
+  | VarT { synid; targs } -> string_of_typid synid ^ string_of_targs targs
   | TupleT typs -> "(" ^ string_of_typs ", " typs ^ ")"
-  | IterT (typ, iter) -> string_of_typ typ ^ string_of_iter iter
+  | IterT { typ; iter } -> string_of_typ typ ^ string_of_iter iter
   | FuncT -> "func"
 
 and string_of_typs sep typs = String.concat sep (List.map string_of_typ typs)
@@ -76,13 +76,12 @@ and string_of_typfields sep typfields =
   String.concat sep (List.map string_of_typfield typfields)
 
 and string_of_typorigin typorigin =
-  let id, targs = typorigin.it in
-  "(from " ^ string_of_typid id ^ string_of_targs targs ^ ")"
+  let { synid; targs } = typorigin.it in
+  "(from " ^ string_of_typid synid ^ string_of_targs targs ^ ")"
 
 and string_of_typcase typcase =
-  let nottyp, typorigin, hints = typcase in
-  string_of_nottyp nottyp ^ " "
-  ^ string_of_typorigin typorigin
+  let { notation; origin; hints } = typcase in
+  string_of_nottyp notation ^ " " ^ string_of_typorigin origin
   ^ string_of_hints hints
 
 and string_of_typcases sep typcases =
@@ -209,8 +208,8 @@ and string_of_iterexp iterexp =
   ^ String.concat ", "
       (List.map
          (fun var ->
-           let id, typ, iters = var in
-           string_of_var var ^ " <- " ^ string_of_var (id, typ, iters @ [ iter ]))
+           string_of_var var ^ " <- "
+           ^ string_of_var { var with iters = var.iters @ [ iter ] })
          vars)
   ^ "}"
 
@@ -245,7 +244,7 @@ and string_of_path path =
 and string_of_param param =
   match param.it with
   | ExpP typ -> string_of_typ typ
-  | DefP (defid, tparams, params, typ) ->
+  | DefP { defid; tparams; params; typ } ->
       string_of_defid defid ^ string_of_tparams tparams
       ^ string_of_params params ^ " : " ^ string_of_typ typ
 
@@ -288,9 +287,9 @@ and string_of_targs targs =
 (* Rules *)
 
 and string_of_rule rule =
-  let ruleid, notexp, prems = rule.it in
+  let { ruleid; concl; prems } = rule.it in
   ";; " ^ string_of_region rule.at ^ "\n   rule " ^ string_of_ruleid ruleid
-  ^ ": " ^ string_of_notexp notexp ^ string_of_prems prems
+  ^ ": " ^ string_of_notexp concl ^ string_of_prems prems
 
 and string_of_rules rules =
   String.concat ""
@@ -299,9 +298,9 @@ and string_of_rules rules =
 (* Clause *)
 
 and string_of_clause idx clause =
-  let args, exp, prems = clause.it in
+  let { args; body; prems } = clause.it in
   ";; " ^ string_of_region clause.at ^ "\n   clause " ^ string_of_int idx
-  ^ string_of_args args ^ " = " ^ string_of_exp exp ^ string_of_prems prems
+  ^ string_of_args args ^ " = " ^ string_of_exp body ^ string_of_prems prems
 
 and string_of_clauses clauses =
   String.concat ""
@@ -313,13 +312,13 @@ and string_of_clauses clauses =
 
 and string_of_prem prem =
   match prem.it with
-  | RulePr (id, notexp) ->
-      "rel " ^ string_of_relid id ^ ": " ^ string_of_notexp notexp
+  | RulePr { relid; notexp } ->
+      "rel " ^ string_of_relid relid ^ ": " ^ string_of_notexp notexp
   | IfPr exp -> "if " ^ string_of_exp exp
-  | IfHoldPr (id, notexp) ->
-      "if " ^ string_of_relid id ^ ": " ^ string_of_notexp notexp ^ " holds"
-  | IfNotHoldPr (id, notexp) ->
-      "if " ^ string_of_relid id ^ ": " ^ string_of_notexp notexp
+  | IfHoldPr { relid; notexp } ->
+      "if " ^ string_of_relid relid ^ ": " ^ string_of_notexp notexp ^ " holds"
+  | IfNotHoldPr { relid; notexp } ->
+      "if " ^ string_of_relid relid ^ ": " ^ string_of_notexp notexp
       ^ " does not hold"
   | ElsePr -> "otherwise"
   | LetPr (exp_l, exp_r) ->
@@ -347,16 +346,16 @@ let rec string_of_def def =
   ";; " ^ string_of_region def.at ^ "\n"
   ^
   match def.it with
-  | TypD (typid, tparams, deftyp) ->
-      "syntax " ^ string_of_typid typid ^ string_of_tparams tparams ^ " = "
+  | TypD { synid; tparams; deftyp } ->
+      "syntax " ^ string_of_typid synid ^ string_of_tparams tparams ^ " = "
       ^ string_of_deftyp deftyp
-  | RelD (relid, nottyp, _, rules) ->
-      "relation " ^ string_of_relid relid ^ ": " ^ string_of_nottyp nottyp
+  | RelD { relid; notation; rules; _ } ->
+      "relation " ^ string_of_relid relid ^ ": " ^ string_of_nottyp notation
       ^ string_of_rules rules
-  | BuiltinDecD (defid, tparams, params, typ, _) ->
+  | BuiltinDecD { defid; tparams; params; typ; _ } ->
       "builtin dec " ^ string_of_defid defid ^ string_of_tparams tparams
       ^ string_of_params params ^ " : " ^ string_of_typ typ
-  | DecD (defid, tparams, params, typ, clauses) ->
+  | DecD { defid; tparams; params; typ; clauses } ->
       "def " ^ string_of_defid defid ^ string_of_tparams tparams
       ^ string_of_params params ^ " : " ^ string_of_typ typ ^ " ="
       ^ string_of_clauses clauses

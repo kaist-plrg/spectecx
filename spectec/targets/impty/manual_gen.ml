@@ -47,8 +47,8 @@ let cmd_while e c =
   case_v ~var:"command" [ atom "WHILE"; arg e; atom "DO"; arg c; atom "END" ]
 
 let fresh_name (ctx : ('a * 'b) list) = Printf.sprintf "x%d" (List.length ctx)
-let expr_typ = VarT ("expr" $ no_region, []) $ no_region
-let cmd_typ = VarT ("command" $ no_region, []) $ no_region
+let expr_typ = VarT { synid = "expr" $ no_region; targs = [] } $ no_region
+let cmd_typ = VarT { synid = "command" $ no_region; targs = [] } $ no_region
 
 (* ===== Base Impty generator (INT, BOOL only) ===== *)
 
@@ -63,8 +63,8 @@ module Base = struct
   let vars_of ctx ty =
     List.filter_map (fun (name, t) -> if t = ty then Some name else None) ctx
 
-  let expr_typ = VarT ("expr" $ no_region, []) $ no_region
-  let cmd_typ = VarT ("command" $ no_region, []) $ no_region
+  let expr_typ = VarT { synid = "expr" $ no_region; targs = [] } $ no_region
+  let cmd_typ = VarT { synid = "command" $ no_region; targs = [] } $ no_region
 
   let rec gen_expr (spec : spec) (ctx : ctx) (ty : ty) : t Gen.t =
     let open Gen in

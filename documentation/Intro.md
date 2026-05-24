@@ -2,7 +2,7 @@
 
 A programming language specification is the authoritative document that defines the language's syntax and semantics. It is responsible for ensuring that different compilers and interpreters behave consistently, which is crucial for creating code that is portable and predictable.
 
-SpecTec is designed to closely resemble pen-and-paper notation commonly used in literature and textbooks on programming language semantics. At the same time, SpecTec-Core aims to be explicit enough to be able to generate interpreters or prose specification automatically.
+SpecTec is designed to closely resemble pen-and-paper notation commonly used in literature and textbooks on programming language semantics. At the same time, SpecTecX aims to be explicit enough to be able to generate interpreters or prose specification automatically.
 
 The core concepts of SpecTec consist of the following:
 * *Syntaxes*, which represent abstract syntax or internal constructs via meta-types;
@@ -17,7 +17,7 @@ SpecTec does not have namespacing or modules. This provides the advantage that m
 The recommended  to keep all `.spectec` specification files of a language under the same directory, in alphabetical order. This allows for easier importing via command-line globbing, i.e. `spec/*.spectec`. Below is an example directory structure.
 
 ```bash
-spectec-core/
+spectecx/
 ├─ spec/
 │  ├─ 1-syntax.spectec
 │  ├─ 2.1-typing-type.spectec

@@ -57,6 +57,20 @@ let to_mixop (mixfix : 'a t) : mixop =
 let map (f : 'a -> 'b) : 'a t -> 'b t =
   List.map (function Arg a -> Arg (f a) | Atom atom -> Atom atom)
 
+let map_atoms (f : atom -> atom) : 'a t -> 'a t =
+  List.map (function Atom atom -> Atom (f atom) | Arg a -> Arg a)
+
+(* Walks *)
+
+let iter_args (f : 'a -> unit) (mf : 'a t) : unit = List.iter f (args mf)
+
+let fold_args (f : 'acc -> 'a -> 'acc) (acc : 'acc) (mf : 'a t) : 'acc =
+  List.fold_left
+    (fun acc mixeme -> match mixeme with Arg a -> f acc a | Atom _ -> acc)
+    acc mf
+
+let iter_atoms (f : atom -> unit) (mf : 'a t) : unit = List.iter f (atoms mf)
+
 (* Construction / deconstruction *)
 
 let rec fill (mixop : mixop) (args : 'a list) : 'a t =
@@ -78,11 +92,11 @@ let split (mixfix : 'a t) : mixop * 'a list =
 (* Rendering *)
 
 let is_open_bracket : Xl.Atom.t -> bool = function
-  | LParen | LBrack | LBrace | LAngle -> true
+  | LParen | LBrack _ | LBrace _ | LAngle _ -> true
   | _ -> false
 
 let is_close_bracket : Xl.Atom.t -> bool = function
-  | RParen | RBrack | RBrace | RAngle -> true
+  | RParen | RBrack _ | RBrace _ | RAngle _ -> true
   | _ -> false
 
 let opens_bracket = function Atom a -> is_open_bracket a.it | Arg _ -> false

@@ -29,9 +29,7 @@ let eq_iters (iters_a : iter list) (iters_b : iter list) : bool =
 (* Variables *)
 
 let rec eq_var (var_a : var) (var_b : var) : bool =
-  let id_a, _typ_a, iters_a = var_a in
-  let id_b, _typ_b, iters_b = var_b in
-  eq_id id_a id_b && eq_iters iters_a iters_b
+  eq_id var_a.varid var_b.varid && eq_iters var_a.iters var_b.iters
 
 and eq_vars (vars_a : var list) (vars_b : var list) : bool =
   let compare_id (id_a : id) (id_b : id) : int = compare id_a.it id_b.it in
@@ -45,10 +43,9 @@ and eq_vars (vars_a : var list) (vars_b : var list) : bool =
     in
     List.compare compare_iter iters_a iters_b
   in
-  let compare_var ((id_a, _typ_a, iters_a) : var)
-      ((id_b, _typ_b, iters_b) : var) : int =
-    match compare_id id_a id_b with
-    | 0 -> compare_iters iters_a iters_b
+  let compare_var (var_a : var) (var_b : var) : int =
+    match compare_id var_a.varid var_b.varid with
+    | 0 -> compare_iters var_a.iters var_b.iters
     | n -> n
   in
   let vars_a = List.sort compare_var vars_a in
@@ -62,10 +59,12 @@ and eq_typ (typ_a : typ) (typ_b : typ) : bool =
   | BoolT, BoolT -> true
   | NumT numtyp_a, NumT numtyp_b -> Num.equiv numtyp_a numtyp_b
   | TextT, TextT -> true
-  | VarT (id_a, targs_a), VarT (id_b, targs_b) ->
+  | ( VarT { synid = id_a; targs = targs_a },
+      VarT { synid = id_b; targs = targs_b } ) ->
       eq_id id_a id_b && eq_targs targs_a targs_b
   | TupleT typs_a, TupleT typs_b -> eq_typs typs_a typs_b
-  | IterT (typ_a, iter_a), IterT (typ_b, iter_b) ->
+  | IterT { typ = typ_a; iter = iter_a }, IterT { typ = typ_b; iter = iter_b }
+    ->
       eq_typ typ_a typ_b && eq_iter iter_a iter_b
   | FuncT, FuncT -> true
   | _ -> false

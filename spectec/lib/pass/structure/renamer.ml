@@ -14,10 +14,10 @@ let rename_iterexp (rename : t) (iterexp : iterexp) : iterexp =
   let iter, vars = iterexp in
   let vars =
     List.map
-      (fun (id, typ, iters) ->
-        match Rename.find_opt id rename with
-        | Some id_renamed -> (id_renamed, typ, iters)
-        | None -> (id, typ, iters))
+      (fun var ->
+        match Rename.find_opt var.Il.varid rename with
+        | Some id_renamed -> { var with Il.varid = id_renamed }
+        | None -> var)
       vars
   in
   (iter, vars)

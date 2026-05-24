@@ -1,6 +1,6 @@
 # Contributing
 
-This guide is the source of truth for how to contribute to SpecTec-Core. It is read by both human contributors and AI coding agents, so conventions are stated with the reasoning behind them — not just the rule.
+This guide is the source of truth for how to contribute to SpecTecX. It is read by both human contributors and AI coding agents, so conventions are stated with the reasoning behind them — not just the rule.
 
 For project orientation, build, and run instructions, see [README.md](README.md). This guide assumes you can build the project and run the test suite.
 
@@ -14,7 +14,7 @@ A few `make` targets matter mostly to contributors:
 
 ## Code Conventions
 
-**Names are part of the spec.** SpecTec-Core is a language-specification compiler; names are vocabulary, not decoration. A misleading name is a semantic bug, not a style nit. Before settling on a name, check it against existing usage sites for the same concept, and prefer a name that communicates *responsibility*, not mechanism. Sweep all usage sites when renaming.
+**Names are part of the spec.** SpecTecX is a language-specification compiler; names are vocabulary, not decoration. A misleading name is a semantic bug, not a style nit. Before settling on a name, check it against existing usage sites for the same concept, and prefer a name that communicates *responsibility*, not mechanism. Sweep all usage sites when renaming.
 
 OCaml conventions: `snake_case` for values and types, `PascalCase` for modules and constructors.
 
@@ -137,7 +137,7 @@ Each commit must build on its own. Split work as far as possible *without* intro
 
 ### Worked examples
 
-A refactor, from [`388d6b3d`](https://github.com/kaist-plrg/spectec-core/commit/388d6b3d):
+A refactor, from [`388d6b3d`](https://github.com/kaist-plrg/spectecx/commit/388d6b3d):
 
 > `refactor(cli): extract error handling and group shared flags by role`
 >
@@ -145,7 +145,7 @@ A refactor, from [`388d6b3d`](https://github.com/kaist-plrg/spectec-core/commit/
 >
 > The helper is extracted to `error_handling.ml` as `guard`/`guard_unit`, called from both `subcommand.ml` and `bin/main.ml`. Shared CLI flags are grouped into `Output`, `Spec`, `Batch`, `Checkpoint` and `Interpreter` submodules. Checkpoint flags become a composite record since they always appear together; the rest stay individual for now.
 
-A feature, from [`39f18ac1`](https://github.com/kaist-plrg/spectec-core/commit/39f18ac1):
+A feature, from [`39f18ac1`](https://github.com/kaist-plrg/spectecx/commit/39f18ac1):
 
 > `feat(diagnostic): scaffolding for comprehensive diagnostics`
 >
@@ -230,10 +230,10 @@ The Port/Sync distinction is intentional: a **Port** tracks one upstream PR end-
 
 One clean angle, not a two-sided story. If you reach for `X and Y`, ask whether the two halves are one concept under a better name.
 
-- One concept: [`#34 Refactor CLI into per-target modules`](https://github.com/kaist-plrg/spectec-core/pull/34) — clearer than `Refactor CLI to define subcommand interfaces and consolidate target modules`, even though the diff does both.
-- Two genuinely independent threads, joined explicitly: [`#32 Refactor instrumentation architecture and make lifecycle exception-safe`](https://github.com/kaist-plrg/spectec-core/pull/32).
+- One concept: [`#34 Refactor CLI into per-target modules`](https://github.com/kaist-plrg/spectecx/pull/34) — clearer than `Refactor CLI to define subcommand interfaces and consolidate target modules`, even though the diff does both.
+- Two genuinely independent threads, joined explicitly: [`#32 Refactor instrumentation architecture and make lifecycle exception-safe`](https://github.com/kaist-plrg/spectecx/pull/32).
 
-`Refactor`, `Sync`, and `Reorg` lead with the verb. Features and Ports lead with the concept directly ([`#30 Simplify elaboration using IL types`](https://github.com/kaist-plrg/spectec-core/pull/30)) — the verb prefix is dropped because the concept already names the change.
+`Refactor`, `Sync`, and `Reorg` lead with the verb. Features and Ports lead with the concept directly ([`#30 Simplify elaboration using IL types`](https://github.com/kaist-plrg/spectecx/pull/30)) — the verb prefix is dropped because the concept already names the change.
 
 When themes mix, pick the dominant one for the title and let off-arc commits live under `## Minor Changes` in the body. Avoid abstract nouns like `composition` or `orchestration` in the title; reserve those for the body where they have room to be defined.
 
@@ -272,10 +272,10 @@ Drafting the body in a file produces cleaner prose than typing it into the `gh` 
 
 ### Worked examples
 
-- **Refactor:** [#34 — Refactor CLI into per-target modules](https://github.com/kaist-plrg/spectec-core/pull/34): scoped refactor with `Core Concepts` + `Scope` and an off-arc `feat(cli)` bullet under `Minor Changes`.
-- **Refactor (two-threaded):** [#32 — Refactor instrumentation architecture and make lifecycle exception-safe](https://github.com/kaist-plrg/spectec-core/pull/32): legitimate two-threaded title; the cover letter splits the threads in the scope bullets.
-- **Port:** [#30 — Simplify elaboration using IL types](https://github.com/kaist-plrg/spectec-core/pull/30): concept-led title (no `Refactor` prefix) tracking one upstream PR, with `Scope` split into `Ported` / `Adapted` / `Omitted`.
-- **Sync:** [#35 — Sync new P4 concrete spec](https://github.com/kaist-plrg/spectec-core/pull/35): catch-up bundling upstream ports with local changes, with `Scope` split into `Ported` / `Adapted` / `Local Changes`.
+- **Refactor:** [#34 — Refactor CLI into per-target modules](https://github.com/kaist-plrg/spectecx/pull/34): scoped refactor with `Core Concepts` + `Scope` and an off-arc `feat(cli)` bullet under `Minor Changes`.
+- **Refactor (two-threaded):** [#32 — Refactor instrumentation architecture and make lifecycle exception-safe](https://github.com/kaist-plrg/spectecx/pull/32): legitimate two-threaded title; the cover letter splits the threads in the scope bullets.
+- **Port:** [#30 — Simplify elaboration using IL types](https://github.com/kaist-plrg/spectecx/pull/30): concept-led title (no `Refactor` prefix) tracking one upstream PR, with `Scope` split into `Ported` / `Adapted` / `Omitted`.
+- **Sync:** [#35 — Sync new P4 concrete spec](https://github.com/kaist-plrg/spectecx/pull/35): catch-up bundling upstream ports with local changes, with `Scope` split into `Ported` / `Adapted` / `Local Changes`.
 
 When unsure, run `git log --merges` and find the most recent merge whose shape matches yours. (Single-commit ff-merged PRs — see below — won't appear in `--merges`; scan `git log` directly for those.)
 

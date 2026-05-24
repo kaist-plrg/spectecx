@@ -1,6 +1,6 @@
 NAME = spectecx
 
-SWITCH ?= spectec-core
+SWITCH ?= spectecx
 
 OPAM_EXEC = opam exec --switch=$(SWITCH) --
 DUNE = cd spectec && $(OPAM_EXEC) dune

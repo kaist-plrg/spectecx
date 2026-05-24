@@ -53,7 +53,7 @@ type prem_vars = { free : (id * typ) list; bound : (id * typ) list }
 let rec vars_of_prem (rel_inputs : string -> int list option) (prem : prem) :
     prem_vars =
   match prem.it with
-  | RulePr (rel_id, notexp) ->
+  | RulePr { relid = rel_id; notexp } ->
       let args = Mixfix.args notexp in
       let input_indices =
         match rel_inputs rel_id.it with
@@ -68,7 +68,7 @@ let rec vars_of_prem (rel_inputs : string -> int list option) (prem : prem) :
         bound = List.concat_map vars_of_exp out_args;
       }
   | IfPr e | DebugPr e -> { free = vars_of_exp e; bound = [] }
-  | IfHoldPr (_, notexp) | IfNotHoldPr (_, notexp) ->
+  | IfHoldPr { notexp; _ } | IfNotHoldPr { notexp; _ } ->
       { free = List.concat_map vars_of_exp (Mixfix.args notexp); bound = [] }
   | LetPr (lhs, rhs) -> { free = vars_of_exp rhs; bound = vars_of_exp lhs }
   | ElsePr -> { free = []; bound = [] }
@@ -83,7 +83,7 @@ let rel_inputs_of core_spec rel_name =
   List.find_map
     (fun def ->
       match def.it with
-      | RelD (id, _, inputs, _) when id.it = rel_name -> Some inputs
+      | RelD { relid = id; inputs; _ } when id.it = rel_name -> Some inputs
       | _ -> None)
     core_spec
 

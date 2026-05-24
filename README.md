@@ -1,7 +1,6 @@
-# SpecTec-Core
+# SpecTecX: An executable subset of SpecTec
 
-A spec programming framework.
-SpecTec was originally developed for WebAssembly (Wasm-SpecTec), then adapted/generalized for P4 (P4-SpecTec). SpecTec Core is a stripped down version of P4-SpecTec's algorithmic flavor, meant to serve as a base for adaptation to other languages or domains.
+SpecTec is a spec programming framework, originally developed for WebAssembly (Wasm-SpecTec), then adapted/generalized for P4 (P4-SpecTec). SpecTecX is a stripped-down version of P4-SpecTec that decouples language semantics from target definition, meant to serve as a adaptation base for other languages or domains.
 
 ### Installation
 
@@ -13,7 +12,7 @@ SpecTec was originally developed for WebAssembly (Wasm-SpecTec), then adapted/ge
 
 * Create an OCaml switch and install the project's pinned dependency versions:
   ```bash
-  opam switch create spectec-core 5.1.1
+  opam switch create spectecx 5.1.1
   eval $(opam env)
   cd spectec
   opam install . --deps-only --locked
@@ -30,7 +29,7 @@ This creates an executable `spectecx` in the project root.
 
 ### Structure
 
-SpecTec-Core currently consists of three main components.
+SpecTecX currently consists of three main components.
 * SpecTec EL is the surface language in which the spec is authored.
 * SpecTec IL (internal language). EL -> IL conversion is called "elaboration". Elaboration makes the spec more algorithmic and unambiguous.
 * SpecTec SL (structured language). IL -> SL conversion is called "structuring". Structuring groups related execution paths into explicit branching with over-approximation. This minimizes backtracking, making the SL interpreter much faster than the IL interpreter.
@@ -94,7 +93,7 @@ Contributions are welcome — open an issue or pull request. See [CONTRIBUTING.m
 
 ### License
 
-SpecTec-Core is released under the [Apache 2.0 license](LICENSE).
+SpecTecX is released under the [Apache 2.0 license](LICENSE).
 
 ### Credits
 
