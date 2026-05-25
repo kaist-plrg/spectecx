@@ -3,7 +3,7 @@ open Common.Source
 open Lang
 open Xl
 open El
-open Error
+open Diagnostic
 
 (* Position handling *)
 

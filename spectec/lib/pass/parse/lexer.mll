@@ -2,7 +2,7 @@
 module Source = Common.Source
 open Lang.Xl
 open Parser
-open Error
+open Diagnostic
 
 (* Error handling *)
 

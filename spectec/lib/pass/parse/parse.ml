@@ -1,4 +1,4 @@
-open Error
+open Diagnostic
 module Source = Common.Source
 
 let with_lexbuf name lexbuf start =
@@ -19,7 +19,8 @@ let parse_file file : Lang.El.spec result =
     Ok spec
   with
   | ParseError e -> Error e
-  | Sys_error msg -> Error (Source.region_of_file file, "i/o error: " ^ msg)
+  | Sys_error msg ->
+      Error (Diag.error ~source:"io" (Source.region_of_file file) msg)
 
 let parse_files filenames : Lang.El.spec result =
   let rec parse_files' acc = function
@@ -31,8 +32,8 @@ let parse_files filenames : Lang.El.spec result =
   in
   parse_files' [] filenames
 
-type error = Error.error
-type 'a result = 'a Error.result
+type error = Diagnostic.error
+type 'a result = 'a Diagnostic.result
 
-let error_to_string = Error.to_string
-let error_to_diagnostic = Error.to_diagnostic
+let error_to_string = Diagnostic.to_string
+let error_to_diagnostic = Diagnostic.to_diagnostic
