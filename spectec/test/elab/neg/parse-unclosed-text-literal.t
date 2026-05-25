@@ -2,7 +2,7 @@
 
 "abc
   $ ./main.exe parse-unclosed-text-literal.spectec 2>&1
-  error: unclosed text literal
+  error[parse/unclosed-text-literal]: unclosed text literal
     --> parse-unclosed-text-literal.spectec:3:1
     |
   3 | "abc

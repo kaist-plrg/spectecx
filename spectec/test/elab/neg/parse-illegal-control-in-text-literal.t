@@ -4,7 +4,7 @@ repo ASCII-clean.
 
   $ printf '"abc\007def"\n' > stage.spectec
   $ ./main.exe stage.spectec 2>&1
-  error: illegal control character in text literal
+  error[parse/illegal-control-in-text-literal]: illegal control character in text literal
     --> stage.spectec:1:1
     |
   1 | "abcdef"

@@ -2,7 +2,7 @@
 
 "abc\qdef"
   $ ./main.exe parse-illegal-escape.spectec 2>&1
-  error: illegal escape
+  error[parse/illegal-escape]: illegal escape
     --> parse-illegal-escape.spectec:3:7
     |
   3 | "abc\qdef"
