@@ -289,7 +289,10 @@ nottyp :
     {
       match $1 with
       | NotationT nottyp -> nottyp
-      | _ -> error (at $sloc) "expected notation type"
+      | _ ->
+          error ~code:Notation_type_expected
+            ~detail:"A notation type includes literal tokens like `|-` or `:` that rules pattern-match against. A bare type like `nat` names a set of values without any tokens, so it cannot serve as a relation body."
+            (at $sloc) "expected notation type"
     }
 
 typ_prim : typ_prim_ { $1 }
@@ -376,22 +379,27 @@ deftyp_ :
   | LBRACE comma_list(fieldtyp) RBRACE
     { 
       match $2 with
-      | [] -> error (at $sloc) "empty struct type"
+      | [] -> error ~code:Struct_no_fields (at $sloc) "empty struct type"
       | _ -> StructTD $2
     }
   | bar bar_list(casetyp)
     {
       match $2 with
-      | [] -> error (at $sloc) "empty variant type"
+      | [] -> error ~code:Variant_no_cases (at $sloc) "empty variant type"
       | [ (PlainT plaintyp, hints) ] ->
           if hints <> [] then
-            error (at $sloc) "hints not allowed in plain type definition";
+            error ~code:Hint_on_plain_bar_single
+              ~detail:"A plain typdef aliases an existing type, like `syntax x = nat`. It inherits hints from the aliased type and cannot carry hints of its own."
+              (at $sloc) "hints not allowed in plain type definition";
           PlainTD plaintyp
       | _ ->
           List.iter
             (fun (typ, hints) ->
               match typ with
-              | PlainT _ when hints <> [] -> error (at $sloc) "hints not allowed in plain type definition"
+              | PlainT _ when hints <> [] ->
+                  error ~code:Hint_on_plain_bar_multi
+                    ~detail:"A plain typdef aliases an existing type, like `syntax x = nat`. It inherits hints from the aliased type and cannot carry hints of its own."
+                    (at $sloc) "hints not allowed in plain type definition"
               | _ -> ())
             $2;
           VariantTD $2
@@ -399,16 +407,21 @@ deftyp_ :
   | bar_list(casetyp)
     {
       match $1 with
-      | [] -> error (at $sloc) "empty type"
+      | [] -> error ~code:Syntax_empty_body (at $sloc) "empty type"
       | [ (PlainT plaintyp, hints) ] ->
           if hints <> [] then
-            error (at $sloc) "hints not allowed in plain type definition";
+            error ~code:Hint_on_plain_no_bar_single
+              ~detail:"A plain typdef aliases an existing type, like `syntax x = nat`. It inherits hints from the aliased type and cannot carry hints of its own."
+              (at $sloc) "hints not allowed in plain type definition";
           PlainTD plaintyp
       | _ ->
           List.iter
             (fun (typ, hints) ->
               match typ with
-              | PlainT _ when hints <> [] -> error (at $sloc) "hints not allowed in plain type definition"
+              | PlainT _ when hints <> [] ->
+                  error ~code:Hint_on_plain_no_bar_multi
+                    ~detail:"A plain typdef aliases an existing type, like `syntax x = nat`. It inherits hints from the aliased type and cannot carry hints of its own."
+                    (at $sloc) "hints not allowed in plain type definition"
               | _ -> ())
             $1;
           VariantTD $1
@@ -723,7 +736,7 @@ def_ :
   | SYNTAX comma_list(synid)
     {
       match $2 with
-      | [] -> error (at $sloc) "empty syntax declaration"
+      | [] -> error ~code:Syntax_no_ids (at $sloc) "empty syntax declaration"
       | _ -> SynD $2
     }
   | SYNTAX varid_bind hint* EQ deftyp

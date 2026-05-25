@@ -6,7 +6,8 @@ let with_lexbuf name lexbuf start =
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = name };
   try start Lexer.token lexbuf
   with Parser.Error ->
-    error (Lexer.region lexbuf) "syntax error: unexpected token"
+    error ~code:Unexpected_token (Lexer.region lexbuf)
+      "syntax error: unexpected token"
 
 let parse_file file : Lang.El.spec result =
   try
