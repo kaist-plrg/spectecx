@@ -1,11 +1,10 @@
 open Common.Domain
 open Ctx
-module RTEnv = Envs.RTEnv
 
 (* Context for dataflow analysis *)
 
 type t = {
-  reltyps : RTEnv.t;
+  renv : REnv.t;
   (* Free identifiers over the entire definition *)
   frees : IdSet.t;
   (* Bound variables so far *)
@@ -17,11 +16,11 @@ type t = {
 (* Constructors *)
 
 let init (ctx : Ctx.t) : t =
-  let reltyps = REnv.map (fun (reltyp, _) -> reltyp) ctx.renv in
+  let renv = ctx.renv in
   let frees = ctx.frees in
   let bounds = ctx.venv in
   let tdenv = ctx.tdenv in
-  { reltyps; frees; bounds; tdenv }
+  { renv; frees; bounds; tdenv }
 
 (* Promoter *)
 
@@ -38,5 +37,8 @@ let add_free (dctx : t) (id : Id.t) =
 
 (* Finders *)
 
-let find_reltyp (dctx : t) (id : Id.t) = RTEnv.find id dctx.reltyps
+let find_reltyp (dctx : t) (id : Id.t) =
+  let reltyp, _ = REnv.find id dctx.renv in
+  reltyp
+
 let find_typdef (dctx : t) (tid : TId.t) = TDEnv.find tid dctx.tdenv
