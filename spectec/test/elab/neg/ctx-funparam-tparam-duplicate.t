@@ -4,5 +4,6 @@
     |
   4 | dec $f(def $g<T, T> : nat) : nat
     |             ^^
-    = source: elab
+    |
+    | source: elab
   [1]

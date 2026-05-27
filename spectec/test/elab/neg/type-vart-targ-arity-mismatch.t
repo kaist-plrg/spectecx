@@ -4,5 +4,6 @@
     |
   5 | syntax bar = foo
     |              ^^^
-    = source: elab
+    |
+    | source: elab
   [1]

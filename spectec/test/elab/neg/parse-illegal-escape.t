@@ -7,5 +7,6 @@
     |
   3 | "abc\qdef"
     |       ^
-    = source: parse
+    |
+    | source: parse
   [1]

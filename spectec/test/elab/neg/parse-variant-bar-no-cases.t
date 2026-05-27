@@ -4,5 +4,6 @@
     |
   3 | syntax foo = |
     |              ^
-    = source: parse
+    |
+    | source: parse
   [1]

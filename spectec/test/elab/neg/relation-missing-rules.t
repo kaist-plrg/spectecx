@@ -4,11 +4,13 @@
     |
   6 | relation Foo_ok: |- foo
     | ^^^^^^^^^^^^^^^^^^^^^^^
-    = source: elab
+    |
+    | source: elab
   warning[elab/relation-missing-rules]: relation Foo_ok has no rules defined
     --> relation-missing-rules.spectec:6:1
     |
   6 | relation Foo_ok: |- foo
     | ^^^^^^^^^^^^^^^^^^^^^^^
-    = source: elab
+    |
+    | source: elab
   [1]

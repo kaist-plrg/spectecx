@@ -4,5 +4,6 @@
     |
   4 | syntax x_1
     |        ^^^
-    = source: elab
+    |
+    | source: elab
   [1]

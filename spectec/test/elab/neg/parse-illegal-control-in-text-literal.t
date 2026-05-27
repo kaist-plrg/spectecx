@@ -9,5 +9,6 @@ repo ASCII-clean.
     |
   1 | "abcdef"
     | ^^^^^
-    = source: parse
+    |
+    | source: parse
   [1]

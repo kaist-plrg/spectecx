@@ -8,5 +8,6 @@ generated at test time to keep the repo ASCII-clean.
     |
   1 | (;ÿ;)
     |   ^
-    = source: parse
+    |
+    | source: parse
   [1]

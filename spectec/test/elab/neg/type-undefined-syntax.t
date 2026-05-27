@@ -4,5 +4,6 @@
     |
   3 | syntax wrapper = wrap nope
     |                  ^^^^
-    = source: elab
+    |
+    | source: elab
   [1]

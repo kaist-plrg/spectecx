@@ -68,7 +68,7 @@ let render_snippet ~ansi ~cache ~indent ~(left : pos) ~(right : pos) :
            lineno_str line_text indent gutter underline cont)
 
 let render_region_block ~ansi ~cache ~indent (region : region) : string =
-  let arrow = Ansi.style ansi [ Bold; Blue ] (indent ^ "  --> ") in
+  let arrow = indent ^ Ansi.style ansi [ Bold; Blue ] "  --> " in
   let loc =
     Printf.sprintf "%s:%d:%d" region.left.file region.left.line
       (region.left.column + 1)
@@ -86,23 +86,46 @@ let render_location ~ansi ~cache (d : Record.t) : string option =
 
 (* --- Annotations: source tag, note, related --- *)
 
+let snippet_gutter (d : Record.t) : string =
+  if d.region = no_region then ""
+  else String.make (String.length (string_of_int d.region.left.line)) ' '
+
+(* [|] prefix in the same column as the snippet's border, so annotation
+   fields hang off the snippet rather than float beside it. *)
+let border_prefix (d : Record.t) : string =
+  if d.region = no_region then "  " else " " ^ snippet_gutter d ^ "| "
+
+let render_field_separator (d : Record.t) : string option =
+  let has_field =
+    d.source <> "" || d.detail <> None || d.related <> [] || d.trace <> []
+  in
+  if d.region = no_region || not has_field then None
+  else Some (" " ^ snippet_gutter d ^ "|")
+
 let render_source_tag ~ansi (d : Record.t) : string option =
   if d.source = "" then None
-  else Some (Ansi.style ansi [ Dim ] (Printf.sprintf "  = source: %s" d.source))
+  else
+    Some
+      (border_prefix d
+      ^ Ansi.style ansi [ Dim ] (Printf.sprintf "source: %s" d.source))
 
 let render_detail ~ansi (d : Record.t) : string option =
   match d.detail with
   | None -> None
-  | Some s -> Some (Ansi.style ansi [ Bold; Cyan ] "  = note: " ^ s)
+  | Some s ->
+      Some (border_prefix d ^ Ansi.style ansi [ Bold; Cyan ] "note: " ^ s)
 
 let render_related ~ansi ~cache (d : Record.t) : string option =
   if d.related = [] then None
   else
     let one (r : Record.related) =
-      let header = Ansi.style ansi [ Bold; Blue ] "  = related: " ^ r.message in
+      let header =
+        border_prefix d ^ Ansi.style ansi [ Bold; Blue ] "related: " ^ r.message
+      in
       if r.region = no_region then header
       else
-        header ^ "\n" ^ render_region_block ~ansi ~cache ~indent:"  " r.region
+        header ^ "\n"
+        ^ render_region_block ~ansi ~cache ~indent:(border_prefix d) r.region
     in
     Some (List.map one d.related |> String.concat "\n")
 
@@ -130,7 +153,7 @@ let rec render_trace_node ~ansi ~indent ~is_last (node : Record.trace_node) :
 let render_trace ~ansi (d : Record.t) : string option =
   if d.trace = [] then None
   else
-    let header = Ansi.style ansi [ Bold; Blue ] "  = trace:" in
+    let header = border_prefix d ^ Ansi.style ansi [ Bold; Blue ] "trace:" in
     let n = List.length d.trace in
     let nodes =
       List.mapi
@@ -146,6 +169,7 @@ let render ~ansi ~cache (d : Record.t) : string =
   [
     Some (render_header ~ansi d);
     render_location ~ansi ~cache d;
+    render_field_separator d;
     render_source_tag ~ansi d;
     render_detail ~ansi d;
     render_related ~ansi ~cache d;

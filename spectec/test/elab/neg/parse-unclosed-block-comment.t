@@ -5,5 +5,6 @@
   3 | (; this never closes
     | ^^^^^^^^^^^^^^^^^^^^
     | ...
-    = source: parse
+    |
+    | source: parse
   [1]

@@ -4,5 +4,6 @@
     |
   3 | @
     | ^
-    = source: parse
+    |
+    | source: parse
   [1]

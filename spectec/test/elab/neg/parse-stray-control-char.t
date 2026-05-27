@@ -8,5 +8,6 @@ input is generated at test time to keep the repo ASCII-clean.
     |
   1 | 
     | ^
-    = source: parse
+    |
+    | source: parse
   [1]

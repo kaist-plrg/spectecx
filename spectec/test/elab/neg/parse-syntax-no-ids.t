@@ -4,5 +4,6 @@
     |
   3 | syntax
     | ^^^^^^
-    = source: parse
+    |
+    | source: parse
   [1]

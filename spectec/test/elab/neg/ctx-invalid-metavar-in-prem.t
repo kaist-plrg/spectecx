@@ -5,11 +5,13 @@
   6 | relation R: foo |- foo
     | ^^^^^^^^^^^^^^^^^^^^^^
     | ...
-    = source: elab
+    |
+    | source: elab
   error[elab/var-prem-invalid-metavar]: invalid meta-variable identifier
     --> ctx-invalid-metavar-in-prem.spectec:11:10
      |
   11 |   -- var x_1 : foo
      |          ^^^
-    = source: elab
+     |
+     | source: elab
   [1]

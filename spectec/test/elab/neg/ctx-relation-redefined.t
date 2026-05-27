@@ -5,16 +5,18 @@
   5 | relation R: nat |- foo
     | ^^^^^^^^^^^^^^^^^^^^^^
     | ...
-    = source: elab
+    |
+    | source: elab
   error[elab/ctx-relation-redefined]: relation `R` was already defined
     --> ctx-relation-redefined.spectec:8:10
     |
   8 | relation R: nat |- foo
     |          ^
-    = source: elab
-    = related: originally defined here
-      --> ctx-relation-redefined.spectec:5:10
-      |
-    5 | relation R: nat |- foo
-      |          ^
+    |
+    | source: elab
+    | related: originally defined here
+    |   --> ctx-relation-redefined.spectec:5:10
+    |   |
+    | 5 | relation R: nat |- foo
+    |   |          ^
   [1]

@@ -7,5 +7,6 @@
     |
   3 | "abc
     | ^^^^^
-    = source: parse
+    |
+    | source: parse
   [1]

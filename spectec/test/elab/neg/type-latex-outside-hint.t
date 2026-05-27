@@ -4,12 +4,14 @@
     |
   4 | dec $f : nat
     | ^^^^^^^^^^^^
-    = source: elab
+    |
+    | source: elab
   error[elab/latex-outside-hint]: misplaced LaTeX literal
     --> type-latex-outside-hint.spectec:5:10
     |
   5 | def $f = %latex("hello")
     |          ^^^^^^^^^^^^^^^
-    = source: elab
-    = note: A `%latex("...")` literal embeds raw LaTeX source inside a `hint(...)` expression, for use by a LaTeX rendering backend. Outside a hint, it has no meaning.
+    |
+    | source: elab
+    | note: A `%latex("...")` literal embeds raw LaTeX source inside a `hint(...)` expression, for use by a LaTeX rendering backend. Outside a hint, it has no meaning.
   [1]

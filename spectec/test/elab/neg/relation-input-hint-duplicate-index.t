@@ -5,5 +5,6 @@
   5 | relation R: foo |- foo
     | ^^^^^^^^^^^^^^^^^^^^^^
     | ...
-    = source: elab
+    |
+    | source: elab
   [1]

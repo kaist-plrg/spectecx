@@ -4,12 +4,14 @@
     |
   4 | dec $f : nat
     | ^^^^^^^^^^^^
-    = source: elab
+    |
+    | source: elab
   error[elab/unparen-outside-hint]: misplaced unparenthesize
     --> type-unparen-outside-hint.spectec:5:10
     |
   5 | def $f = ## 0
     |          ^^^^
-    = source: elab
-    = note: The `##` operator strips enclosing parentheses from its operand when a `hint(...)` expression is rendered, giving finer control over the rendered form. Outside a hint, it has no meaning.
+    |
+    | source: elab
+    | note: The `##` operator strips enclosing parentheses from its operand when a `hint(...)` expression is rendered, giving finer control over the rendered form. Outside a hint, it has no meaning.
   [1]

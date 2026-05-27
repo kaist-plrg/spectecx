@@ -4,5 +4,6 @@
     |
   3 | α
     | ^^
-    = source: parse
+    |
+    | source: parse
   [1]

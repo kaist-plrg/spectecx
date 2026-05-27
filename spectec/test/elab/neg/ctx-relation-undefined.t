@@ -4,5 +4,6 @@
     |
   5 | rule Missing/case:
     |      ^^^^^^^
-    = source: elab
+    |
+    | source: elab
   [1]

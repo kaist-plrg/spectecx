@@ -5,12 +5,14 @@
   8 | relation R: foo |- foo
     | ^^^^^^^^^^^^^^^^^^^^^^
     | ...
-    = source: elab
+    |
+    | source: elab
   error[elab/dataflow-bind-in-non-invertible]: invalid binding position(s) for { x : foo } in non-invertible unary operator
     --> dataflow-bind-in-non-invertible.spectec:13:10
      |
   13 |   -- if -x = 5
      |          ^
-    = source: elab
-    = note: The elaborator assigns each variable a specific piece of the surrounding value: a tuple element, a variant case's argument, a struct field, or a list element. It does not invert operators, even when their inverse would be unique.
+     |
+     | source: elab
+     | note: The elaborator assigns each variable a specific piece of the surrounding value: a tuple element, a variant case's argument, a struct field, or a list element. It does not invert operators, even when their inverse would be unique.
   [1]

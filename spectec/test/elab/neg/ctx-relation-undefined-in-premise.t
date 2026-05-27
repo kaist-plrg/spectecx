@@ -5,11 +5,13 @@
   5 | relation R: foo |- foo
     | ^^^^^^^^^^^^^^^^^^^^^^
     | ...
-    = source: elab
+    |
+    | source: elab
   error[elab/ctx-relation-undefined]: relation `Missing` is undefined
     --> ctx-relation-undefined-in-premise.spectec:10:6
      |
   10 |   -- Missing: 0 |- 0
      |      ^^^^^^^
-    = source: elab
+     |
+     | source: elab
   [1]
