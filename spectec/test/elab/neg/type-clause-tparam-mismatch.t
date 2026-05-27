@@ -13,8 +13,8 @@
     = source: elab
     = note: A `def $f<...> = ...` clause must repeat the type parameters from its `dec` declaration with the same count and the same names in the same order.
     = related: declared here
-    --> type-clause-tparam-mismatch.spectec:3:6
-    |
-  3 | dec $f<T> : nat
-    |      ^^
+      --> type-clause-tparam-mismatch.spectec:3:6
+      |
+    3 | dec $f<T> : nat
+      |      ^^
   [1]

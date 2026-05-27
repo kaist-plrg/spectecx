@@ -25,8 +25,8 @@
     = source: elab
     = note: A function argument at a call site must have the same signature (type parameters, parameter types, and return type) as the declared function parameter. The function passed here was declared with a different signature.
     = related: passed function declared here
-    --> type-funarg-shape-mismatch-call.spectec:4:6
-    |
-  4 | dec $h(text) : nat
-    |      ^^
+      --> type-funarg-shape-mismatch-call.spectec:4:6
+      |
+    4 | dec $h(text) : nat
+      |      ^^
   [1]

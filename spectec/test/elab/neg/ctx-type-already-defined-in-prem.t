@@ -13,8 +13,8 @@
      |          ^^^
     = source: elab
     = related: originally defined here
-    --> ctx-type-already-defined-in-prem.spectec:4:8
-    |
-  4 | syntax foo = nat
-    |        ^^^
+      --> ctx-type-already-defined-in-prem.spectec:4:8
+      |
+    4 | syntax foo = nat
+      |        ^^^
   [1]

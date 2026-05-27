@@ -13,8 +13,8 @@
     = source: elab
     = note: A function argument in a `def` clause must bind to the same name as the declared function parameter in the `dec`. The clause body uses that name to call the function.
     = related: declared here
-    --> type-funarg-shape-mismatch-sig.spectec:7:18
-    |
-  7 | dec $caller(def $expected : nat) : nat
-    |                  ^^^^^^^^
+      --> type-funarg-shape-mismatch-sig.spectec:7:18
+      |
+    7 | dec $caller(def $expected : nat) : nat
+      |                  ^^^^^^^^
   [1]

@@ -6,8 +6,8 @@
     |        ^^^
     = source: elab
     = related: originally defined here
-    --> ctx-type-redefined.spectec:3:8
-    |
-  3 | syntax foo
-    |        ^^^
+      --> ctx-type-redefined.spectec:3:8
+      |
+    3 | syntax foo
+      |        ^^^
   [1]

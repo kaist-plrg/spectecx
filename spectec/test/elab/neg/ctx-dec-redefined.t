@@ -12,8 +12,8 @@
     |      ^^
     = source: elab
     = related: originally defined here
-    --> ctx-dec-redefined.spectec:3:6
-    |
-  3 | dec $f(nat) : nat
-    |      ^^
+      --> ctx-dec-redefined.spectec:3:6
+      |
+    3 | dec $f(nat) : nat
+      |      ^^
   [1]

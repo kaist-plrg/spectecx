@@ -13,8 +13,8 @@
     |          ^
     = source: elab
     = related: originally defined here
-    --> ctx-relation-redefined.spectec:5:10
-    |
-  5 | relation R: nat |- foo
-    |          ^
+      --> ctx-relation-redefined.spectec:5:10
+      |
+    5 | relation R: nat |- foo
+      |          ^
   [1]

@@ -37,7 +37,8 @@ let render_header ~ansi (d : Record.t) : string =
 (* TODO: multi-line regions currently render only the first line followed by
    "...". A future improvement would render every line in the span with the
    underline tracking the relevant columns on each row. *)
-let render_snippet ~ansi ~cache ~(left : pos) ~(right : pos) : string option =
+let render_snippet ~ansi ~cache ~indent ~(left : pos) ~(right : pos) :
+    string option =
   match Source_cache.get_line cache left.file left.line with
   | None -> None
   | Some line_text ->
@@ -50,36 +51,38 @@ let render_snippet ~ansi ~cache ~(left : pos) ~(right : pos) : string option =
         else max (col_start + 1) (String.length line_text)
       in
       let underline_len = max 1 (col_end - col_start) in
-      (* Tab-aware indent: copy whitespace verbatim from the source line so the
-         caret aligns under the right column whether the source uses spaces or
-         tabs. Non-whitespace prefix chars collapse to a single space each. *)
-      let indent =
+      (* Copy tabs from the source verbatim so the caret aligns under the
+         right column regardless of indentation style. *)
+      let caret_pad =
         String.init col_start (fun i ->
             if i < String.length line_text && line_text.[i] = '\t' then '\t'
             else ' ')
       in
       let underline =
-        indent ^ Ansi.style ansi [ Bold; Red ] (String.make underline_len '^')
+        caret_pad
+        ^ Ansi.style ansi [ Bold; Red ] (String.make underline_len '^')
       in
-      let cont = if same_line then "" else "\n" ^ gutter ^ " | ..." in
+      let cont = if same_line then "" else "\n" ^ indent ^ gutter ^ " | ..." in
       Some
-        (Printf.sprintf "%s |\n%s | %s\n%s | %s%s" gutter lineno_str line_text
-           gutter underline cont)
+        (Printf.sprintf "%s%s |\n%s%s | %s\n%s%s | %s%s" indent gutter indent
+           lineno_str line_text indent gutter underline cont)
+
+let render_region_block ~ansi ~cache ~indent (region : region) : string =
+  let arrow = Ansi.style ansi [ Bold; Blue ] (indent ^ "  --> ") in
+  let loc =
+    Printf.sprintf "%s:%d:%d" region.left.file region.left.line
+      (region.left.column + 1)
+  in
+  let arrow_line = arrow ^ loc in
+  match
+    render_snippet ~ansi ~cache ~indent ~left:region.left ~right:region.right
+  with
+  | None -> arrow_line
+  | Some snippet -> arrow_line ^ "\n" ^ snippet
 
 let render_location ~ansi ~cache (d : Record.t) : string option =
   if d.region = no_region then None
-  else
-    let arrow = Ansi.style ansi [ Bold; Blue ] "  --> " in
-    let loc =
-      Printf.sprintf "%s:%d:%d" d.region.left.file d.region.left.line
-        (d.region.left.column + 1)
-    in
-    let head = arrow ^ loc in
-    match
-      render_snippet ~ansi ~cache ~left:d.region.left ~right:d.region.right
-    with
-    | None -> Some head
-    | Some snippet -> Some (head ^ "\n" ^ snippet)
+  else Some (render_region_block ~ansi ~cache ~indent:"" d.region)
 
 (* --- Annotations: source tag, note, related --- *)
 
@@ -99,17 +102,7 @@ let render_related ~ansi ~cache (d : Record.t) : string option =
       let header = Ansi.style ansi [ Bold; Blue ] "  = related: " ^ r.message in
       if r.region = no_region then header
       else
-        let arrow = Ansi.style ansi [ Bold; Blue ] "  --> " in
-        let loc =
-          Printf.sprintf "%s:%d:%d" r.region.left.file r.region.left.line
-            (r.region.left.column + 1)
-        in
-        let loc_line = arrow ^ loc in
-        match
-          render_snippet ~ansi ~cache ~left:r.region.left ~right:r.region.right
-        with
-        | None -> String.concat "\n" [ header; loc_line ]
-        | Some snippet -> String.concat "\n" [ header; loc_line; snippet ]
+        header ^ "\n" ^ render_region_block ~ansi ~cache ~indent:"  " r.region
     in
     Some (List.map one d.related |> String.concat "\n")
 

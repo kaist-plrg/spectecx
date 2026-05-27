@@ -7,8 +7,8 @@
     = source: elab
     = note: A case-line `| T` extends the surrounding variant with the cases of `T`. The type named here was declared with `syntax T;` but has no body yet, so there are no cases to contribute.
     = related: originally declared here
-    --> type-extend-forward-decl.spectec:4:8
-    |
-  4 | syntax incomplete
-    |        ^^^^^^^^^^
+      --> type-extend-forward-decl.spectec:4:8
+      |
+    4 | syntax incomplete
+      |        ^^^^^^^^^^
   [1]
