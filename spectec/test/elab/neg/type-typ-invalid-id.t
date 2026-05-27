@@ -4,6 +4,4 @@
     |
   4 | syntax x_1 = nat
     |        ^^^
-    |
-    | source: elab
   [1]

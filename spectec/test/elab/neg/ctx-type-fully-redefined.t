@@ -5,7 +5,6 @@
   4 | syntax foo = int
     |        ^^^
     |
-    | source: elab
     | related: originally defined here
     |   --> ctx-type-fully-redefined.spectec:3:8
     |   |

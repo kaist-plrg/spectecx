@@ -4,6 +4,4 @@
     |
   5 | syntax bar = foo
     |              ^^^
-    |
-    | source: elab
   [1]

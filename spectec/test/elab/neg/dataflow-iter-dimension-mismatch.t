@@ -5,13 +5,9 @@
   7 | relation R: foo* |- foo
     | ^^^^^^^^^^^^^^^^^^^^^^^
     | ...
-    |
-    | source: elab
   error[elab/dataflow-iter-dimension-mismatch]: mismatched iteration dimensions for identifier `x`: expected foo*, but got foo
     --> dataflow-iter-dimension-mismatch.spectec:11:9
      |
   11 |   x* |- x
      |         ^
-     |
-     | source: elab
   [1]

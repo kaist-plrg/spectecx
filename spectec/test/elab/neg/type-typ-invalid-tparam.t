@@ -4,6 +4,4 @@
     |
   4 | syntax foo<T_1> = nat
     |        ^^^^
-    |
-    | source: elab
   [1]

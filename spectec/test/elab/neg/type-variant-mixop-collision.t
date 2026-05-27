@@ -6,7 +6,6 @@
     | ^^^^^^^^^^^
     | ...
     |
-    | source: elab
     | note: Variant cases must differ in their literal tokens or argument positions; differences in argument types do not register. The cases shown here share the same sequence, so the elaborator cannot pick between them.
     | related: case with shape `FOO %`
     |   --> type-variant-mixop-collision.spectec:5:5

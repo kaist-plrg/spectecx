@@ -5,6 +5,4 @@
   3 | (; this never closes
     | ^^^^^^^^^^^^^^^^^^^^
     | ...
-    |
-    | source: parse
   [1]

@@ -5,6 +5,5 @@
   2 |   | bool
     |     ^^^^
     |
-    | source: elab
     | note: A case-line `| T` extends the surrounding variant with the cases of `T`. The expression here is a primitive type, not a named variant, so there are no cases to contribute.
   [1]

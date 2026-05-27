@@ -5,6 +5,5 @@
   4 | syntax foo = nat hint(blah) | int
     |              ^^^^^^^^^^^^^^^^^^^^
     |
-    | source: parse
     | note: A plain typdef aliases an existing type, like `syntax x = nat`. It inherits hints from the aliased type and cannot carry hints of its own.
   [1]

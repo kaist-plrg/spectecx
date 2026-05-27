@@ -4,13 +4,9 @@
     |
   3 | dec $f(nat) : nat
     | ^^^^^^^^^^^^^^^^^
-    |
-    | source: elab
   error[elab/clause-arg-arity-mismatch]: arguments do not match
     --> type-clause-arg-arity-mismatch.spectec:4:1
     |
   4 | def $f(x, y) = x
     | ^^^^^^^^^^^^^^^^
-    |
-    | source: elab
   [1]

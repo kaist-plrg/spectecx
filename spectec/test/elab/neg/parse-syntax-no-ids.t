@@ -4,6 +4,4 @@
     |
   3 | syntax
     | ^^^^^^
-    |
-    | source: parse
   [1]

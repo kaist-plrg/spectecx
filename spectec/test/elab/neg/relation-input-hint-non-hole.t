@@ -5,14 +5,10 @@
   6 | relation R: foo |- foo
     | ^^^^^^^^^^^^^^^^^^^^^^
     | ...
-    |
-    | source: elab
   warning[elab/relation-missing-rules]: relation R has no rules defined
     --> relation-input-hint-non-hole.spectec:6:1
     |
   6 | relation R: foo |- foo
     | ^^^^^^^^^^^^^^^^^^^^^^
     | ...
-    |
-    | source: elab
   [1]

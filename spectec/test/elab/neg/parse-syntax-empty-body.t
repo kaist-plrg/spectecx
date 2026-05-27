@@ -4,6 +4,4 @@
     |
   3 | syntax foo =
     |             ^
-    |
-    | source: parse
   [1]

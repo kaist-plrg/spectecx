@@ -4,6 +4,4 @@
     |
   5 | rule Missing/case:
     |      ^^^^^^^
-    |
-    | source: elab
   [1]

@@ -95,15 +95,18 @@ let snippet_gutter (d : Record.t) : string =
 let border_prefix (d : Record.t) : string =
   if d.region = no_region then "  " else " " ^ snippet_gutter d ^ "| "
 
+(* Code-bearing diagnostics already name the pass via [code]. *)
+let show_source (d : Record.t) : bool = d.source <> "" && d.code = None
+
 let render_field_separator (d : Record.t) : string option =
   let has_field =
-    d.source <> "" || d.detail <> None || d.related <> [] || d.trace <> []
+    show_source d || d.detail <> None || d.related <> [] || d.trace <> []
   in
   if d.region = no_region || not has_field then None
   else Some (" " ^ snippet_gutter d ^ "|")
 
 let render_source_tag ~ansi (d : Record.t) : string option =
-  if d.source = "" then None
+  if not (show_source d) then None
   else
     Some
       (border_prefix d

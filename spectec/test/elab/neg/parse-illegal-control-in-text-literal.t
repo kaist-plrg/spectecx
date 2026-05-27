@@ -9,6 +9,4 @@ repo ASCII-clean.
     |
   1 | "abcdef"
     | ^^^^^
-    |
-    | source: parse
   [1]

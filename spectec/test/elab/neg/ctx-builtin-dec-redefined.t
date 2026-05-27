@@ -5,7 +5,6 @@
   4 | builtin dec $f : nat
     |              ^
     |
-    | source: elab
     | related: originally defined here
     |   --> ctx-builtin-dec-redefined.spectec:3:14
     |   |
