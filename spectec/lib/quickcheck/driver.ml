@@ -79,18 +79,24 @@ let run_property ~target ~generalize ~max_steps ~num_tests
       let prop =
         Property.for_all ~shrink:(shrink_env core_spec)
           ?generalize:generalize_fn ~show:show_env gen (fun bindings ->
-            match Premise_eval.eval_side eval_env ~bindings side_prems with
-            | Premise_eval.Holds -> (
-                match Premise_eval.eval eval_env ~bindings goal with
-                | Premise_eval.Holds ->
-                    Property.of_verdict Property.Verdict.pass
-                | Premise_eval.Fails ->
-                    Property.of_verdict Property.Verdict.fail
-                | Premise_eval.StepLimit | Premise_eval.Unsupported _ ->
-                    Property.of_verdict Property.Verdict.discard)
-            | Premise_eval.Fails | Premise_eval.StepLimit
-            | Premise_eval.Unsupported _ ->
-                Property.of_verdict Property.Verdict.discard)
+            let snapshot = Instrumentation.Branch_coverage.get_result () in
+            let verdict =
+              match Premise_eval.eval_side eval_env ~bindings side_prems with
+              | Premise_eval.Holds -> (
+                  match Premise_eval.eval eval_env ~bindings goal with
+                  | Premise_eval.Holds -> Property.Verdict.pass
+                  | Premise_eval.Fails -> Property.Verdict.fail
+                  | Premise_eval.StepLimit | Premise_eval.Unsupported _ ->
+                      Property.Verdict.discard)
+              | Premise_eval.Fails | Premise_eval.StepLimit
+              | Premise_eval.Unsupported _ ->
+                  Property.Verdict.discard
+            in
+            (match verdict.Property.Verdict.status with
+            | `Pass -> ()
+            | `Fail | `Discard ->
+                Instrumentation.Branch_coverage.restore snapshot);
+            Property.of_verdict verdict)
       in
       Ok (Test.run ~config prop)
 
