@@ -10,6 +10,7 @@
     |   |
     | 3 | dec $f(nat) : nat
     |   |      ^^
+  
   warning[elab/dec-missing-clauses]: dec $f has no clauses defined
     --> ctx-dec-redefined.spectec:3:1
     |

@@ -4,6 +4,7 @@
     |
   4 | def $f(x, y) = x
     | ^^^^^^^^^^^^^^^^
+  
   warning[elab/dec-missing-clauses]: dec $f has no clauses defined
     --> type-clause-arg-arity-mismatch.spectec:3:1
     |

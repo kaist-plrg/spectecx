@@ -9,6 +9,7 @@
      |       surrounding value: a tuple element, a variant case's argument, a
      |       struct field, or a list element. It does not invert operators, even
      |       when their inverse would be unique.
+  
   warning[elab/relation-missing-rules]: relation R has no rules defined
     --> dataflow-bind-in-non-invertible.spectec:8:1
     |

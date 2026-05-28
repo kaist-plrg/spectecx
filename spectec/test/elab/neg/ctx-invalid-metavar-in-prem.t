@@ -4,6 +4,7 @@
      |
   11 |   -- var x_1 : foo
      |          ^^^
+  
   warning[elab/relation-missing-rules]: relation R has no rules defined
     --> ctx-invalid-metavar-in-prem.spectec:6:1
     |

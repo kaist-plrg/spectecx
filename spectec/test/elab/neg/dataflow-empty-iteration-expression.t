@@ -9,6 +9,7 @@
     |       Here, no variable has an iteration left to consume: either the body
     |       has no variables, or every variable's `*`s have already been consumed
     |       by surrounding iterations.
+  
   warning[elab/dec-missing-clauses]: dec $f has no clauses defined
     --> dataflow-empty-iteration-expression.spectec:6:1
     |

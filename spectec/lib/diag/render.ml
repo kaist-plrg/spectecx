@@ -130,12 +130,8 @@ let border_prefix (d : Record.t) : string =
 (* Code-bearing diagnostics already name the pass via [code]. *)
 let show_source (d : Record.t) : bool = d.source <> "" && d.code = None
 
-let render_field_separator (d : Record.t) : string option =
-  let has_field =
-    show_source d || d.detail <> None || d.related <> [] || d.trace <> []
-  in
-  if d.region = no_region || not has_field then None
-  else Some (" " ^ snippet_gutter d ^ "|")
+let field_separator (d : Record.t) : string =
+  if d.region = no_region then "\n\n" else "\n " ^ snippet_gutter d ^ "|\n"
 
 let render_source_tag ~ansi (d : Record.t) : string option =
   if not (show_source d) then None
@@ -224,7 +220,7 @@ let render_related ~ansi ~cache (d : Record.t) : string option =
         ^ render_region_block ~ansi ~cache ~indent:(border_prefix d)
             ~underline_style:[ Bold; Blue ] r.region
     in
-    Some (List.map one d.related |> String.concat "\n")
+    Some (List.map one d.related |> String.concat (field_separator d))
 
 (* --- Trace --- *)
 
@@ -265,19 +261,23 @@ let render_trace ~ansi (d : Record.t) : string option =
 (* --- Public API --- *)
 
 let render ~ansi ~cache (d : Record.t) : string =
-  [
-    Some (render_header ~ansi d);
-    render_location ~ansi ~cache d;
-    render_field_separator d;
-    render_source_tag ~ansi d;
-    render_detail ~ansi d;
-    render_related ~ansi ~cache d;
-    render_trace ~ansi d;
-  ]
-  |> List.filter_map Fun.id |> String.concat "\n"
+  let intro =
+    [ Some (render_header ~ansi d); render_location ~ansi ~cache d ]
+    |> List.filter_map Fun.id |> String.concat "\n"
+  in
+  let fields =
+    List.filter_map Fun.id
+      [
+        render_source_tag ~ansi d;
+        render_detail ~ansi d;
+        render_related ~ansi ~cache d;
+        render_trace ~ansi d;
+      ]
+  in
+  String.concat (field_separator d) (intro :: fields)
 
 let render_bag ~ansi bag =
   let cache = Source_cache.create () in
   Record.Bag.to_sorted_list bag
   |> List.map (render ~ansi ~cache)
-  |> String.concat "\n"
+  |> String.concat "\n\n"

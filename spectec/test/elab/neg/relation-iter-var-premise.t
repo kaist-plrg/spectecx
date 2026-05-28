@@ -8,6 +8,7 @@
      | note: Each iteration of `(prem)*` runs `prem` once. Variable declarations
      |       and `otherwise` are declared once per rule, not per iteration, so
      |       iterating them has no meaning.
+  
   warning[elab/relation-missing-rules]: relation R has no rules defined
     --> relation-iter-var-premise.spectec:5:1
     |

@@ -10,6 +10,7 @@
     |   |
     | 5 | relation R: nat |- foo
     |   |          ^
+  
   warning[elab/relation-missing-rules]: relation R has no rules defined
     --> ctx-relation-redefined.spectec:5:1
     |

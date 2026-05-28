@@ -8,6 +8,7 @@
      | note: A negated rule premise asserts that a relation does not hold for
      |       given inputs. The relation must therefore have only input positions:
      |       outputs would have no value to produce when the relation fails.
+  
   warning[elab/relation-missing-rules]: relation P has no rules defined
     --> relation-negated-premise-on-output-relation.spectec:11:1
      |

@@ -8,6 +8,7 @@
      | note: An `=` premise reads as a comparison when both sides are already
      |       bound, or as a binder when one side is. With new variables on both
      |       sides it fits neither.
+  
   warning[elab/relation-missing-rules]: relation R has no rules defined
     --> dataflow-bind-both-sides-of-equality.spectec:9:1
      |

@@ -8,6 +8,7 @@
     | note: A `%latex("...")` literal embeds raw LaTeX source inside a `hint(...)`
     |       expression, for use by a LaTeX rendering backend. Outside a hint, it
     |       has no meaning.
+  
   warning[elab/dec-missing-clauses]: dec $f has no clauses defined
     --> type-latex-outside-hint.spectec:4:1
     |

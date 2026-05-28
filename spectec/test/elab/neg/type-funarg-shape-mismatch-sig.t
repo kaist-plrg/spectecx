@@ -8,11 +8,13 @@
     | note: A function argument in a `def` clause must bind to the same name as
     |       the declared function parameter in the `dec`. The clause body uses
     |       that name to call the function.
+    |
     | related: declared here
     |   --> type-funarg-shape-mismatch-sig.spectec:7:18
     |   |
     | 7 | dec $caller(def $expected : nat) : nat
     |   |                  ^^^^^^^^
+  
   warning[elab/dec-missing-clauses]: dec $caller has no clauses defined
     --> type-funarg-shape-mismatch-sig.spectec:7:1
     |

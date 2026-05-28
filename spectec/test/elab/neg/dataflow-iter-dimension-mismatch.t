@@ -4,6 +4,7 @@
      |
   11 |   x* |- x
      |         ^
+  
   warning[elab/relation-missing-rules]: relation R has no rules defined
     --> dataflow-iter-dimension-mismatch.spectec:7:1
     |

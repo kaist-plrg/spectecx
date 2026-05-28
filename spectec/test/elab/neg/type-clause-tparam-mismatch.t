@@ -8,11 +8,13 @@
     | note: A `def $f<...> = ...` clause must repeat the type parameters from its
     |       `dec` declaration with the same count and the same names in the same
     |       order.
+    |
     | related: declared here
     |   --> type-clause-tparam-mismatch.spectec:3:6
     |   |
     | 3 | dec $f<T> : nat
     |   |      ^^
+  
   warning[elab/dec-missing-clauses]: dec $f has no clauses defined
     --> type-clause-tparam-mismatch.spectec:3:1
     |

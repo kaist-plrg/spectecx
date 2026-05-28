@@ -10,6 +10,7 @@
      |   |
      | 4 | syntax foo = nat
      |   |        ^^^
+  
   warning[elab/relation-missing-rules]: relation R has no rules defined
     --> ctx-type-already-defined-in-prem.spectec:6:1
     |

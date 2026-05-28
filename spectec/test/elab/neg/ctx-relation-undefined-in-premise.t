@@ -4,6 +4,7 @@
      |
   10 |   -- Missing: 0 |- 0
      |      ^^^^^^^
+  
   warning[elab/relation-missing-rules]: relation R has no rules defined
     --> ctx-relation-undefined-in-premise.spectec:5:1
     |
