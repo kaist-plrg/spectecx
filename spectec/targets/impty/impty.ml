@@ -147,8 +147,6 @@ let quickcheck_command =
     flag "--num-tests"
       (optional_with_default 100 int)
       ~doc:"N number of test cases to generate (default 100)"
-  and save =
-    flag "--save" no_arg ~doc:" save passing test inputs to {property}.json"
   and color = Cli.Cli_args.Output.color_flag in
   fun () ->
     Cli.Error_handling.guard_unit ~color @@ fun () ->
@@ -166,8 +164,8 @@ let quickcheck_command =
     let* { lang; qc } = elaborate spec in
     Quickcheck.Driver.check
       ~target:(module T)
-      ~generalize ~max_steps ~num_tests ~save
-      ~manual_gens:Manual_gen.manual_gens lang qc
+      ~generalize ~max_steps ~num_tests ~manual_gens:Manual_gen.manual_gens lang
+      qc
     |> Result.map_error (fun e ->
            Error.QuickcheckError (Quickcheck.Driver.error_to_string e))
 

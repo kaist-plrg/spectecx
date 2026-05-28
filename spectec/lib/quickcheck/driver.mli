@@ -21,7 +21,6 @@ val check :
   generalize:bool ->
   max_steps:int ->
   num_tests:int ->
-  save:bool ->
   manual_gens:(string * manual_gen) list ->
   spec ->
   Qc_il.spec ->
