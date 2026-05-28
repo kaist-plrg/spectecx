@@ -21,6 +21,18 @@ let severity_styles : Record.severity -> Ansi.style list = function
   | Info -> [ Bold; Blue ]
   | Hint -> [ Bold; Cyan ]
 
+(* Backticks must pair; an unmatched one disables inline-code styling. *)
+let style_inline_code ~ansi ~outer (s : string) : string =
+  let parts = String.split_on_char '`' s in
+  if List.length parts mod 2 = 0 then Ansi.style ansi outer s
+  else
+    List.mapi
+      (fun i p ->
+        if i mod 2 = 0 then Ansi.style ansi outer p
+        else Ansi.style ansi [ Bold; Cyan ] ("`" ^ p ^ "`"))
+      parts
+    |> String.concat ""
+
 (* --- Header --- *)
 
 let render_header ~ansi (d : Record.t) : string =
@@ -29,7 +41,7 @@ let render_header ~ansi (d : Record.t) : string =
   let prefix =
     Ansi.style ansi (severity_styles d.severity) (label ^ code ^ ": ")
   in
-  let message = Ansi.style ansi [ Bold ] d.message in
+  let message = style_inline_code ~ansi ~outer:[ Bold ] d.message in
   prefix ^ message
 
 (* --- Source snippet --- *)
@@ -116,14 +128,19 @@ let render_detail ~ansi (d : Record.t) : string option =
   match d.detail with
   | None -> None
   | Some s ->
-      Some (border_prefix d ^ Ansi.style ansi [ Bold; Cyan ] "note: " ^ s)
+      Some
+        (border_prefix d
+        ^ Ansi.style ansi [ Bold; Cyan ] "note: "
+        ^ style_inline_code ~ansi ~outer:[] s)
 
 let render_related ~ansi ~cache (d : Record.t) : string option =
   if d.related = [] then None
   else
     let one (r : Record.related) =
       let header =
-        border_prefix d ^ Ansi.style ansi [ Bold; Blue ] "related: " ^ r.message
+        border_prefix d
+        ^ Ansi.style ansi [ Bold; Blue ] "related: "
+        ^ style_inline_code ~ansi ~outer:[] r.message
       in
       if r.region = no_region then header
       else
@@ -142,7 +159,9 @@ let rec render_trace_node ~ansi ~indent ~is_last (node : Record.trace_node) :
     if region = no_region then ""
     else Ansi.style ansi [ Dim ] (string_of_region region) ^ " "
   in
-  let line = indent ^ connector ^ region_str ^ message in
+  let line =
+    indent ^ connector ^ region_str ^ style_inline_code ~ansi ~outer:[] message
+  in
   let child_indent = indent ^ if is_last then "    " else "│   " in
   let n = List.length children in
   let child_lines =
