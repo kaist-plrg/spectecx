@@ -47,7 +47,7 @@ clean:
 #   make test-il-pos-old / test-il-neg-old / test-sl-pos-old / test-sl-neg-old
 #
 # Grouped tests:
-#   make test-quick      - Fast tests only (elab + elab-neg + struct)
+#   make test-quick      - Fast tests (elab + elab-neg + struct + impty)
 #   make test-il         - IL tests for new p4 (pos + neg)
 #   make test-sl         - SL tests for new p4 (pos + neg)
 #   make test-il-old     - IL tests for p4-old (pos + neg)
@@ -60,7 +60,7 @@ clean:
 #   make test-impty-<v>                              - per-variant il+sl
 #   make test-impty                                  - all impty tests
 #
-#   make test            - quick + new p4 il/sl + impty
+#   make test            - quick + new p4 il/sl
 
 .PHONY: test test-quick test-elab test-elab-neg test-struct
 .PHONY: test-il test-il-pos test-il-neg
@@ -122,7 +122,7 @@ test-sl-pos-old:
 test-sl-neg-old:
 	$(call run_interp_test,p4-old,sl,neg)
 
-test-quick: test-elab test-elab-neg test-struct
+test-quick: test-elab test-elab-neg test-struct test-impty
 	@echo "#### Quick tests passed"
 
 test-il: test-il-pos test-il-neg
@@ -185,5 +185,5 @@ test-impty-closure: test-impty-closure-il test-impty-closure-sl
 test-impty: test-impty-base test-impty-closure
 	@echo "#### impty interpreter tests passed"
 
-test: test-quick test-il test-sl test-impty
+test: test-quick test-il test-sl
 	@echo "#### All quick tests + p4 + impty interpreter tests passed"
