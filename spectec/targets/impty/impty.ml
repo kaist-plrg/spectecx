@@ -147,6 +147,7 @@ let quickcheck_command =
     flag "--num-tests"
       (optional_with_default 100 int)
       ~doc:"N number of test cases to generate (default 100)"
+  and config = Cli.Cli_args.Interpreter.config_flags
   and color = Cli.Cli_args.Output.color_flag in
   fun () ->
     Cli.Error_handling.guard_unit ~color @@ fun () ->
@@ -162,6 +163,9 @@ let quickcheck_command =
     in
     let* spec = parse_spec_files filenames in
     let* { lang; qc } = elaborate spec in
+    Instrumentation.with_instrumentation config
+      (Instrumentation.Static.IlSpec lang)
+    @@ fun () ->
     Quickcheck.Driver.check
       ~target:(module T)
       ~generalize ~max_steps ~num_tests ~manual_gens:Manual_gen.manual_gens lang

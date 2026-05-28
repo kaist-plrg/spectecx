@@ -32,7 +32,7 @@ let init ~spec ~handlers =
   init_handlers ~spec [] handlers;
   session := Active handlers
 
-let emit (ev : Instrumentation_api.Event.t) : unit =
+let forward_to_session ev =
   match !session with
   | Active hs ->
       List.iter
@@ -40,9 +40,29 @@ let emit (ev : Instrumentation_api.Event.t) : unit =
         hs
   | Idle -> ()
 
+let emit (ev : Instrumentation_api.Event.t) : unit = forward_to_session ev
+
 let finish () =
   match !session with
   | Idle -> ()
   | Active hs ->
       session := Idle;
       finish_all_handlers hs
+
+(** Run [f ()] with [handler] temporarily added to the active session. If no
+    session is active, initialises a fresh one for the duration. *)
+let with_handler ~spec handler f =
+  match !session with
+  | Idle ->
+      init ~spec ~handlers:[ handler ];
+      let cleanup () = finish () in
+      Exn.with_cleanup ~cleanup f
+  | Active hs ->
+      let (module H : Instrumentation_api.Handler.S) = handler in
+      H.init ~spec;
+      session := Active (hs @ [ handler ]);
+      let restore () =
+        (try H.finish () with _ -> ());
+        session := Active hs
+      in
+      Exn.with_cleanup ~cleanup:restore f
