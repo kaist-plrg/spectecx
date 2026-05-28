@@ -2,23 +2,23 @@ Running typechecker test on 8 files
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/impty/base/_errors_add_bool.imp
 Expected typechecker failure: ../../../../../spectec/testdata/interp/impty/base/_errors_add_bool.imp
-  ../../../../../spectec/examples/impty/closure/spec.spectec:120:6-120:16:Error: relation was not matched
+  ../../../../../spectec/specs/impty/closure/spec.spectec:120:6-120:16:Error: relation was not matched
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/impty/base/_errors_assign_mismatch.imp
 Expected typechecker failure: ../../../../../spectec/testdata/interp/impty/base/_errors_assign_mismatch.imp
-  ../../../../../spectec/examples/impty/closure/spec.spectec:141:6-141:19:Error: relation was not matched
+  ../../../../../spectec/specs/impty/closure/spec.spectec:141:6-141:19:Error: relation was not matched
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/impty/base/_errors_bad_assign.imp
 Expected typechecker failure: ../../../../../spectec/testdata/interp/impty/base/_errors_bad_assign.imp
-  ../../../../../spectec/examples/impty/closure/spec.spectec:151:6-151:19:Error: relation was not matched
+  ../../../../../spectec/specs/impty/closure/spec.spectec:151:6-151:19:Error: relation was not matched
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/impty/base/_errors_if_not_bool.imp
 Expected typechecker failure: ../../../../../spectec/testdata/interp/impty/base/_errors_if_not_bool.imp
-  ../../../../../spectec/examples/impty/closure/spec.spectec:141:6-141:19:Error: relation was not matched
+  ../../../../../spectec/specs/impty/closure/spec.spectec:141:6-141:19:Error: relation was not matched
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/impty/base/_errors_not_int.imp
 Expected typechecker failure: ../../../../../spectec/testdata/interp/impty/base/_errors_not_int.imp
-  ../../../../../spectec/examples/impty/closure/spec.spectec:120:6-120:16:Error: relation was not matched
+  ../../../../../spectec/specs/impty/closure/spec.spectec:120:6-120:16:Error: relation was not matched
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/impty/base/_errors_undeclared.imp
 Expected typechecker failure: ../../../../../spectec/testdata/interp/impty/base/_errors_undeclared.imp
@@ -26,7 +26,7 @@ Expected typechecker failure: ../../../../../spectec/testdata/interp/impty/base/
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/impty/closure/_errors_arg_type.imp
 Expected typechecker failure: ../../../../../spectec/testdata/interp/impty/closure/_errors_arg_type.imp
-  ../../../../../spectec/examples/impty/closure/spec.spectec:120:6-120:16:Error: relation was not matched
+  ../../../../../spectec/specs/impty/closure/spec.spectec:120:6-120:16:Error: relation was not matched
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/impty/closure/_errors_call_non_function.imp
 Expected typechecker failure: ../../../../../spectec/testdata/interp/impty/closure/_errors_call_non_function.imp
