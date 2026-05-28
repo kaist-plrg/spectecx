@@ -2,47 +2,6 @@ open Il_gen
 open Lang.Il
 open Common.Source
 
-let json_escape s =
-  let buf = Buffer.create (String.length s + 2) in
-  String.iter
-    (fun c ->
-      match c with
-      | '"' -> Buffer.add_string buf "\\\""
-      | '\\' -> Buffer.add_string buf "\\\\"
-      | '\n' -> Buffer.add_string buf "\\n"
-      | '\r' -> Buffer.add_string buf "\\r"
-      | '\t' -> Buffer.add_string buf "\\t"
-      | c when Char.code c < 0x20 -> Printf.bprintf buf "\\u%04x" (Char.code c)
-      | c -> Buffer.add_char buf c)
-    s;
-  Buffer.contents buf
-
-let json_string s = "\"" ^ json_escape s ^ "\""
-
-let save_cases_to_json ~name ~num_tests (cases : (id' * value) list list) =
-  if cases <> [] then (
-    let filename = name ^ ".json" in
-    let oc = open_out filename in
-    let w = output_string oc in
-    w "{\n";
-    w ("  \"property\": " ^ json_string name ^ ",\n");
-    w ("  \"num_tests\": " ^ string_of_int num_tests ^ ",\n");
-    w "  \"cases\": [\n";
-    List.iteri
-      (fun i bindings ->
-        w "    {";
-        List.iteri
-          (fun j (id, v) ->
-            if j > 0 then w ", ";
-            w (json_string id ^ ": " ^ json_string (Print.string_of_value v)))
-          bindings;
-        w "}";
-        if i < List.length cases - 1 then w ",";
-        w "\n")
-      cases;
-    w "  ]\n}\n";
-    close_out oc)
-
 type error = NoManualGenerator of string
 type 'a result = ('a, error) Stdlib.result
 
@@ -99,10 +58,10 @@ let gen_free_vars_manual ~(manual_gens : (string * manual_gen) list)
   | Some gen_fn -> Ok (gen_fn spec_il)
   | None -> Error (NoManualGenerator name)
 
-let run_property ~target ~generalize ~max_steps ~num_tests ~save
+let run_property ~target ~generalize ~max_steps ~num_tests
     ~(manual_gens : (string * manual_gen) list) (core_spec : spec)
     ~(side_prems : prem list) ~(goal : prem) ~(hints : hint list) :
-    (Test.outcome * (id' * value) list list, error) Stdlib.result =
+    (Test.outcome, error) Stdlib.result =
   let config = { Test.default_config with Test.num_tests } in
   let generator = find_generator_hint hints in
   let inputs = Free_vars.of_premises ~core_spec (side_prems @ [ goal ]) in
@@ -117,49 +76,37 @@ let run_property ~target ~generalize ~max_steps ~num_tests ~save
       let generalize_fn =
         if generalize then Some (Generalize.generalize_env core_spec) else None
       in
-      let env_cell : (id' * value) list ref = ref [] in
-      let capturing_gen =
-        if save then
-          Gen.map
-            (fun env ->
-              env_cell := env;
-              env)
-            gen
-        else gen
-      in
       let prop =
         Property.for_all ~shrink:(shrink_env core_spec)
-          ?generalize:generalize_fn ~show:show_env capturing_gen
-          (fun bindings ->
-            match Premise_eval.eval_side eval_env ~bindings side_prems with
-            | Premise_eval.Holds -> (
-                match Premise_eval.eval eval_env ~bindings goal with
-                | Premise_eval.Holds ->
-                    Property.of_verdict Property.Verdict.pass
-                | Premise_eval.Fails ->
-                    Property.of_verdict Property.Verdict.fail
-                | Premise_eval.StepLimit | Premise_eval.Unsupported _ ->
-                    Property.of_verdict Property.Verdict.discard)
-            | Premise_eval.Fails | Premise_eval.StepLimit
-            | Premise_eval.Unsupported _ ->
-                Property.of_verdict Property.Verdict.discard)
+          ?generalize:generalize_fn ~show:show_env gen (fun bindings ->
+            let branch_snapshot =
+              Instrumentation.Branch_coverage.get_result ()
+            in
+            let premise_snapshot =
+              Instrumentation.Node_coverage_il.get_result ()
+            in
+            let verdict =
+              match Premise_eval.eval_side eval_env ~bindings side_prems with
+              | Premise_eval.Holds -> (
+                  match Premise_eval.eval eval_env ~bindings goal with
+                  | Premise_eval.Holds -> Property.Verdict.pass
+                  | Premise_eval.Fails -> Property.Verdict.fail
+                  | Premise_eval.StepLimit | Premise_eval.Unsupported _ ->
+                      Property.Verdict.discard)
+              | Premise_eval.Fails | Premise_eval.StepLimit
+              | Premise_eval.Unsupported _ ->
+                  Property.Verdict.discard
+            in
+            (match verdict.Property.Verdict.status with
+            | `Pass -> ()
+            | `Fail | `Discard ->
+                Instrumentation.Branch_coverage.restore branch_snapshot;
+                Instrumentation.Node_coverage_il.restore premise_snapshot);
+            Property.of_verdict verdict)
       in
-      let collected = ref [] in
-      let tracking_prop =
-        if save then
-          Gen.map
-            (fun verdict ->
-              (match verdict.Property.Verdict.status with
-              | `Pass -> collected := !env_cell :: !collected
-              | _ -> ());
-              verdict)
-            prop
-        else prop
-      in
-      let outcome = Test.run ~config tracking_prop in
-      Ok (outcome, List.rev !collected)
+      Ok (Test.run ~config prop)
 
-let check ~target ~generalize ~max_steps ~num_tests ~save ~manual_gens
+let check ~target ~generalize ~max_steps ~num_tests ~manual_gens
     (spec_il : spec) (qc_spec : Qc_il.spec) : unit result =
   List.fold_left
     (fun acc qc_def ->
@@ -172,15 +119,11 @@ let check ~target ~generalize ~max_steps ~num_tests ~save ~manual_gens
               let name = name_id.it in
               Printf.printf "[Quickcheck %s: Test]\n" name;
               match
-                run_property ~target ~generalize ~max_steps ~num_tests ~save
+                run_property ~target ~generalize ~max_steps ~num_tests
                   ~manual_gens spec_il ~side_prems ~goal ~hints
               with
               | Error _ as e -> e
-              | Ok (outcome, collected) ->
+              | Ok outcome ->
                   Test.print_outcome outcome;
-                  (match outcome with
-                  | Test.Pass { num_tests = n; _ } when save ->
-                      save_cases_to_json ~name ~num_tests:n collected
-                  | _ -> ());
                   Ok ())))
     (Ok ()) qc_spec

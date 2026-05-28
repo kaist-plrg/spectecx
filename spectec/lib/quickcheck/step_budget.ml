@@ -24,6 +24,4 @@ let make ?max_steps () : (module Handler.S) =
 let with_budget ?max_steps spec f =
   let handler = make ?max_steps () in
   let static_spec = Handler.IlSpec spec in
-  Instrumentation.Dispatcher.init ~spec:static_spec ~handlers:[ handler ];
-  let cleanup () = Instrumentation.Dispatcher.finish () in
-  Instrumentation_common.Exn.with_cleanup ~cleanup f
+  Instrumentation.Dispatcher.with_extra_handler ~spec:static_spec handler f

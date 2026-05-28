@@ -46,3 +46,19 @@ let finish () =
   | Active hs ->
       session := Idle;
       finish_all_handlers hs
+
+let with_extra_handler ~spec handler f =
+  match !session with
+  | Idle ->
+      failwith
+        "Instrumentation.Dispatcher.with_extra_handler: no active session"
+  | Active hs ->
+      let (module H : Instrumentation_api.Handler.S) = handler in
+      H.init ~spec;
+      session := Active (hs @ [ handler ]);
+      let restore () =
+        let err = Exn.try_record_first_error None H.finish in
+        session := Active hs;
+        Exn.raise_recorded_error err
+      in
+      Exn.with_cleanup ~cleanup:restore f
