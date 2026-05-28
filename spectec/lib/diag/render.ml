@@ -97,8 +97,10 @@ let render_region_block ~ansi ~cache ~indent ~underline_style (region : region)
     : string =
   let arrow = indent ^ Ansi.style ansi [ Bold; Blue ] "  --> " in
   let loc =
-    Printf.sprintf "%s:%d:%d" region.left.file region.left.line
-      (region.left.column + 1)
+    if region = region_of_file region.left.file then region.left.file
+    else
+      Printf.sprintf "%s:%d:%d" region.left.file region.left.line
+        (region.left.column + 1)
   in
   let arrow_line = arrow ^ loc in
   match
