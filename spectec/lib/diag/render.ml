@@ -65,8 +65,8 @@ let lineno_gutter ~width n =
 
 let range_inclusive lo hi = List.init (hi - lo + 1) (fun i -> lo + i)
 
-let render_snippet ~ansi ~cache ~indent ~(left : pos) ~(right : pos) :
-    string option =
+let render_snippet ~ansi ~cache ~indent ~underline_style ~(left : pos)
+    ~(right : pos) : string option =
   if right.line < left.line then None
   else
     match Source_cache.get_line cache left.file left.line with
@@ -78,7 +78,7 @@ let render_snippet ~ansi ~cache ~indent ~(left : pos) ~(right : pos) :
           let col_start, col_end = underline_range ~left ~right ~lineno ~text in
           let underline =
             underline_indent text col_start
-            ^ Ansi.style ansi [ Bold; Red ]
+            ^ Ansi.style ansi underline_style
                 (String.make (max 1 (col_end - col_start)) '^')
           in
           Printf.sprintf "%s%s | %s\n%s%s | %s" indent
@@ -93,7 +93,8 @@ let render_snippet ~ansi ~cache ~indent ~(left : pos) ~(right : pos) :
                  |> Option.map (render_line_block lineno))
           |> List.cons opening |> String.concat "\n")
 
-let render_region_block ~ansi ~cache ~indent (region : region) : string =
+let render_region_block ~ansi ~cache ~indent ~underline_style (region : region)
+    : string =
   let arrow = indent ^ Ansi.style ansi [ Bold; Blue ] "  --> " in
   let loc =
     Printf.sprintf "%s:%d:%d" region.left.file region.left.line
@@ -101,14 +102,19 @@ let render_region_block ~ansi ~cache ~indent (region : region) : string =
   in
   let arrow_line = arrow ^ loc in
   match
-    render_snippet ~ansi ~cache ~indent ~left:region.left ~right:region.right
+    render_snippet ~ansi ~cache ~indent ~underline_style ~left:region.left
+      ~right:region.right
   with
   | None -> arrow_line
   | Some snippet -> arrow_line ^ "\n" ^ snippet
 
 let render_location ~ansi ~cache (d : Record.t) : string option =
   if d.region = no_region then None
-  else Some (render_region_block ~ansi ~cache ~indent:"" d.region)
+  else
+    Some
+      (render_region_block ~ansi ~cache ~indent:""
+         ~underline_style:(severity_styles d.severity)
+         d.region)
 
 (* --- Annotations: source tag, note, related --- *)
 
@@ -215,7 +221,8 @@ let render_related ~ansi ~cache (d : Record.t) : string option =
       if r.region = no_region then header
       else
         header ^ "\n"
-        ^ render_region_block ~ansi ~cache ~indent:(border_prefix d) r.region
+        ^ render_region_block ~ansi ~cache ~indent:(border_prefix d)
+            ~underline_style:[ Bold; Blue ] r.region
     in
     Some (List.map one d.related |> String.concat "\n")
 
