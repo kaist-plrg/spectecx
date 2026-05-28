@@ -1,9 +1,4 @@
   $ ./main.exe type-funarg-shape-mismatch-sig.spectec 2>&1
-  warning[elab/dec-missing-clauses]: dec $caller has no clauses defined
-    --> type-funarg-shape-mismatch-sig.spectec:7:1
-    |
-  7 | dec $caller(def $expected : nat) : nat
-    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   error[elab/funarg-shape-mismatch-sig]: function argument does not match the declared function parameter expected
     --> type-funarg-shape-mismatch-sig.spectec:8:13
     |
@@ -18,4 +13,9 @@
     |   |
     | 7 | dec $caller(def $expected : nat) : nat
     |   |                  ^^^^^^^^
+  warning[elab/dec-missing-clauses]: dec $caller has no clauses defined
+    --> type-funarg-shape-mismatch-sig.spectec:7:1
+    |
+  7 | dec $caller(def $expected : nat) : nat
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   [1]

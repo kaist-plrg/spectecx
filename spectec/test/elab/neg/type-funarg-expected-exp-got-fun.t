@@ -1,4 +1,9 @@
   $ ./main.exe type-funarg-expected-exp-got-fun.spectec 2>&1
+  error[elab/funarg-expected-exp-got-fun]: expected an expression argument, but got a function argument
+    --> type-funarg-expected-exp-got-fun.spectec:9:21
+    |
+  9 | def $main = $caller(def $g)
+    |                     ^^^^^^
   warning[elab/dec-missing-clauses]: dec $g has no clauses defined
     --> type-funarg-expected-exp-got-fun.spectec:4:1
     |
@@ -14,9 +19,4 @@
     |
   8 | dec $main : nat
     | ^^^^^^^^^^^^^^^
-  error[elab/funarg-expected-exp-got-fun]: expected an expression argument, but got a function argument
-    --> type-funarg-expected-exp-got-fun.spectec:9:21
-    |
-  9 | def $main = $caller(def $g)
-    |                     ^^^^^^
   [1]

@@ -1,4 +1,9 @@
   $ ./main.exe type-functyp-param-arity-mismatch.spectec 2>&1
+  error[elab/functyp-param-arity-mismatch]: parameters do not match
+    --> type-functyp-param-arity-mismatch.spectec:10:20
+     |
+  10 | def $bad = $caller(def $g)
+     |                    ^^^^^^
   warning[elab/dec-missing-clauses]: dec $g has no clauses defined
     --> type-functyp-param-arity-mismatch.spectec:5:1
     |
@@ -14,9 +19,4 @@
     |
   9 | dec $bad : nat
     | ^^^^^^^^^^^^^^
-  error[elab/functyp-param-arity-mismatch]: parameters do not match
-    --> type-functyp-param-arity-mismatch.spectec:10:20
-     |
-  10 | def $bad = $caller(def $g)
-     |                    ^^^^^^
   [1]

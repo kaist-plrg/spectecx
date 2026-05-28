@@ -1,9 +1,4 @@
   $ ./main.exe type-clause-tparam-mismatch.spectec 2>&1
-  warning[elab/dec-missing-clauses]: dec $f has no clauses defined
-    --> type-clause-tparam-mismatch.spectec:3:1
-    |
-  3 | dec $f<T> : nat
-    | ^^^^^^^^^^^^^^^
   error[elab/clause-tparam-mismatch]: type parameters do not match
     --> type-clause-tparam-mismatch.spectec:4:6
     |
@@ -18,4 +13,9 @@
     |   |
     | 3 | dec $f<T> : nat
     |   |      ^^
+  warning[elab/dec-missing-clauses]: dec $f has no clauses defined
+    --> type-clause-tparam-mismatch.spectec:3:1
+    |
+  3 | dec $f<T> : nat
+    | ^^^^^^^^^^^^^^^
   [1]
