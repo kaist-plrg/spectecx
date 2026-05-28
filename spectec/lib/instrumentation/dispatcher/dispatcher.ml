@@ -50,7 +50,8 @@ let finish () =
 let with_extra_handler ~spec handler f =
   match !session with
   | Idle ->
-      failwith "Instrumentation.Dispatcher.with_handler: no active session"
+      failwith
+        "Instrumentation.Dispatcher.with_extra_handler: no active session"
   | Active hs ->
       let (module H : Instrumentation_api.Handler.S) = handler in
       H.init ~spec;

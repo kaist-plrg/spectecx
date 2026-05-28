@@ -13,9 +13,14 @@ val emit : Instrumentation_api.Event.t -> unit
 
 val finish : unit -> unit
 
-(** Run [f ()] with [handler] temporarily spliced into the active session.
-    Raises if no session is active; wrap the call site with
-    [Instrumentation.with_instrumentation]. *)
+(** Extend the active instrumentation session with one extra [handler] for the
+    dynamic extent of [f ()]; removed on exit even when [f] raises. Fails if no
+    session is active.
+
+    Use for controllers (handlers that raise from [handle] to interrupt
+    evaluation). Wrap the call in a [try]/[with] for the controller's exception.
+    A session-scope install via {!Instrumentation.Config.handlers} would let the
+    exception escape outside any matching catcher. *)
 val with_extra_handler :
   spec:Instrumentation_api.Handler.spec ->
   (module Instrumentation_api.Handler.S) ->
