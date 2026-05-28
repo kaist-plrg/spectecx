@@ -11,5 +11,7 @@
   14 |   -- if x = y
      |         ^^^^^
      |
-     | note: An `=` premise reads as a comparison when both sides are already bound, or as a binder when one side is. With new variables on both sides it fits neither.
+     | note: An `=` premise reads as a comparison when both sides are already
+     |       bound, or as a binder when one side is. With new variables on both
+     |       sides it fits neither.
   [1]

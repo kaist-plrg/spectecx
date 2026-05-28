@@ -11,5 +11,8 @@
   13 |   -- (if x = 0)*
      |       ^^^^^^^^
      |
-     | note: An iteration needs a loop variable inside it: a variable already bound outside whose values it iterates over. Here, every variable inside is newly bound rather than already bound, so there is no loop variable.
+     | note: An iteration needs a loop variable inside it: a variable already
+     |       bound outside whose values it iterates over. Here, every variable
+     |       inside is newly bound rather than already bound, so there is no loop
+     |       variable.
   [1]

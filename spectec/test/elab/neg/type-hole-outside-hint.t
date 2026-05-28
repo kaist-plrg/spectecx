@@ -10,5 +10,7 @@
   5 | def $f = %0
     |          ^^
     |
-    | note: A `%`, `%N`, `%%`, or `!%` marks an argument slot inside a `hint(...)` expression, like `hint(input %0 %1)`. Outside a hint, it has no meaning.
+    | note: A `%`, `%N`, `%%`, or `!%` marks an argument slot inside a `hint(...)`
+    |       expression, like `hint(input %0 %1)`. Outside a hint, it has no
+    |       meaning.
   [1]

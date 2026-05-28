@@ -11,5 +11,6 @@
   14 |   v |- u
      |        ^
      |
-     | note: Every variable here must already be bound by an earlier part of the rule (the conclusion's input slot or a preceding premise).
+     | note: Every variable here must already be bound by an earlier part of the
+     |       rule (the conclusion's input slot or a preceding premise).
   [1]

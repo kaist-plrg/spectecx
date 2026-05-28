@@ -11,5 +11,7 @@
   11 |   (x, x*) |- true
      |    ^
      |
-     | note: A variable can have only one inferred type per binder pattern. Here, the same variable is bound in two parallel positions at different dimensions, so the elaborator cannot pick one.
+     | note: A variable can have only one inferred type per binder pattern. Here,
+     |       the same variable is bound in two parallel positions at different
+     |       dimensions, so the elaborator cannot pick one.
   [1]

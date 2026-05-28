@@ -11,5 +11,8 @@
   13 |   -- if -x = 5
      |          ^
      |
-     | note: The elaborator assigns each variable a specific piece of the surrounding value: a tuple element, a variant case's argument, a struct field, or a list element. It does not invert operators, even when their inverse would be unique.
+     | note: The elaborator assigns each variable a specific piece of the
+     |       surrounding value: a tuple element, a variant case's argument, a
+     |       struct field, or a list element. It does not invert operators, even
+     |       when their inverse would be unique.
   [1]

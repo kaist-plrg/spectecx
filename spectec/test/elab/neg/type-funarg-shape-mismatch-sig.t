@@ -10,7 +10,9 @@
   8 | def $caller(def $g) = 0
     |             ^^^^^^
     |
-    | note: A function argument in a `def` clause must bind to the same name as the declared function parameter in the `dec`. The clause body uses that name to call the function.
+    | note: A function argument in a `def` clause must bind to the same name as
+    |       the declared function parameter in the `dec`. The clause body uses
+    |       that name to call the function.
     | related: declared here
     |   --> type-funarg-shape-mismatch-sig.spectec:7:18
     |   |

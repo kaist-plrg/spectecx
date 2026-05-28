@@ -10,5 +10,7 @@
   5 | def $f = ## 0
     |          ^^^^
     |
-    | note: The `##` operator strips enclosing parentheses from its operand when a `hint(...)` expression is rendered, giving finer control over the rendered form. Outside a hint, it has no meaning.
+    | note: The `##` operator strips enclosing parentheses from its operand when a
+    |       `hint(...)` expression is rendered, giving finer control over the
+    |       rendered form. Outside a hint, it has no meaning.
   [1]

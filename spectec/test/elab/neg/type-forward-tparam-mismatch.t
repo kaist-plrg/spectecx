@@ -5,7 +5,9 @@
   5 | syntax foo<T> = T
     |        ^^^^
     |
-    | note: A `syntax T<...> = ...` body must repeat the type parameters from its forward declaration with the same count and the same names in the same order.
+    | note: A `syntax T<...> = ...` body must repeat the type parameters from its
+    |       forward declaration with the same count and the same names in the same
+    |       order.
     | related: forward-declared here
     |   --> type-forward-tparam-mismatch.spectec:4:8
     |   |

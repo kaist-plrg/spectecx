@@ -11,5 +11,7 @@
   10 |   -- (var x : foo)*
      |       ^^^^^^^^^^^
      |
-     | note: Each iteration of `(prem)*` runs `prem` once. Variable declarations and `otherwise` are declared once per rule, not per iteration, so iterating them has no meaning.
+     | note: Each iteration of `(prem)*` runs `prem` once. Variable declarations
+     |       and `otherwise` are declared once per rule, not per iteration, so
+     |       iterating them has no meaning.
   [1]

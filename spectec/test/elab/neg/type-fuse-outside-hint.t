@@ -10,5 +10,7 @@
   5 | def $f = 0 # 1
     |          ^^^^^
     |
-    | note: The `#` operator joins two fragments without a space inside a `hint(...)` expression's rendered output, like `hint(prose %0#suffix)`. Outside a hint, it has no meaning.
+    | note: The `#` operator joins two fragments without a space inside a
+    |       `hint(...)` expression's rendered output, like
+    |       `hint(prose %0#suffix)`. Outside a hint, it has no meaning.
   [1]

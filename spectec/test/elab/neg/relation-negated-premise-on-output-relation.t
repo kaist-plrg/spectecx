@@ -11,5 +11,7 @@
   16 |   -- R:/ 0 |- 0
      |          ^^^^^^
      |
-     | note: A negated rule premise asserts that a relation does not hold for given inputs. The relation must therefore have only input positions: outputs would have no value to produce when the relation fails.
+     | note: A negated rule premise asserts that a relation does not hold for
+     |       given inputs. The relation must therefore have only input positions:
+     |       outputs would have no value to produce when the relation fails.
   [1]

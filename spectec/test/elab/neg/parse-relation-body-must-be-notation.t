@@ -5,5 +5,7 @@
   3 | relation R: nat
     |             ^^^
     |
-    | note: A notation type includes literal tokens like `|-` or `:` that rules pattern-match against. A bare type like `nat` names a set of values without any tokens, so it cannot serve as a relation body.
+    | note: A notation type includes literal tokens like `|-` or `:` that rules
+    |       pattern-match against. A bare type like `nat` names a set of values
+    |       without any tokens, so it cannot serve as a relation body.
   [1]
