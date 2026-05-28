@@ -4,7 +4,8 @@
     |
   8 | relation R: foo |- foo
     | ^^^^^^^^^^^^^^^^^^^^^^
-    | ...
+  9 |   hint(input %0)
+    | ^^^^^^^^^^^^^^^^
   error[elab/dataflow-bind-in-non-invertible]: invalid binding position(s) for { x : foo } in non-invertible unary operator
     --> dataflow-bind-in-non-invertible.spectec:13:10
      |

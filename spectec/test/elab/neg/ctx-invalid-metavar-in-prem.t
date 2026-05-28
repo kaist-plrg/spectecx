@@ -4,7 +4,8 @@
     |
   6 | relation R: foo |- foo
     | ^^^^^^^^^^^^^^^^^^^^^^
-    | ...
+  7 |   hint(input %0)
+    | ^^^^^^^^^^^^^^^^
   error[elab/var-prem-invalid-metavar]: invalid meta-variable identifier
     --> ctx-invalid-metavar-in-prem.spectec:11:10
      |

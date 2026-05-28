@@ -4,7 +4,8 @@
     |
   5 | relation R: foo |- foo
     | ^^^^^^^^^^^^^^^^^^^^^^
-    | ...
+  6 |   hint(input %0)
+    | ^^^^^^^^^^^^^^^^
   error[elab/ctx-relation-undefined]: relation `Missing` is undefined
     --> ctx-relation-undefined-in-premise.spectec:10:6
      |

@@ -4,7 +4,8 @@
      |
   10 | relation E: exp |- val
      | ^^^^^^^^^^^^^^^^^^^^^^
-     | ...
+  11 |   hint(input %0)
+     | ^^^^^^^^^^^^^^^^
   error[elab/dataflow-free-variable-in-output]: expression has free variable(s): { u : val }
     --> dataflow-free-variable-in-output.spectec:14:8
      |

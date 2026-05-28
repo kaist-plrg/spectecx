@@ -4,7 +4,8 @@
     |
   5 |   | FOO nat
     | ^^^^^^^^^^^
-    | ...
+  6 |   | FOO int
+    | ^^^^^^^^^^^
     |
     | note: Variant cases must differ in their literal tokens or argument
     |       positions; differences in argument types do not register. The cases

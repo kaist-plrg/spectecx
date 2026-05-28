@@ -1,10 +1,11 @@
   $ ./main.exe dataflow-bind-both-sides-of-equality.spectec 2>&1
   warning[elab/relation-missing-rules]: relation R has no rules defined
     --> dataflow-bind-both-sides-of-equality.spectec:9:1
-    |
-  9 | relation R: foo |- foo
-    | ^^^^^^^^^^^^^^^^^^^^^^
-    | ...
+     |
+   9 | relation R: foo |- foo
+     | ^^^^^^^^^^^^^^^^^^^^^^
+  10 |   hint(input %0)
+     | ^^^^^^^^^^^^^^^^
   error[elab/dataflow-bind-both-sides-of-equality]: cannot bind on both sides of an equality: (left) { x : foo }, (right) { y : foo }
     --> dataflow-bind-both-sides-of-equality.spectec:14:9
      |

@@ -4,7 +4,8 @@
      |
   11 | relation P: foo |- foo
      | ^^^^^^^^^^^^^^^^^^^^^^
-     | ...
+  12 |   hint(input %0)
+     | ^^^^^^^^^^^^^^^^
   error[elab/negated-premise-takes-inputs]: negated rule premises do not take inputs
     --> relation-negated-premise-on-output-relation.spectec:16:10
      |

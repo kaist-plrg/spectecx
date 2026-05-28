@@ -4,7 +4,8 @@
     |
   8 | relation R: foo |- foo
     | ^^^^^^^^^^^^^^^^^^^^^^
-    | ...
+  9 |   hint(input %0)
+    | ^^^^^^^^^^^^^^^^
   error[elab/dataflow-empty-iter-premise]: empty iteration
     --> dataflow-empty-iteration-premise.spectec:13:7
      |

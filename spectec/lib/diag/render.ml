@@ -46,38 +46,52 @@ let render_header ~ansi (d : Record.t) : string =
 
 (* --- Source snippet --- *)
 
-(* TODO: multi-line regions currently render only the first line followed by
-   "...". A future improvement would render every line in the span with the
-   underline tracking the relevant columns on each row. *)
+(* Tabs are copied verbatim so the carets align under the source column. *)
+let underline_indent text col_start =
+  String.init col_start (fun i ->
+      if i < String.length text && text.[i] = '\t' then '\t' else ' ')
+
+let underline_range ~(left : pos) ~(right : pos) ~lineno ~text =
+  let col_start = if lineno = left.line then max 0 left.column else 0 in
+  let col_end =
+    if lineno = right.line then max (col_start + 1) right.column
+    else max (col_start + 1) (String.length text)
+  in
+  (col_start, col_end)
+
+let lineno_gutter ~width n =
+  let s = string_of_int n in
+  String.make (max 0 (width - String.length s)) ' ' ^ s
+
+let range_inclusive lo hi = List.init (hi - lo + 1) (fun i -> lo + i)
+
 let render_snippet ~ansi ~cache ~indent ~(left : pos) ~(right : pos) :
     string option =
-  match Source_cache.get_line cache left.file left.line with
-  | None -> None
-  | Some line_text ->
-      let lineno_str = string_of_int left.line in
-      let gutter = String.make (String.length lineno_str) ' ' in
-      let same_line = left.line = right.line in
-      let col_start = max 0 left.column in
-      let col_end =
-        if same_line then max (col_start + 1) right.column
-        else max (col_start + 1) (String.length line_text)
-      in
-      let underline_len = max 1 (col_end - col_start) in
-      (* Copy tabs from the source verbatim so the caret aligns under the
-         right column regardless of indentation style. *)
-      let caret_pad =
-        String.init col_start (fun i ->
-            if i < String.length line_text && line_text.[i] = '\t' then '\t'
-            else ' ')
-      in
-      let underline =
-        caret_pad
-        ^ Ansi.style ansi [ Bold; Red ] (String.make underline_len '^')
-      in
-      let cont = if same_line then "" else "\n" ^ indent ^ gutter ^ " | ..." in
-      Some
-        (Printf.sprintf "%s%s |\n%s%s | %s\n%s%s | %s%s" indent gutter indent
-           lineno_str line_text indent gutter underline cont)
+  if right.line < left.line then None
+  else
+    match Source_cache.get_line cache left.file left.line with
+    | None -> None
+    | Some _ ->
+        let gutter_width = String.length (string_of_int right.line) in
+        let blank_gutter = String.make gutter_width ' ' in
+        let render_line_block lineno text =
+          let col_start, col_end = underline_range ~left ~right ~lineno ~text in
+          let underline =
+            underline_indent text col_start
+            ^ Ansi.style ansi [ Bold; Red ]
+                (String.make (max 1 (col_end - col_start)) '^')
+          in
+          Printf.sprintf "%s%s | %s\n%s%s | %s" indent
+            (lineno_gutter ~width:gutter_width lineno)
+            text indent blank_gutter underline
+        in
+        let opening = Printf.sprintf "%s%s |" indent blank_gutter in
+        Some
+          (range_inclusive left.line right.line
+          |> List.filter_map (fun lineno ->
+                 Source_cache.get_line cache left.file lineno
+                 |> Option.map (render_line_block lineno))
+          |> List.cons opening |> String.concat "\n")
 
 let render_region_block ~ansi ~cache ~indent (region : region) : string =
   let arrow = indent ^ Ansi.style ansi [ Bold; Blue ] "  --> " in

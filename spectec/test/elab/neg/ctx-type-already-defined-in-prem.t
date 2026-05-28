@@ -4,7 +4,8 @@
     |
   6 | relation R: foo |- foo
     | ^^^^^^^^^^^^^^^^^^^^^^
-    | ...
+  7 |   hint(input %0)
+    | ^^^^^^^^^^^^^^^^
   error[elab/var-prem-type-redefined]: type already defined
     --> ctx-type-already-defined-in-prem.spectec:11:10
      |

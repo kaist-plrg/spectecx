@@ -4,7 +4,8 @@
     |
   5 | relation R: nat |- foo
     | ^^^^^^^^^^^^^^^^^^^^^^
-    | ...
+  6 |   hint(input %0)
+    | ^^^^^^^^^^^^^^^^
   error[elab/ctx-relation-redefined]: relation `R` was already defined
     --> ctx-relation-redefined.spectec:8:10
     |

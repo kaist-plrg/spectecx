@@ -4,7 +4,8 @@
     |
   5 | relation R: foo |- foo
     | ^^^^^^^^^^^^^^^^^^^^^^
-    | ...
+  6 |   hint(input %0)
+    | ^^^^^^^^^^^^^^^^
   error[elab/iter-only-rule-or-if-premise]: only rule or if premises can be iterated
     --> relation-iter-var-premise.spectec:10:7
      |

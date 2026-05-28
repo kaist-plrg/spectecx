@@ -4,7 +4,8 @@
     |
   8 | relation R: foo |- foo
     | ^^^^^^^^^^^^^^^^^^^^^^
-    | ...
+  9 |   hint(input %0)
+    | ^^^^^^^^^^^^^^^^
   error[elab/dataflow-iter-binding-only]: cannot determine dimension of binding identifier(s) only: x let x = 0
     --> dataflow-iter-binding-only.spectec:13:7
      |

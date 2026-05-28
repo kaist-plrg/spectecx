@@ -4,7 +4,8 @@
     |
   7 | relation R: (foo, foo*) |- bool
     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    | ...
+  8 |   hint(input %0)
+    | ^^^^^^^^^^^^^^^^
   error[elab/dataflow-multibind-dimension-mismatch]: inconsistent dimensions for multiple bindings: (left) foo, (right) foo*
     --> dataflow-multibind-dimension-mismatch.spectec:11:4
      |
