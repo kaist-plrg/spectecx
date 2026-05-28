@@ -79,7 +79,12 @@ let run_property ~target ~generalize ~max_steps ~num_tests
       let prop =
         Property.for_all ~shrink:(shrink_env core_spec)
           ?generalize:generalize_fn ~show:show_env gen (fun bindings ->
-            let snapshot = Instrumentation.Branch_coverage.get_result () in
+            let branch_snapshot =
+              Instrumentation.Branch_coverage.get_result ()
+            in
+            let premise_snapshot =
+              Instrumentation.Node_coverage_il.get_result ()
+            in
             let verdict =
               match Premise_eval.eval_side eval_env ~bindings side_prems with
               | Premise_eval.Holds -> (
@@ -95,7 +100,8 @@ let run_property ~target ~generalize ~max_steps ~num_tests
             (match verdict.Property.Verdict.status with
             | `Pass -> ()
             | `Fail | `Discard ->
-                Instrumentation.Branch_coverage.restore snapshot);
+                Instrumentation.Branch_coverage.restore branch_snapshot;
+                Instrumentation.Node_coverage_il.restore premise_snapshot);
             Property.of_verdict verdict)
       in
       Ok (Test.run ~config prop)

@@ -47,20 +47,17 @@ let finish () =
       session := Idle;
       finish_all_handlers hs
 
-(** Run [f ()] with [handler] temporarily added to the active session. If no
-    session is active, initialises a fresh one for the duration. *)
-let with_handler ~spec handler f =
+let with_extra_handler ~spec handler f =
   match !session with
   | Idle ->
-      init ~spec ~handlers:[ handler ];
-      let cleanup () = finish () in
-      Exn.with_cleanup ~cleanup f
+      failwith "Instrumentation.Dispatcher.with_handler: no active session"
   | Active hs ->
       let (module H : Instrumentation_api.Handler.S) = handler in
       H.init ~spec;
       session := Active (hs @ [ handler ]);
       let restore () =
-        (try H.finish () with _ -> ());
-        session := Active hs
+        let err = Exn.try_record_first_error None H.finish in
+        session := Active hs;
+        Exn.raise_recorded_error err
       in
       Exn.with_cleanup ~cleanup:restore f
