@@ -82,7 +82,7 @@ let render_snippet ~ansi ~cache ~indent ~underline_style ~(left : pos)
                 (String.make (max 1 (col_end - col_start)) '^')
           in
           Printf.sprintf "%s%s | %s\n%s%s | %s" indent
-            (lineno_gutter ~width:gutter_width lineno)
+            (Ansi.style ansi [ Dim ] (lineno_gutter ~width:gutter_width lineno))
             text indent blank_gutter underline
         in
         let opening = Printf.sprintf "%s%s |" indent blank_gutter in
