@@ -92,6 +92,7 @@ val summary_failed : batch_summary -> int
 
 val print_outcome :
   (module Spectec.Task.S with type input = 'i) ->
+  ansi:Spectec.Diagnostic.Ansi.t ->
   string ->
   Spectec.Task.test_outcome ->
   unit
@@ -103,6 +104,7 @@ val print_summary : batch_summary -> unit
 val run_and_print_single :
   (module Spectec.Task.S with type input = 'i) ->
   ?config:Instrumentation.Config.t ->
+  ansi:Spectec.Diagnostic.Ansi.t ->
   sl_mode:bool ->
   spec_il:Lang.Il.spec ->
   'i ->
@@ -111,6 +113,7 @@ val run_and_print_single :
 val run_and_print_batch :
   (module Spectec.Task.S with type input = 'i) ->
   ?config:Instrumentation.Config.t ->
+  ansi:Spectec.Diagnostic.Ansi.t ->
   sl_mode:bool ->
   spec_il:Lang.Il.spec ->
   verbose:bool ->

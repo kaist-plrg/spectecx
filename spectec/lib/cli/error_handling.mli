@@ -4,6 +4,10 @@
     any diagnostics (and errors) to stderr, and exits with status 1 on [Error].
     Call sites stay free of exit plumbing. *)
 
+(** Resolve a [--color] choice into a concrete style, honoring [NO_COLOR] and a
+    stderr TTY check under [Auto]. *)
+val resolve_ansi : Cli_args.color -> Spectec.Diagnostic.Ansi.t
+
 val guard :
   color:Cli_args.color ->
   on_ok:('a -> unit) ->
