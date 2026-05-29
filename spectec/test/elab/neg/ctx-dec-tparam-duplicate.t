@@ -4,5 +4,4 @@
     |
   3 | dec $f<T, T> : nat
     |      ^^
-    = source: elab
   [1]

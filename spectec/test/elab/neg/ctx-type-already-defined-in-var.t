@@ -4,5 +4,6 @@
     |
   6 | var foo : int
     |     ^^^
-    = source: elab
+    |
+    | source: elab
   [1]

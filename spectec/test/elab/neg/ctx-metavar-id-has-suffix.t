@@ -4,5 +4,6 @@
     |
   4 | var x_1 : nat
     |     ^^^
-    = source: elab
+    |
+    | source: elab
   [1]

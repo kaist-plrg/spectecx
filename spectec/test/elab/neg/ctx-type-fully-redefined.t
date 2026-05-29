@@ -4,10 +4,10 @@
     |
   4 | syntax foo = int
     |        ^^^
-    = source: elab
-    = related: originally defined here
-    --> ctx-type-fully-redefined.spectec:3:8
     |
-  3 | syntax foo = nat
-    |        ^^^
+    | related: originally defined here
+    |   --> ctx-type-fully-redefined.spectec:3:8
+    |   |
+    | 3 | syntax foo = nat
+    |   |        ^^^
   [1]

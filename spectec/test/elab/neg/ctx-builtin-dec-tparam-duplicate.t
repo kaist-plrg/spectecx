@@ -4,5 +4,4 @@
     |
   4 | builtin dec $f<T, T> : nat
     |              ^^
-    = source: elab
   [1]

@@ -4,13 +4,14 @@
     |
   6 | relation R: foo |- foo
     | ^^^^^^^^^^^^^^^^^^^^^^
-    | ...
-    = source: elab
+  7 |   hint(input 0)
+    | ^^^^^^^^^^^^^^^
+  
   warning[elab/relation-missing-rules]: relation R has no rules defined
     --> relation-input-hint-non-hole.spectec:6:1
     |
   6 | relation R: foo |- foo
     | ^^^^^^^^^^^^^^^^^^^^^^
-    | ...
-    = source: elab
+  7 |   hint(input 0)
+    | ^^^^^^^^^^^^^^^
   [1]
