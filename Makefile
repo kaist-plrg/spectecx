@@ -46,8 +46,11 @@ clean:
 # p4-old interpreter tests:
 #   make test-il-pos-old / test-il-neg-old / test-sl-pos-old / test-sl-neg-old
 #
+# Per-case interpreter negative corpus (impty IL, one cram test per case):
+#   make test-interp-neg - Per-case impty IL negative tests
+#
 # Grouped tests:
-#   make test-quick      - Fast tests (elab + elab-neg + struct + impty)
+#   make test-quick      - Fast tests (elab + elab-neg + interp-neg + struct + impty)
 #   make test-il         - IL tests for new p4 (pos + neg)
 #   make test-sl         - SL tests for new p4 (pos + neg)
 #   make test-il-old     - IL tests for p4-old (pos + neg)
@@ -62,7 +65,7 @@ clean:
 #
 #   make test            - quick + new p4 il/sl
 
-.PHONY: test test-quick test-elab test-elab-neg test-struct
+.PHONY: test test-quick test-elab test-elab-neg test-interp-neg test-struct
 .PHONY: test-il test-il-pos test-il-neg
 .PHONY: test-sl test-sl-pos test-sl-neg
 .PHONY: test-old test-il-old test-il-pos-old test-il-neg-old
@@ -83,6 +86,10 @@ test-elab:
 test-elab-neg:
 	@echo "#### Running elaboration negative tests"
 	@$(DUNE) build @test/elab/neg/runtest --profile=release && echo OK
+
+test-interp-neg:
+	@echo "#### Running interpreter negative tests (per-case impty IL corpus)"
+	@$(DUNE) build @test/interp/neg/runtest --profile=release && echo OK
 
 test-struct:
 	@echo "#### Running structuring test"
@@ -122,7 +129,7 @@ test-sl-pos-old:
 test-sl-neg-old:
 	$(call run_interp_test,p4-old,sl,neg)
 
-test-quick: test-elab test-elab-neg test-struct test-impty
+test-quick: test-elab test-elab-neg test-interp-neg test-struct test-impty
 	@echo "#### Quick tests passed"
 
 test-il: test-il-pos test-il-neg
