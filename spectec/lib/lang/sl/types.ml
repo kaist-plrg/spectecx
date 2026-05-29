@@ -144,10 +144,6 @@ and instr' =
 and block = instr list
 and elseblock = instr list
 
-(* Hints *)
-
-type hint = { hintid : id; hintexp : El.exp }
-
 (* Definitions *)
 
 type def = def' phrase
