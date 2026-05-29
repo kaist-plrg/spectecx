@@ -91,6 +91,18 @@ let rec trace_of_failtrace
 
 let traces_of_failtraces = List.map trace_of_failtrace
 
+let of_failtraces ~source ~fallback (failtraces : Common.Attempt.failtrace list)
+    : t =
+  let at = Common.Attempt.region_of_failtraces failtraces in
+  let message, trace =
+    match failtraces with
+    | [] -> (fallback, [])
+    | [ Common.Attempt.Failtrace (_, msg, children) ] ->
+        (msg, traces_of_failtraces children)
+    | _ -> (fallback, traces_of_failtraces failtraces)
+  in
+  error ~source ~trace at message
+
 (* Plain text rendering *)
 
 let to_string d =
