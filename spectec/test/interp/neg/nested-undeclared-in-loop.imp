@@ -1,0 +1,5 @@
+// A loop body reads a variable that was never declared.
+int i = 0;
+while i <= 10 do
+  i = i + step
+end
