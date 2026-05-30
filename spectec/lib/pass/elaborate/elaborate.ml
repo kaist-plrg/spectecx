@@ -1753,21 +1753,6 @@ and elab_var_def (ctx : Ctx.t) (id : id) (plaintyp : plaintyp) : Ctx.t =
 
 (* Elaboration of relations *)
 
-and fetch_rel_input_hint' (len : int) (hintexp : exp) : int list option =
-  match hintexp.it with
-  | SeqE exps ->
-      List.fold_left
-        (fun inputs exp ->
-          match inputs with
-          | Some inputs -> (
-              match exp.it with
-              | HoleE (`Num input) when input < len -> Some (inputs @ [ input ])
-              | _ -> None)
-          | None -> None)
-        (Some []) exps
-  | HoleE (`Num input) when input < len -> Some [ input ]
-  | _ -> None
-
 and fetch_rel_input_dirs (at : region) (nottyp_il : Il.nottyp)
     (hints : hint list) : Il.Mode.dir list =
   let len = nottyp_il.it |> Il.Mixfix.args |> List.length in
@@ -1783,16 +1768,16 @@ and fetch_rel_input_dirs (at : region) (nottyp_il : Il.nottyp)
   in
   match hint_input with
   | Some hintexp -> (
-      let inputs_opt = fetch_rel_input_hint' len hintexp in
-      match inputs_opt with
+      match Hints.Input.parse hintexp with
       | Some [] ->
           error at "malformed input hint: at least one input should be provided"
             ~code:Relation_input_hint_empty
       | Some inputs when not (distinct ( = ) inputs) ->
           error at "malformed input hint: inputs should be distinct"
             ~code:Relation_input_hint_duplicate_index
-      | Some inputs -> dirs_of_indices inputs
-      | None ->
+      | Some inputs when List.for_all (fun input -> input < len) inputs ->
+          dirs_of_indices inputs
+      | Some _ | None ->
           warn at
             (Format.asprintf
                "malformed input hint: should be a sequence of indexed holes \
