@@ -1,4 +1,4 @@
 (library
  (name lang)
  (public_name spectec.lang)
- (libraries bignum.bigint spectec.common xl el il sl))
+ (libraries bignum.bigint spectec.common xl el il sl pl))

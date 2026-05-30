@@ -3,4 +3,9 @@
 (library
  (name elaborate)
  (public_name spectec.pass.elaborate)
- (libraries spectec.common spectec.diagnostic spectec.lang spectec.envs))
+ (libraries
+  spectec.common
+  spectec.diagnostic
+  spectec.lang
+  spectec.envs
+  spectec.hints))

@@ -5,6 +5,7 @@ syntax pair<K,V> = K -> V
 syntax map<K,V> = (pair<K,V>)*
 
 dec $lookup_<K, V>(map<K, V>, K) : V?
+  hint(prose_in "lookup of" %1 "in" %0)
 def $lookup_<K, V>(eps, K) = eps
 def $lookup_<K, V>((K_h -> V_h)::(K_t -> V_t)*, K) = V_h
   -- if K_h = K
@@ -16,7 +17,9 @@ def $lookup_<K, V>((K_h -> V_h):: (K_t -> V_t)*, K)
 ;; Syntax
 
 syntax type = INT | BOOL
-syntax literal = `NUM int | `BOOL bool
+syntax literal =
+  | `NUM int      hint(prose "the integer" %0)
+  | `BOOL bool    hint(prose "the boolean" %0)
 syntax id = `ID text
 
 syntax expr =
@@ -61,6 +64,7 @@ var TC : typingContext
 relation Check_expr:
   typingContext |- expr : type
   hint(input %0 %1)
+  hint(prose_in "typechecking" %1 "under context" %0)
 
 rule Check_expr/num:
   TC |- (`NUM n) : INT
@@ -97,6 +101,7 @@ rule Check_expr/and:
 relation Check_command:
   typingContext |- command -| typingContext
   hint(input %0 %1)
+  hint(prose_in "typechecking" %1 "under context" %0)
 
 rule Check_command/skip:
   TC |- SKIP -| TC
@@ -131,6 +136,7 @@ rule Check_command/seq:
 relation Check_prog:
   |- prog
   hint(input %0)
+  hint(prose_true "program" %0 "is well-typed")
 
 rule Check_prog:
   |- command
@@ -152,6 +158,7 @@ var v : value
 relation Eval_expr:
   env |- expr `=> value
   hint(input %0 %1)
+  hint(prose_in "evaluating" %1 "in environment" %0)
 
 rule Eval_expr/num:
   EC |- (`NUM n) `=> (`NUM n)
@@ -191,6 +198,7 @@ rule Eval_expr/and:
 relation Eval_command:
   env |- command -| env
   hint(input %0 %1)
+  hint(prose_in "executing" %1 "in environment" %0)
 
 rule Eval_command/skip:
   EC |- SKIP -| EC
@@ -233,6 +241,7 @@ rule Eval_command/seq:
 relation Eval_prog:
   |- prog -| env
   hint(input %0)
+  hint(prose_in "executing program" %0)
 
 rule Eval_prog:
   |- command -| EC
@@ -244,6 +253,7 @@ rule Eval_prog:
 relation Run_prog:
   |- prog -| env
   hint(input %0)
+  hint(prose_in "running program" %0)
 
 rule Run_prog:
   |- command -| EC

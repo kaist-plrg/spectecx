@@ -67,7 +67,8 @@ let instr_header instr =
   | Sl.ResultI exps ->
       Format.sprintf "Result %s" (Sl.Print.string_of_exps ", " exps)
   | Sl.ReturnI exp -> Format.sprintf "Return %s" (Sl.Print.string_of_exp exp)
-  | Sl.DebugI exp -> Format.sprintf "Debug: %s" (Sl.Print.string_of_exp exp)
+  | Sl.DebugI (exp, _) ->
+      Format.sprintf "Debug: %s" (Sl.Print.string_of_exp exp)
 
 (* Create a unique key for an instruction using region + content header *)
 let instr_key instr =

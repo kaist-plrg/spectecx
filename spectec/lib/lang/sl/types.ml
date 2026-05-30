@@ -139,14 +139,10 @@ and instr' =
   | RuleI of id * notexp * iterexp list * instr list
   | ResultI of exp list
   | ReturnI of exp
-  | DebugI of exp
+  | DebugI of exp * instr
 
 and block = instr list
 and elseblock = instr list
-
-(* Hints *)
-
-type hint = { hintid : id; hintexp : El.exp }
 
 (* Definitions *)
 

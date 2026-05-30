@@ -14,4 +14,12 @@
     | ^^^^^^^^^^^^^^^^^^^^^^
   7 |   hint(input 0)
     | ^^^^^^^^^^^^^^^
+  
+  warning: hint "input" payload malformed: expected a sequence of indexed holes %N
+    --> relation-input-hint-non-hole.spectec:7:8
+    |
+  7 |   hint(input 0)
+    |        ^^^^^
+    |
+    | source: elab
   [1]

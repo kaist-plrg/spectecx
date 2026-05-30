@@ -1,5 +1,5 @@
 open Lang
-module Hint = Envs.Hint
+module Hint = Hints.Input
 
 type t = Il.nottyp * Hint.t * Il.rule list
 

@@ -15,48 +15,36 @@ let rec internalize_iter ?(iterexps : iterexp list = []) (prem : prem) :
   | _ -> (prem, iterexps)
 
 let rec struct_prems (prems : prem list) (instr_ret : Ol.Ast.instr) :
-    Ol.Ast.instr list =
+    Ol.Ast.instr =
   let prems_internalized = List.map internalize_iter prems in
   struct_prems' prems_internalized instr_ret
 
 and struct_prems' (prems_internalized : (prem * iterexp list) list)
-    (instr_ret : Ol.Ast.instr) : Ol.Ast.instr list =
+    (instr_ret : Ol.Ast.instr) : Ol.Ast.instr =
   match prems_internalized with
-  | [] -> [ instr_ret ]
-  | [ ({ it = ElsePr; at; _ }, []) ] ->
-      let instr = Ol.Ast.OtherwiseI instr_ret $ at in
-      [ instr ]
+  | [] -> instr_ret
+  | [ ({ it = ElsePr; at; _ }, []) ] -> Ol.Ast.OtherwiseI instr_ret $ at
   | (prem_h, iterexps_h) :: prems_internalized_t -> (
       let at = prem_h.at in
       match prem_h.it with
       | RulePr { relid = id; notexp } ->
-          let instrs_t = struct_prems' prems_internalized_t instr_ret in
-          let instr_h = Ol.Ast.RuleI (id, notexp, iterexps_h, instrs_t) $ at in
-          [ instr_h ]
+          let instr_t = struct_prems' prems_internalized_t instr_ret in
+          Ol.Ast.RuleI (id, notexp, iterexps_h, [ instr_t ]) $ at
       | IfPr exp ->
-          let instrs_t = struct_prems' prems_internalized_t instr_ret in
-          let instr_h = Ol.Ast.IfI (exp, iterexps_h, instrs_t) $ at in
-          [ instr_h ]
+          let instr_t = struct_prems' prems_internalized_t instr_ret in
+          Ol.Ast.IfI (exp, iterexps_h, [ instr_t ]) $ at
       | IfHoldPr { relid = id; notexp } ->
-          let instrs_t = struct_prems' prems_internalized_t instr_ret in
-          let instr_h =
-            Ol.Ast.IfHoldI (id, notexp, iterexps_h, instrs_t) $ at
-          in
-          [ instr_h ]
+          let instr_t = struct_prems' prems_internalized_t instr_ret in
+          Ol.Ast.IfHoldI (id, notexp, iterexps_h, [ instr_t ]) $ at
       | IfNotHoldPr { relid = id; notexp } ->
-          let instrs_t = struct_prems' prems_internalized_t instr_ret in
-          let instr_h =
-            Ol.Ast.IfNotHoldI (id, notexp, iterexps_h, instrs_t) $ at
-          in
-          [ instr_h ]
+          let instr_t = struct_prems' prems_internalized_t instr_ret in
+          Ol.Ast.IfNotHoldI (id, notexp, iterexps_h, [ instr_t ]) $ at
       | LetPr (exp_l, exp_r) ->
-          let instrs_t = struct_prems' prems_internalized_t instr_ret in
-          let instr_h = Ol.Ast.LetI (exp_l, exp_r, iterexps_h, instrs_t) $ at in
-          [ instr_h ]
+          let instr_t = struct_prems' prems_internalized_t instr_ret in
+          Ol.Ast.LetI (exp_l, exp_r, iterexps_h, [ instr_t ]) $ at
       | DebugPr exp ->
-          let instr_h = Ol.Ast.DebugI exp $ at in
-          let instrs_t = struct_prems' prems_internalized_t instr_ret in
-          instr_h :: instrs_t
+          let instr_t = struct_prems' prems_internalized_t instr_ret in
+          Ol.Ast.DebugI (exp, instr_t) $ at
       | _ -> assert false)
 
 let split_else_path ((prems, payload) : prem list * 'a) :
@@ -99,7 +87,7 @@ let struct_rule_path ((prems, exps_output) : prem list * exp list) :
     | { it = ElsePr; _ } :: prems_rev -> List.rev prems_rev
     | _ -> prems
   in
-  struct_prems prems instr_ret
+  [ struct_prems prems instr_ret ]
 
 (* Structuring clauses *)
 
@@ -112,7 +100,7 @@ let struct_clause_path ((prems, exp_output) : prem list * exp) :
     | { it = ElsePr; _ } :: prems_rev -> List.rev prems_rev
     | _ -> prems
   in
-  struct_prems prems instr_ret
+  [ struct_prems prems instr_ret ]
 
 (* Structuring definitions *)
 

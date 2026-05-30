@@ -253,7 +253,7 @@ let antiunify_rules (inputs : int list) (rules : rule list) :
       (fun (exps_input_group, exps_output_group, prems_group, frees) rule ->
         let { concl; prems; _ } = rule.it in
         let exps_input, exps_output =
-          Envs.Hint.split_exps_without_idx inputs (Il.Mixfix.args concl)
+          Hints.Input.split_exps_without_idx inputs (Il.Mixfix.args concl)
         in
         let exps_input_group = exps_input_group @ [ exps_input ] in
         let exps_output_group = exps_output_group @ [ exps_output ] in

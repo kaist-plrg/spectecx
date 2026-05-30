@@ -1,0 +1,4 @@
+(library
+ (name annotate)
+ (public_name spectec.pass.annotate)
+ (libraries spectec.common spectec.lang spectec.hints ll))

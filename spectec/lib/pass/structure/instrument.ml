@@ -169,7 +169,9 @@ and insert_phantom' (tdenv : TDEnv.t) (pathconds : pathcond list)
       Sl.RuleI (id, notexp, iterexps, block) $ at
   | ResultI exps -> Sl.ResultI exps $ at
   | ReturnI exp -> Sl.ReturnI exp $ at
-  | DebugI exp -> Sl.DebugI exp $ at
+  | DebugI (exp, instr_body) ->
+      let instr_body = insert_phantom' tdenv pathconds instr_body in
+      Sl.DebugI (exp, instr_body) $ at
 
 (* Nop pass *)
 
@@ -216,7 +218,9 @@ and insert_nothing' (instr : instr) : Sl.instr =
       Sl.RuleI (id, notexp, iterexps, block) $ at
   | ResultI exps -> Sl.ResultI exps $ at
   | ReturnI exp -> Sl.ReturnI exp $ at
-  | DebugI exp -> Sl.DebugI exp $ at
+  | DebugI (exp, instr_body) ->
+      let instr_body = insert_nothing' instr_body in
+      Sl.DebugI (exp, instr_body) $ at
 
 (* Instrumentation *)
 

@@ -4,7 +4,7 @@ open Lang.Xl
 open Lang.El
 module El = Lang.El
 module Il = Lang.Il
-module Hint = Envs.Hint
+module Hint = Hints.Input
 open Envs.Make
 open Attempt
 open Diagnostic
@@ -2042,8 +2042,76 @@ let elab_defs_with_errors (ctx : Ctx.t) (defs : def list) :
       with Diagnostic.ElabError e -> (ctx, defs_il, e :: errors))
     (ctx, [], []) defs
 
+(* Hint validation *)
+
+let validate_hint (subject : Hints.Registry.subject) (hint : hint) : unit =
+  let tag = hint.hintid.it in
+  let at = hint.hintid.at in
+  match Hints.Registry.lookup tag with
+  | None -> warn at (Format.asprintf "unknown hint tag \"%s\"" tag)
+  | Some entry -> (
+      if not (List.mem subject entry.subjects) then
+        warn at
+          (Format.asprintf "hint \"%s\" cannot attach to %s, only to %s" tag
+             (Hints.Registry.string_of_subject subject)
+             (Hints.Registry.string_of_subjects entry.subjects))
+      else
+        match entry.kind with
+        | Hints.Registry.Input -> (
+            match Hints.Input.parse hint.hintexp with
+            | Some _ -> ()
+            | None ->
+                warn at
+                  (Format.asprintf
+                     "hint \"%s\" payload malformed: expected a sequence of \
+                      indexed holes %%N"
+                     tag))
+        | Hints.Registry.Alter ->
+            let _ = Hints.Alter.parse hint.hintexp in
+            ()
+        | Hints.Registry.Fields -> (
+            match Hints.Fields.parse hint.hintexp with
+            | Some _ -> ()
+            | None ->
+                warn at
+                  (Format.asprintf
+                     "hint \"%s\" payload malformed: expected a sequence of \
+                      text literals"
+                     tag)))
+
+let validate_hints_typfield (typfield : typfield) : unit =
+  let _, _, hints = typfield in
+  List.iter (validate_hint Hints.Registry.Typfield) hints
+
+let validate_hints_typcase (typcase : typcase) : unit =
+  let _, hints = typcase in
+  List.iter (validate_hint Hints.Registry.Typcase) hints
+
+let validate_hints_deftyp (deftyp : deftyp) : unit =
+  match deftyp.it with
+  | PlainTD _ -> ()
+  | StructTD typfields -> List.iter validate_hints_typfield typfields
+  | VariantTD typcases -> List.iter validate_hints_typcase typcases
+
+let validate_hints_def (def : def) : unit =
+  match def.it with
+  | SynD _ -> ()
+  | TypD (_, _, deftyp, _) -> validate_hints_deftyp deftyp
+  | VarD (_, _, hints) -> List.iter (validate_hint Hints.Registry.Var) hints
+  | RelD (_, _, hints) -> List.iter (validate_hint Hints.Registry.Rel) hints
+  | RuleD _ -> ()
+  | BuiltinDecD (_, _, _, _, hints) ->
+      List.iter (validate_hint Hints.Registry.Func) hints
+  | DecD (_, _, _, _, hints) ->
+      List.iter (validate_hint Hints.Registry.Func) hints
+  | DefD _ -> ()
+  | SepD -> ()
+
+let validate_hints_spec (spec : spec) : unit = List.iter validate_hints_def spec
+
 let elab_spec (spec : spec) : Lang.Il.spec Diagnostic.result =
   try
+    validate_hints_spec spec;
     let ctx = Ctx.init () in
     let ctx, spec_il, errors = elab_defs_with_errors ctx spec in
     let spec_il = spec_il |> populate_rules ctx |> populate_clauses ctx in

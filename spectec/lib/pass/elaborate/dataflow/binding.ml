@@ -1,7 +1,7 @@
 open Common.Domain
 open Common.Source
 open Lang.Il
-module Hint = Envs.Hint
+module Hint = Hints.Input
 open Diagnostic
 open Ctx
 open Bind

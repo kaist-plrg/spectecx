@@ -11,6 +11,13 @@ let elaborate spec_el =
   Elaborate.elab_spec spec_el |> Result.map_error (fun e -> ElaborateError e)
 
 let structure spec = Structure.struct_spec spec
+let henv_of_el_spec spec = Hints.Henv.of_el_spec spec
+let henv_with_il_spec henv spec_il = Hints.Henv.load_il_spec henv spec_il
+
+let annotate ~henv spec_sl =
+  spec_sl |> Annotate.Linearize.linearize_spec |> Annotate.annotate_spec henv
+
+let shorten spec = Annotate.Shorthand.shorten_spec spec
 
 let error_to_diagnostics = function
   | ParseError e -> Diag.Bag.singleton (Parse.error_to_diagnostic e)

@@ -2,7 +2,7 @@ open Common.Source
 open Lang.Xl
 open Lang.Il
 open Envs.Make
-module Hint = Envs.Hint
+module Hint = Hints.Input
 module Typ = Envs.Il.Typ
 open Error
 open Attempt
