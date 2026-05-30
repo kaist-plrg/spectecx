@@ -1,0 +1,10 @@
+(executable
+ (name main)
+ (modules main)
+ (libraries spectec targets_impty test_lib))
+
+(cram
+ (deps
+  %{exe:main.exe}
+  (glob_files *.imp)
+  (source_tree ../../../specs/impty)))

@@ -141,15 +141,7 @@ let related_of_pairs (pairs : (region * string) list) : Diag.related list =
   List.map (fun (region, message) -> { Diag.region; message }) pairs
 
 let diag_of_failtraces (failtraces : failtrace list) : Diag.t =
-  let at = region_of_failtraces failtraces in
-  let message, trace =
-    match failtraces with
-    | [] -> ("elaboration failed", [])
-    | [ Failtrace (_, msg, children) ] ->
-        (msg, Diag.traces_of_failtraces children)
-    | _ -> ("elaboration failed", Diag.traces_of_failtraces failtraces)
-  in
-  Diag.error ~source:"elab" ~trace at message
+  Diag.of_failtraces ~source:"elab" ~fallback:"elaboration failed" failtraces
 
 let error ?code ?detail ?(related = []) (at : region) (msg : string) =
   let d =

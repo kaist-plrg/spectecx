@@ -4,7 +4,9 @@ module Ctx : sig
   type t
 end
 
-type error = region * string
+type error =
+  | Plain of region * string
+  | Backtrack of Common.Attempt.failtrace list
 
 val error_to_string : error -> string
 val error_to_diagnostic : error -> Diag.t

@@ -301,16 +301,19 @@ let summarize_outcomes results =
 
 (* --- Presentation --- *)
 
-let print_outcome (type i) (module T : Task.S with type input = i) source
+let print_outcome (type i) (module T : Task.S with type input = i) ~ansi source
     outcome =
+  let render_error err =
+    Diagnostic.Render.render_bag ~ansi (Error.to_diagnostics err)
+  in
   match outcome with
   | Task.Pass values ->
       Format.printf "Passed: %s\n  %s\n\n" source (T.format_output values)
   | Task.ExpectedFail err ->
-      Format.printf "Expected fail (passed): %s\n  %s\n\n" source
-        (Error.string_of_error err)
+      Format.printf "Expected fail (passed): %s\n%s\n\n" source
+        (render_error err)
   | Task.Fail err ->
-      Format.printf "Failed: %s\n  %s\n\n" source (Error.string_of_error err)
+      Format.printf "Failed: %s\n%s\n\n" source (render_error err)
   | Task.UnexpectedPass values ->
       Format.printf "Unexpected pass (failed): %s\n  %s\n\n" source
         (T.format_output values)
@@ -346,10 +349,14 @@ let run_and_print_single (type i) (module T : Task.S with type input = i)
       (module T)
       ?config ~sl_mode ~spec_il input
   in
-  print_outcome (module T) (T.source input) outcome
+  match outcome with
+  | Task.Pass values | Task.UnexpectedPass values ->
+      Format.printf "%s\n" (T.format_output values);
+      Ok ()
+  | Task.Fail err | Task.ExpectedFail err -> Error err
 
 let run_and_print_batch (type i) (module T : Task.S with type input = i) ?config
-    ~sl_mode ~spec_il ~verbose (inputs : i list) =
+    ~ansi ~sl_mode ~spec_il ~verbose (inputs : i list) =
   let results =
     run_batch_with_outcomes (module T) ?config ~sl_mode ~spec_il ~verbose inputs
   in
@@ -357,7 +364,7 @@ let run_and_print_batch (type i) (module T : Task.S with type input = i) ?config
     List.iter
       (fun { source; outcome; _ } ->
         Format.printf ">>> Running %s on %s\n" T.name source;
-        print_outcome (module T) source outcome)
+        print_outcome (module T) ~ansi source outcome)
       results;
   print_summary (summarize_outcomes results)
 

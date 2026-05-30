@@ -1,0 +1,2 @@
+// Initializer reads a variable that was never declared.
+int y = z

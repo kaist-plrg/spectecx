@@ -1,0 +1,3 @@
+// Calling a function with an argument of the wrong type.
+(int -> int) f = fun(int n) -> int { n };
+int r = f(true)

@@ -58,6 +58,11 @@ val hint : source:string -> region -> string -> t
 val trace_of_failtrace : Common.Attempt.failtrace -> trace_node
 val traces_of_failtraces : Common.Attempt.failtrace list -> trace_node list
 
+(** Builds an error diagnostic from backtracking failtraces; [fallback] is the
+    headline used when there is not exactly one root failtrace. *)
+val of_failtraces :
+  source:string -> fallback:string -> Common.Attempt.failtrace list -> t
+
 (** {1 Plain text rendering} *)
 
 (** Plain text rendering matching the legacy format:
