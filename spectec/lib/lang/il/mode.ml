@@ -13,13 +13,13 @@ let of_dirs notation dirs =
   in
   Mixfix.fill (Mixfix.to_mixop notation) tagged
 
-let map_payloads t ~ins ~outs =
+let fill t ~ins ~outs =
   let rec go args ins outs =
     match (args, ins, outs) with
     | [], [], [] -> []
     | In _ :: args', i :: ins', _ -> In i :: go args' ins' outs
     | Out _ :: args', _, o :: outs' -> Out o :: go args' ins outs'
-    | _ -> raise (Mixfix.Arity_mismatch "Mode.map_payloads")
+    | _ -> raise (Mixfix.Arity_mismatch "Mode.fill")
   in
   let mixop = Mixfix.to_mixop t in
   let tagged = go (Mixfix.args t) ins outs in
@@ -33,7 +33,7 @@ let outputs t =
 
 let with_inputs t ins =
   let n_outs = List.length (outputs t) in
-  map_payloads t ~ins ~outs:(List.init n_outs (fun _ -> ()))
+  fill t ~ins ~outs:(List.init n_outs (fun _ -> ()))
 
 let notation t = Mixfix.map (function In v | Out v -> v) t
 

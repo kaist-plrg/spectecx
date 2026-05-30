@@ -52,8 +52,8 @@ let new_node kind id inputs =
     rollback_children = None;
   }
 
-let outcome_of_outputs = function
-  | Some outputs -> Succeeded outputs
+let outcome_of_conclusion = function
+  | Some c -> Succeeded (Il.Mode.outputs c)
   | None -> Failed
 
 let outcome_of_output = function Some v -> Succeeded [ v ] | None -> Failed
@@ -155,8 +155,8 @@ module M : Instrumentation_api.Handler.S = struct
   let handle : Instrumentation_api.Event.t -> unit = function
     | Test_start _ | Test_end _ -> State.reset ()
     | Rel_enter { id; at = _; inputs } -> State.push (new_node Rel id inputs)
-    | Rel_exit { id = _; at = _; outputs } ->
-        close_and_maybe_render ~outcome:(outcome_of_outputs outputs)
+    | Rel_exit { id = _; at = _; conclusion } ->
+        close_and_maybe_render ~outcome:(outcome_of_conclusion conclusion)
     | Rule_enter _ -> State.begin_rule_attempt ()
     | Rule_exit { id = _; rule_id; at = _; success } ->
         State.end_rule_attempt ~rule_id ~success

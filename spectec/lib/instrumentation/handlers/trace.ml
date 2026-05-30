@@ -62,12 +62,12 @@ module M : Instrumentation_api.Handler.S = struct
         Format.fprintf !fmt "%s→ %s\n%!" (State.indent ()) id;
         print_values inputs;
         incr State.depth
-    | Rel_exit { id; at = _; outputs } ->
+    | Rel_exit { id; at = _; conclusion } ->
         decr State.depth;
-        let success = Option.is_some outputs in
+        let success = Option.is_some conclusion in
         Format.fprintf !fmt "%s← %s [%s]\n%!" (State.indent ()) id
           (if success then "ok" else "fail");
-        Option.iter print_values outputs
+        Option.iter (fun c -> print_values (Il.Mode.outputs c)) conclusion
     | Rule_enter { id; rule_id; at = _ } ->
         printf_at_least Rules "%s→ %s/%s\n%!" (State.indent ()) id rule_id
     | Rule_exit { id; rule_id; at = _; success } ->
