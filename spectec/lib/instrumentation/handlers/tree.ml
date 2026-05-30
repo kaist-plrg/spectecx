@@ -195,9 +195,8 @@ module M : Instrumentation_api.Handler.S = struct
 end
 
 let resolve_ansi : Instrumentation_api.Output.t -> Ansi.t = function
-  | Stdout when Sys.getenv_opt "NO_COLOR" = None && Unix.isatty Unix.stdout ->
-      Ansi.color
-  | _ -> Ansi.plain
+  | Stdout -> Ansi.auto ~tty:(Unix.isatty Unix.stdout)
+  | File _ -> Ansi.plain
 
 let make cfg =
   config := cfg;

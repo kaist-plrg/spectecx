@@ -1,12 +1,7 @@
-(* Resolve [--color] into an [Ansi.t]. [Auto] honors the [NO_COLOR] env
-   variable convention and falls back on a stderr TTY check. *)
 let resolve_ansi : Cli_args.color -> Spectec.Diagnostic.Ansi.t = function
   | Always -> Spectec.Diagnostic.Ansi.color
   | Never -> Spectec.Diagnostic.Ansi.plain
-  | Auto ->
-      if Sys.getenv_opt "NO_COLOR" = None && Unix.isatty Unix.stderr then
-        Spectec.Diagnostic.Ansi.color
-      else Spectec.Diagnostic.Ansi.plain
+  | Auto -> Spectec.Diagnostic.Ansi.auto ~tty:(Unix.isatty Unix.stderr)
 
 let guard ~color ~on_ok f =
   let ansi = resolve_ansi color in

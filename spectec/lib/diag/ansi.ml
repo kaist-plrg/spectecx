@@ -3,6 +3,7 @@ type t = { enabled : bool }
 
 let plain = { enabled = false }
 let color = { enabled = true }
+let auto ~tty = if tty && Sys.getenv_opt "NO_COLOR" = None then color else plain
 
 let code = function
   | Bold -> "\027[1m"
