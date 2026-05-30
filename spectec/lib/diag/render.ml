@@ -226,39 +226,55 @@ let render_related ~ansi ~cache (d : Record.t) : string option =
 
 (* --- Trace --- *)
 
+(* Render the region and message on separate lines: combining them would make a
+   node with a long region path and a long message into one very wide line. *)
+let render_node_label ~ansi ~prefix ~body_prefix region message =
+  let msg = style_inline_code ~ansi ~outer:[] message in
+  if region = no_region then [ prefix ^ msg ]
+  else
+    [
+      prefix ^ Ansi.style ansi [ Dim ] (string_of_region region);
+      body_prefix ^ msg;
+    ]
+
 let rec render_trace_node ~ansi ~indent ~is_last (node : Record.trace_node) :
     string =
   let { Record.region; message; children } = node in
-  let connector = if is_last then "└── " else "├── " in
-  let region_str =
-    if region = no_region then ""
-    else Ansi.style ansi [ Dim ] (string_of_region region) ^ " "
+  let connector =
+    Ansi.style ansi [ Dim ] (if is_last then "└── " else "├── ")
   in
-  let line =
-    indent ^ connector ^ region_str ^ style_inline_code ~ansi ~outer:[] message
+  let child_indent =
+    indent ^ if is_last then "    " else Ansi.style ansi [ Dim ] "│   "
   in
-  let child_indent = indent ^ if is_last then "    " else "│   " in
+  let label =
+    render_node_label ~ansi ~prefix:(indent ^ connector)
+      ~body_prefix:child_indent region message
+  in
+  String.concat "\n"
+    (label @ render_children ~ansi ~indent:child_indent children)
+
+and render_children ~ansi ~indent children =
   let n = List.length children in
-  let child_lines =
-    List.mapi
-      (fun i c ->
-        render_trace_node ~ansi ~indent:child_indent ~is_last:(i = n - 1) c)
-      children
-  in
-  String.concat "\n" (line :: child_lines)
+  List.mapi
+    (fun i c -> render_trace_node ~ansi ~indent ~is_last:(i = n - 1) c)
+    children
 
 let render_trace ~ansi (d : Record.t) : string option =
   if d.trace = [] then None
   else
     let header = border_prefix d ^ Ansi.style ansi [ Bold; Blue ] "trace:" in
-    let n = List.length d.trace in
-    let nodes =
-      List.mapi
-        (fun i node ->
-          render_trace_node ~ansi ~indent:"    " ~is_last:(i = n - 1) node)
-        d.trace
+    (* Trace roots align under the `|` border like the other fields; their
+       descendants form a connector tree beneath each root. *)
+    let indent = border_prefix d in
+    let render_root (node : Record.trace_node) =
+      let { Record.region; message; children } = node in
+      let label =
+        render_node_label ~ansi ~prefix:indent ~body_prefix:indent region
+          message
+      in
+      String.concat "\n" (label @ render_children ~ansi ~indent children)
     in
-    Some (String.concat "\n" (header :: nodes))
+    Some (String.concat "\n" (header :: List.map render_root d.trace))
 
 (* --- Public API --- *)
 
