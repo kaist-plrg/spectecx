@@ -1,9 +1,8 @@
 open Lang
-module Hint = Hints.Input
 
-type t = Il.nottyp * Hint.t * Il.rule list
+type t = Il.reltyp * Il.rule list
 
-let to_string (nottyp, inputs, rules) =
-  Il.Print.string_of_nottyp nottyp
-  ^ " " ^ Hint.to_string inputs ^ " =\n"
+let to_string (reltyp, rules) =
+  Il.Print.string_of_reltyp reltyp
+  ^ " =\n"
   ^ String.concat "\n   " (List.map Il.Print.string_of_rule rules)

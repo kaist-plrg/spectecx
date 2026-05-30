@@ -31,9 +31,6 @@ module MEnv = MakeIdMap (MetaTyp)
 (* Type definition environment *)
 module TDEnv = MakeTIdMap (Typdef)
 
-(* Hint environment *)
-module HEnv = Envs.HEnv
-
 (* Relation environment *)
 module REnv = MakeRIdMap (Rel)
 
@@ -137,11 +134,10 @@ let bound_metavar (ctx : t) (tid : TId.t) : bool =
 
 (* Finders for rules *)
 
-let find_rel_opt (ctx : t) (rid : RId.t) : (Il.nottyp * int list) option =
-  REnv.find_opt rid ctx.renv
-  |> Option.map (fun (nottyp, inputs, _) -> (nottyp, inputs))
+let find_rel_opt (ctx : t) (rid : RId.t) : Il.reltyp option =
+  REnv.find_opt rid ctx.renv |> Option.map (fun (reltyp, _) -> reltyp)
 
-let find_rel (ctx : t) (rid : RId.t) : Il.nottyp * int list =
+let find_rel (ctx : t) (rid : RId.t) : Il.reltyp =
   match find_rel_opt ctx rid with
   | Some result -> result
   | None -> error_undef rid.at "relation" rid.it ~code:Ctx_relation_undefined
@@ -150,7 +146,7 @@ let bound_rel (ctx : t) (rid : RId.t) : bool =
   find_rel_opt ctx rid |> Option.is_some
 
 let find_rules_opt (ctx : t) (rid : RId.t) : Il.rule list option =
-  REnv.find_opt rid ctx.renv |> Option.map (fun (_, _, rules) -> rules)
+  REnv.find_opt rid ctx.renv |> Option.map (fun (_, rules) -> rules)
 
 let find_rules (ctx : t) (rid : RId.t) : Il.rule list =
   match find_rules_opt ctx rid with
@@ -237,14 +233,13 @@ let add_tparams (ctx : t) (tparams : tparam list) : t =
 
 (* Adders for rules *)
 
-let add_rel (ctx : t) (rid : RId.t) (nottyp : Il.nottyp) (inputs : int list) : t
-    =
+let add_rel (ctx : t) (rid : RId.t) (reltyp : Il.reltyp) : t =
   match rel_prior_at ctx rid with
   | Some prior_at ->
       error_dup rid.at "relation" rid.it ~code:Ctx_relation_redefined
         ~related:[ (prior_at, "originally defined here") ]
   | None ->
-      let rel = (nottyp, inputs, []) in
+      let rel = (reltyp, []) in
       let renv = REnv.add rid rel ctx.renv in
       { ctx with renv }
 
@@ -252,8 +247,8 @@ let add_rule (ctx : t) (rid : RId.t) (rule : Il.rule) : t =
   if not (bound_rel ctx rid) then
     (* unreachable: elab_rule_def calls find_rel on the same rid first. *)
     assert false;
-  let nottyp, inputs, rules = REnv.find rid ctx.renv in
-  let rel = (nottyp, inputs, rules @ [ rule ]) in
+  let reltyp, rules = REnv.find rid ctx.renv in
+  let rel = (reltyp, rules @ [ rule ]) in
   let renv = REnv.add rid rel ctx.renv in
   { ctx with renv }
 

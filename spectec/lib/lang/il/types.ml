@@ -60,6 +60,9 @@ type var = { varid : id; typ : typ; iters : iter list }
 type nottyp = nottyp' phrase
 and nottyp' = typ Mixfix.t
 
+and reltyp = reltyp' phrase
+and reltyp' = (typ, typ) Mode.t
+
 and deftyp = deftyp' phrase
 and deftyp' =
   | PlainT of typ
@@ -199,8 +202,8 @@ type def = def' phrase
 and def' =
   (* `syntax` id `<` list(tparam, `,`) `>` `=` deftyp *)
   | TypD of { synid : id; tparams : tparam list; deftyp : deftyp }
-  (* `relation` id `:` nottyp `hint(input` `%`int* `)` rule* *)
-  | RelD of { relid : id; notation : nottyp; inputs : int list; rules : rule list }
+  (* `relation` id `:` reltyp rule* *)
+  | RelD of { relid : id; reltyp : reltyp; rules : rule list }
   (* `dec` id `<` list(tparam, `,`) `>` list(param, `,`) `:` typ clause* *)
   | DecD of { defid : id; tparams : tparam list; params : param list; typ : typ; clauses : clause list }
   (* `builtin` `dec` id `<` list(tparam, `,`) `>` list(param, `,`) `:` typ hint* *)

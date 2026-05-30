@@ -1,5 +1,6 @@
 include Types
 module Mixfix = Mixfix
+module Mode = Mode
 module Print = Print
 module Eq = Eq
 module Print_debug = Print_debug

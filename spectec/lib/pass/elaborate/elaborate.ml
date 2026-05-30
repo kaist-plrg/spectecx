@@ -4,7 +4,6 @@ open Lang.Xl
 open Lang.El
 module El = Lang.El
 module Il = Lang.Il
-module Hint = Hints.Input
 open Envs.Make
 open Attempt
 open Diagnostic
@@ -1580,10 +1579,10 @@ and elab_var_prem (ctx : Ctx.t) (id : id) (plaintyp : plaintyp) : Ctx.t =
 (* Elaboration of rule premises *)
 
 and elab_rule_prem (ctx : Ctx.t) (id : id) (exp : exp) : Ctx.t * Il.prem' =
-  let nottyp_il, inputs = Ctx.find_rel ctx id in
+  let reltyp_il = Ctx.find_rel ctx id in
+  let nottyp_il = Il.Mode.notation reltyp_il.it $ reltyp_il.at in
   let+ ctx, notexp_il = elab_exp_not ctx nottyp_il exp in
-  let exps_il = Il.Mixfix.args notexp_il in
-  if Hint.is_conditional inputs exps_il then
+  if Il.Mode.is_predicate reltyp_il.it then
     let prem_il = Il.IfHoldPr { relid = id; notexp = notexp_il } in
     (ctx, prem_il)
   else
@@ -1593,11 +1592,11 @@ and elab_rule_prem (ctx : Ctx.t) (id : id) (exp : exp) : Ctx.t * Il.prem' =
 (* Elaboration of negated rule premises *)
 
 and elab_rule_not_prem (ctx : Ctx.t) (id : id) (exp : exp) : Ctx.t * Il.prem' =
-  let nottyp_il, inputs = Ctx.find_rel ctx id in
+  let reltyp_il = Ctx.find_rel ctx id in
+  let nottyp_il = Il.Mode.notation reltyp_il.it $ reltyp_il.at in
   let+ ctx, notexp_il = elab_exp_not ctx nottyp_il exp in
-  let exps_il = Il.Mixfix.args notexp_il in
   check
-    (Hint.is_conditional inputs exps_il)
+    (Il.Mode.is_predicate reltyp_il.it)
     exp.at "negated rule premises do not take inputs"
     ~code:Negated_premise_takes_inputs
     ~detail:
@@ -1754,25 +1753,14 @@ and elab_var_def (ctx : Ctx.t) (id : id) (plaintyp : plaintyp) : Ctx.t =
 
 (* Elaboration of relations *)
 
-and fetch_rel_input_hint' (len : int) (hintexp : exp) : int list option =
-  match hintexp.it with
-  | SeqE exps ->
-      List.fold_left
-        (fun inputs exp ->
-          match inputs with
-          | Some inputs -> (
-              match exp.it with
-              | HoleE (`Num input) when input < len -> Some (inputs @ [ input ])
-              | _ -> None)
-          | None -> None)
-        (Some []) exps
-  | HoleE (`Num input) when input < len -> Some [ input ]
-  | _ -> None
-
-and fetch_rel_input_hint (at : region) (nottyp_il : Il.nottyp)
-    (hints : hint list) : int list =
+and fetch_rel_input_dirs (at : region) (nottyp_il : Il.nottyp)
+    (hints : hint list) : Il.Mode.dir list =
   let len = nottyp_il.it |> Il.Mixfix.args |> List.length in
-  let hint_input_default = List.init len Fun.id in
+  let all_inputs () = List.init len (fun _ -> Il.Mode.Input) in
+  let dirs_of_indices indices =
+    List.init len (fun i ->
+        if List.mem i indices then Il.Mode.Input else Il.Mode.Output)
+  in
   let hint_input =
     List.find_map
       (fun hint -> if hint.hintid.it = "input" then Some hint.hintexp else None)
@@ -1780,58 +1768,42 @@ and fetch_rel_input_hint (at : region) (nottyp_il : Il.nottyp)
   in
   match hint_input with
   | Some hintexp -> (
-      let inputs_opt = fetch_rel_input_hint' len hintexp in
-      match inputs_opt with
+      match Hints.Input.parse hintexp with
       | Some [] ->
           error at "malformed input hint: at least one input should be provided"
             ~code:Relation_input_hint_empty
       | Some inputs when not (distinct ( = ) inputs) ->
           error at "malformed input hint: inputs should be distinct"
             ~code:Relation_input_hint_duplicate_index
-      | Some inputs -> inputs
-      | None ->
+      | Some inputs when List.for_all (fun input -> input < len) inputs ->
+          dirs_of_indices inputs
+      | Some _ | None ->
           warn at
             (Format.asprintf
                "malformed input hint: should be a sequence of indexed holes \
                 %%N (N < %d)"
                len)
             ~code:Relation_input_hint_non_hole;
-          hint_input_default)
-  (* If no hint is provided, assume all fields are inputs *)
+          all_inputs ())
   | None ->
       warn at "no input hint provided" ~code:Relation_no_input_hint;
-      hint_input_default
+      all_inputs ()
 
 and elab_rel_def (ctx : Ctx.t) (at : region) (id : id) (nottyp : nottyp)
     (hints : hint list) : Ctx.t * Il.def =
   let nottyp_il = elab_nottyp ctx (NotationT nottyp) in
-  let inputs = fetch_rel_input_hint at nottyp_il hints in
-  let ctx = Ctx.add_rel ctx id nottyp_il inputs in
-  let def_il =
-    Il.RelD { relid = id; notation = nottyp_il; inputs; rules = [] } $ at
-  in
+  let dirs = fetch_rel_input_dirs at nottyp_il hints in
+  let reltyp_il = Il.Mode.of_dirs nottyp_il.it dirs $ nottyp_il.at in
+  let ctx = Ctx.add_rel ctx id reltyp_il in
+  let def_il = Il.RelD { relid = id; reltyp = reltyp_il; rules = [] } $ at in
   (ctx, def_il)
 
 (* Elaboration of rules *)
 
-and elab_rule_input_with_bind (ctx : Ctx.t) (exps_il : (int * Il.exp) list) :
-    Ctx.t * (int * Il.exp) list * Il.prem list =
-  let idxs, exps_il = List.split exps_il in
-  let ctx, exps_il, sideconditions_il =
-    Dataflow.Analysis.analyze_exps_as_bind ctx exps_il
-  in
-  let exps_il = List.combine idxs exps_il in
-  (ctx, exps_il, sideconditions_il)
-
-and elab_rule_output_with_bind (ctx : Ctx.t) (exps_il : (int * Il.exp) list) :
-    (int * Il.exp) list =
-  let idxs, exps_il = List.split exps_il in
-  let exps_il = Dataflow.Analysis.analyze_exps_as_bound ctx exps_il in
-  List.combine idxs exps_il
-
 and elab_rule_def (ctx : Ctx.t) (at : region) (id_rel : id) (id_rule : id)
     (exp : exp) (prems : prem list) : Ctx.t =
-  let nottyp_il, inputs = Ctx.find_rel ctx id_rel in
+  let reltyp_il = Ctx.find_rel ctx id_rel in
+  let nottyp_il = Il.Mode.notation reltyp_il.it $ reltyp_il.at in
   let ctx_local = { ctx with frees = IdSet.empty } in
   let ctx_local =
     let def = RuleD (id_rel, id_rule, exp, prems) $ at in
@@ -1839,22 +1811,18 @@ and elab_rule_def (ctx : Ctx.t) (at : region) (id_rel : id) (id_rule : id)
   in
   let+ ctx_local, notexp_il = elab_exp_not ctx_local nottyp_il exp in
   let mixop, exps_il = Il.Mixfix.split notexp_il in
-  let exps_il_input, exps_il_output =
-    exps_il
-    |> List.mapi (fun idx exp -> (idx, exp))
-    |> List.partition (fun (idx, _) -> List.mem idx inputs)
-  in
+  let exps_il_input, exps_il_output = Il.Mode.partition reltyp_il.it exps_il in
   let ctx_local, exps_il_input, sideconditions_il =
-    elab_rule_input_with_bind ctx_local exps_il_input
+    Dataflow.Analysis.analyze_exps_as_bind ctx_local exps_il_input
   in
   let ctx_local, prems_il = elab_prems_with_bind ctx_local prems in
   let prems_il = sideconditions_il @ prems_il in
-  let exps_il_output = elab_rule_output_with_bind ctx_local exps_il_output in
+  let exps_il_output =
+    Dataflow.Analysis.analyze_exps_as_bound ctx_local exps_il_output
+  in
   let notexp_il =
     let exps_il =
-      exps_il_input @ exps_il_output
-      |> List.sort (fun (idx_a, _) (idx_b, _) -> compare idx_a idx_b)
-      |> List.map snd
+      Il.Mode.interleave reltyp_il.it ~ins:exps_il_input ~outs:exps_il_output
     in
     Il.Mixfix.fill mixop exps_il
   in
@@ -1966,10 +1934,9 @@ and elab_def_def (ctx : Ctx.t) (at : region) (id : id) (tparams : tparam list)
 
 let populate_rule (ctx : Ctx.t) (def_il : Il.def) : Il.def =
   match def_il.it with
-  | Il.RelD { relid = id; notation = nottyp_il; inputs; rules = [] } ->
+  | Il.RelD { relid = id; reltyp; rules = [] } ->
       let rules_il = Ctx.find_rules ctx id in
-      Il.RelD { relid = id; notation = nottyp_il; inputs; rules = rules_il }
-      $ def_il.at
+      Il.RelD { relid = id; reltyp; rules = rules_il } $ def_il.at
   | Il.RelD _ ->
       (* unreachable: elab_rel_def constructs RelD only with []. *)
       assert false

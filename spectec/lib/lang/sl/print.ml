@@ -354,9 +354,9 @@ let rec string_of_def def =
   | TypD (typid, tparams, deftyp) ->
       "syntax " ^ string_of_typid typid ^ string_of_tparams tparams ^ " = "
       ^ string_of_deftyp deftyp
-  | RelD (relid, (_mixop, _inputs), exps_input, block, elseblock_opt) ->
+  | RelD (relid, mode, block, elseblock_opt) ->
       "relation " ^ string_of_relid relid ^ ": "
-      ^ string_of_exps ", " exps_input
+      ^ Il.Mode.render_inputs ~sep:", " ~string_of_arg:string_of_exp mode
       ^ "\n\n" ^ string_of_block block
       ^ string_of_elseblock_opt ~index:(List.length block) elseblock_opt
   | BuiltinDecD (defid, tparams, args_input) ->
