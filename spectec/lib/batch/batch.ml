@@ -343,13 +343,17 @@ let run_batch_with_outcomes (type i) (module T : Task.S with type input = i)
 (* --- Composed run + print --- *)
 
 let run_and_print_single (type i) (module T : Task.S with type input = i)
-    ?config ~ansi ~sl_mode ~spec_il (input : i) =
+    ?config ~sl_mode ~spec_il (input : i) =
   let outcome =
     run_with_outcome_with_instrumentation
       (module T)
       ?config ~sl_mode ~spec_il input
   in
-  print_outcome (module T) ~ansi (T.source input) outcome
+  match outcome with
+  | Task.Pass values | Task.UnexpectedPass values ->
+      Format.printf "%s\n" (T.format_output values);
+      Ok ()
+  | Task.Fail err | Task.ExpectedFail err -> Error err
 
 let run_and_print_batch (type i) (module T : Task.S with type input = i) ?config
     ~ansi ~sl_mode ~spec_il ~verbose (inputs : i list) =

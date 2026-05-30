@@ -37,8 +37,7 @@ let make_task (module Tgt : Spectec.Target.S) ~name ~summary
       | false, None ->
           Batch.run_and_print_single
             (module TC.Task)
-            ~config ~ansi ~sl_mode ~spec_il input;
-          Ok ()
+            ~config ~sl_mode ~spec_il input
       | true, None ->
           Batch.run_and_print_batch
             (module TC.Task)
