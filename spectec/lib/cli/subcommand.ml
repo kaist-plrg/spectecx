@@ -8,6 +8,11 @@ let load_spec source =
   let* spec_il = Spectec.elaborate spec in
   Ok (filenames, spec_il)
 
+let resolve_source ~cli ~config ~default_dir =
+  match cli with
+  | Some source -> source
+  | None -> Option.value config ~default:(Spec_source.Dir default_dir)
+
 let make_task (module Tgt : Spectec.Target.S) ~name ~summary
     (module TC : Task_cli.S) =
   let cmd =
@@ -28,8 +33,11 @@ let make_task (module Tgt : Spectec.Target.S) ~name ~summary
       let ansi = resolve_ansi color in
       let open Spectec in
       let* () = validate_config config ~sl_mode in
-      let target_source = Spec_source.Dir Tgt.spec_dir in
-      let source = Option.value cli_source ~default:target_source in
+      let* cfg = Config_file.load ~target:Tgt.name () in
+      let source =
+        resolve_source ~cli:cli_source ~config:cfg.Config_file.spec_source
+          ~default_dir:Tgt.spec_dir
+      in
       let* _files, spec_il = load_spec source in
       match (batch_mode, batch_dir) with
       | false, None ->
@@ -63,8 +71,11 @@ let make_parse (module Tgt : Spectec.Target.S) ~name ~summary
     fun () ->
       guard ~color ~on_ok:(Format.printf "%s\n") @@ fun () ->
       let open Spectec in
-      let target_source = Spec_source.Dir Tgt.spec_dir in
-      let source = Option.value cli_source ~default:target_source in
+      let* cfg = Config_file.load ~target:Tgt.name () in
+      let source =
+        resolve_source ~cli:cli_source ~config:cfg.Config_file.spec_source
+          ~default_dir:Tgt.spec_dir
+      in
       let* _files, spec_il = load_spec source in
       let* _, values = TC.Task.parse_input ~spec:spec_il input in
       let unparsed = TC.Task.unparse ~spec:spec_il values in
@@ -106,9 +117,15 @@ let make_batch (module Tgt : Spectec.Target.S) ~name
       guard_unit ~color @@ fun () ->
       let open Spectec in
       let* () = validate_config config ~sl_mode in
-      let target_source = Spec_source.Dir Tgt.spec_dir in
-      let source = Option.value cli_source ~default:target_source in
+      let* cfg = Config_file.load ~target:Tgt.name () in
+      let source =
+        resolve_source ~cli:cli_source ~config:cfg.Config_file.spec_source
+          ~default_dir:Tgt.spec_dir
+      in
       let* spec_files, spec_il = load_spec source in
+      let batch_dir =
+        match batch_dir with None -> cfg.Config_file.batch_dir | some -> some
+      in
       let checkpoint_config : Batch.Checkpoint.config =
         {
           output_file = checkpoint.output;
@@ -142,7 +159,12 @@ let make_checkpoint (module Tgt : Spectec.Target.S) ~name =
     and color = Cli_args.Output.color_flag in
     fun () ->
       guard_unit ~color @@ fun () ->
-      let* spec_files, spec_il = load_spec (Spec_source.Dir Tgt.spec_dir) in
+      let* cfg = Config_file.load ~target:Tgt.name () in
+      let source =
+        resolve_source ~cli:None ~config:cfg.Config_file.spec_source
+          ~default_dir:Tgt.spec_dir
+      in
+      let* spec_files, spec_il = load_spec source in
       let* checkpoint =
         Batch.Checkpoint.verify_and_load ~file:checkpoint_file ~spec_files
           ~verbose:true
