@@ -1106,10 +1106,9 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
     let ctx = assign_exps ctx exps_input values_input in
     (ctx, prems, exps_output)
   in
+  let reltyp, rules = Ctx.find_rel ctx id in
   (* Main invocation logic *)
   let invoke_rel' () =
-    (* Find the relation *)
-    let reltyp, rules = Ctx.find_rel ctx id in
     check_warn (rules <> []) id.at "relation has no rules";
     (* Apply the first matching rule *)
     let attempt_rules () =
@@ -1165,9 +1164,14 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
     Ok (ctx, values_output)
   in
   let result = invoke_rel' () in
-  let outputs = match result with Ok (_, vs) -> Some vs | Error _ -> None in
+  let conclusion =
+    match result with
+    | Ok (_, values_output) ->
+        Some (Mode.fill reltyp.it ~ins:values_input ~outs:values_output)
+    | Error _ -> None
+  in
   Instrumentation.Dispatcher.emit
-    (Events.Rel_exit { id = id.it; at = id.at; outputs });
+    (Events.Rel_exit { id = id.it; at = id.at; conclusion });
   result |> nest id.at (F.asprintf "invocation of relation %s failed" id.it)
 
 (* Invoke a function *)

@@ -22,6 +22,7 @@ val with_inputs : ('a, 'a) t -> 'b list -> ('b, unit) t
 (** {1 Projections} *)
 
 val inputs : ('i, 'o) t -> 'i list
+val outputs : ('i, 'o) t -> 'o list
 
 (** Drop direction tags, recovering the underlying notation. *)
 val notation : ('a, 'a) t -> 'a Mixfix.t
@@ -38,6 +39,10 @@ val partition : ('i, 'o) t -> 'a list -> 'a list * 'a list
 (** Inverse of [partition]. Raises [Mixfix.Arity_mismatch] on per-direction
     length mismatch. *)
 val interleave : ('i, 'o) t -> ins:'a list -> outs:'a list -> 'a list
+
+(** Like [interleave] but keeps the direction tags. Raises
+    [Mixfix.Arity_mismatch] on per-direction length mismatch. *)
+val fill : ('i, 'o) t -> ins:'a list -> outs:'a list -> ('a, 'a) t
 
 (** {1 Rendering} *)
 

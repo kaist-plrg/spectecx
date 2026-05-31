@@ -5,16 +5,19 @@
     invocation completes. Failed rule attempts are pruned: only the rule that
     actually fired at each relation invocation remains visible.
 
+    Each relation is drawn as a derivation tree in spec syntax: its conclusion
+    on top, its sub-derivations below as premises led by [--].
+
     Levels:
-    - [Rules]: tree of relation/function calls, each relation node tagged with
-      the rule that matched.
-    - [Inputs]: above + input values on each node and the output on success, one
-      value per line just under the node label. *)
+    - [Rules]: each relation node tagged with the rule that matched.
+    - [Conclusion]: above + the conclusion judgment under each tag (e.g.
+      [[ x -> int ] |- 5 : int]); functions show [$id(args) = output]. *)
 
 module Il = Lang.Il
+module Ansi = Diag.Ansi
 open Util
 
-type level = Rules | Inputs
+type level = Rules | Conclusion
 type config = { level : level; output : Instrumentation_api.Output.t }
 
 let default_config =
@@ -22,6 +25,7 @@ let default_config =
 
 let config = ref default_config
 let fmt = ref Format.std_formatter
+let ansi = ref Ansi.plain
 
 let summarize_value (v : Il.Value.t) : string =
   Il.Print.string_of_value v |> summarize ~max_len:100
@@ -29,7 +33,11 @@ let summarize_value (v : Il.Value.t) : string =
 (* === Tree representation =========================================== *)
 
 type kind = Rel | Func
-type outcome = Failed | Succeeded of Il.Value.t list
+
+type outcome =
+  | Failed
+  | Rel_ok of (Il.Value.t, Il.Value.t) Il.Mode.t
+  | Func_ok of Il.Value.t
 
 type node = {
   kind : kind;
@@ -52,11 +60,8 @@ let new_node kind id inputs =
     rollback_children = None;
   }
 
-let outcome_of_outputs = function
-  | Some outputs -> Succeeded outputs
-  | None -> Failed
-
-let outcome_of_output = function Some v -> Succeeded [ v ] | None -> Failed
+let outcome_of_conclusion = function Some c -> Rel_ok c | None -> Failed
+let outcome_of_output = function Some v -> Func_ok v | None -> Failed
 
 (* === Mutable state ================================================= *)
 
@@ -96,54 +101,74 @@ end
 
 (* === Rendering ===================================================== *)
 
-let label node =
-  let base =
-    match node.kind with
-    | Rel -> (
-        match node.rule with
-        | Some r when r <> "" -> node.id ^ "/" ^ r
-        | _ -> node.id)
-    | Func -> "$" ^ node.id
+let dim s = Ansi.style !ansi [ Dim ] s
+let accent s = Ansi.style !ansi [ Yellow ] s
+
+let render_judgment c =
+  let string_of_atom a =
+    match Il.Print.string_of_atom a with "" -> "" | s -> dim s
   in
-  match node.outcome with Succeeded _ -> base | Failed -> base ^ "  ✗"
+  Il.Mode.render ~pad_brackets:true ~string_of_atom
+    ~string_of_arg:summarize_value c
 
-(* The leader [│   ] (vs spaces) keeps the vertical line down to the first
-   child unbroken when there are children below. *)
-let render_decorations ~prefix ~has_children node out =
-  if !config.level = Inputs then (
-    let leader = if has_children then "│   " else "    " in
-    let line tag v =
-      Format.fprintf out "%s%s%s: %s\n" prefix leader tag (summarize_value v)
-    in
-    List.iter (line "in") node.inputs;
-    match node.outcome with
-    | Succeeded outputs -> List.iter (line "out") outputs
-    | Failed -> ())
+let render_call node =
+  let args = List.map summarize_value node.inputs |> String.concat ", " in
+  Format.sprintf "$%s(%s)" node.id args
 
-let rec render_child ~prefix ~is_last node out =
-  let connector = if is_last then "└── " else "├── " in
-  Format.fprintf out "%s%s%s\n" prefix connector (label node);
-  let child_prefix = prefix ^ if is_last then "    " else "│   " in
-  let has_children = node.children_rev <> [] in
-  render_decorations ~prefix:child_prefix ~has_children node out;
-  render_children ~prefix:child_prefix node out
+let render_tag node =
+  match node.rule with Some r when r <> "" -> node.id ^ "/" ^ r | _ -> node.id
 
-and render_children ~prefix node out =
-  let children = List.rev node.children_rev in
-  let n = List.length children in
-  List.iteri
-    (fun i c -> render_child ~prefix ~is_last:(i = n - 1) c out)
-    children
+(* Count code points, not bytes, and skip ANSI escapes, so the bar matches the
+   conclusion's visible width. *)
+let measure_width s =
+  let _, width =
+    String.fold_left
+      (fun (in_escape, width) c ->
+        if in_escape then (c <> 'm', width)
+        else if c = '\027' then (true, width)
+        else if Char.code c land 0xc0 = 0x80 then (false, width)
+        else (false, width + 1))
+      (false, 0) s
+  in
+  width
 
-let render_root node =
-  let out = !fmt in
-  Format.fprintf out "%s\n" (label node);
-  render_decorations ~prefix:"" ~has_children:(node.children_rev <> []) node out;
-  render_children ~prefix:"" node out;
-  Format.pp_print_flush out ()
+(* Box-drawing glyph so that the bar consistently renders connected. *)
+let render_bar n = String.concat "" (List.init n (fun _ -> "─"))
 
-let close_and_maybe_render ~outcome =
-  Option.iter render_root (State.close_top ~outcome)
+let render_lines node =
+  match (node.kind, !config.level, node.outcome) with
+  | Rel, Conclusion, Rel_ok c ->
+      let notation = render_judgment c in
+      [
+        accent (render_tag node ^ ":");
+        notation;
+        dim (render_bar (measure_width notation));
+      ]
+  | Rel, _, _ -> [ accent (render_tag node) ]
+  | Func, Conclusion, Func_ok v ->
+      [ Format.sprintf "%s = %s" (render_call node) (summarize_value v) ]
+  | Func, _, _ -> [ "$" ^ node.id ]
+
+let rec print_node ~first_lead ~rest_prefix node out =
+  (match render_lines node with
+  | [] -> ()
+  | head :: rest ->
+      Format.fprintf out "%s%s\n" first_lead head;
+      List.iter (fun l -> Format.fprintf out "%s%s\n" rest_prefix l) rest);
+  let child_lead = rest_prefix ^ dim "--" ^ " " in
+  let child_rest = rest_prefix ^ "   " in
+  List.iter
+    (fun c -> print_node ~first_lead:child_lead ~rest_prefix:child_rest c out)
+    (List.rev node.children_rev)
+
+let print_root node =
+  print_node ~first_lead:"" ~rest_prefix:"" node !fmt;
+  Format.pp_print_flush !fmt ()
+
+let close_and_maybe_print ~outcome =
+  match State.close_top ~outcome with
+  | Some { outcome = Failed; _ } | None -> ()
+  | Some root -> print_root root
 
 (* === Handler module ================================================ *)
 
@@ -155,23 +180,28 @@ module M : Instrumentation_api.Handler.S = struct
   let handle : Instrumentation_api.Event.t -> unit = function
     | Test_start _ | Test_end _ -> State.reset ()
     | Rel_enter { id; at = _; inputs } -> State.push (new_node Rel id inputs)
-    | Rel_exit { id = _; at = _; outputs } ->
-        close_and_maybe_render ~outcome:(outcome_of_outputs outputs)
+    | Rel_exit { id = _; at = _; conclusion } ->
+        close_and_maybe_print ~outcome:(outcome_of_conclusion conclusion)
     | Rule_enter _ -> State.begin_rule_attempt ()
     | Rule_exit { id = _; rule_id; at = _; success } ->
         State.end_rule_attempt ~rule_id ~success
     | Func_enter { id; at = _; inputs } -> State.push (new_node Func id inputs)
     | Func_exit { id = _; at = _; output } ->
-        close_and_maybe_render ~outcome:(outcome_of_output output)
+        close_and_maybe_print ~outcome:(outcome_of_output output)
     | Clause_enter _ | Clause_exit _ -> ()
     | Iter_prem_enter _ | Iter_prem_exit _ -> ()
     | Prem_enter _ | Prem_exit _ -> ()
     | Instr _ -> ()
 end
 
+let resolve_ansi : Instrumentation_api.Output.t -> Ansi.t = function
+  | Stdout -> Ansi.auto ~tty:(Unix.isatty Unix.stdout)
+  | File _ -> Ansi.plain
+
 let make cfg =
   config := cfg;
   fmt := Instrumentation_api.Output.formatter cfg.output;
+  ansi := resolve_ansi cfg.output;
   (module M : Instrumentation_api.Handler.S)
 
 module Spec : Instrumentation_spec.Spec.S = struct
@@ -180,14 +210,15 @@ module Spec : Instrumentation_spec.Spec.S = struct
 
   let params =
     [
-      ("level", "LEVEL verbosity level: rules|inputs");
+      ("level", "LEVEL verbosity level: rules|conclusion");
       Instrumentation_spec.Param_utils.output_param;
     ]
 
   let parse_level = function
     | "rules" -> Rules
-    | "inputs" -> Inputs
-    | s -> failwith ("Invalid tree level: " ^ s ^ " (expected: rules|inputs)")
+    | "conclusion" -> Conclusion
+    | s ->
+        failwith ("Invalid tree level: " ^ s ^ " (expected: rules|conclusion)")
 
   let parse alist =
     match Instrumentation_spec.Param_utils.get alist "level" with
