@@ -5,5 +5,8 @@ _test
 # spectec build and executables
 spectecx
 
+# tutorial bundle staging + tarball (make bundle)
+dist/
+
 # MacOS
 *.DS_Store

@@ -1,0 +1,53 @@
+<style>
+/* Stylesheet overrides for AsciiDoctor output, loaded into <head> via
+   `-a docinfo=shared`. Color alone distinguishes inline code (red) and
+   links (blue); no backdrops or underlines that would compete with
+   subscripts and math glyphs. */
+
+@font-face {
+  font-family: "InlineMath";
+  src: local("Cambria Math"), local("STIX Two Math"),
+       local("Latin Modern Math"), local("Asana Math"),
+       local("DejaVu Sans"), local("Arial Unicode MS"),
+       local("Symbola"), local("sans-serif");
+  unicode-range: U+2190-21FF, U+2200-22FF, U+27C0-27EF,
+                 U+2980-29FF, U+2A00-2AFF;
+}
+
+/* Plain inline code: dark slate, distinct from body black, no backdrop. */
+:not(pre):not([class^="L"]) > code {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: #3a4452;
+  font-size: 0.95em;
+  font-weight: normal;
+  font-family: "InlineMath", "SF Mono", "JetBrains Mono", "Cascadia Mono",
+               "Fira Code", "Menlo", "Consolas", "DejaVu Sans Mono",
+               monospace;
+}
+
+/* Links: a blue hue, no underline. */
+a, a:visited, a:hover, a:focus {
+  color: #3040a0;
+  text-decoration: none;
+}
+
+/* Code inside a link: a muted blue. Reads as clickable (the link signal)
+   while staying distinct from the plain-code slate. Specificity matches
+   the inline-code selector so the override actually wins. */
+:not(pre):not([class^="L"]) > a > code,
+:not(pre):not([class^="L"]) > a:hover > code,
+:not(pre):not([class^="L"]) > a:focus > code {
+  color: #5566b8;
+}
+
+sub, sup {
+  font-size: 75%;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+sup { top: -0.5em; }
+sub { bottom: -0.25em; }
+</style>

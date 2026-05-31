@@ -64,16 +64,24 @@ jobs:
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: release
           merge-multiple: true
 
+      - name: Build tutorial materials
+        run: make bundle
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: release/*
+          files: |
+            release/*
+            dist/spectecx-tutorial.tar.gz
           generate_release_notes: true
           body: |
             ## Download
@@ -85,6 +93,11 @@ jobs:
             - **macOS Intel:** build from source per the README, or run the
               Linux binary in a VM (UTM, Lima).
             - **Windows:** use WSL2 + the Linux binary.
+
+            ## Tutorial materials
+
+            `spectecx-tutorial.tar.gz` -- participant materials for the MechSpec
+            tutorial (spec skeleton, tests, README, prose document).
 
             ## Install (Unix)
 

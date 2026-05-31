@@ -1,0 +1,85 @@
+= The Typed Imp Language Specification
+:toc: left
+:toclevels: 2
+:sectnums:
+:icons: font
+
+Typed Imp is a small typed imperative language. Its syntax covers
+integer and boolean literals, variables, arithmetic and boolean
+operators, sequencing, conditionals, `while` loops, and typed variable
+declarations. The static semantics assigns types to expressions and
+commands under a typing context; the dynamic semantics evaluates
+expressions and executes commands under an environment that maps
+variables to values.
+
+== Syntax
+
+The abstract syntax of Typed Imp distinguishes types, literals,
+variables, expressions, commands, and whole programs.
+
+${syntax: type literal id expr command prog}
+
+== Auxiliary definitions
+
+Lookup over an association list is shared by the static and dynamic
+semantics. Given a list of `(key, value)` pairs, it returns the first
+value bound to the requested key.
+
+${func-title-source: lookup_}
+
+${func-title-prose: lookup_}
+
+${func-source: lookup_}
+
+${func-prose: lookup_}
+
+== Static semantics
+
+The typing judgments characterise well-formed expressions and commands
+under a typing context that maps each in-scope variable to its declared
+type.
+
+=== Expressions
+
+${rel-title-source: Check_expr}
+
+${rel-title-prose: Check_expr}
+
+${rel-source: Check_expr}
+
+${rel-prose: Check_expr}
+
+=== Commands
+
+${rel-title-source: Check_command}
+
+${rel-title-prose: Check_command}
+
+${rel-source: Check_command}
+
+${rel-prose: Check_command}
+
+== Dynamic semantics
+
+The evaluation judgments give a big-step semantics. Expressions reduce
+to values; commands transform an environment to an environment.
+
+=== Expressions
+
+${rel-title-source: Eval_expr}
+
+${rel-title-prose: Eval_expr}
+
+${rel-source: Eval_expr}
+
+${rel-prose: Eval_expr}
+
+=== Commands
+
+${rel-title-source: Eval_command}
+
+${rel-title-prose: Eval_command}
+
+${rel-source: Eval_command}
+
+${rel-prose: Eval_command}
