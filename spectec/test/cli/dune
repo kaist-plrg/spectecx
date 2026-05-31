@@ -1,0 +1,5 @@
+(cram
+ (deps
+  %{bin:spectec}
+  (source_tree ../../specs/impty)
+  (source_tree ../../testdata/interp/impty)))
