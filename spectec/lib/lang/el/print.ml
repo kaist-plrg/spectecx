@@ -269,8 +269,8 @@ let string_of_def def =
   | BuiltinGeneratorD (defid, plaintyp, _hints) ->
       "builtin generator $" ^ string_of_defid defid ^ " : "
       ^ string_of_plaintyp plaintyp
-  | PropertyD (defid, prems, goal, _hints) ->
-      "property $" ^ string_of_defid defid ^ " : " ^ string_of_prem goal
+  | PropertyD (relid, prems, goal, _hints) ->
+      "property " ^ string_of_relid relid ^ " : " ^ string_of_prem goal
       ^ string_of_prems prems
   | SepD -> "\n\n"
 

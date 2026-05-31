@@ -262,6 +262,6 @@ rule Run_prog:
 builtin generator $base_prog : prog
 
 ;; Type soundness
-property $base_type_safety hint(generator $base_prog) :
+property Type_safety hint(generator $base_prog) :
   Eval_prog: |- prog -| env
   -- Check_prog: |- prog
