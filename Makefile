@@ -60,6 +60,34 @@ splice-pdf: splice
 splice-clean:
 	rm -rf $(SPLICE_BUILD)
 
+# Tutorial bundle: stage the bundle/ materials, the skeleton spec, and the
+# positive tests, then tar for download.
+
+.PHONY: bundle
+
+BUNDLE_SRC  = bundle
+BUNDLE_NAME = spectecx-tutorial
+BUNDLE_DIR  = dist/$(BUNDLE_NAME)
+IMPTY_TESTS = spectec/testdata/interp/impty
+
+bundle:
+	rm -rf $(BUNDLE_DIR)
+	mkdir -p $(BUNDLE_DIR)/tests/base \
+	         $(BUNDLE_DIR)/tests/closure $(BUNDLE_DIR)/documentation
+	cp $(BUNDLE_SRC)/README.md $(BUNDLE_SRC)/Makefile $(BUNDLE_SRC)/Dockerfile $(BUNDLE_DIR)/
+	cp LICENSE $(BUNDLE_DIR)/
+	cp $(BUNDLE_SRC)/impty.spectec $(BUNDLE_DIR)/impty.spectec
+	for f in $(IMPTY_TESTS)/base/*.imp; do \
+	  case $$f in *_errors_*) ;; *) cp "$$f" $(BUNDLE_DIR)/tests/base/ ;; esac; \
+	done
+	for f in $(IMPTY_TESTS)/closure/*.imp; do \
+	  case $$f in *_errors_*) ;; *) cp "$$f" $(BUNDLE_DIR)/tests/closure/ ;; esac; \
+	done
+	cp $(BUNDLE_SRC)/documentation/impty.adoc \
+	   $(BUNDLE_SRC)/documentation/docinfo.html $(BUNDLE_DIR)/documentation/
+	tar -czf dist/$(BUNDLE_NAME).tar.gz -C dist $(BUNDLE_NAME)
+	@echo "#### bundle written to dist/$(BUNDLE_NAME).tar.gz"
+
 # Tests
 #
 # Individual tests (run against the new p4 spec by default):
