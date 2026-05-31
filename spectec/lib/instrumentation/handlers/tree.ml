@@ -14,6 +14,7 @@
       [[ x -> int ] |- 5 : int]); functions show [$id(args) = output]. *)
 
 module Il = Lang.Il
+module Ansi = Diag.Ansi
 open Util
 
 type level = Rules | Conclusion
@@ -24,6 +25,7 @@ let default_config =
 
 let config = ref default_config
 let fmt = ref Format.std_formatter
+let ansi = ref Ansi.plain
 
 let summarize_value (v : Il.Value.t) : string =
   Il.Print.string_of_value v |> summarize ~max_len:100
@@ -99,8 +101,14 @@ end
 
 (* === Rendering ===================================================== *)
 
+let dim s = Ansi.style !ansi [ Dim ] s
+let accent s = Ansi.style !ansi [ Yellow ] s
+
 let render_judgment c =
-  Il.Mode.render ~pad_brackets:true ~string_of_atom:Il.Print.string_of_atom
+  let string_of_atom a =
+    match Il.Print.string_of_atom a with "" -> "" | s -> dim s
+  in
+  Il.Mode.render ~pad_brackets:true ~string_of_atom
     ~string_of_arg:summarize_value c
 
 let render_call node =
@@ -110,11 +118,19 @@ let render_call node =
 let render_tag node =
   match node.rule with Some r when r <> "" -> node.id ^ "/" ^ r | _ -> node.id
 
-(* Count code points, not bytes, so the bar matches the conclusion's width. *)
+(* Count code points, not bytes, and skip ANSI escapes, so the bar matches the
+   conclusion's visible width. *)
 let measure_width s =
-  String.fold_left
-    (fun width c -> if Char.code c land 0xc0 = 0x80 then width else width + 1)
-    0 s
+  let _, width =
+    String.fold_left
+      (fun (in_escape, width) c ->
+        if in_escape then (c <> 'm', width)
+        else if c = '\027' then (true, width)
+        else if Char.code c land 0xc0 = 0x80 then (false, width)
+        else (false, width + 1))
+      (false, 0) s
+  in
+  width
 
 (* Box-drawing glyph so that the bar consistently renders connected. *)
 let render_bar n = String.concat "" (List.init n (fun _ -> "─"))
@@ -123,8 +139,12 @@ let render_lines node =
   match (node.kind, !config.level, node.outcome) with
   | Rel, Conclusion, Rel_ok c ->
       let notation = render_judgment c in
-      [ render_tag node ^ ":"; notation; render_bar (measure_width notation) ]
-  | Rel, _, _ -> [ render_tag node ]
+      [
+        accent (render_tag node ^ ":");
+        notation;
+        dim (render_bar (measure_width notation));
+      ]
+  | Rel, _, _ -> [ accent (render_tag node) ]
   | Func, Conclusion, Func_ok v ->
       [ Format.sprintf "%s = %s" (render_call node) (summarize_value v) ]
   | Func, _, _ -> [ "$" ^ node.id ]
@@ -135,7 +155,7 @@ let rec print_node ~first_lead ~rest_prefix node out =
   | head :: rest ->
       Format.fprintf out "%s%s\n" first_lead head;
       List.iter (fun l -> Format.fprintf out "%s%s\n" rest_prefix l) rest);
-  let child_lead = rest_prefix ^ "-- " in
+  let child_lead = rest_prefix ^ dim "--" ^ " " in
   let child_rest = rest_prefix ^ "   " in
   List.iter
     (fun c -> print_node ~first_lead:child_lead ~rest_prefix:child_rest c out)
@@ -174,9 +194,15 @@ module M : Instrumentation_api.Handler.S = struct
     | Instr _ -> ()
 end
 
+let resolve_ansi : Instrumentation_api.Output.t -> Ansi.t = function
+  | Stdout when Sys.getenv_opt "NO_COLOR" = None && Unix.isatty Unix.stdout ->
+      Ansi.color
+  | _ -> Ansi.plain
+
 let make cfg =
   config := cfg;
   fmt := Instrumentation_api.Output.formatter cfg.output;
+  ansi := resolve_ansi cfg.output;
   (module M : Instrumentation_api.Handler.S)
 
 module Spec : Instrumentation_spec.Spec.S = struct

@@ -7,4 +7,6 @@
   instrumentation_api
   instrumentation_config
   instrumentation_spec
-  instrumentation_static))
+  instrumentation_static
+  diag
+  unix))
