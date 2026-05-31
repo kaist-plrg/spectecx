@@ -47,7 +47,9 @@ eval shares this exact set:
                                . output destination file
     [--profile.output FILE]    . output destination file
     [--sl]                     . use SL interpreter (default: IL)
-    [--spec FILES] ...         . spec files (default: use target spec dir)
+    [--spec FILES] ...         . spec files; mutually exclusive with --spec-dir
+    [--spec-dir DIR]           . directory of .spectec files, collected
+                                 recursively; mutually exclusive with --spec
     [--trace.level LEVEL]      . verbosity level: summary|rules|inputs|full
     [--trace.output FILE]      . output destination file
     [--tree.level LEVEL]       . verbosity level: rules|inputs
@@ -68,7 +70,9 @@ parse has a distinct, minimal surface with no instrumentation flags:
     -p FILE                    . impty file
     [--color WHEN]             . colorize diagnostics: auto|always|never (default:
                                  auto)
-    [--spec FILES] ...         . spec files (default: use target spec dir)
+    [--spec FILES] ...         . spec files; mutually exclusive with --spec-dir
+    [--spec-dir DIR]           . directory of .spectec files, collected
+                                 recursively; mutually exclusive with --spec
     [-r]                       . roundtrip parse/unparse
     [-help], -?                . print this help text and exit
   
@@ -102,7 +106,9 @@ batch drops -p and adds the checkpoint-persistence flags:
     [--resume FILE]            . resume from checkpoint file
     [--save-interval N]        . save checkpoint every N tests (default: 100)
     [--sl]                     . use SL interpreter (default: IL)
-    [--spec FILES] ...         . spec files (default: use target spec dir)
+    [--spec FILES] ...         . spec files; mutually exclusive with --spec-dir
+    [--spec-dir DIR]           . directory of .spectec files, collected
+                                 recursively; mutually exclusive with --spec
     [--trace.level LEVEL]      . verbosity level: summary|rules|inputs|full
     [--trace.output FILE]      . output destination file
     [--tree.level LEVEL]       . verbosity level: rules|inputs
