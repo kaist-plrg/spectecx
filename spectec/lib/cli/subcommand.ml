@@ -3,11 +3,12 @@ let ( let* ) = Result.bind
 open Error_handling
 
 let load_spec ~spec_dir filenames_spec =
-  let filenames =
+  let source =
     match filenames_spec with
-    | [] -> Spectec.collect_spec_files spec_dir
-    | files -> files
+    | [] -> Spec_source.Dir spec_dir
+    | files -> Spec_source.Files files
   in
+  let filenames = Spec_source.files source in
   let* spec = Spectec.parse_spec_files filenames in
   let* spec_il = Spectec.elaborate spec in
   Ok (filenames, spec_il)
@@ -163,7 +164,7 @@ let make_checkpoint (module Tgt : Spectec.Target.S) ~name =
     and color = Cli_args.Output.color_flag in
     fun () ->
       guard_unit ~color @@ fun () ->
-      let spec_files = Spectec.collect_spec_files Tgt.spec_dir in
+      let spec_files = Spec_source.files (Spec_source.Dir Tgt.spec_dir) in
       let* checkpoint1 =
         Batch.Checkpoint.verify_and_load ~file:checkpoint_file1 ~spec_files
           ~verbose:false

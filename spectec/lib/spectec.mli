@@ -26,9 +26,6 @@ val with_diagnostics : (unit -> 'a) -> 'a * Diag.Bag.t
 
 (** {1 Pipeline transformations} *)
 
-(** Collect [.spectec] files from a directory, sorted. *)
-val collect_spec_files : string -> string list
-
 val parse_spec_files : string list -> Lang.El.spec result
 val elaborate : Lang.El.spec -> Lang.Il.spec result
 val structure : Lang.Il.spec -> Lang.Sl.spec
