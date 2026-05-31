@@ -30,9 +30,9 @@ and struct_prems' (prems_internalized : (prem * iterexp list) list)
       | RulePr { relid = id; notexp } ->
           let instr_t = struct_prems' prems_internalized_t instr_ret in
           Ol.Ast.RuleI (id, notexp, iterexps_h, [ instr_t ]) $ at
-      | IfPr exp ->
+      | IfPr { cond; _ } ->
           let instr_t = struct_prems' prems_internalized_t instr_ret in
-          Ol.Ast.IfI (exp, iterexps_h, [ instr_t ]) $ at
+          Ol.Ast.IfI (cond, iterexps_h, [ instr_t ]) $ at
       | IfHoldPr { relid = id; notexp } ->
           let instr_t = struct_prems' prems_internalized_t instr_ret in
           Ol.Ast.IfHoldI (id, notexp, iterexps_h, [ instr_t ]) $ at

@@ -923,7 +923,7 @@ and eval_prem (ctx : Ctx.t) (prem : prem) : Ctx.t attempt =
   let result =
     match prem.it with
     | RulePr { relid; notexp } -> eval_rule_prem ctx relid notexp
-    | IfPr exp_cond -> eval_if_prem ctx exp_cond
+    | IfPr { cond; _ } -> eval_if_prem ctx cond
     | IfHoldPr { relid; notexp } -> eval_if_hold_prem ctx relid notexp
     | IfNotHoldPr { relid; notexp } -> eval_if_not_hold_prem ctx relid notexp
     | ElsePr -> Ok ctx

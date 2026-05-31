@@ -309,7 +309,7 @@ and string_of_prem prem =
   match prem.it with
   | RulePr { relid; notexp } ->
       string_of_relid relid ^ ": " ^ string_of_notexp notexp
-  | IfPr exp -> "if " ^ string_of_exp exp
+  | IfPr { cond; _ } -> "if " ^ string_of_exp cond
   | IfHoldPr { relid; notexp } ->
       "if " ^ string_of_relid relid ^ ": " ^ string_of_notexp notexp ^ " holds"
   | IfNotHoldPr { relid; notexp } ->

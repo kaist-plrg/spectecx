@@ -243,9 +243,9 @@ and annotate_prem (binds : VEnv.t) (bounds : VEnv.t) (prem : prem) :
       let notexp = Mixop.fill mixop exps in
       let prem = RulePr { relid = id; notexp } $ at in
       (occurs, prem)
-  | IfPr exp ->
-      let occurs, exp = annotate_exp bounds exp in
-      let prem = IfPr exp $ at in
+  | IfPr { cond; role } ->
+      let occurs, cond = annotate_exp bounds cond in
+      let prem = IfPr { cond; role } $ at in
       (occurs, prem)
   | IfHoldPr { relid = id; notexp } ->
       let mixop, exps = Mixop.split notexp in

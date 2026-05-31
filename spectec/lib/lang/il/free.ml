@@ -70,7 +70,7 @@ and free_args (args : arg list) : t =
 let rec free_prem (prem : prem) : t =
   match prem.it with
   | RulePr { notexp; _ } -> free_exps (Mixfix.args notexp)
-  | IfPr exp -> free_exp exp
+  | IfPr { cond; _ } -> free_exp cond
   | IfHoldPr { notexp; _ } -> free_exps (Mixfix.args notexp)
   | IfNotHoldPr { notexp; _ } -> free_exps (Mixfix.args notexp)
   | LetPr (exp_l, exp_r) -> free_exp exp_l + free_exp exp_r
