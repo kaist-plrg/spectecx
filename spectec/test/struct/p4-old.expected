@@ -17829,7 +17829,7 @@ relation Stmt_ok: p', TC', f', statement
 2. Else Phantom#949
 
 ;; ../../../../../spectec/specs/p4-old/5.04-typing-relation.spectec:71:1-73:26:
-relation Stmts_ok: 
+relation Stmts_ok: cursor, typingContext, flow, statement*
 
 
 
@@ -26933,7 +26933,7 @@ relation Stmt_inst: p, Ci, sto', statementIR'''
 1. Else Phantom#1493
 
 ;; ../../../../../spectec/specs/p4-old/6.03-instantiation-relation.spectec:56:1-58:26:
-relation Stmts_inst: 
+relation Stmts_inst: cursor, contextInst, sto, statementIR*
 
 
 

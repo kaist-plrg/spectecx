@@ -70,6 +70,15 @@ val render :
   'a t ->
   string
 
+(** Fill a [mixop] with pre-rendered argument strings, then render the whole
+    mixed string in one step. *)
+val assemble :
+  ?pad_brackets:bool ->
+  string_of_atom:(atom -> string) ->
+  unit t ->
+  string list ->
+  string
+
 (** Default string: atoms plus [%] for each argument position without bracket
     padding. *)
 val to_string : 'a t -> string

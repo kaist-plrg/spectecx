@@ -29,6 +29,7 @@ let make_task (module Tgt : Spectec.Target.S) ~name ~summary
     and color = Cli_args.Output.color_flag in
     fun () ->
       guard_unit ~color @@ fun () ->
+      let ansi = resolve_ansi color in
       let open Spectec in
       let* () = validate_config config ~sl_mode in
       let* _files, spec_il = load_spec ~spec_dir:Tgt.spec_dir filenames_spec in
@@ -36,17 +37,16 @@ let make_task (module Tgt : Spectec.Target.S) ~name ~summary
       | false, None ->
           Batch.run_and_print_single
             (module TC.Task)
-            ~config ~sl_mode ~spec_il input;
-          Ok ()
+            ~config ~sl_mode ~spec_il input
       | true, None ->
           Batch.run_and_print_batch
             (module TC.Task)
-            ~config ~sl_mode ~spec_il ~verbose (TC.Task.collect ());
+            ~config ~ansi ~sl_mode ~spec_il ~verbose (TC.Task.collect ());
           Ok ()
       | _, Some dir ->
           Batch.run_and_print_batch
             (module TC.Task)
-            ~config ~sl_mode ~spec_il ~verbose (TC.Task.collect ~dir ());
+            ~config ~ansi ~sl_mode ~spec_il ~verbose (TC.Task.collect ~dir ());
           Ok ()
   in
   (name, cmd)

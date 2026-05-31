@@ -2,7 +2,7 @@ open Common.Source
 open Common.Domain
 open Lang
 open Lang.Il
-module HEnv = Envs.HEnv
+module RTEnv = Envs.RTEnv
 module TDEnv = Envs.Il.TDEnv
 
 (* Structuring premises *)
@@ -15,48 +15,36 @@ let rec internalize_iter ?(iterexps : iterexp list = []) (prem : prem) :
   | _ -> (prem, iterexps)
 
 let rec struct_prems (prems : prem list) (instr_ret : Ol.Ast.instr) :
-    Ol.Ast.instr list =
+    Ol.Ast.instr =
   let prems_internalized = List.map internalize_iter prems in
   struct_prems' prems_internalized instr_ret
 
 and struct_prems' (prems_internalized : (prem * iterexp list) list)
-    (instr_ret : Ol.Ast.instr) : Ol.Ast.instr list =
+    (instr_ret : Ol.Ast.instr) : Ol.Ast.instr =
   match prems_internalized with
-  | [] -> [ instr_ret ]
-  | [ ({ it = ElsePr; at; _ }, []) ] ->
-      let instr = Ol.Ast.OtherwiseI instr_ret $ at in
-      [ instr ]
+  | [] -> instr_ret
+  | [ ({ it = ElsePr; at; _ }, []) ] -> Ol.Ast.OtherwiseI instr_ret $ at
   | (prem_h, iterexps_h) :: prems_internalized_t -> (
       let at = prem_h.at in
       match prem_h.it with
       | RulePr { relid = id; notexp } ->
-          let instrs_t = struct_prems' prems_internalized_t instr_ret in
-          let instr_h = Ol.Ast.RuleI (id, notexp, iterexps_h, instrs_t) $ at in
-          [ instr_h ]
+          let instr_t = struct_prems' prems_internalized_t instr_ret in
+          Ol.Ast.RuleI (id, notexp, iterexps_h, [ instr_t ]) $ at
       | IfPr exp ->
-          let instrs_t = struct_prems' prems_internalized_t instr_ret in
-          let instr_h = Ol.Ast.IfI (exp, iterexps_h, instrs_t) $ at in
-          [ instr_h ]
+          let instr_t = struct_prems' prems_internalized_t instr_ret in
+          Ol.Ast.IfI (exp, iterexps_h, [ instr_t ]) $ at
       | IfHoldPr { relid = id; notexp } ->
-          let instrs_t = struct_prems' prems_internalized_t instr_ret in
-          let instr_h =
-            Ol.Ast.IfHoldI (id, notexp, iterexps_h, instrs_t) $ at
-          in
-          [ instr_h ]
+          let instr_t = struct_prems' prems_internalized_t instr_ret in
+          Ol.Ast.IfHoldI (id, notexp, iterexps_h, [ instr_t ]) $ at
       | IfNotHoldPr { relid = id; notexp } ->
-          let instrs_t = struct_prems' prems_internalized_t instr_ret in
-          let instr_h =
-            Ol.Ast.IfNotHoldI (id, notexp, iterexps_h, instrs_t) $ at
-          in
-          [ instr_h ]
+          let instr_t = struct_prems' prems_internalized_t instr_ret in
+          Ol.Ast.IfNotHoldI (id, notexp, iterexps_h, [ instr_t ]) $ at
       | LetPr (exp_l, exp_r) ->
-          let instrs_t = struct_prems' prems_internalized_t instr_ret in
-          let instr_h = Ol.Ast.LetI (exp_l, exp_r, iterexps_h, instrs_t) $ at in
-          [ instr_h ]
+          let instr_t = struct_prems' prems_internalized_t instr_ret in
+          Ol.Ast.LetI (exp_l, exp_r, iterexps_h, [ instr_t ]) $ at
       | DebugPr exp ->
-          let instr_h = Ol.Ast.DebugI exp $ at in
-          let instrs_t = struct_prems' prems_internalized_t instr_ret in
-          instr_h :: instrs_t
+          let instr_t = struct_prems' prems_internalized_t instr_ret in
+          Ol.Ast.DebugI (exp, instr_t) $ at
       | _ -> assert false)
 
 let split_else_path ((prems, payload) : prem list * 'a) :
@@ -99,7 +87,7 @@ let struct_rule_path ((prems, exps_output) : prem list * exp list) :
     | { it = ElsePr; _ } :: prems_rev -> List.rev prems_rev
     | _ -> prems
   in
-  struct_prems prems instr_ret
+  [ struct_prems prems instr_ret ]
 
 (* Structuring clauses *)
 
@@ -112,38 +100,57 @@ let struct_clause_path ((prems, exp_output) : prem list * exp) :
     | { it = ElsePr; _ } :: prems_rev -> List.rev prems_rev
     | _ -> prems
   in
-  struct_prems prems instr_ret
+  [ struct_prems prems instr_ret ]
 
 (* Structuring definitions *)
 
-let rec struct_def (henv : HEnv.t) (tdenv : TDEnv.t) (def : def) : Sl.def =
+let rec struct_def (rtenv : RTEnv.t) (tdenv : TDEnv.t) (def : def) : Sl.def =
   let at = def.at in
   match def.it with
   | TypD { synid = id; tparams; deftyp } -> Sl.TypD (id, tparams, deftyp) $ at
-  | RelD { relid = id; notation; inputs; rules } ->
-      struct_rel_def henv tdenv at id notation inputs rules
+  | RelD { relid = id; reltyp; rules } ->
+      struct_rel_def rtenv tdenv at id reltyp rules
   | BuiltinDecD { defid = id; tparams; params; _ } ->
       struct_builtin_dec_def at id tparams params
   | DecD { defid = id; tparams; clauses; _ } ->
-      struct_dec_def henv tdenv at id tparams clauses
+      struct_dec_def rtenv tdenv at id tparams clauses
 
 (* Structuring relation definitions *)
 
-and struct_rel_def (henv : HEnv.t) (tdenv : TDEnv.t) (at : region) (id_rel : id)
-    (nottyp : nottyp) (inputs : int list) (rules : rule list) : Sl.def =
-  let mixop = Il.Mixfix.to_mixop nottyp.it in
-  let exps_input, paths = Antiunify.antiunify_rules inputs rules in
+and struct_rel_def (rtenv : RTEnv.t) (tdenv : TDEnv.t) (at : region)
+    (id_rel : id) (reltyp : reltyp) (rules : rule list) : Sl.def =
+  let exps_input, paths = Antiunify.antiunify_rules reltyp.it rules in
   let block_paths, else_path_opt = partition_else_paths paths in
   let block =
-    List.concat_map struct_rule_path block_paths |> Optimize.optimize henv tdenv
+    List.concat_map struct_rule_path block_paths
+    |> Optimize.optimize rtenv tdenv
   in
   let elseblock_opt =
     Option.map
-      (fun path -> struct_rule_path path |> Optimize.optimize henv tdenv)
+      (fun path -> struct_rule_path path |> Optimize.optimize rtenv tdenv)
       else_path_opt
   in
   let block, elseblock_opt = Instrument.instrument tdenv block elseblock_opt in
-  Sl.RelD (id_rel, (mixop, inputs), exps_input, block, elseblock_opt) $ at
+  let in_typs = Il.Mode.inputs reltyp.it in
+  let exps_input =
+    match rules with
+    | [] ->
+        (* The relation is never invoked, but the SL shape still needs one
+           placeholder per input slot. *)
+        let _, exps =
+          List.fold_left
+            (fun (frees, exps) typ ->
+              let exp, frees = Elaborate.Fresh.fresh_exp_from_typ frees typ in
+              (frees, exps @ [ exp ]))
+            (IdSet.empty, []) in_typs
+        in
+        exps
+    | _ ->
+        assert (List.length exps_input = List.length in_typs);
+        exps_input
+  in
+  let sl_mode = Il.Mode.with_inputs reltyp.it exps_input in
+  Sl.RelD (id_rel, sl_mode, block, elseblock_opt) $ at
 
 (* Structuring builtin declaration definitions *)
 
@@ -171,17 +178,17 @@ and struct_builtin_dec_def (at : region) (id_dec : id) (tparams : tparam list)
 
 (* Structuring declaration definitions *)
 
-and struct_dec_def (henv : HEnv.t) (tdenv : TDEnv.t) (at : region) (id_dec : id)
-    (tparams : tparam list) (clauses : clause list) : Sl.def =
+and struct_dec_def (rtenv : RTEnv.t) (tdenv : TDEnv.t) (at : region)
+    (id_dec : id) (tparams : tparam list) (clauses : clause list) : Sl.def =
   let args_input, paths = Antiunify.antiunify_clauses clauses in
   let block_paths, else_path_opt = partition_else_paths paths in
   let block =
     List.concat_map struct_clause_path block_paths
-    |> Optimize.optimize henv tdenv
+    |> Optimize.optimize rtenv tdenv
   in
   let elseblock_opt =
     Option.map
-      (fun path -> struct_clause_path path |> Optimize.optimize henv tdenv)
+      (fun path -> struct_clause_path path |> Optimize.optimize rtenv tdenv)
       else_path_opt
   in
   let block, elseblock_opt = Instrument.instrument tdenv block elseblock_opt in
@@ -189,25 +196,26 @@ and struct_dec_def (henv : HEnv.t) (tdenv : TDEnv.t) (at : region) (id_dec : id)
 
 (* Load type definitions *)
 
-let load_def (henv : HEnv.t) (tdenv : TDEnv.t) (def : def) : HEnv.t * TDEnv.t =
+let load_def (rtenv : RTEnv.t) (tdenv : TDEnv.t) (def : def) : RTEnv.t * TDEnv.t
+    =
   match def.it with
   | TypD { synid = id; tparams; deftyp } ->
       let typdef = (tparams, deftyp) in
       let tdenv = TDEnv.add id typdef tdenv in
-      (henv, tdenv)
-  | RelD { relid = id; inputs; _ } ->
-      let henv = HEnv.add id inputs henv in
-      (henv, tdenv)
-  | _ -> (henv, tdenv)
+      (rtenv, tdenv)
+  | RelD { relid = id; reltyp; _ } ->
+      let rtenv = RTEnv.add id reltyp rtenv in
+      (rtenv, tdenv)
+  | _ -> (rtenv, tdenv)
 
-let load_spec (henv : HEnv.t) (tdenv : TDEnv.t) (spec : spec) : HEnv.t * TDEnv.t
-    =
+let load_spec (rtenv : RTEnv.t) (tdenv : TDEnv.t) (spec : spec) :
+    RTEnv.t * TDEnv.t =
   List.fold_left
-    (fun (henv, tdenv) def -> load_def henv tdenv def)
-    (henv, tdenv) spec
+    (fun (rtenv, tdenv) def -> load_def rtenv tdenv def)
+    (rtenv, tdenv) spec
 
 (* Structuring a spec *)
 
 let struct_spec (spec : spec) : Sl.spec =
-  let henv, tdenv = load_spec HEnv.empty TDEnv.empty spec in
-  List.map (struct_def henv tdenv) spec
+  let rtenv, tdenv = load_spec RTEnv.empty TDEnv.empty spec in
+  List.map (struct_def rtenv tdenv) spec

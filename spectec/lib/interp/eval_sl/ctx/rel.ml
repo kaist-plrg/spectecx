@@ -3,11 +3,11 @@ open Lang.Sl.Print
 
 (* Relation *)
 
-type t = Envs.Hint.t * exp list * block * elseblock option
+type t = (exp, unit) Lang.Il.Mode.t * block * elseblock option
 
-let to_string (inputs, exps, block, elseblock_opt) =
-  Envs.Hint.to_string inputs ^ string_of_exps ", " exps ^ "\n\n"
-  ^ string_of_block block
+let to_string (mode, block, elseblock_opt) =
+  Lang.Il.Mode.render_inputs ~sep:", " ~string_of_arg:string_of_exp mode
+  ^ "\n\n" ^ string_of_block block
   ^
   match elseblock_opt with
   | None -> ""

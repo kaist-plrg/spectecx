@@ -4,6 +4,8 @@
  (libraries
   spectec.diagnostic
   spectec.quickcheck.il
+  spectec.hints
   parse
   elaborate
-  structure))
+  structure
+  annotate))

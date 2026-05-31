@@ -3,6 +3,10 @@ open Common.Source
 (* Core types *)
 
 type severity = Error | Warning | Info | Hint
+
+let severity_rank = function Error -> 0 | Warning -> 1 | Info -> 2 | Hint -> 3
+let compare_severity a b = Int.compare (severity_rank a) (severity_rank b)
+
 type related = { region : region; message : string }
 type fix = { message : string; edits : (region * string) list }
 
@@ -87,6 +91,18 @@ let rec trace_of_failtrace
 
 let traces_of_failtraces = List.map trace_of_failtrace
 
+let of_failtraces ~source ~fallback (failtraces : Common.Attempt.failtrace list)
+    : t =
+  let at = Common.Attempt.region_of_failtraces failtraces in
+  let message, trace =
+    match failtraces with
+    | [] -> (fallback, [])
+    | [ Common.Attempt.Failtrace (_, msg, children) ] ->
+        (msg, traces_of_failtraces children)
+    | _ -> (fallback, traces_of_failtraces failtraces)
+  in
+  error ~source ~trace at message
+
 (* Plain text rendering *)
 
 let to_string d =
@@ -115,7 +131,11 @@ module Bag = struct
   let to_list ds = List.rev ds
 
   let to_sorted_list ds =
-    List.rev ds |> List.sort (fun a b -> compare_region a.region b.region)
+    List.rev ds
+    |> List.sort (fun a b ->
+           match compare_severity a.severity b.severity with
+           | 0 -> compare_region a.region b.region
+           | c -> c)
 
   let is_empty = function [] -> true | _ -> false
   let has_errors ds = List.exists (fun d -> d.severity = Error) ds

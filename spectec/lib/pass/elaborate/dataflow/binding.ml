@@ -1,7 +1,6 @@
 open Common.Domain
 open Common.Source
 open Lang.Il
-module Hint = Envs.Hint
 open Diagnostic
 open Ctx
 open Bind
@@ -121,18 +120,13 @@ let rec analyze_prem (dctx : Dctx.t) (prem : prem) :
 and analyze_rule_prem (dctx : Dctx.t) (at : region) (id : id) (notexp : notexp)
     : Dctx.t * VEnv.t * prem * prem list =
   let mixop, exps = Mixop.split notexp in
-  let hint = Dctx.find_hint dctx id in
-  let exps_input, exps_output = Hint.split_exps hint exps in
-  List.map snd exps_input |> analyze_exps_as_bound dctx;
+  let reltyp = Dctx.find_reltyp dctx id in
+  let exps_input, exps_output = Mode.partition reltyp.it exps in
+  analyze_exps_as_bound dctx exps_input;
   let dctx, venv, exps_output, sideconditions =
-    let idxs, exps_output = List.split exps_output in
-    let dctx, venv, exps_output, sideconditions =
-      analyze_exps_as_bind dctx exps_output
-    in
-    let exps_output = List.combine idxs exps_output in
-    (dctx, venv, exps_output, sideconditions)
+    analyze_exps_as_bind dctx exps_output
   in
-  let exps = Hint.combine_exps exps_input exps_output in
+  let exps = Mode.interleave reltyp.it ~ins:exps_input ~outs:exps_output in
   let notexp = Mixop.fill mixop exps in
   let prem = RulePr { relid = id; notexp } $ at in
   (dctx, venv, prem, sideconditions)

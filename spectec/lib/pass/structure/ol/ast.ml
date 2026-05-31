@@ -16,7 +16,7 @@ and instr' =
   | RuleI of id * notexp * iterexp list * instr list
   | ResultI of exp list
   | ReturnI of exp
-  | DebugI of exp
+  | DebugI of exp * instr
 
 and case = guard * instr list
 

@@ -139,14 +139,10 @@ and instr' =
   | RuleI of id * notexp * iterexp list * instr list
   | ResultI of exp list
   | ReturnI of exp
-  | DebugI of exp
+  | DebugI of exp * instr
 
 and block = instr list
 and elseblock = instr list
-
-(* Hints *)
-
-type hint = { hintid : id; hintexp : El.exp }
 
 (* Definitions *)
 
@@ -154,8 +150,8 @@ type def = def' phrase
 and def' =
   (* `syntax` id `<` list(tparam, `,`) `>` `=` deftyp *)
   | TypD of id * tparam list * deftyp
-  (* `relation` id `:` mixop `hint(input` `%`int* `)` list(exp, `,`) `:` instr* *)
-  | RelD of id * (mixop * int list) * exp list * block * elseblock option
+  (* `relation` id `:` mode `:` instr* *)
+  | RelD of id * (exp, unit) Il.Mode.t * block * elseblock option
   (* `builtin` `dec` id `<` list(tparam, `,`) `>` list(arg, `,`) *)
   | BuiltinDecD of id * tparam list * arg list
   (* `dec` id `<` list(tparam, `,`) `>` list(param, `,`) `:` typ instr* *)

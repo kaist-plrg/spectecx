@@ -67,7 +67,8 @@ let instr_header instr =
   | Sl.ResultI exps ->
       Format.sprintf "Result %s" (Sl.Print.string_of_exps ", " exps)
   | Sl.ReturnI exp -> Format.sprintf "Return %s" (Sl.Print.string_of_exp exp)
-  | Sl.DebugI exp -> Format.sprintf "Debug: %s" (Sl.Print.string_of_exp exp)
+  | Sl.DebugI (exp, _) ->
+      Format.sprintf "Debug: %s" (Sl.Print.string_of_exp exp)
 
 (* Create a unique key for an instruction using region + content header *)
 let instr_key instr =
@@ -99,7 +100,7 @@ module M : Instrumentation_api.Handler.S = struct
         List.iter
           (fun def ->
             match def.it with
-            | Sl.RelD (_, _, _, block, elseblock_opt) ->
+            | Sl.RelD (_, _, block, elseblock_opt) ->
                 List.iter count_instr block;
                 Option.iter (List.iter count_instr) elseblock_opt
             | Sl.DecD (_, _, _, block, elseblock_opt) ->
@@ -129,7 +130,7 @@ module M : Instrumentation_api.Handler.S = struct
       List.iter
         (fun def ->
           match def.it with
-          | Sl.RelD (id, _, _, block, elseblock_opt) ->
+          | Sl.RelD (id, _, block, elseblock_opt) ->
               List.iter
                 (fun instr ->
                   if not (Hashtbl.mem State.instrs_hit (instr_key instr)) then
@@ -196,7 +197,7 @@ module M : Instrumentation_api.Handler.S = struct
     List.iter
       (fun def ->
         match def.it with
-        | Sl.RelD (id, _, _, block, elseblock_opt) ->
+        | Sl.RelD (id, _, block, elseblock_opt) ->
             Format.fprintf !fmt "\nrelation %s:\n" id.it;
             List.iter (print_instr "  ") block;
             Option.iter (List.iter (print_instr "  ")) elseblock_opt

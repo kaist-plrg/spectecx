@@ -8,4 +8,5 @@
   spectec.diagnostic
   spectec.lang
   spectec.envs
-  spectec.quickcheck.il))
+  spectec.quickcheck.il
+  spectec.hints))

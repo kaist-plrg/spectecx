@@ -4,5 +4,4 @@
     |
   3 | def $missing(n) = n
     |      ^^^^^^^^
-    = source: elab
   [1]

@@ -6,4 +6,5 @@
   spectec.diagnostic
   spectec.pass
   spectec.interp
-  spectec.quickcheck.il))
+  spectec.quickcheck.il
+  spectec.hints))

@@ -3,10 +3,9 @@ input is generated at test time to keep the repo ASCII-clean.
 
   $ printf '\007\n' > stage.spectec
   $ ./main.exe stage.spectec 2>&1
-  error: misplaced control character
+  error[parse/stray-control-char]: misplaced control character
     --> stage.spectec:1:1
     |
   1 | 
     | ^
-    = source: parse
   [1]

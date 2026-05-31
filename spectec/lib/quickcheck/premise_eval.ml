@@ -5,22 +5,19 @@ type bindings = (string * Value.t) list
 type outcome = Holds | Fails | StepLimit | Unsupported of string
 type env = { target : (module Target.S); core_spec : spec; max_steps : int }
 
-let rel_inputs_of (core_spec : spec) (rel_id : id) : int list option =
+let reltyp_of (core_spec : spec) (rel_id : id) : reltyp option =
   List.find_map
     (fun def ->
       match def.it with
-      | RelD { relid = id; inputs; _ } when id.it = rel_id.it -> Some inputs
+      | RelD { relid = id; reltyp; _ } when id.it = rel_id.it -> Some reltyp
       | _ -> None)
     core_spec
 
 let rel_input_args (core_spec : spec) (rel_id : id) (args : exp list) : exp list
     =
-  let indices =
-    match rel_inputs_of core_spec rel_id with
-    | Some indices -> indices
-    | None -> List.mapi (fun i _ -> i) args
-  in
-  List.filteri (fun i _ -> List.mem i indices) args
+  match reltyp_of core_spec rel_id with
+  | Some reltyp -> fst (Mode.partition reltyp.it args)
+  | None -> args
 
 (* Bare VarE only: anything else would need an in-process exp evaluator. *)
 let lookup_input (bindings : bindings) (arg : exp) : (Value.t, string) result =

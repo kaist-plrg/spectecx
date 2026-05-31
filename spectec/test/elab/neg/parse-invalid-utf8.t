@@ -3,10 +3,9 @@ generated at test time to keep the repo ASCII-clean.
 
   $ printf '\377\n' > stage.spectec
   $ ./main.exe stage.spectec 2>&1
-  error: malformed UTF-8 encoding
+  error[parse/invalid-utf8]: malformed UTF-8 encoding
     --> stage.spectec:1:1
     |
   1 | ÿ
     | ^
-    = source: parse
   [1]

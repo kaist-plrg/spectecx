@@ -2,7 +2,7 @@
 module Source = Common.Source
 open Lang.Xl
 open Parser
-open Error
+open Diagnostic
 
 (* Error handling *)
 
@@ -18,17 +18,21 @@ let region lexbuf =
   let right = convert_pos (Lexing.lexeme_end_p lexbuf) in
   Source.{ left; right }
 
-let error lexbuf msg = error (region lexbuf) msg
-let error_nest start lexbuf msg =
+let error ?code ?detail ?related lexbuf msg = error ?code ?detail ?related (region lexbuf) msg
+let error_nest ?code ?detail ?related start lexbuf msg =
   lexbuf.Lexing.lex_start_p <- start;
-  error lexbuf msg
+  error ?code ?detail ?related lexbuf msg
 
 (* Numbers *)
 
 let nat _lexbuf s = Bigint.of_string s
 let hex _lexbuf s = Bigint.of_string s
 let int lexbuf s =
-  try int_of_string s with Failure _ -> error lexbuf "hex literal out of range"
+  try int_of_string s
+  with Failure _ ->
+    error ~code:Hole_index_overflow
+      ~detail:"The hole index in `%N` must fit in a 63-bit native integer."
+      lexbuf "hole index out of range"
 
 (* Texts *)
 
@@ -296,11 +300,11 @@ and token = parse
   | nat as s { NATLIT (nat lexbuf s) }
   | ("0x" hex) as s { HEXLIT (hex lexbuf s) }
   | text as s { TEXTLIT (text lexbuf s) }
-  | '"'character*('\n'|eof) { error lexbuf "unclosed text literal" }
+  | '"'character*('\n'|eof) { error ~code:Unclosed_text_literal lexbuf "unclosed text literal" }
   | '"'character*['\x00'-'\x09''\x0b'-'\x1f''\x7f']
-    { error lexbuf "illegal control character in text literal" }
+    { error ~code:Illegal_control_in_text_literal lexbuf "illegal control character in text literal" }
   | '"'character*'\\'_
-    { error_nest (Lexing.lexeme_end_p lexbuf) lexbuf "illegal escape" }
+    { error_nest ~code:Illegal_escape (Lexing.lexeme_end_p lexbuf) lexbuf "illegal escape" }
   | upid as s { if is_var s then LOID s else UPID s }
   | loid as s { LOID s }
   | (upid as s) "(" { if is_var s then LOID_LPAREN s else UPID_LPAREN s }
@@ -316,15 +320,15 @@ and token = parse
   | "\n" { Lexing.new_line lexbuf; token lexbuf }
   | "\\\n" { Lexing.new_line lexbuf; token lexbuf }
   | eof { EOF }
-  | printable { error lexbuf "malformed token" }
-  | control { error lexbuf "misplaced control character" }
-  | utf8enc { error lexbuf "misplaced unicode character" }
-  | _ { error lexbuf "malformed UTF-8 encoding" }
+  | printable { error ~code:Stray_printable lexbuf "malformed token" }
+  | control { error ~code:Stray_control_char lexbuf "misplaced control character" }
+  | utf8enc { error ~code:Stray_non_ascii_char lexbuf "misplaced unicode character" }
+  | _ { error ~code:Invalid_utf8 lexbuf "malformed UTF-8 encoding" }
 
 and comment start = parse
   | ";)" { () }
   | "(;" { comment (Lexing.lexeme_start_p lexbuf) lexbuf; comment start lexbuf }
   | "\n" { Lexing.new_line lexbuf; comment start lexbuf }
   | utf8_no_nl { comment start lexbuf }
-  | eof { error_nest start lexbuf "unclosed comment" }
-  | _ { error lexbuf "malformed UTF-8 encoding" }
+  | eof { error_nest ~code:Unclosed_block_comment start lexbuf "unclosed comment" }
+  | _ { error ~code:Invalid_utf8_in_comment lexbuf "malformed UTF-8 encoding" }

@@ -42,27 +42,21 @@ and vars_of_path (path : path) : (id * typ) list =
 and vars_of_arg (arg : arg) : (id * typ) list =
   match arg.it with ExpA e -> vars_of_exp e | DefA _ -> []
 
-let partition_rel_args (input_indices : int list) (args : exp list) :
-    exp list * exp list =
-  List.mapi (fun i a -> (i, a)) args
-  |> List.partition_map (fun (i, a) ->
-         if List.mem i input_indices then Either.Left a else Either.Right a)
-
 type prem_vars = { free : (id * typ) list; bound : (id * typ) list }
 
-let rec vars_of_prem (rel_inputs : string -> int list option) (prem : prem) :
+let rec vars_of_prem (rel_reltyp : string -> reltyp option) (prem : prem) :
     prem_vars =
   match prem.it with
   | RulePr { relid = rel_id; notexp } ->
       let args = Mixfix.args notexp in
-      let input_indices =
-        match rel_inputs rel_id.it with
-        | Some idxs -> idxs
+      let reltyp =
+        match rel_reltyp rel_id.it with
+        | Some reltyp -> reltyp
         | None ->
             Common.InternalError.disallowed prem.at
               (Printf.sprintf "relation %s not in spec" rel_id.it)
       in
-      let in_args, out_args = partition_rel_args input_indices args in
+      let in_args, out_args = Mode.partition reltyp.it args in
       {
         free = List.concat_map vars_of_exp in_args;
         bound = List.concat_map vars_of_exp out_args;
@@ -72,23 +66,23 @@ let rec vars_of_prem (rel_inputs : string -> int list option) (prem : prem) :
       { free = List.concat_map vars_of_exp (Mixfix.args notexp); bound = [] }
   | LetPr (lhs, rhs) -> { free = vars_of_exp rhs; bound = vars_of_exp lhs }
   | ElsePr -> { free = []; bound = [] }
-  | IterPr (p, _) -> vars_of_prem rel_inputs p
+  | IterPr (p, _) -> vars_of_prem rel_reltyp p
 
 let rec dedup_by_id : (id * typ) list -> (id * typ) list = function
   | [] -> []
   | ((id, _) as v) :: rest ->
       v :: dedup_by_id (List.filter (fun (id', _) -> id'.it <> id.it) rest)
 
-let rel_inputs_of core_spec rel_name =
+let reltyp_of core_spec rel_name =
   List.find_map
     (fun def ->
       match def.it with
-      | RelD { relid = id; inputs; _ } when id.it = rel_name -> Some inputs
+      | RelD { relid = id; reltyp; _ } when id.it = rel_name -> Some reltyp
       | _ -> None)
     core_spec
 
 let of_premises ~(core_spec : spec) (prems : prem list) : (id * typ) list =
-  let vs = List.map (vars_of_prem (rel_inputs_of core_spec)) prems in
+  let vs = List.map (vars_of_prem (reltyp_of core_spec)) prems in
   let free = List.concat_map (fun v -> v.free) vs in
   let bound_ids =
     List.concat_map (fun v -> v.bound) vs |> List.map (fun (id, _) -> id.it)

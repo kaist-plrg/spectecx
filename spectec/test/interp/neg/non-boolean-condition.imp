@@ -1,0 +1,3 @@
+// An if-condition must be a boolean, but here it is an int.
+int x = 0;
+if x then x = 1 else x = 2 end

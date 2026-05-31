@@ -1,0 +1,3 @@
+// Cannot call an int as if it were a function.
+int x = 1;
+int r = x(2)

@@ -289,7 +289,11 @@ and string_of_instr ?(level = 0) ?(index = 0) instr =
   | ResultI exps ->
       Format.asprintf "%sResult in %s" order (string_of_exps ", " exps)
   | ReturnI exp -> Format.asprintf "%sReturn %s" order (string_of_exp exp)
-  | DebugI exp -> Format.asprintf "%sDebug: %s" order (string_of_exp exp)
+  | DebugI (exp, instr_body) ->
+      let body, _next =
+        string_of_instr_with_next ~level ~index:(index + 1) instr_body
+      in
+      Format.asprintf "%sDebug: %s\n\n%s" order (string_of_exp exp) body
 
 and string_of_instr_with_next ?(level = 0) ~(index : int) instr =
   let indent = String.make (level * 2) ' ' in
@@ -309,6 +313,11 @@ and string_of_instr_with_next ?(level = 0) ~(index : int) instr =
           (string_of_iterexps iterexps)
           block,
         next )
+  | DebugI (exp, instr_body) ->
+      let body, next =
+        string_of_instr_with_next ~level ~index:(index + 1) instr_body
+      in
+      (Format.asprintf "%sDebug: %s\n\n%s" order (string_of_exp exp) body, next)
   | _ -> (string_of_instr ~level ~index instr, index + 1)
 
 and string_of_instrs_from ?(level = 0) ~(index : int) instrs =
@@ -345,9 +354,9 @@ let rec string_of_def def =
   | TypD (typid, tparams, deftyp) ->
       "syntax " ^ string_of_typid typid ^ string_of_tparams tparams ^ " = "
       ^ string_of_deftyp deftyp
-  | RelD (relid, (_mixop, _inputs), exps_input, block, elseblock_opt) ->
+  | RelD (relid, mode, block, elseblock_opt) ->
       "relation " ^ string_of_relid relid ^ ": "
-      ^ string_of_exps ", " exps_input
+      ^ Il.Mode.render_inputs ~sep:", " ~string_of_arg:string_of_exp mode
       ^ "\n\n" ^ string_of_block block
       ^ string_of_elseblock_opt ~index:(List.length block) elseblock_opt
   | BuiltinDecD (defid, tparams, args_input) ->

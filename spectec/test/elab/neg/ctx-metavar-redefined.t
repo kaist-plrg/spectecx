@@ -4,10 +4,10 @@
     |
   4 | var x : int
     |     ^
-    = source: elab
-    = related: originally defined here
-    --> ctx-metavar-redefined.spectec:3:5
     |
-  3 | var x : nat
-    |     ^
+    | related: originally defined here
+    |   --> ctx-metavar-redefined.spectec:3:5
+    |   |
+    | 3 | var x : nat
+    |   |     ^
   [1]

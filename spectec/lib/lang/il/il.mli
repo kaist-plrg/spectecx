@@ -3,6 +3,7 @@
 
 include module type of Types
 module Mixfix : module type of Mixfix
+module Mode : module type of Mode
 module Eq : module type of Eq
 module Free : module type of Free
 module Print : module type of Print

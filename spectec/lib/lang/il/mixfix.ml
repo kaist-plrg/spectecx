@@ -126,6 +126,11 @@ let render ?(pad_brackets = false) ~(string_of_atom : atom -> string)
     (function Arg a -> string_of_arg a | Atom atom -> string_of_atom atom)
     mixfix
 
+let assemble ?(pad_brackets = false) ~(string_of_atom : atom -> string)
+    (mixop : mixop) (args : string list) : string =
+  let filled = fill mixop args in
+  render ~pad_brackets ~string_of_atom ~string_of_arg:Fun.id filled
+
 let string_of_mixeme = function
   | Arg _ -> "%"
   | Atom atom -> Xl.Atom.string_of_atom atom.it

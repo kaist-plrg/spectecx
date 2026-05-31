@@ -6,7 +6,7 @@ For project orientation, build, and run instructions, see [README.md](README.md)
 
 A few `make` targets matter mostly to contributors:
 
-- `make fmt` — runs `dune fmt`. Run before committing.
+- `make fmt` — runs `dune fmt`. Run before committing. Requires `opam install ocamlformat 0.27.0` in your switch.
 - `make fmt-check` — runs `dune build @fmt`; fails if anything is unformatted. CI runs the same check.
 - `make check` — runs `dune build @check`: type-checks every library and executable without producing the final binary. Faster than `make exe` for catching type errors during iteration.
 - `make test-quick` — elaboration and structuring only; a fast inner loop while iterating.

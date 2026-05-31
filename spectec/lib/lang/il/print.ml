@@ -62,6 +62,10 @@ and string_of_nottyp nottyp =
   Mixfix.render ~pad_brackets:true ~string_of_atom ~string_of_arg:string_of_typ
     nottyp.it
 
+and string_of_reltyp reltyp =
+  Mode.render ~pad_brackets:true ~string_of_atom ~string_of_arg:string_of_typ
+    reltyp.it
+
 and string_of_deftyp deftyp =
   match deftyp.it with
   | PlainT typ -> string_of_typ typ
@@ -349,8 +353,8 @@ let rec string_of_def def =
   | TypD { synid; tparams; deftyp } ->
       "syntax " ^ string_of_typid synid ^ string_of_tparams tparams ^ " = "
       ^ string_of_deftyp deftyp
-  | RelD { relid; notation; rules; _ } ->
-      "relation " ^ string_of_relid relid ^ ": " ^ string_of_nottyp notation
+  | RelD { relid; reltyp; rules } ->
+      "relation " ^ string_of_relid relid ^ ": " ^ string_of_reltyp reltyp
       ^ string_of_rules rules
   | BuiltinDecD { defid; tparams; params; typ; _ } ->
       "builtin dec " ^ string_of_defid defid ^ string_of_tparams tparams
