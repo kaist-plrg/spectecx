@@ -74,7 +74,8 @@ bundle:
 	rm -rf $(BUNDLE_DIR)
 	mkdir -p $(BUNDLE_DIR)/tests/base \
 	         $(BUNDLE_DIR)/tests/closure $(BUNDLE_DIR)/documentation
-	cp $(BUNDLE_SRC)/README.md $(BUNDLE_SRC)/Makefile $(BUNDLE_SRC)/Dockerfile $(BUNDLE_DIR)/
+	cp $(BUNDLE_SRC)/README.md $(BUNDLE_SRC)/Makefile $(BUNDLE_SRC)/Dockerfile \
+	   $(BUNDLE_SRC)/spectecx.config $(BUNDLE_DIR)/
 	cp LICENSE $(BUNDLE_DIR)/
 	cp $(BUNDLE_SRC)/impty.spectec $(BUNDLE_DIR)/impty.spectec
 	for f in $(IMPTY_TESTS)/base/*.imp; do \

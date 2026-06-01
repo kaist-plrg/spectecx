@@ -4,7 +4,7 @@
 #
 #   docker build -t spectecx-tutorial .
 #   docker run --rm -v "$PWD":/work spectecx-tutorial \
-#     spectecx impty batch --spec impty.spectec --batch-dir tests/base
+#     spectecx impty batch --batch-dir tests/base
 #   docker run --rm -v "$PWD":/work spectecx-tutorial make splice-html
 #
 # Override the revision with --build-arg SPECTECX_REF=<tag-or-branch>.
