@@ -34,6 +34,14 @@ let groupby (eq : 'a -> 'a -> bool) (xs : 'a list) : 'a list list =
 
 let valid_tid (id : id) = id.it = (Var.strip_var_suffix id).it
 
+(* Re-tag the checks synthesized from a rule/clause input pattern as guards. *)
+let rec as_guard (prem : Il.prem) : Il.prem =
+  match prem.it with
+  | Il.IfPr { cond; _ } -> Il.IfPr { cond; role = Il.Guard } $ prem.at
+  | Il.IterPr (prem_inner, iterexp) ->
+      Il.IterPr (as_guard prem_inner, iterexp) $ prem.at
+  | _ -> prem
+
 (* Iteration elaboration *)
 
 let elab_iter (iter : iter) : Il.iter =
@@ -1610,7 +1618,7 @@ and elab_rule_not_prem (ctx : Ctx.t) (id : id) (exp : exp) : Ctx.t * Il.prem' =
 
 and elab_if_prem (ctx : Ctx.t) (exp : exp) : Ctx.t * Il.prem' =
   let+ ctx, exp_il = elab_exp ctx (Il.BoolT $ exp.at) exp in
-  let prem_il = Il.IfPr exp_il in
+  let prem_il = Il.IfPr { cond = exp_il; role = Il.Condition } in
   (ctx, prem_il)
 
 (* Elaboration of else premises *)
@@ -1816,7 +1824,7 @@ and elab_rule_def (ctx : Ctx.t) (at : region) (id_rel : id) (id_rule : id)
     Dataflow.Analysis.analyze_exps_as_bind ctx_local exps_il_input
   in
   let ctx_local, prems_il = elab_prems_with_bind ctx_local prems in
-  let prems_il = sideconditions_il @ prems_il in
+  let prems_il = List.map as_guard sideconditions_il @ prems_il in
   let exps_il_output =
     Dataflow.Analysis.analyze_exps_as_bound ctx_local exps_il_output
   in
@@ -1923,7 +1931,7 @@ and elab_def_def (ctx : Ctx.t) (at : region) (id : id) (tparams : tparam list)
     elab_def_input_with_bind ctx_local at params_il args
   in
   let ctx_local, prems_il = elab_prems_with_bind ctx_local prems in
-  let prems_il = sideconditions_il @ prems_il in
+  let prems_il = List.map as_guard sideconditions_il @ prems_il in
   let _ctx_local, exp_il = elab_def_output_with_bind ctx_local typ_il exp in
   let clause_il = { Il.args = args_il; body = exp_il; prems = prems_il } $ at in
   Ctx.add_defined_clause ctx id clause_il
@@ -2088,5 +2096,4 @@ let elab_spec (spec : spec) : Lang.Il.spec Diagnostic.result =
 type error = Diagnostic.error
 type 'a result = 'a Diagnostic.result
 
-let error_to_string = Diagnostic.to_string
 let error_to_diagnostics = Diagnostic.to_diagnostics

@@ -105,7 +105,7 @@ let rec analyze_prem (dctx : Dctx.t) (prem : prem) :
     Dctx.t * VEnv.t * prem * prem list =
   match prem.it with
   | RulePr { relid; notexp } -> analyze_rule_prem dctx prem.at relid notexp
-  | IfPr exp -> analyze_if_prem dctx prem.at exp
+  | IfPr { cond; _ } -> analyze_if_prem dctx prem.at cond
   | IfHoldPr { relid; notexp } -> analyze_if_hold_prem dctx prem.at relid notexp
   | IfNotHoldPr { relid; notexp } ->
       analyze_if_not_hold_prem dctx prem.at relid notexp
@@ -138,7 +138,13 @@ and analyze_if_eq_prem (dctx : Dctx.t) (at : region) (note : typ')
   let binds_r = Collectbind.collect_exp dctx exp_r in
   match (BEnv.is_empty binds_l, BEnv.is_empty binds_r) with
   | true, true ->
-      let prem = IfPr (CmpE (`EqOp, optyp, exp_l, exp_r) $$ (at, note)) in
+      let prem =
+        IfPr
+          {
+            cond = CmpE (`EqOp, optyp, exp_l, exp_r) $$ (at, note);
+            role = Condition;
+          }
+      in
       (dctx, VEnv.empty, prem, [])
   | false, true -> analyze_let_prem dctx exp_l binds_l exp_r
   | true, false -> analyze_let_prem dctx exp_r binds_r exp_l
@@ -164,7 +170,7 @@ and analyze_if_prem (dctx : Dctx.t) (at : region) (exp : exp) :
       (dctx, venv, prem, prems)
   | _ ->
       analyze_exp_as_bound dctx exp;
-      let prem = IfPr exp $ at in
+      let prem = IfPr { cond = exp; role = Condition } $ at in
       (dctx, VEnv.empty, prem, [])
 
 and analyze_if_hold_prem (dctx : Dctx.t) (at : region) (id : id)

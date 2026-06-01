@@ -13,5 +13,4 @@ module Fresh : sig
 end
 
 val elab_spec : Lang.El.spec -> Lang.Il.spec result
-val error_to_string : error -> string
 val error_to_diagnostics : error -> Diag.Bag.t

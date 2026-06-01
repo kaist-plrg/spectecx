@@ -884,12 +884,12 @@ and eval_prem (ctx : Ctx.t) (prem : prem) : Ctx.t attempt =
     let ctx = assign_exps ctx exps_output values_output in
     Ok ctx
   in
-  let eval_if_prem ctx exp_cond =
+  let eval_cond_prem fail_with ctx exp_cond =
     let ctx, value_cond = eval_exp ctx exp_cond in
     let cond = Value.get_bool value_cond in
     if cond then Ok ctx
     else
-      fail exp_cond.at
+      fail_with exp_cond.at
         (F.asprintf "condition %s was not met" (Print.string_of_exp exp_cond))
   in
   let eval_if_hold_prem ctx id notexp =
@@ -923,7 +923,11 @@ and eval_prem (ctx : Ctx.t) (prem : prem) : Ctx.t attempt =
   let result =
     match prem.it with
     | RulePr { relid; notexp } -> eval_rule_prem ctx relid notexp
-    | IfPr exp_cond -> eval_if_prem ctx exp_cond
+    | IfPr { cond; role } ->
+        let fail_with =
+          match role with Guard -> fail_guard | Condition -> fail
+        in
+        eval_cond_prem fail_with ctx cond
     | IfHoldPr { relid; notexp } -> eval_if_hold_prem ctx relid notexp
     | IfNotHoldPr { relid; notexp } -> eval_if_not_hold_prem ctx relid notexp
     | ElsePr -> Ok ctx

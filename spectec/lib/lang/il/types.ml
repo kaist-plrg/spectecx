@@ -188,13 +188,17 @@ and clause' = { args : arg list; body : exp; prems : prem list }
 and prem = prem' phrase
 and prem' =
   | RulePr of { relid : id; notexp : notexp }  (* id `:` notexp *)
-  | IfPr of exp                    (* `if` exp *)
+  | IfPr of { cond : exp; role : if_role }  (* `if` exp *)
   | IfHoldPr of { relid : id; notexp : notexp }  (* `if` id `:` notexp `holds` *)
   | IfNotHoldPr of { relid : id; notexp : notexp }  (* `if` id `:` notexp `does not hold` *)
   | ElsePr                         (* `otherwise` *)
   | LetPr of exp * exp             (* `let` exp `=` exp *)
   | IterPr of prem * iterexp       (* prem iterexp *)
   | DebugPr of exp                 (* `debug` exp *)
+
+and if_role =
+  | Condition
+  | Guard  (* failing it means the rule does not apply *)
 
 (* Definitions *)
 
