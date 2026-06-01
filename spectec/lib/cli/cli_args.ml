@@ -22,12 +22,29 @@ module Output = struct
       ~doc:"WHEN colorize diagnostics: auto|always|never (default: auto)"
 end
 
-(** Spec source override — substitute for the target's default spec dir. *)
+(** Spec source override — an explicit list of files or a directory (mutually
+    exclusive); either substitutes for the target's default spec dir. *)
 module Spec = struct
   let files_flag : string list Core.Command.Param.t =
     let open Core.Command.Param in
     flag "--spec" (listed string)
-      ~doc:"FILES spec files (default: use target spec dir)"
+      ~doc:"FILES spec files; mutually exclusive with --spec-dir"
+
+  let dir_flag : string option Core.Command.Param.t =
+    let open Core.Command.Param in
+    flag "--spec-dir" (optional string)
+      ~doc:
+        "DIR directory of .spectec files, collected recursively; mutually \
+         exclusive with --spec"
+
+  let source_flag : Spec_source.t option Core.Command.Param.t =
+    let open Core.Command.Let_syntax in
+    let%map files = files_flag and dir = dir_flag in
+    match (files, dir) with
+    | [], None -> None
+    | files, None -> Some (Spec_source.Files files)
+    | [], Some dir -> Some (Spec_source.Dir dir)
+    | _ :: _, Some _ -> failwith "--spec and --spec-dir are mutually exclusive"
 end
 
 (** Running a task across many inputs. *)
