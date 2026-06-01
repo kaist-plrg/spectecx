@@ -26,9 +26,6 @@ val with_diagnostics : (unit -> 'a) -> 'a * Diag.Bag.t
 
 (** {1 Pipeline transformations} *)
 
-(** Collect [.spectec] files from a directory, sorted. *)
-val collect_spec_files : string -> string list
-
 val parse_spec_files : string list -> Lang.El.spec result
 
 (** The elaborator's output: the language IL spec, plus per-backend IL slices.

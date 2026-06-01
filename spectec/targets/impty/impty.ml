@@ -135,7 +135,7 @@ let quickcheck_command =
   @@
   let open Core.Command.Let_syntax in
   let open Core.Command.Param in
-  let%map filenames_spec = Cli.Cli_args.Spec.files_flag
+  let%map cli_source = Cli.Cli_args.Spec.source_flag
   and generalize =
     flag "--generalize" no_arg
       ~doc:" generalize counterexamples after shrinking"
@@ -156,11 +156,15 @@ let quickcheck_command =
     let module T = Target in
     let open Spectec in
     let ( let* ) = Result.bind in
-    let filenames =
-      match filenames_spec with
-      | [] -> collect_spec_files T.spec_dir
-      | files -> files
+    let* cfg = Cli.Config_file.load ~target:T.name () in
+    let source =
+      match cli_source with
+      | Some s -> s
+      | None ->
+          Option.value cfg.Cli.Config_file.spec_source
+            ~default:(Cli.Spec_source.Dir T.spec_dir)
     in
+    let* filenames = Cli.Spec_source.files source in
     let* spec = parse_spec_files filenames in
     let* { lang; qc } = elaborate spec in
     Instrumentation.with_instrumentation config
