@@ -2,19 +2,25 @@ open Source
 
 (* Backtracking *)
 
-(* A failtrace records a tree of failure messages for backtracking *)
-type failtrace = Failtrace of region * string * failtrace list
+(* [Guard] marks an applicability-guard failure: the rule did not apply. *)
+type failtrace = { region : region; message : string; kind : kind }
+and kind = Failed of failtrace list | Guard
+
 type 'a attempt = ('a, failtrace list) result
 
 (* Depth of a failtrace tree *)
 let rec depth (failtrace : failtrace) : int =
-  let (Failtrace (_, _, subfailtraces)) = failtrace in
-  let subdepth = List.map depth subfailtraces |> List.fold_left max 0 in
-  subdepth + 1
+  match failtrace.kind with
+  | Failed subfailtraces ->
+      1 + (List.map depth subfailtraces |> List.fold_left max 0)
+  | Guard -> 1
 
 (* Constructors *)
 let fail (at : region) (msg : string) : 'a attempt =
-  Error [ Failtrace (at, msg, []) ]
+  Error [ { region = at; message = msg; kind = Failed [] } ]
+
+let fail_guard (at : region) (msg : string) : 'a attempt =
+  Error [ { region = at; message = msg; kind = Guard } ]
 
 (* Fail with no messages *)
 let fail_silent : 'a attempt = Error []
@@ -43,13 +49,17 @@ let rec choice = function
 let nest at msg attempt =
   match attempt with
   | Ok a -> Ok a
-  | Error failtraces -> Error [ Failtrace (at, msg, failtraces) ]
+  | Error failtraces ->
+      Error [ { region = at; message = msg; kind = Failed failtraces } ]
 
 (* Extract region from failtraces *)
 
 let rec region_of_failtrace failtrace =
-  let (Failtrace (region, _, failtraces)) = failtrace in
-  if region = no_region then region_of_failtraces failtraces else region
+  if failtrace.region <> no_region then failtrace.region
+  else
+    match failtrace.kind with
+    | Failed failtraces -> region_of_failtraces failtraces
+    | Guard -> no_region
 
 and region_of_failtraces failtraces =
   match failtraces with
@@ -58,16 +68,33 @@ and region_of_failtraces failtraces =
   | failtrace :: _ -> region_of_failtrace failtrace
 
 let compare_failtrace failtrace_l failtrace_r =
-  let (Failtrace (region_l, _, _)) = failtrace_l in
-  let (Failtrace (region_r, _, _)) = failtrace_r in
-  compare_region region_l region_r
+  compare_region failtrace_l.region failtrace_r.region
+
+(* A rule attempt that failed only its applicability guard did not apply. *)
+let is_guard_failure (failtrace : failtrace) : bool =
+  match failtrace.kind with
+  | Guard -> true
+  | Failed [ { kind = Guard; _ } ] -> true
+  | _ -> false
+
+let rec prune_failtraces (failtraces : failtrace list) : failtrace list =
+  failtraces
+  |> List.filter (fun failtrace -> not (is_guard_failure failtrace))
+  |> List.map prune_failtrace
+
+and prune_failtrace (failtrace : failtrace) : failtrace =
+  match failtrace.kind with
+  | Guard -> failtrace
+  | Failed subfailtraces ->
+      { failtrace with kind = Failed (prune_failtraces subfailtraces) }
 
 (* Flatten error with backtracking failtraces into a single message *)
 
 let rec string_of_failtrace ?(indent = "") ?(level = 0)
     ~(region_parent : region) ~(is_last : bool) ~(depth : int)
     ~(bullet : string) (failtrace : failtrace) : string =
-  let (Failtrace (region, msg, subfailtraces)) = failtrace in
+  let { region; message = msg; kind } = failtrace in
+  let subfailtraces = match kind with Failed s -> s | Guard -> [] in
   let is_root = level = 0 in
   let smsg =
     if level < depth then ""

@@ -41,6 +41,6 @@ let error_to_diagnostic = function
   | Plain (at, msg) -> Diag.error ~source:"il-interp" at msg
   | Backtrack failtraces ->
       Diag.of_failtraces ~source:"il-interp" ~fallback:"evaluation failed"
-        failtraces
+        (prune_failtraces failtraces)
 
 module Ctx = Ctx
