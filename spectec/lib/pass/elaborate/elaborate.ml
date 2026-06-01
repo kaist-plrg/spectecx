@@ -2096,5 +2096,4 @@ let elab_spec (spec : spec) : Lang.Il.spec Diagnostic.result =
 type error = Diagnostic.error
 type 'a result = 'a Diagnostic.result
 
-let error_to_string = Diagnostic.to_string
 let error_to_diagnostics = Diagnostic.to_diagnostics

@@ -31,12 +31,6 @@ let run (module T : Target.S) (spec : spec) (rid : string) (values : value list)
   | Error.InterpError (at, msg) -> Error (Plain (at, msg))
   | Error.BacktrackError failtraces -> Error (Backtrack failtraces)
 
-let error_to_string = function
-  | Plain (at, msg) -> Common.Error.string_of_located_error at msg
-  | Backtrack failtraces ->
-      "tracing backtrack logs:\n"
-      ^ string_of_failtraces ~region_parent:no_region ~depth:0 failtraces
-
 let error_to_diagnostic = function
   | Plain (at, msg) -> Diag.error ~source:"il-interp" at msg
   | Backtrack failtraces ->

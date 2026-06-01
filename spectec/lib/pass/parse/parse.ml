@@ -36,5 +36,4 @@ let parse_files filenames : Lang.El.spec result =
 type error = Diagnostic.error
 type 'a result = 'a Diagnostic.result
 
-let error_to_string = Diagnostic.to_string
 let error_to_diagnostic = Diagnostic.to_diagnostic
