@@ -1,1 +1,4 @@
 *.vsix
+test/**
+package-lock.json
+.gitignore
