@@ -17,6 +17,12 @@ let rec print_expr fmt expr =
       Format.fprintf fmt "(fun %a -> %a)" print_expr x print_expr body
   | _, [], [ func; argument ] ->
       Format.fprintf fmt "(%a (%a))" print_expr func print_expr argument
+  | _, [ "IF0" ], [ condition; consequent; alternative ] ->
+      Format.fprintf fmt "(if0 %a then %a else %a)" print_expr condition
+        print_expr consequent print_expr alternative
+  | _, [ "DEF"; "("; ")"; "="; "IN" ], [ f; x; func_body; body ] ->
+      Format.fprintf fmt "(def %a(%a) = %a in %a)" print_expr f print_expr x
+        print_expr func_body print_expr body
   | _ -> invalid_arg "expected an ITPL expression"
 
 let print_fundef fmt definition =

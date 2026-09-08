@@ -25,14 +25,21 @@ let program bindings expr =
 let function_expr x body =
   [kw "LAMBDA"; arg (identifier x); op "."; arg body] |> case_v ~var:"expr"
 let application func argument = [arg func; arg argument] |> case_v ~var:"expr"
+let let_expr x init body = application (function_expr x body) init
+let conditional condition consequent alternative =
+  [kw "IF0"; arg condition; arg consequent; arg alternative]
+  |> case_v ~var:"expr"
+let recursive_binding f x func_body body =
+  [kw "DEF"; arg (identifier f); lparen (); arg (identifier x); rparen ();
+   op "="; arg func_body; kw "IN"; arg body] |> case_v ~var:"expr"
 %}
 
 %token EOF
 %token <Bigint.t> NUM
 %token <string> ID
-%token PLUS MINUS LPAR RPAR VAL IN EQUAL DEF SEMI FUN ARROW
+%token PLUS MINUS LPAR RPAR VAL IN EQUAL DEF SEMI FUN ARROW IF0 THEN ELSE
 
-%start <Lang.Il.value> ae vae f1vae fvae
+%start <Lang.Il.value> ae vae f1vae fvae fae rfae
 
 %%
 
@@ -47,6 +54,12 @@ f1vae:
 
 fvae:
 | e=fvae_expr EOF { e }
+
+fae:
+| e=fae_expr EOF { e }
+
+rfae:
+| e=rfae_expr EOF { e }
 
 ae_expr:
 | e=ae_atom { e }
@@ -75,14 +88,29 @@ vae_id:
 | x=ID { x }
 | DEF { "def" }
 | FUN { "fun" }
+| IF0 { "if0" }
+| THEN { "then" }
+| ELSE { "else" }
 
 f1vae_id:
 | x=ID { x }
 | FUN { "fun" }
+| IF0 { "if0" }
+| THEN { "then" }
+| ELSE { "else" }
 
 fvae_id:
 | x=ID { x }
 | DEF { "def" }
+| IF0 { "if0" }
+| THEN { "then" }
+| ELSE { "else" }
+
+fae_id:
+| x=ID { x }
+| IF0 { "if0" }
+| THEN { "then" }
+| ELSE { "else" }
 
 fbinding:
 | DEF f=f1vae_id LPAR x=f1vae_id RPAR EQUAL body=f1vae_expr SEMI
@@ -122,6 +150,52 @@ fvae_atom:
 | n=NUM { number n }
 | x=fvae_id { identifier x }
 | LPAR e=fvae_expr RPAR { e }
+
+fae_expr:
+| e=fae_sum { e }
+| VAL x=fae_id EQUAL init=fae_expr IN body=fae_expr { let_expr x init body }
+| DEF f=fae_id LPAR x=fae_id RPAR EQUAL func_body=fae_expr IN body=fae_expr
+    { let_expr f (function_expr x func_body) body }
+| FUN x=fae_id ARROW body=fae_expr { function_expr x body }
+
+fae_sum:
+| e=fae_app { e }
+| left=fae_sum PLUS right=fae_app { binary "+" left right }
+| left=fae_sum MINUS right=fae_app { binary "-" left right }
+
+fae_app:
+| e=fae_atom { e }
+| MINUS n=NUM { number (Bigint.neg n) }
+| func=fae_app argument=fae_atom { application func argument }
+
+fae_atom:
+| n=NUM { number n }
+| x=fae_id { identifier x }
+| LPAR e=fae_expr RPAR { e }
+
+rfae_expr:
+| e=rfae_sum { e }
+| VAL x=ID EQUAL init=rfae_expr IN body=rfae_expr { let_expr x init body }
+| DEF f=ID LPAR x=ID RPAR EQUAL func_body=rfae_expr IN body=rfae_expr
+    { recursive_binding f x func_body body }
+| FUN x=ID ARROW body=rfae_expr { function_expr x body }
+| IF0 condition=rfae_expr THEN consequent=rfae_expr ELSE alternative=rfae_expr
+    { conditional condition consequent alternative }
+
+rfae_sum:
+| e=rfae_app { e }
+| left=rfae_sum PLUS right=rfae_app { binary "+" left right }
+| left=rfae_sum MINUS right=rfae_app { binary "-" left right }
+
+rfae_app:
+| e=rfae_atom { e }
+| MINUS n=NUM { number (Bigint.neg n) }
+| func=rfae_app argument=rfae_atom { application func argument }
+
+rfae_atom:
+| n=NUM { number n }
+| x=ID { identifier x }
+| LPAR e=rfae_expr RPAR { e }
 
 integer:
 | n=NUM { n }

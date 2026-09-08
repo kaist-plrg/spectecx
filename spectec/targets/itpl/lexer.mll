@@ -24,6 +24,9 @@ rule token = parse
 | "in" { IN }
 | "def" { DEF }
 | "fun" { FUN }
+| "if0" { IF0 }
+| "then" { THEN }
+| "else" { ELSE }
 | initial subsequent* as x { ID x }
 | '+' { PLUS }
 | '-' { MINUS }

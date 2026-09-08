@@ -35,6 +35,21 @@ Each language accepts only its own function syntax, and F1VAE definitions requir
   $ rejects fvae 'fun x ->'
   $ rejects fvae 'val fun = 1 in fun'
 
+FAE and RFAE require local definitions, and RFAE conditionals require all three expressions with then and else delimiters.
+
+  $ rejects fae 'def f(x) = x; f(1)'
+  $ rejects fae 'def f() = 1 in f 0'
+  $ rejects fae 'def f(x) = x in'
+  $ rejects fae 'fun x ->'
+  $ rejects rfae 'def f(x) = x; f(1)'
+  $ rejects rfae 'def f(x) = x'
+  $ rejects rfae 'def f() = 1 in f 0'
+  $ rejects rfae 'if0 0 then 1'
+  $ rejects rfae 'if0 0 1 2'
+  $ rejects rfae 'if0 0 then else 2'
+  $ rejects rfae 'if0 0 then 1 else'
+  $ rejects rfae 'val if0 = 1 in if0'
+
 Lexical errors report the line and column of the invalid character.
 
   $ printf '1 +\n  @\n' > input.ae
@@ -62,6 +77,13 @@ Keywords are reserved only in the languages that use them.
   $ accepts f1vae 'def fun(x) = x; fun(3)'
   $ accepts fvae 'val def = fun x -> x in def 3'
 
+Conditional keywords remain identifiers in the earlier languages.
+
+  $ accepts vae 'val if0 = 1 in val then = 2 in val else = 3 in if0 + then + else'
+  $ accepts f1vae 'def if0(then) = then + 1; val else = 2 in if0(else)'
+  $ accepts fvae 'val if0 = fun then -> then + 1 in val else = 2 in if0 else'
+  $ accepts fae 'def if0(then) = then + 1 in val else = 2 in if0 else'
+
 Parsing and printing preserve the expression structure.
 
   $ spectec ae parse -r -p ../../../testdata/interp/itpl/ae/arithmetic.ae --color never
@@ -72,3 +94,16 @@ Parsing and printing preserve the expression structure.
   def twice(x) = (x + x); (twice(3) + twice(5))
   $ spectec fvae parse -r -p ../../../testdata/interp/itpl/fvae/capture.fvae --color never
   (val x = 10 in (val f = (fun y -> (x + y)) in (val x = 100 in (f (1)))))
+  $ spectec fae parse -r -p ../../../testdata/interp/itpl/fae/sugar.fae --color never
+  ((fun twice -> (twice (3))) ((fun x -> (x + x))))
+  $ spectec rfae parse -r -p ../../../testdata/interp/itpl/rfae/sum.rfae --color never
+  (def sum(x) = (if0 x then 0 else (x + (sum ((x - 1))))) in (sum (10)))
+
+Printing FAE exposes the translation of val and def into functions and applications.
+
+  $ printf '%s\n' 'val x = 1 in x + 2' > input.fae
+  $ spectec fae parse -r -p input.fae --color never
+  ((fun x -> (x + 2)) (1))
+  $ printf '%s\n' 'def f(x) = x + 1 in f 2' > input.fae
+  $ spectec fae parse -r -p input.fae --color never
+  ((fun f -> (f (2))) ((fun x -> (x + 1))))

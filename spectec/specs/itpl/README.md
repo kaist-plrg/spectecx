@@ -8,6 +8,8 @@ The `spectec-target-itpl` package provides independently registered targets for 
 | [VAE](vae/spec.spectec) | 7.3 | Variable bindings |
 | [F1VAE](f1vae/spec.spectec) | 8.2 | Named first-order functions |
 | [FVAE](fvae/spec.spectec) | 9.2 | Anonymous functions and closures |
+| [FAE](fae/spec.spectec) | 9.4 | Bindings as application sugar |
+| [RFAE](rfae/spec.spectec) | 10.2 | Conditionals and recursive functions |
 
 ## Use
 
@@ -33,6 +35,8 @@ The specs use abstract lambda and closure forms. The parser accepts `fun x -> e`
 | Language | Representation or scope choice |
 | --- | --- |
 | F1VAE | A program wrapper supplies the external function environment from `def f(x) = e;` declarations and a final expression. Duplicate function names are rejected. |
+| FAE and descendants | The parser translates nonrecursive `val` bindings and local `def` bindings into lambda applications. RFAE has a core recursive `def` form. |
+| RFAE | Finite recursive bindings encode the cyclic environment equation in Rec. A binding captures the environment before installing itself. Lookup reconstructs an ordinary closure with the self-binding, so App uses ordinary closures. Concrete `if0 e then e else e` delimits the three abstract operands. |
 
 ## Limits
 

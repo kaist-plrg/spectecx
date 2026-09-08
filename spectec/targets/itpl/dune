@@ -9,7 +9,14 @@
  (name targets_itpl)
  (public_name spectec-target-itpl.target)
  (modules
-  (:standard \ register_ae register_vae register_f1vae register_fvae))
+  (:standard
+   \
+   register_ae
+   register_vae
+   register_f1vae
+   register_fvae
+   register_fae
+   register_rfae))
  (libraries
   spectec
   spectec.cli
@@ -74,5 +81,31 @@
  (name fvae)
  (package spectec-target-itpl)
  (libraries spectec-target-itpl.fvae_plugin)
+ (site
+  (spectec target_plugins)))
+
+(library
+ (name register_fae)
+ (public_name spectec-target-itpl.fae_plugin)
+ (modules register_fae)
+ (libraries spectec.cli spectec-target-itpl.target))
+
+(library
+ (name register_rfae)
+ (public_name spectec-target-itpl.rfae_plugin)
+ (modules register_rfae)
+ (libraries spectec.cli spectec-target-itpl.target))
+
+(plugin
+ (name fae)
+ (package spectec-target-itpl)
+ (libraries spectec-target-itpl.fae_plugin)
+ (site
+  (spectec target_plugins)))
+
+(plugin
+ (name rfae)
+ (package spectec-target-itpl)
+ (libraries spectec-target-itpl.rfae_plugin)
  (site
   (spectec target_plugins)))
