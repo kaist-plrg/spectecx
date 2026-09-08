@@ -6,6 +6,8 @@ The `spectec-target-itpl` package provides independently registered targets for 
 | --- | --- | --- |
 | [AE](ae/spec.spectec) | 6.4 | Integers and arithmetic |
 | [VAE](vae/spec.spectec) | 7.3 | Variable bindings |
+| [F1VAE](f1vae/spec.spectec) | 8.2 | Named first-order functions |
+| [FVAE](fvae/spec.spectec) | 9.2 | Anonymous functions and closures |
 
 ## Use
 
@@ -23,6 +25,14 @@ Concrete inputs accept signed decimal integers, parentheses, and left-associativ
 Integer arithmetic uses mathematical integers without fixed-width overflow. `_NUM` and `_ID` distinguish literals and identifiers internally. The ordinary evaluation arrow is `==>`.
 
 Evaluation judgments are relations. Map operations are explicit functions over cons-lists. `$domain`, `$lookup`, and `$update` represent domain membership, map application, and overriding update. Lookup is partial. Evaluation from empty maps preserves one entry per key.
+
+The specs use abstract lambda and closure forms. The parser accepts `fun x -> e` and left-associative application `e e`. Application binds tighter than arithmetic. Write a negative argument as `f (-1)`, since `f - 1` is subtraction.
+
+## Adaptations and selected variants
+
+| Language | Representation or scope choice |
+| --- | --- |
+| F1VAE | A program wrapper supplies the external function environment from `def f(x) = e;` declarations and a final expression. Duplicate function names are rejected. |
 
 ## Limits
 

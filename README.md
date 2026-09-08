@@ -28,7 +28,7 @@ SpecTec is a spec programming framework, originally developed for WebAssembly (W
   opam install ./spectec-target-impty.opam
   opam install ./spectec-target-itpl.opam
   ```
-  Each target package installs command plugins and default specifications. The ITPL (*Introduction to Programming Languages*) package includes the AE and VAE targets. The `spectec` executable discovers installed target plugins at startup.
+  Each target package installs command plugins and default specifications. The ITPL (*Introduction to Programming Languages*) package includes the AE, VAE, F1VAE, and FVAE targets. The `spectec` executable discovers installed target plugins at startup.
 
 For development, install every package's pinned dependency versions without installing the packages themselves:
 
@@ -93,9 +93,11 @@ The target-specific examples require the corresponding target package.
 
 ./spectecx ae eval -p spectec/testdata/interp/itpl/ae/arithmetic.ae
 ./spectecx vae eval -p spectec/testdata/interp/itpl/vae/shadowing.vae --sl
+./spectecx f1vae eval -p spectec/testdata/interp/itpl/f1vae/twice.f1vae
+./spectecx fvae eval -p spectec/testdata/interp/itpl/fvae/capture.fvae --sl
 ```
 
-The [ITPL specifications](spectec/specs/itpl/README.md) follow the AE and VAE languages in *Introduction to Programming Languages* by Jaemin Hong and Sukyoung Ryu, the textbook for KAIST CS320.
+The [ITPL specifications](spectec/specs/itpl/README.md) follow the languages in chapters 6 through 9 of *Introduction to Programming Languages* by Jaemin Hong and Sukyoung Ryu, the textbook for KAIST CS320.
 
 ### Editor support
 

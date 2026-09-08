@@ -66,7 +66,7 @@ module Make (Language : Language) = struct
 
     let parse_input ~spec:_ { filename; _ } =
       Lexer.parse_file Language.parser filename
-      |> Result.map (fun expr -> (Language.relation, [ expr ]))
+      |> Result.map (fun input -> (Language.relation, [ input ]))
 
     let format_output values =
       let module Concrete = Interface.Concrete in
@@ -84,8 +84,7 @@ module Make (Language : Language) = struct
       let open Core.Command.Let_syntax in
       let open Core.Command.Param in
       let%map filename =
-        flag "-p" (required string)
-          ~doc:("FILE " ^ Language.title ^ " expression")
+        flag "-p" (required string) ~doc:("FILE " ^ Language.title ^ " input")
       in
       { Eval.filename; expect = Spectec.Task.Positive }
   end
@@ -102,7 +101,7 @@ module Make (Language : Language) = struct
             ~summary:("Run " ^ Language.title ^ " evaluator")
             (module Eval_cli);
           Cli.Subcommand.make_parse target ~name:"parse"
-            ~summary:("Parse an " ^ Language.title ^ " expression")
+            ~summary:("Parse " ^ Language.title ^ " input")
             (module Eval_cli);
           Cli.Subcommand.make_batch target ~name:"batch" [ (module Eval_cli) ];
         ]

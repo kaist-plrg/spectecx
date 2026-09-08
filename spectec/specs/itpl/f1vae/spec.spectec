@@ -1,0 +1,101 @@
+syntax id = _ID text
+
+syntax expr =
+  | _NUM int
+  | expr '+' expr
+  | expr '-' expr
+  | VAL id '=' expr IN expr
+  | id
+  | id `( expr `)
+
+syntax fundef = DEF id `( id `) '=' expr
+syntax fbinding = id -> fundef
+syntax fenv = fbinding*
+syntax prog = _PROGRAM fenv expr
+
+syntax binding = id -> int
+syntax env = binding*
+
+var x : id
+var f : id
+var d : fundef
+var e : expr
+var n : int
+
+;; Lookup is defined only for identifiers in $domain(env).
+dec $lookup(env, id) : int
+dec $domain(env) : id*
+dec $update(env, id, int) : env
+dec $lookup_func(fenv, id) : fundef
+dec $domain_func(fenv) : id*
+dec $unique_functions(fenv) : bool
+
+relation Eval_expr:
+  env ',' fenv |- expr ==> int
+  hint(input %0 %1 %2)
+
+rule Eval_expr/num:
+  env ',' fenv |- (_NUM n) ==> n
+
+rule Eval_expr/add:
+  env ',' fenv |- e_1 '+' e_2 ==> $(n_1 + n_2)
+  -- Eval_expr: env ',' fenv |- e_1 ==> n_1
+  -- Eval_expr: env ',' fenv |- e_2 ==> n_2
+
+rule Eval_expr/sub:
+  env ',' fenv |- e_1 '-' e_2 ==> $(n_1 - n_2)
+  -- Eval_expr: env ',' fenv |- e_1 ==> n_1
+  -- Eval_expr: env ',' fenv |- e_2 ==> n_2
+
+rule Eval_expr/val:
+  env ',' fenv |- (VAL x '=' e_1 IN e_2) ==> n_2
+  -- Eval_expr: env ',' fenv |- e_1 ==> n_1
+  -- Eval_expr: $update(env, x, n_1) ',' fenv |- e_2 ==> n_2
+
+rule Eval_expr/id:
+  env ',' fenv |- x ==> $lookup(env, x)
+  -- if x <- $domain(env)
+
+rule Eval_expr/call:
+  env ',' fenv |- (f `( e `)) ==> n
+  -- Eval_expr: env ',' fenv |- e ==> n_arg
+  -- if f <- $domain_func(fenv)
+  -- if $lookup_func(fenv, f) = DEF f `( x `) '=' e_body
+  -- Eval_expr: $update(eps, x, n_arg) ',' fenv |- e_body ==> n
+
+relation Eval_prog:
+  prog ==> int
+  hint(input %0)
+
+rule Eval_prog:
+  (_PROGRAM fenv e) ==> n
+  -- if $unique_functions(fenv)
+  -- Eval_expr: eps ',' fenv |- e ==> n
+
+def $lookup((x_1 -> n)::env, x) = n
+  -- if x = x_1
+def $lookup((x_1 -> n)::env, x) = $lookup(env, x)
+  -- otherwise
+
+def $domain(eps) = eps
+def $domain((x -> n)::env) = x::$domain(env)
+
+def $update(eps, x, n) = (x -> n)::eps
+def $update((x_1 -> n_1)::env, x, n) = (x -> n)::env
+  -- if x = x_1
+def $update((x_1 -> n_1)::env, x, n) = (x_1 -> n_1)::$update(env, x, n)
+  -- otherwise
+
+def $lookup_func((f_1 -> d)::fenv, f) = d
+  -- if f = f_1
+def $lookup_func((f_1 -> d)::fenv, f) = $lookup_func(fenv, f)
+  -- otherwise
+
+def $domain_func(eps) = eps
+def $domain_func((f -> d)::fenv) = f::$domain_func(fenv)
+
+def $unique_functions(eps) = true
+def $unique_functions((f -> d)::fenv) = $unique_functions(fenv)
+  -- if ~(f <- $domain_func(fenv))
+def $unique_functions((f -> d)::fenv) = false
+  -- otherwise

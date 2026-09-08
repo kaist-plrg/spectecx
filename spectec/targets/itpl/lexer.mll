@@ -22,12 +22,16 @@ rule token = parse
 | digit+ as n { NUM (Bigint.of_string n) }
 | "val" { VAL }
 | "in" { IN }
+| "def" { DEF }
+| "fun" { FUN }
 | initial subsequent* as x { ID x }
 | '+' { PLUS }
 | '-' { MINUS }
 | '(' { LPAR }
 | ')' { RPAR }
 | '=' { EQUAL }
+| ';' { SEMI }
+| "->" { ARROW }
 | eof { EOF }
 | _ as c { raise (Parse_error (region lexbuf, Printf.sprintf "unexpected character %C" c)) }
 
@@ -46,5 +50,5 @@ let parse_file parser filename =
     (fun () -> parse parser ~filename (from_channel channel))
 
 let parse_string parser ~spec:_ ~filename contents =
-  parse parser ~filename (from_string contents) |> Result.map (fun expr -> [expr])
+  parse parser ~filename (from_string contents) |> Result.map (fun input -> [input])
 }
