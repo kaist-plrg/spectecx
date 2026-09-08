@@ -1,0 +1,68 @@
+syntax id = _ID text
+
+syntax expr =
+  | _NUM int
+  | expr '+' expr
+  | expr '-' expr
+  | VAL id '=' expr IN expr
+  | id
+
+syntax binding = id -> int
+syntax env = binding*
+
+var x : id
+var e : expr
+var n : int
+
+;; Lookup is defined only for identifiers in $domain(env).
+dec $lookup(env, id) : int
+dec $domain(env) : id*
+dec $update(env, id, int) : env
+
+relation Eval_expr:
+  env |- expr ==> int
+  hint(input %0 %1)
+
+rule Eval_expr/num:
+  env |- (_NUM n) ==> n
+
+rule Eval_expr/add:
+  env |- e_1 '+' e_2 ==> $(n_1 + n_2)
+  -- Eval_expr: env |- e_1 ==> n_1
+  -- Eval_expr: env |- e_2 ==> n_2
+
+rule Eval_expr/sub:
+  env |- e_1 '-' e_2 ==> $(n_1 - n_2)
+  -- Eval_expr: env |- e_1 ==> n_1
+  -- Eval_expr: env |- e_2 ==> n_2
+
+rule Eval_expr/val:
+  env |- (VAL x '=' e_1 IN e_2) ==> n_2
+  -- Eval_expr: env |- e_1 ==> n_1
+  -- Eval_expr: $update(env, x, n_1) |- e_2 ==> n_2
+
+rule Eval_expr/id:
+  env |- x ==> $lookup(env, x)
+  -- if x <- $domain(env)
+
+relation Eval_prog:
+  expr ==> int
+  hint(input %0)
+
+rule Eval_prog:
+  e ==> n
+  -- Eval_expr: eps |- e ==> n
+
+def $lookup((x_1 -> n)::env, x) = n
+  -- if x = x_1
+def $lookup((x_1 -> n)::env, x) = $lookup(env, x)
+  -- otherwise
+
+def $domain(eps) = eps
+def $domain((x -> n)::env) = x::$domain(env)
+
+def $update(eps, x, n) = (x -> n)::eps
+def $update((x_1 -> n_1)::env, x, n) = (x -> n)::env
+  -- if x = x_1
+def $update((x_1 -> n_1)::env, x, n) = (x_1 -> n_1)::$update(env, x, n)
+  -- otherwise

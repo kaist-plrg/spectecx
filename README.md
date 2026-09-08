@@ -26,8 +26,9 @@ SpecTec is a spec programming framework, originally developed for WebAssembly (W
   opam install ./spectec-target-p4.opam
   opam install ./spectec-target-miniml.opam
   opam install ./spectec-target-impty.opam
+  opam install ./spectec-target-itpl.opam
   ```
-  Each target package installs its command plugin and default specification. The `spectec` executable discovers installed target plugins at startup.
+  Each target package installs command plugins and default specifications. The ITPL (*Introduction to Programming Languages*) package includes the AE and VAE targets. The `spectec` executable discovers installed target plugins at startup.
 
 For development, install every package's pinned dependency versions without installing the packages themselves:
 
@@ -87,7 +88,14 @@ The target-specific examples require the corresponding target package.
 # run a P4 program based on SpecTec IL/SL
 ./spectecx p4 typecheck -i spectec/testdata/interp/p4-tests/includes -p target/file.p4
 ./spectecx p4 typecheck -i spectec/testdata/interp/p4-tests/includes -p target/file.p4 --sl
+
+## ITPL commands
+
+./spectecx ae eval -p spectec/testdata/interp/itpl/ae/arithmetic.ae
+./spectecx vae eval -p spectec/testdata/interp/itpl/vae/shadowing.vae --sl
 ```
+
+The [ITPL specifications](spectec/specs/itpl/README.md) follow the AE and VAE languages in *Introduction to Programming Languages* by Jaemin Hong and Sukyoung Ryu, the textbook for KAIST CS320.
 
 ### Editor support
 
@@ -118,7 +126,7 @@ Targets live in `spectec/targets/<name>/`, separate from `spectec/lib/`. The reu
 6. Declare a target package in `dune-project`, including any named installation directories for packaged specifications.
 7. Add a Dune `plugin` stanza that installs the entry module in the core package's `target_plugins` directory. Use `generate_sites_module` when target code needs to locate packaged specifications.
 
-The P4, Mini-ML, and Impty targets under `spectec/targets/` are working examples. Each is packaged independently, so adding a target does not require changing `spectec/bin/main.ml`.
+The P4, Mini-ML, Impty, and ITPL targets under `spectec/targets/` are working examples. A package can install several plugins, each registering one target with the same name as its plugin. Adding a target does not require changing `spectec/bin/main.ml`.
 
 ### Contributing
 

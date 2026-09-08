@@ -1,0 +1,24 @@
+syntax expr =
+  | _NUM int
+  | expr '+' expr
+  | expr '-' expr
+
+var e : expr
+var n : int
+
+relation Eval_expr:
+  expr ==> int
+  hint(input %0)
+
+rule Eval_expr/num:
+  (_NUM n) ==> n
+
+rule Eval_expr/add:
+  e_1 '+' e_2 ==> $(n_1 + n_2)
+  -- Eval_expr: e_1 ==> n_1
+  -- Eval_expr: e_2 ==> n_2
+
+rule Eval_expr/sub:
+  e_1 '-' e_2 ==> $(n_1 - n_2)
+  -- Eval_expr: e_1 ==> n_1
+  -- Eval_expr: e_2 ==> n_2

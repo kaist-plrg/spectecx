@@ -1,0 +1,52 @@
+(ocamllex
+ (modules lexer))
+
+(menhir
+ (flags --fixed-exception)
+ (modules parse))
+
+(library
+ (name targets_itpl)
+ (public_name spectec-target-itpl.target)
+ (modules
+  (:standard \ register_ae register_vae))
+ (libraries
+  spectec
+  spectec.cli
+  spectec.common
+  spectec.interface
+  spectec.lang
+  core
+  dune-site)
+ (preprocess
+  (pps ppx_let)))
+
+(generate_sites_module
+ (module itpl_sites)
+ (sites spectec-target-itpl))
+
+(library
+ (name register_ae)
+ (public_name spectec-target-itpl.ae_plugin)
+ (modules register_ae)
+ (libraries spectec.cli spectec-target-itpl.target))
+
+(library
+ (name register_vae)
+ (public_name spectec-target-itpl.vae_plugin)
+ (modules register_vae)
+ (libraries spectec.cli spectec-target-itpl.target))
+
+(plugin
+ (name ae)
+ (package spectec-target-itpl)
+ (libraries spectec-target-itpl.ae_plugin)
+ (site
+  (spectec target_plugins)))
+
+(plugin
+ (name vae)
+ (package spectec-target-itpl)
+ (libraries spectec-target-itpl.vae_plugin)
+ (site
+  (spectec target_plugins)))

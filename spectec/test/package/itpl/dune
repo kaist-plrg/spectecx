@@ -1,0 +1,7 @@
+(cram
+ (package spectec-target-itpl)
+ (deps
+  %{bin:spectec}
+  (package spectec-target-itpl)
+  ../../../../spectec-target-itpl.install
+  (source_tree ../../../testdata/interp/itpl)))
