@@ -106,7 +106,7 @@ Typed functions require parameter annotations, and TRFAE recursive definitions a
   $ rejects fae 'fun (x : num) -> x'
   $ rejects rfae 'def f(x : num) : num = x in f 1'
 
-TVFAE requires exactly two constructor declarations and two delimited match cases.
+TVFAE requires exactly two constructor declarations and two delimited match cases. PTFAE requires complete type binders and applications.
 
   $ rejects tvfae 'type T = A@num in 0'
   $ rejects tvfae 'type T = A@num + B@num + C@num in 0'
@@ -118,6 +118,17 @@ TVFAE requires exactly two constructor declarations and two delimited match case
   $ rejects tvfae 'type T = A@num + B@num in A 1 match A(x) -> x; B(y) -> y'
   $ rejects tvfae 'val type = 1 in type'
   $ rejects tvfae 'def f(x : num) : num = x in f 1'
+  $ rejects ptfae 'tfun A ->'
+  $ rejects ptfae 'tfun num -> 1'
+  $ rejects ptfae 'tfun -> 1'
+  $ rejects ptfae '(tfun A -> 1)[]'
+  $ rejects ptfae '(tfun A -> 1)[num'
+  $ rejects ptfae 'fun (f : forall A A -> A) -> f'
+  $ rejects ptfae 'fun (f : forall A.) -> f'
+  $ rejects ptfae 'fun (f : forall num. num) -> f'
+  $ rejects ptfae 'val forall = 1 in forall'
+  $ rejects ptfae 'val tfun = 1 in tfun'
+  $ rejects tfae '(fun (x : num) -> x)[num]'
   $ rejects tfae 'type T = A@num + B@num in 0'
 
 Lexical errors report the line and column of the invalid character.
@@ -215,8 +226,10 @@ The parser accepts num as an identifier in languages with term variables.
   >   accepts "$target" 'val num = 3 in num' || exit 1
   > done
 
-Type definition and matching keywords remain identifiers outside TVFAE.
+Type and polymorphism keywords remain identifiers outside their own languages.
 
   $ for target in vae f1vae fvae fae rfae bfae mfae lfae kfae tfae trfae; do
-  >   accepts "$target" 'val type = 1 in val match = 2 in type + match' || exit 1
+  >   accepts "$target" 'val type = 1 in val match = 2 in val tfun = 3 in val forall = 4 in type + match + tfun + forall' || exit 1
   > done
+  $ accepts tvfae 'val tfun = 1 in val forall = 2 in tfun + forall'
+  $ accepts ptfae 'val type = 1 in val match = 2 in type + match'

@@ -2,6 +2,8 @@
  (package spectec-target-itpl)
  (deps
   %{bin:spectec}
+  substitution.spectec
+  ../../../specs/itpl/ptfae/spec.spectec
   (package spectec-target-itpl)
   ../../../../spectec-target-itpl.install
   (source_tree ../../../testdata/interp/itpl)))

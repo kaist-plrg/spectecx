@@ -65,15 +65,21 @@ let matching subject left x left_body right y right_body =
    arg (identifier x); rparen (); op "->"; arg left_body; op ",";
    arg (identifier right); lparen (); arg (identifier y); rparen (); op "->";
    arg right_body] |> case_v ~var:"expr"
+let forall_type a body =
+  [kw "FORALL"; arg (type_identifier a); op "."; arg body] |> case_v ~var:"type"
+let type_abstraction a body =
+  [kw "TLAMBDA"; arg (type_identifier a); op "."; arg body] |> case_v ~var:"expr"
+let type_application expr typ =
+  [arg expr; lbrack (); arg typ; rbrack ()] |> case_v ~var:"expr"
 %}
 
 %token EOF
 %token <Bigint.t> NUM
 %token <string> ID
 %token PLUS MINUS LPAR RPAR VAL IN EQUAL DEF SEMI FUN ARROW IF0 THEN ELSE BOX BANG ASSIGN VCC
-%token COLON NUMTYPE TYPE MATCH LBRACE RBRACE AT
+%token COLON NUMTYPE TYPE MATCH TFUN FORALL LBRACE RBRACE LBRACK RBRACK AT DOT
 
-%start <Lang.Il.value> ae vae f1vae fvae fae rfae bfae mfae kfae tfae trfae tvfae
+%start <Lang.Il.value> ae vae f1vae fvae fae rfae bfae mfae kfae tfae trfae tvfae ptfae
 
 %%
 
@@ -113,6 +119,9 @@ trfae:
 tvfae:
 | e=tvfae_expr EOF { e }
 
+ptfae:
+| e=ptfae_expr EOF { e }
+
 ae_expr:
 | e=ae_atom { e }
 | left=ae_expr PLUS right=ae_atom { binary "+" left right }
@@ -141,6 +150,8 @@ common_id:
 | NUMTYPE { "num" }
 | TYPE { "type" }
 | MATCH { "match" }
+| TFUN { "tfun" }
+| FORALL { "forall" }
 
 vae_id:
 | x=common_id { x }
@@ -449,6 +460,8 @@ tvfae_type_name:
 | ELSE { "else" }
 | BOX { "box" }
 | VCC { "vcc" }
+| TFUN { "tfun" }
+| FORALL { "forall" }
 
 tvfae_id:
 | x=tvfae_type_name { x }
@@ -492,3 +505,52 @@ tvfae_atom:
 | n=NUM { number n }
 | x=tvfae_id { identifier x }
 | LPAR e=tvfae_expr RPAR { e }
+
+ptfae_type_name:
+| x=ID { x }
+| IF0 { "if0" }
+| THEN { "then" }
+| ELSE { "else" }
+| BOX { "box" }
+| VCC { "vcc" }
+| TYPE { "type" }
+| MATCH { "match" }
+
+ptfae_id:
+| x=ptfae_type_name { x }
+| NUMTYPE { "num" }
+
+ptfae_typ:
+| t=ptfae_typ_atom { t }
+| param=ptfae_typ_atom ARROW result=ptfae_typ { arrow_type param result }
+| FORALL a=ptfae_type_name DOT body=ptfae_typ { forall_type a body }
+
+ptfae_typ_atom:
+| NUMTYPE { num_type () }
+| a=ptfae_type_name { type_identifier a }
+| LPAR t=ptfae_typ RPAR { t }
+
+ptfae_expr:
+| e=ptfae_sum { e }
+| VAL x=ptfae_id EQUAL init=ptfae_expr IN body=ptfae_expr { binding x init body }
+| FUN LPAR x=ptfae_id COLON param=ptfae_typ RPAR ARROW body=ptfae_expr
+    { typed_function x param body }
+| DEF f=ptfae_id LPAR x=ptfae_id COLON param=ptfae_typ RPAR EQUAL func_body=ptfae_expr IN body=ptfae_expr
+    { binding f (typed_function x param func_body) body }
+| TFUN a=ptfae_type_name ARROW body=ptfae_expr { type_abstraction a body }
+
+ptfae_sum:
+| e=ptfae_app { e }
+| left=ptfae_sum PLUS right=ptfae_app { binary "+" left right }
+| left=ptfae_sum MINUS right=ptfae_app { binary "-" left right }
+
+ptfae_app:
+| e=ptfae_atom { e }
+| MINUS n=NUM { number (Bigint.neg n) }
+| func=ptfae_app argument=ptfae_atom { application func argument }
+| expr=ptfae_app LBRACK typ=ptfae_typ RBRACK { type_application expr typ }
+
+ptfae_atom:
+| n=NUM { number n }
+| x=ptfae_id { identifier x }
+| LPAR e=ptfae_expr RPAR { e }

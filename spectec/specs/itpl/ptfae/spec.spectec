@@ -1,0 +1,329 @@
+syntax id = _ID text
+syntax literal = _NUM int
+syntax tid = _TID text
+
+syntax type = NUM | type '->' type | tid | FORALL tid '.' type
+
+syntax expr =
+  | literal
+  | expr '+' expr
+  | expr '-' expr
+  | VAL id '=' expr IN expr
+  | id
+  | LAMBDA id ':' type '.' expr
+  | expr expr
+  | TLAMBDA tid '.' expr
+  | expr `[ type `]
+
+syntax value, binding, env
+
+syntax value =
+  | literal
+  | `< LAMBDA id '.' expr ',' env `>
+  | `< TLAMBDA tid '.' expr ',' env `>
+
+syntax binding = id -> value
+syntax env = binding*
+
+var x : id
+var a : tid
+var s : text
+var e : expr
+var n : int
+var v : value
+
+syntax typebinding = id ':' type | TYPE tid
+syntax tenv = typebinding*
+
+var t : type
+
+dec $bound_type(tenv, tid) : bool
+
+;; Lookup is defined only for identifiers in $domain(env).
+dec $lookup(env, id) : value
+dec $domain(env) : id*
+dec $update(env, id, value) : env
+
+dec $lookup_type(tenv, id) : type
+dec $domain_type(tenv) : id*
+dec $update_type(tenv, id, type) : tenv
+
+dec $bind_type(tenv, tid) : tenv
+
+dec $without(tid*, tid) : tid*
+
+dec $free_type(type) : tid*
+
+dec $type_names(type) : tid*
+
+dec $fresh(tid, tid*) : tid
+
+dec $subst_type(type, tid, type) : type
+
+dec $free_expr(expr) : tid*
+
+dec $expr_names(expr) : tid*
+
+dec $subst_expr(expr, tid, type) : expr
+
+relation Wf_type:
+  tenv |- type
+  hint(input %0 %1)
+
+rule Wf_type/num:
+  tenv |- NUM
+
+rule Wf_type/arrow:
+  tenv |- t_1 '->' t_2
+  -- Wf_type: tenv |- t_1
+  -- Wf_type: tenv |- t_2
+
+rule Wf_type/id:
+  tenv |- a
+  -- if $bound_type(tenv, a)
+
+rule Wf_type/forall:
+  tenv |- (FORALL a '.' t)
+  -- Wf_type: $bind_type(tenv, a) |- t
+
+relation Check_expr:
+  tenv |- expr : type
+  hint(input %0 %1)
+
+rule Check_expr/num:
+  tenv |- (_NUM n) : NUM
+
+rule Check_expr/add:
+  tenv |- e_1 '+' e_2 : NUM
+  -- Check_expr: tenv |- e_1 : NUM
+  -- Check_expr: tenv |- e_2 : NUM
+
+rule Check_expr/sub:
+  tenv |- e_1 '-' e_2 : NUM
+  -- Check_expr: tenv |- e_1 : NUM
+  -- Check_expr: tenv |- e_2 : NUM
+
+rule Check_expr/val:
+  tenv |- (VAL x '=' e_1 IN e_2) : t_2
+  -- Check_expr: tenv |- e_1 : t_1
+  -- Check_expr: $update_type(tenv, x, t_1) |- e_2 : t_2
+
+rule Check_expr/id:
+  tenv |- x : $lookup_type(tenv, x)
+  -- if x <- $domain_type(tenv)
+
+rule Check_expr/fun:
+  tenv |- (LAMBDA x ':' t_1 '.' e) : t_1 '->' t_2
+  -- Wf_type: tenv |- t_1
+  -- Check_expr: $update_type(tenv, x, t_1) |- e : t_2
+
+rule Check_expr/app:
+  tenv |- (e_1 e_2) : t_2
+  -- Check_expr: tenv |- e_1 : t_1 '->' t_2
+  -- Check_expr: tenv |- e_2 : t_1
+
+rule Check_expr/tfun:
+  tenv |- (TLAMBDA a '.' e) : (FORALL a '.' t)
+  -- Check_expr: $bind_type(tenv, a) |- e : t
+
+rule Check_expr/tapp:
+  tenv |- (e `[ t_arg `]) : $subst_type(t_body, a, t_arg)
+  -- Wf_type: tenv |- t_arg
+  -- Check_expr: tenv |- e : (FORALL a '.' t_body)
+
+relation Check_prog:
+  expr : type
+  hint(input %0)
+
+rule Check_prog:
+  e : t
+  -- Check_expr: eps |- e : t
+
+relation Eval_expr:
+  env |- expr ==> value
+  hint(input %0 %1)
+
+rule Eval_expr/num:
+  env |- (_NUM n) ==> (_NUM n)
+
+rule Eval_expr/add:
+  env |- e_1 '+' e_2 ==> (_NUM $(n_1 + n_2))
+  -- Eval_expr: env |- e_1 ==> (_NUM n_1)
+  -- Eval_expr: env |- e_2 ==> (_NUM n_2)
+
+rule Eval_expr/sub:
+  env |- e_1 '-' e_2 ==> (_NUM $(n_1 - n_2))
+  -- Eval_expr: env |- e_1 ==> (_NUM n_1)
+  -- Eval_expr: env |- e_2 ==> (_NUM n_2)
+
+rule Eval_expr/val:
+  env |- (VAL x '=' e_1 IN e_2) ==> v_2
+  -- Eval_expr: env |- e_1 ==> v_1
+  -- Eval_expr: $update(env, x, v_1) |- e_2 ==> v_2
+
+rule Eval_expr/id:
+  env |- x ==> $lookup(env, x)
+  -- if x <- $domain(env)
+
+rule Eval_expr/fun:
+  env |- (LAMBDA x ':' t '.' e) ==> (`< LAMBDA x '.' e ',' env `>)
+
+rule Eval_expr/app:
+  env |- (e_1 e_2) ==> v
+  -- Eval_expr: env |- e_1 ==> (`< LAMBDA x '.' e_body ',' env_clo `>)
+  -- Eval_expr: env |- e_2 ==> v_arg
+  -- Eval_expr: $update(env_clo, x, v_arg) |- e_body ==> v
+
+rule Eval_expr/tfun:
+  env |- (TLAMBDA a '.' e) ==> (`< TLAMBDA a '.' e ',' env `>)
+
+rule Eval_expr/tapp:
+  env |- (e `[ t_arg `]) ==> v
+  -- Eval_expr: env |- e ==> (`< TLAMBDA a '.' e_body ',' env_clo `>)
+  -- Eval_expr: env_clo |- $subst_expr(e_body, a, t_arg) ==> v
+
+relation Eval_prog:
+  expr ==> value
+  hint(input %0)
+
+rule Eval_prog:
+  e ==> v
+  -- Eval_expr: eps |- e ==> v
+
+relation Run_prog:
+  expr ==> value
+  hint(input %0)
+
+rule Run_prog:
+  e ==> v
+  -- Check_prog: e : t
+  -- Eval_prog: e ==> v
+
+def $lookup((x_1 -> v)::env, x) = v
+  -- if x = x_1
+def $lookup((x_1 -> v)::env, x) = $lookup(env, x)
+  -- otherwise
+
+def $domain(eps) = eps
+def $domain((x -> v)::env) = x::$domain(env)
+
+def $update(eps, x, v) = (x -> v)::eps
+def $update((x_1 -> v_1)::env, x, v) = (x -> v)::env
+  -- if x = x_1
+def $update((x_1 -> v_1)::env, x, v) = (x_1 -> v_1)::$update(env, x, v)
+  -- otherwise
+
+def $lookup_type((x_1 ':' t)::tenv, x) = t
+  -- if x = x_1
+def $lookup_type((x_1 ':' t)::tenv, x) = $lookup_type(tenv, x)
+  -- otherwise
+
+def $domain_type(eps) = eps
+def $domain_type((x ':' t)::tenv) = x::$domain_type(tenv)
+
+def $update_type(eps, x, t) = (x ':' t)::eps
+def $update_type((x_1 ':' t_1)::tenv, x, t) = (x ':' t)::tenv
+  -- if x = x_1
+def $update_type((x_1 ':' t_1)::tenv, x, t) = (x_1 ':' t_1)::$update_type(tenv, x, t)
+  -- otherwise
+
+def $lookup_type((TYPE a)::tenv, x) = $lookup_type(tenv, x)
+def $domain_type((TYPE a)::tenv) = $domain_type(tenv)
+def $update_type((TYPE a)::tenv, x, t) = (TYPE a)::$update_type(tenv, x, t)
+
+def $bind_type(tenv, a) = tenv
+  -- if $bound_type(tenv, a)
+def $bind_type(tenv, a) = (TYPE a)::tenv
+  -- otherwise
+
+def $bound_type(eps, a) = false
+def $bound_type((x ':' t)::tenv, a) = $bound_type(tenv, a)
+def $bound_type((TYPE a_1)::tenv, a) = true
+  -- if a = a_1
+def $bound_type((TYPE a_1)::tenv, a) = $bound_type(tenv, a)
+  -- otherwise
+
+def $without(eps, a) = eps
+def $without(a_1::a_rest*, a) = $without(a_rest*, a)
+  -- if a = a_1
+def $without(a_1::a_rest*, a) = a_1::$without(a_rest*, a)
+  -- otherwise
+
+def $free_type(NUM) = eps
+def $free_type(a) = [a]
+def $free_type(t_1 '->' t_2) = $free_type(t_1) ++ $free_type(t_2)
+def $free_type(FORALL a '.' t) = $without($free_type(t), a)
+
+def $type_names(NUM) = eps
+def $type_names(a) = [a]
+def $type_names(t_1 '->' t_2) = $type_names(t_1) ++ $type_names(t_2)
+def $type_names(FORALL a '.' t) = a::$type_names(t)
+
+def $fresh(a, a_used*) = a
+  -- if (a <- a_used*) = false
+def $fresh(_TID s, a_used*) = $fresh(_TID (s ++ "'"), a_used*)
+  -- otherwise
+
+def $subst_type(NUM, a, t_arg) = NUM
+def $subst_type(a_1, a, t_arg) = t_arg
+  -- if a = a_1
+def $subst_type(a_1, a, t_arg) = a_1
+  -- otherwise
+def $subst_type(t_1 '->' t_2, a, t_arg) = $subst_type(t_1, a, t_arg) '->' $subst_type(t_2, a, t_arg)
+def $subst_type(FORALL a_1 '.' t, a, t_arg) = FORALL a_1 '.' t
+  -- if a = a_1
+def $subst_type(FORALL a_1 '.' t, a, t_arg) = FORALL a_1 '.' t
+  -- if a =/= a_1
+  -- if (a <- $free_type(t)) = false
+def $subst_type(FORALL a_1 '.' t, a, t_arg) = FORALL a_1 '.' $subst_type(t, a, t_arg)
+  -- if a =/= a_1
+  -- if a <- $free_type(t)
+  -- if (a_1 <- $free_type(t_arg)) = false
+def $subst_type(FORALL a_1 '.' t, a, t_arg) = FORALL a_fresh '.' $subst_type($subst_type(t, a_1, a_fresh), a, t_arg)
+  -- if a =/= a_1
+  -- if a <- $free_type(t)
+  -- if a_1 <- $free_type(t_arg)
+  -- if a_fresh = $fresh(a_1, $type_names(t) ++ $type_names(t_arg) ++ [a])
+
+def $free_expr(_NUM n) = eps
+def $free_expr(x) = eps
+def $free_expr(e_1 '+' e_2) = $free_expr(e_1) ++ $free_expr(e_2)
+def $free_expr(e_1 '-' e_2) = $free_expr(e_1) ++ $free_expr(e_2)
+def $free_expr(VAL x '=' e_1 IN e_2) = $free_expr(e_1) ++ $free_expr(e_2)
+def $free_expr(LAMBDA x ':' t '.' e) = $free_type(t) ++ $free_expr(e)
+def $free_expr(e_1 e_2) = $free_expr(e_1) ++ $free_expr(e_2)
+def $free_expr(TLAMBDA a '.' e) = $without($free_expr(e), a)
+def $free_expr(e `[ t `]) = $free_expr(e) ++ $free_type(t)
+
+def $expr_names(_NUM n) = eps
+def $expr_names(x) = eps
+def $expr_names(e_1 '+' e_2) = $expr_names(e_1) ++ $expr_names(e_2)
+def $expr_names(e_1 '-' e_2) = $expr_names(e_1) ++ $expr_names(e_2)
+def $expr_names(VAL x '=' e_1 IN e_2) = $expr_names(e_1) ++ $expr_names(e_2)
+def $expr_names(LAMBDA x ':' t '.' e) = $type_names(t) ++ $expr_names(e)
+def $expr_names(e_1 e_2) = $expr_names(e_1) ++ $expr_names(e_2)
+def $expr_names(TLAMBDA a '.' e) = a::$expr_names(e)
+def $expr_names(e `[ t `]) = $expr_names(e) ++ $type_names(t)
+
+def $subst_expr(_NUM n, a, t_arg) = _NUM n
+def $subst_expr(x, a, t_arg) = x
+def $subst_expr(e_1 '+' e_2, a, t_arg) = $subst_expr(e_1, a, t_arg) '+' $subst_expr(e_2, a, t_arg)
+def $subst_expr(e_1 '-' e_2, a, t_arg) = $subst_expr(e_1, a, t_arg) '-' $subst_expr(e_2, a, t_arg)
+def $subst_expr(VAL x '=' e_1 IN e_2, a, t_arg) = VAL x '=' $subst_expr(e_1, a, t_arg) IN $subst_expr(e_2, a, t_arg)
+def $subst_expr(LAMBDA x ':' t '.' e, a, t_arg) = LAMBDA x ':' $subst_type(t, a, t_arg) '.' $subst_expr(e, a, t_arg)
+def $subst_expr(e_1 e_2, a, t_arg) = $subst_expr(e_1, a, t_arg) $subst_expr(e_2, a, t_arg)
+def $subst_expr(e `[ t `], a, t_arg) = $subst_expr(e, a, t_arg) `[ $subst_type(t, a, t_arg) `]
+def $subst_expr(TLAMBDA a_1 '.' e, a, t_arg) = TLAMBDA a_1 '.' e
+  -- if a = a_1
+def $subst_expr(TLAMBDA a_1 '.' e, a, t_arg) = TLAMBDA a_1 '.' e
+  -- if a =/= a_1
+  -- if (a <- $free_expr(e)) = false
+def $subst_expr(TLAMBDA a_1 '.' e, a, t_arg) = TLAMBDA a_1 '.' $subst_expr(e, a, t_arg)
+  -- if a =/= a_1
+  -- if a <- $free_expr(e)
+  -- if (a_1 <- $free_type(t_arg)) = false
+def $subst_expr(TLAMBDA a_1 '.' e, a, t_arg) = TLAMBDA a_fresh '.' $subst_expr($subst_expr(e, a_1, a_fresh), a, t_arg)
+  -- if a =/= a_1
+  -- if a <- $free_expr(e)
+  -- if a_1 <- $free_type(t_arg)
+  -- if a_fresh = $fresh(a_1, $expr_names(e) ++ $type_names(t_arg) ++ [a])

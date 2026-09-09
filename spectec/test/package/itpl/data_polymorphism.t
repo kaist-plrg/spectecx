@@ -1,4 +1,4 @@
-The TVFAE evaluator produces the same results in IL, SL, and PL. The expected type and value are checked independently, and every input round-trips.
+The TVFAE and PTFAE evaluators produce the same results in IL, SL, and PL. The expected type and value are checked independently, and every input round-trips.
 
   $ check() {
   >   target=$1
@@ -66,9 +66,28 @@ Recursive declarations make their own type name available to both payload annota
   $ check tvfae T 'A (3)' 'val make = (type T = A@num + B@num in fun (x : num) -> A x) in make 3'
   $ check tvfae num 4 'type T = A@num + B@num in type T = C@num + D@num in C 4 match { C(x) -> x; D(y) -> y }'
 
-TVFAE retains TFAE's arithmetic, lexical bindings, and nonrecursive local function definitions.
+PTFAE specializes type abstractions explicitly, including with universally quantified type arguments. Term and type applications associate to the left.
 
-  $ for target in tvfae; do
+  $ check ptfae num 42 'val id = tfun A -> fun (x : A) -> x in id[num] 42'
+  $ check ptfae num 7 'val id = tfun A -> fun (x : A) -> x in id[num -> num] (fun (n : num) -> n + 1) 6'
+  $ check ptfae num 3 'val id = tfun A -> fun (x : A) -> x in id[forall A. A -> A] id[num] 3'
+  $ check ptfae num 42 '(fun (id : forall A. A -> A) -> id[num] 42) (tfun A -> fun (x : A) -> x)'
+  $ check ptfae num 3 '(tfun A -> tfun B -> fun (x : A) -> fun (y : B) -> x)[num][num -> num] 3 (fun (z : num) -> z)'
+  $ check ptfae num 11 'val x = 10 in val f = tfun A -> fun (ignored : A) -> x + 1 in val x = 100 in f[num] 0'
+  $ check ptfae num 4 '(tfun A -> fun (x : A) -> tfun B -> x)[num] 4[num -> num]'
+  $ check ptfae num 3 '(tfun A -> fun (A : A) -> A)[num] 3'
+  $ check ptfae num 3 '(tfun A -> val f = fun (x : A) -> x in f)[num] 3'
+  $ check ptfae num 3 '(tfun A -> (tfun B -> fun (x : B) -> x)[A])[num] 3'
+  $ check ptfae num 7 'def apply(f : forall A. A -> A) = f[num] 7 in apply (tfun A -> fun (x : A) -> x)'
+  $ check ptfae num 7 '(tfun A -> 7)[num]'
+  $ check ptfae num 6 '(tfun A -> (3 + 4) - 1)[num]'
+  $ check ptfae num 7 '(tfun A -> tfun A -> fun (x : A) -> x)[num -> num][num] 7'
+  $ check ptfae num 5 '(tfun B -> (tfun A -> tfun B -> fun (x : A) -> x)[B])[num][num -> num] 5'
+  $ check_type ptfae '(num -> num)' '(tfun A -> fun (x : A) -> x)[num]'
+
+These targets retain TFAE's arithmetic, lexical bindings, and nonrecursive local function definitions.
+
+  $ for target in tvfae ptfae; do
   >   check "$target" num -3 '(fun (x : num) -> x + 1) (-4)' || exit 1
   >   check "$target" num 21 'val x = 10 in (val x = x + 1 in x) + x' || exit 1
   >   check "$target" num 6 'def twice(x : num) = x + x in twice 3' || exit 1
@@ -111,8 +130,20 @@ Ill-formed annotations and invalid constructors or applications must fail after 
   $ rejects tvfae 'val v = (type T = A@num + B@num in A 3) in v match { A(x) -> x; B(y) -> y }'
   $ rejects tvfae 'type T = A@num + B@num in type U = C@num + D@num in (fun (x : T) -> 0) (C 1)'
   $ rejects tvfae 'type T = A@num + B@num in type U = C@num + D@num in C 1 match { A(x) -> x; B(y) -> y }'
+  $ rejects ptfae 'fun (x : A) -> x'
+  $ rejects ptfae '(tfun A -> 7)[Missing]'
+  $ rejects ptfae '(tfun A -> 7)[forall B. A -> B]'
+  $ rejects ptfae 'tfun A -> fun (x : B) -> x'
+  $ rejects ptfae 'tfun A -> fun (x : A) -> x + 1'
+  $ rejects ptfae 'tfun A -> missing'
+  $ rejects ptfae '(tfun A -> 7) 3'
+  $ rejects ptfae '(fun (x : num) -> x)[num]'
+  $ rejects ptfae '(tfun A -> fun (x : A) -> x)[num] (fun (y : num) -> y)'
+  $ rejects ptfae '(fun (f : forall A. A -> A) -> f[num] 3) (fun (x : num) -> x)'
+  $ rejects ptfae 'val A = 3 in fun (x : A) -> x'
+  $ rejects ptfae '(fun (id : forall A. A -> A) -> id[num] 3) (tfun B -> fun (x : B) -> x)'
 
-The book's named type rules admit this counterexample. Type checking succeeds, but evaluation fails. An unselected match branch is not evaluated.
+The book's named type rules admit these counterexamples. Type checking succeeds, but evaluating either program fails. An unselected TVFAE branch and the body of an unapplied PTFAE type abstraction are not evaluated.
 
   $ runtime_error() {
   >   target=$1
@@ -130,7 +161,10 @@ The book's named type rules admit this counterexample. Type checking succeeds, b
   >   done
   > }
   $ tvfae_bad='type T = A@num + B@num in (fun (f : T -> num) -> type T = C@num + D@num in f (C 1)) (fun (v : T) -> v match { A(x) -> x; B(y) -> y })'
+  $ ptfae_bad='(tfun A -> fun (x : A) -> tfun A -> x)[num] 1[num -> num] 2'
   $ runtime_error tvfae "$tvfae_bad"
+  $ runtime_error ptfae "$ptfae_bad"
+  $ check ptfae num 7 "(fun (f : forall Z. num) -> 7) (tfun Z -> ($ptfae_bad))"
   $ check tvfae num 7 "type Choice = Left@num + Right@num in Left 7 match { Left(x) -> x; Right(y) -> ($tvfae_bad) }"
   $ check tvfae num 7 "type Choice = Left@num + Right@num in Right 7 match { Left(x) -> ($tvfae_bad); Right(y) -> y }"
 
@@ -142,10 +176,10 @@ Repeated match cases may leave a variant unhandled. Evaluation cannot try a late
 Batch distinguishes static errors from the documented runtime errors for both tasks.
 
   $ mkdir -p corpus/nested
-  $ for target in tvfae; do
+  $ for target in tvfae ptfae; do
   >   printf '%s\n' '(fun (x : num) -> x + 1) 2' > "corpus/nested/good.$target"
   >   printf '%s\n' 'fun (x : Missing) -> x' > "corpus/static_error.$target"
-  >   bad=$tvfae_bad
+  >   if [ "$target" = tvfae ]; then bad=$tvfae_bad; else bad=$ptfae_bad; fi
   >   printf '%s\n' "$bad" > "corpus/reuse_runtime_error.$target"
   >   for mode in '' --sl --pl; do
   >     spectec "$target" batch $mode --batch-dir corpus --color never > summary || exit 1
@@ -153,3 +187,14 @@ Batch distinguishes static errors from the documented runtime errors for both ta
   >     grep -Fx 'evaluator: 3/3 passed, 0 failed' summary > /dev/null || { cat summary; exit 1; }
   >   done
   > done
+
+Substitution on open types and expressions avoids capturing free type names, skips shadowed binders, and chooses names absent from nested quantifiers. These checks exercise helper cases that closed program evaluation cannot reach.
+
+  $ sed 's/Run_prog/Run_reference/g' ../../../specs/itpl/ptfae/spec.spectec > reference.spectec
+  $ printf '%s\n' checks > checks.ptfae
+  $ for mode in '' --sl --pl; do
+  >   spectec ptfae eval $mode --spec reference.spectec --spec substitution.spectec -p checks.ptfae --color never || exit 1
+  > done
+  1
+  1
+  1

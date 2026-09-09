@@ -6,6 +6,8 @@ let rec print_type fmt typ =
   | _, [ "_TID" ], [ a ] -> Format.pp_print_string fmt (Value.get_text a)
   | _, [ "->" ], [ param; result ] ->
       Format.fprintf fmt "(%a -> %a)" print_type param print_type result
+  | _, [ "FORALL"; "." ], [ a; body ] ->
+      Format.fprintf fmt "(forall %a. %a)" print_type a print_type body
   | _ -> invalid_arg "expected an ITPL type"
 
 let rec print_expr fmt expr =
@@ -28,6 +30,10 @@ let rec print_expr fmt expr =
   | _, [ "LAMBDA"; ":"; "." ], [ x; param; body ] ->
       Format.fprintf fmt "(fun (%a : %a) -> %a)" print_expr x print_type param
         print_expr body
+  | _, [ "TLAMBDA"; "." ], [ a; body ] ->
+      Format.fprintf fmt "(tfun %a -> %a)" print_type a print_expr body
+  | _, [ "["; "]" ], [ expr; typ ] ->
+      Format.fprintf fmt "(%a[%a])" print_expr expr print_type typ
   | ( _,
       [ "TYPE"; "="; "@"; "+"; "@"; "IN" ],
       [ a; left; left_type; right; right_type; body ] ) ->

@@ -13,6 +13,7 @@ The ITPL package owns its plugins and their separate default specifications.
   $ grep -q 'target_plugins/tfae/META' ../../../../spectec-target-itpl.install
   $ grep -q 'target_plugins/trfae/META' ../../../../spectec-target-itpl.install
   $ grep -q 'target_plugins/tvfae/META' ../../../../spectec-target-itpl.install
+  $ grep -q 'target_plugins/ptfae/META' ../../../../spectec-target-itpl.install
   $ grep -q 'ae/spec.spectec' ../../../../spectec-target-itpl.install
   $ grep -q 'vae/spec.spectec' ../../../../spectec-target-itpl.install
   $ grep -q 'f1vae/spec.spectec' ../../../../spectec-target-itpl.install
@@ -26,8 +27,9 @@ The ITPL package owns its plugins and their separate default specifications.
   $ grep -q 'tfae/spec.spectec' ../../../../spectec-target-itpl.install
   $ grep -q 'trfae/spec.spectec' ../../../../spectec-target-itpl.install
   $ grep -q 'tvfae/spec.spectec' ../../../../spectec-target-itpl.install
+  $ grep -q 'ptfae/spec.spectec' ../../../../spectec-target-itpl.install
 
-  $ spectec --help | grep -E '^  (ae|vae|f1vae|fvae|fae|rfae|bfae|mfae|lfae|kfae|tfae|trfae|tvfae) '
+  $ spectec --help | grep -E '^  (ae|vae|f1vae|fvae|fae|rfae|bfae|mfae|lfae|kfae|tfae|trfae|tvfae|ptfae) '
     ae                         . AE commands
     bfae                       . BFAE commands
     f1vae                      . F1VAE commands
@@ -36,6 +38,7 @@ The ITPL package owns its plugins and their separate default specifications.
     kfae                       . KFAE commands
     lfae                       . LFAE commands
     mfae                       . MFAE commands
+    ptfae                      . PTFAE commands
     rfae                       . RFAE commands
     tfae                       . TFAE commands
     trfae                      . TRFAE commands
@@ -77,3 +80,7 @@ The commands use the installed specifications without a --spec override.
   num
   $ spectec tvfae eval -p ../../../testdata/interp/itpl/tvfae/variant.tvfae --color never
   8
+  $ spectec ptfae typecheck -p ../../../testdata/interp/itpl/ptfae/identity.ptfae --color never
+  num
+  $ spectec ptfae eval -p ../../../testdata/interp/itpl/ptfae/identity.ptfae --color never
+  42
