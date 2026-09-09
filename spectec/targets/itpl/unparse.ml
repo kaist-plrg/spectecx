@@ -1,5 +1,12 @@
 open Lang.Il
 
+let rec print_type fmt typ =
+  match Value.flatten_case_v typ with
+  | _, [ "NUM" ], [] -> Format.pp_print_string fmt "num"
+  | _, [ "->" ], [ param; result ] ->
+      Format.fprintf fmt "(%a -> %a)" print_type param print_type result
+  | _ -> invalid_arg "expected an ITPL type"
+
 let rec print_expr fmt expr =
   match Value.flatten_case_v expr with
   | _, [ "_NUM" ], [ n ] ->
@@ -17,6 +24,9 @@ let rec print_expr fmt expr =
       Format.fprintf fmt "%a(%a)" print_expr f print_expr argument
   | _, [ "LAMBDA"; "." ], [ x; body ] ->
       Format.fprintf fmt "(fun %a -> %a)" print_expr x print_expr body
+  | _, [ "LAMBDA"; ":"; "." ], [ x; param; body ] ->
+      Format.fprintf fmt "(fun (%a : %a) -> %a)" print_expr x print_type param
+        print_expr body
   | _, [ "VCC"; "IN" ], [ x; body ] ->
       Format.fprintf fmt "(vcc %a in %a)" print_expr x print_expr body
   | _, [], [ func; argument ] ->

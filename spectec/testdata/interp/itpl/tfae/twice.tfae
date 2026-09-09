@@ -1,0 +1,1 @@
+val twice = fun (f : num -> num) -> fun (x : num) -> f (f x) in twice (fun (n : num) -> n + 1) 40

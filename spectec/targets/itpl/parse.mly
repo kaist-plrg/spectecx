@@ -46,14 +46,20 @@ let conditional condition consequent alternative =
 let recursive_binding f x func_body body =
   [kw "DEF"; arg (identifier f); lparen (); arg (identifier x); rparen ();
    op "="; arg func_body; kw "IN"; arg body] |> case_v ~var:"expr"
+let num_type () = [kw "NUM"] |> case_v ~var:"type"
+let arrow_type param result =
+  [arg param; op "->"; arg result] |> case_v ~var:"type"
+let typed_function x param body =
+  [kw "LAMBDA"; arg (identifier x); op ":"; arg param; op "."; arg body] |> case_v ~var:"expr"
 %}
 
 %token EOF
 %token <Bigint.t> NUM
 %token <string> ID
 %token PLUS MINUS LPAR RPAR VAL IN EQUAL DEF SEMI FUN ARROW IF0 THEN ELSE BOX BANG ASSIGN VCC
+%token COLON NUMTYPE
 
-%start <Lang.Il.value> ae vae f1vae fvae fae rfae bfae mfae kfae
+%start <Lang.Il.value> ae vae f1vae fvae fae rfae bfae mfae kfae tfae
 
 %%
 
@@ -84,6 +90,9 @@ mfae:
 kfae:
 | e=kfae_expr EOF { e }
 
+tfae:
+| e=tfae_expr EOF { e }
+
 ae_expr:
 | e=ae_atom { e }
 | left=ae_expr PLUS right=ae_atom { binary "+" left right }
@@ -109,6 +118,7 @@ vae_atom:
 
 vae_id:
 | x=ID { x }
+| NUMTYPE { "num" }
 | DEF { "def" }
 | FUN { "fun" }
 | IF0 { "if0" }
@@ -119,6 +129,7 @@ vae_id:
 
 f1vae_id:
 | x=ID { x }
+| NUMTYPE { "num" }
 | FUN { "fun" }
 | IF0 { "if0" }
 | THEN { "then" }
@@ -128,6 +139,7 @@ f1vae_id:
 
 fvae_id:
 | x=ID { x }
+| NUMTYPE { "num" }
 | DEF { "def" }
 | IF0 { "if0" }
 | THEN { "then" }
@@ -137,6 +149,7 @@ fvae_id:
 
 fae_id:
 | x=ID { x }
+| NUMTYPE { "num" }
 | IF0 { "if0" }
 | THEN { "then" }
 | ELSE { "else" }
@@ -145,11 +158,13 @@ fae_id:
 
 rfae_id:
 | x=ID { x }
+| NUMTYPE { "num" }
 | BOX { "box" }
 | VCC { "vcc" }
 
 bfae_id:
 | x=ID { x }
+| NUMTYPE { "num" }
 | IF0 { "if0" }
 | THEN { "then" }
 | ELSE { "else" }
@@ -157,6 +172,7 @@ bfae_id:
 
 mfae_id:
 | x=ID { x }
+| NUMTYPE { "num" }
 | IF0 { "if0" }
 | THEN { "then" }
 | ELSE { "else" }
@@ -319,6 +335,7 @@ mfae_atom:
 
 kfae_id:
 | x=ID { x }
+| NUMTYPE { "num" }
 | IF0 { "if0" }
 | THEN { "then" }
 | ELSE { "else" }
@@ -350,3 +367,34 @@ kfae_atom:
 integer:
 | n=NUM { n }
 | MINUS n=NUM { Bigint.neg n }
+
+typ:
+| t=typ_atom { t }
+| param=typ_atom ARROW result=typ { arrow_type param result }
+
+typ_atom:
+| NUMTYPE { num_type () }
+| LPAR t=typ RPAR { t }
+
+tfae_expr:
+| e=tfae_sum { e }
+| VAL x=fae_id EQUAL init=tfae_expr IN body=tfae_expr { binding x init body }
+| FUN LPAR x=fae_id COLON param=typ RPAR ARROW body=tfae_expr
+    { typed_function x param body }
+| DEF f=fae_id LPAR x=fae_id COLON param=typ RPAR EQUAL func_body=tfae_expr IN body=tfae_expr
+    { binding f (typed_function x param func_body) body }
+
+tfae_sum:
+| e=tfae_app { e }
+| left=tfae_sum PLUS right=tfae_app { binary "+" left right }
+| left=tfae_sum MINUS right=tfae_app { binary "-" left right }
+
+tfae_app:
+| e=tfae_atom { e }
+| MINUS n=NUM { number (Bigint.neg n) }
+| func=tfae_app argument=tfae_atom { application func argument }
+
+tfae_atom:
+| n=NUM { number n }
+| x=fae_id { identifier x }
+| LPAR e=tfae_expr RPAR { e }

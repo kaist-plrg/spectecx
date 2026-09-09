@@ -84,6 +84,20 @@ KFAE requires a name and body for vcc. LFAE uses FAE syntax, and both languages 
   $ rejects lfae '1; 2'
   $ rejects lfae 'x := 1'
 
+Typed functions require parameter annotations. Type names and arrow operands must be complete.
+
+  $ rejects tfae 'fun x -> x'
+  $ rejects tfae 'fun (x) -> x'
+  $ rejects tfae 'fun (x : bool) -> x'
+  $ rejects tfae 'fun (x : num ->) -> x'
+  $ rejects tfae 'fun (x : -> num) -> x'
+  $ rejects tfae 'fun (x : (num -> num) -> x'
+  $ rejects tfae 'def f(x : num) : num = x in f 1'
+  $ rejects tfae 'val x : num = 1 in x'
+  $ rejects tfae '1; 2'
+  $ rejects fae 'fun (x : num) -> x'
+  $ rejects rfae 'def f(x : num) : num = x in f 1'
+
 Lexical errors report the line and column of the invalid character.
 
   $ printf '1 +\n  @\n' > input.ae
@@ -172,3 +186,9 @@ Mutation syntax and sequencing sugar round-trip without fixing the generated par
 
   $ accepts bfae 'val b = box 1 in b := 2; !b'
   $ accepts mfae '0; __seq'
+
+The parser accepts num as an identifier in languages with term variables.
+
+  $ for target in vae f1vae fvae fae rfae bfae mfae lfae kfae tfae ; do
+  >   accepts "$target" 'val num = 3 in num' || exit 1
+  > done

@@ -40,6 +40,7 @@ assert_missing bfae
 assert_missing mfae
 assert_missing lfae
 assert_missing kfae
+assert_missing tfae
 
 check_target spectec-target-p4 p4 p4 parse -p spectec/testdata/interp/p4/p4c/p4_16_samples/issue2342.p4 --color never
 check_target spectec-target-miniml miniml miniml parse -p spectec/testdata/interp/miniml/add.ml --color never
@@ -53,7 +54,8 @@ check_itpl() {
   target=$1
   expected=$2
   input=$3
-  actual=$(cd "$itpl_test_dir" && run_spectec "$target" eval -p "$input" --color never)
+  task=${4:-eval}
+  actual=$(cd "$itpl_test_dir" && run_spectec "$target" "$task" -p "$input" --color never)
   if [ "$actual" != "$expected" ]; then
     printf '%s: expected %s, got %s\n' "$target" "$expected" "$actual" >&2
     exit 1
@@ -71,6 +73,8 @@ check_itpl bfae 7 "${repo_root}/spectec/testdata/interp/itpl/bfae/alias.bfae"
 check_itpl mfae 2 "${repo_root}/spectec/testdata/interp/itpl/mfae/counter.mfae"
 check_itpl lfae 7 "${repo_root}/spectec/testdata/interp/itpl/lfae/unused.lfae"
 check_itpl kfae 3 "${repo_root}/spectec/testdata/interp/itpl/kfae/escape.kfae"
+check_itpl tfae 42 "${repo_root}/spectec/testdata/interp/itpl/tfae/twice.tfae"
+check_itpl tfae num "${repo_root}/spectec/testdata/interp/itpl/tfae/twice.tfae" typecheck
 opam remove --yes spectec-target-itpl
 assert_missing ae
 assert_missing vae
@@ -82,3 +86,4 @@ assert_missing bfae
 assert_missing mfae
 assert_missing lfae
 assert_missing kfae
+assert_missing tfae

@@ -10,6 +10,7 @@ The ITPL package owns its plugins and their separate default specifications.
   $ grep -q 'target_plugins/mfae/META' ../../../../spectec-target-itpl.install
   $ grep -q 'target_plugins/lfae/META' ../../../../spectec-target-itpl.install
   $ grep -q 'target_plugins/kfae/META' ../../../../spectec-target-itpl.install
+  $ grep -q 'target_plugins/tfae/META' ../../../../spectec-target-itpl.install
   $ grep -q 'ae/spec.spectec' ../../../../spectec-target-itpl.install
   $ grep -q 'vae/spec.spectec' ../../../../spectec-target-itpl.install
   $ grep -q 'f1vae/spec.spectec' ../../../../spectec-target-itpl.install
@@ -20,8 +21,9 @@ The ITPL package owns its plugins and their separate default specifications.
   $ grep -q 'mfae/spec.spectec' ../../../../spectec-target-itpl.install
   $ grep -q 'lfae/spec.spectec' ../../../../spectec-target-itpl.install
   $ grep -q 'kfae/spec.spectec' ../../../../spectec-target-itpl.install
+  $ grep -q 'tfae/spec.spectec' ../../../../spectec-target-itpl.install
 
-  $ spectec --help | grep -E '^  (ae|vae|f1vae|fvae|fae|rfae|bfae|mfae|lfae|kfae) '
+  $ spectec --help | grep -E '^  (ae|vae|f1vae|fvae|fae|rfae|bfae|mfae|lfae|kfae|tfae) '
     ae                         . AE commands
     bfae                       . BFAE commands
     f1vae                      . F1VAE commands
@@ -31,6 +33,7 @@ The ITPL package owns its plugins and their separate default specifications.
     lfae                       . LFAE commands
     mfae                       . MFAE commands
     rfae                       . RFAE commands
+    tfae                       . TFAE commands
     vae                        . VAE commands
 
 The commands use the installed specifications without a --spec override.
@@ -55,3 +58,7 @@ The commands use the installed specifications without a --spec override.
   7
   $ spectec kfae eval -p ../../../testdata/interp/itpl/kfae/escape.kfae --color never
   3
+  $ spectec tfae typecheck -p ../../../testdata/interp/itpl/tfae/twice.tfae --color never
+  num
+  $ spectec tfae eval -p ../../../testdata/interp/itpl/tfae/twice.tfae --color never
+  42
