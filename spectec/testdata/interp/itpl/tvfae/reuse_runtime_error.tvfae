@@ -1,0 +1,1 @@
+type T = A@num + B@num in (fun (f : T -> num) -> type T = C@num + D@num in f (C 1)) (fun (v : T) -> v match { A(x) -> x; B(y) -> y })

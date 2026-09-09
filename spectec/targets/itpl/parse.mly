@@ -55,15 +55,25 @@ let typed_recursive_binding f x param result func_body body =
   [kw "DEF"; arg (identifier f); lparen (); arg (identifier x); op ":"; arg param;
    rparen (); op ":"; arg result; op "="; arg func_body; kw "IN"; arg body]
   |> case_v ~var:"expr"
+let type_identifier x = [tag "TID"; arg (text x)] |> case_v ~var:"tid"
+let type_definition a left left_type right right_type body =
+  [kw "TYPE"; arg (type_identifier a); op "="; arg (identifier left); op "@";
+   arg left_type; op "+"; arg (identifier right); op "@"; arg right_type;
+   kw "IN"; arg body] |> case_v ~var:"expr"
+let matching subject left x left_body right y right_body =
+  [arg subject; kw "MATCH"; arg (identifier left); lparen ();
+   arg (identifier x); rparen (); op "->"; arg left_body; op ",";
+   arg (identifier right); lparen (); arg (identifier y); rparen (); op "->";
+   arg right_body] |> case_v ~var:"expr"
 %}
 
 %token EOF
 %token <Bigint.t> NUM
 %token <string> ID
 %token PLUS MINUS LPAR RPAR VAL IN EQUAL DEF SEMI FUN ARROW IF0 THEN ELSE BOX BANG ASSIGN VCC
-%token COLON NUMTYPE
+%token COLON NUMTYPE TYPE MATCH LBRACE RBRACE AT
 
-%start <Lang.Il.value> ae vae f1vae fvae fae rfae bfae mfae kfae tfae trfae
+%start <Lang.Il.value> ae vae f1vae fvae fae rfae bfae mfae kfae tfae trfae tvfae
 
 %%
 
@@ -100,6 +110,9 @@ tfae:
 trfae:
 | e=trfae_expr EOF { e }
 
+tvfae:
+| e=tvfae_expr EOF { e }
+
 ae_expr:
 | e=ae_atom { e }
 | left=ae_expr PLUS right=ae_atom { binary "+" left right }
@@ -123,9 +136,14 @@ vae_atom:
 | x=vae_id { identifier x }
 | LPAR e=vae_expr RPAR { e }
 
-vae_id:
+common_id:
 | x=ID { x }
 | NUMTYPE { "num" }
+| TYPE { "type" }
+| MATCH { "match" }
+
+vae_id:
+| x=common_id { x }
 | DEF { "def" }
 | FUN { "fun" }
 | IF0 { "if0" }
@@ -135,8 +153,7 @@ vae_id:
 | VCC { "vcc" }
 
 f1vae_id:
-| x=ID { x }
-| NUMTYPE { "num" }
+| x=common_id { x }
 | FUN { "fun" }
 | IF0 { "if0" }
 | THEN { "then" }
@@ -145,8 +162,7 @@ f1vae_id:
 | VCC { "vcc" }
 
 fvae_id:
-| x=ID { x }
-| NUMTYPE { "num" }
+| x=common_id { x }
 | DEF { "def" }
 | IF0 { "if0" }
 | THEN { "then" }
@@ -155,8 +171,7 @@ fvae_id:
 | VCC { "vcc" }
 
 fae_id:
-| x=ID { x }
-| NUMTYPE { "num" }
+| x=common_id { x }
 | IF0 { "if0" }
 | THEN { "then" }
 | ELSE { "else" }
@@ -164,22 +179,19 @@ fae_id:
 | VCC { "vcc" }
 
 rfae_id:
-| x=ID { x }
-| NUMTYPE { "num" }
+| x=common_id { x }
 | BOX { "box" }
 | VCC { "vcc" }
 
 bfae_id:
-| x=ID { x }
-| NUMTYPE { "num" }
+| x=common_id { x }
 | IF0 { "if0" }
 | THEN { "then" }
 | ELSE { "else" }
 | VCC { "vcc" }
 
 mfae_id:
-| x=ID { x }
-| NUMTYPE { "num" }
+| x=common_id { x }
 | IF0 { "if0" }
 | THEN { "then" }
 | ELSE { "else" }
@@ -341,8 +353,7 @@ mfae_atom:
 | LPAR e=mfae_expr RPAR { e }
 
 kfae_id:
-| x=ID { x }
-| NUMTYPE { "num" }
+| x=common_id { x }
 | IF0 { "if0" }
 | THEN { "then" }
 | ELSE { "else" }
@@ -430,3 +441,54 @@ trfae_atom:
 | n=NUM { number n }
 | x=rfae_id { identifier x }
 | LPAR e=trfae_expr RPAR { e }
+
+tvfae_type_name:
+| x=ID { x }
+| IF0 { "if0" }
+| THEN { "then" }
+| ELSE { "else" }
+| BOX { "box" }
+| VCC { "vcc" }
+
+tvfae_id:
+| x=tvfae_type_name { x }
+| NUMTYPE { "num" }
+
+tvfae_typ:
+| t=tvfae_typ_atom { t }
+| param=tvfae_typ_atom ARROW result=tvfae_typ { arrow_type param result }
+
+tvfae_typ_atom:
+| NUMTYPE { num_type () }
+| a=tvfae_type_name { type_identifier a }
+| LPAR t=tvfae_typ RPAR { t }
+
+tvfae_expr:
+| e=tvfae_match { e }
+| VAL x=tvfae_id EQUAL init=tvfae_expr IN body=tvfae_expr { binding x init body }
+| FUN LPAR x=tvfae_id COLON param=tvfae_typ RPAR ARROW body=tvfae_expr
+    { typed_function x param body }
+| DEF f=tvfae_id LPAR x=tvfae_id COLON param=tvfae_typ RPAR EQUAL func_body=tvfae_expr IN body=tvfae_expr
+    { binding f (typed_function x param func_body) body }
+| TYPE a=tvfae_type_name EQUAL left=tvfae_id AT left_type=tvfae_typ PLUS right=tvfae_id AT right_type=tvfae_typ IN body=tvfae_expr
+    { type_definition a left left_type right right_type body }
+
+tvfae_match:
+| e=tvfae_sum { e }
+| subject=tvfae_match MATCH LBRACE left=tvfae_id LPAR x=tvfae_id RPAR ARROW left_body=tvfae_expr SEMI right=tvfae_id LPAR y=tvfae_id RPAR ARROW right_body=tvfae_expr RBRACE
+    { matching subject left x left_body right y right_body }
+
+tvfae_sum:
+| e=tvfae_app { e }
+| left=tvfae_sum PLUS right=tvfae_app { binary "+" left right }
+| left=tvfae_sum MINUS right=tvfae_app { binary "-" left right }
+
+tvfae_app:
+| e=tvfae_atom { e }
+| MINUS n=NUM { number (Bigint.neg n) }
+| func=tvfae_app argument=tvfae_atom { application func argument }
+
+tvfae_atom:
+| n=NUM { number n }
+| x=tvfae_id { identifier x }
+| LPAR e=tvfae_expr RPAR { e }

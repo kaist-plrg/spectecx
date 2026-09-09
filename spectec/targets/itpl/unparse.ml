@@ -3,6 +3,7 @@ open Lang.Il
 let rec print_type fmt typ =
   match Value.flatten_case_v typ with
   | _, [ "NUM" ], [] -> Format.pp_print_string fmt "num"
+  | _, [ "_TID" ], [ a ] -> Format.pp_print_string fmt (Value.get_text a)
   | _, [ "->" ], [ param; result ] ->
       Format.fprintf fmt "(%a -> %a)" print_type param print_type result
   | _ -> invalid_arg "expected an ITPL type"
@@ -27,6 +28,18 @@ let rec print_expr fmt expr =
   | _, [ "LAMBDA"; ":"; "." ], [ x; param; body ] ->
       Format.fprintf fmt "(fun (%a : %a) -> %a)" print_expr x print_type param
         print_expr body
+  | ( _,
+      [ "TYPE"; "="; "@"; "+"; "@"; "IN" ],
+      [ a; left; left_type; right; right_type; body ] ) ->
+      Format.fprintf fmt "(type %a = %a@%a + %a@%a in %a)" print_type a
+        print_expr left print_type left_type print_expr right print_type
+        right_type print_expr body
+  | ( _,
+      [ "MATCH"; "("; ")"; "->"; ","; "("; ")"; "->" ],
+      [ subject; left; x; left_body; right; y; right_body ] ) ->
+      Format.fprintf fmt "(%a match { %a(%a) -> %a; %a(%a) -> %a })" print_expr
+        subject print_expr left print_expr x print_expr left_body print_expr
+        right print_expr y print_expr right_body
   | _, [ "VCC"; "IN" ], [ x; body ] ->
       Format.fprintf fmt "(vcc %a in %a)" print_expr x print_expr body
   | _, [], [ func; argument ] ->

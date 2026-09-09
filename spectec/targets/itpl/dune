@@ -22,7 +22,8 @@
    register_lfae
    register_kfae
    register_tfae
-   register_trfae))
+   register_trfae
+   register_tvfae))
  (libraries
   spectec
   spectec.cli
@@ -191,5 +192,18 @@
  (name trfae)
  (package spectec-target-itpl)
  (libraries spectec-target-itpl.trfae_plugin)
+ (site
+  (spectec target_plugins)))
+
+(library
+ (name register_tvfae)
+ (public_name spectec-target-itpl.tvfae_plugin)
+ (modules register_tvfae)
+ (libraries spectec.cli spectec-target-itpl.target))
+
+(plugin
+ (name tvfae)
+ (package spectec-target-itpl)
+ (libraries spectec-target-itpl.tvfae_plugin)
  (site
   (spectec target_plugins)))

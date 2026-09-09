@@ -30,6 +30,8 @@ rule token = parse
 | "box" { BOX }
 | "vcc" { VCC }
 | "num" { NUMTYPE }
+| "type" { TYPE }
+| "match" { MATCH }
 | initial subsequent* as x { ID x }
 | '+' { PLUS }
 | '-' { MINUS }
@@ -41,6 +43,9 @@ rule token = parse
 | '!' { BANG }
 | ":=" { ASSIGN }
 | ':' { COLON }
+| '{' { LBRACE }
+| '}' { RBRACE }
+| '@' { AT }
 | eof { EOF }
 | _ as c { raise (Parse_error (region lexbuf, Printf.sprintf "unexpected character %C" c)) }
 

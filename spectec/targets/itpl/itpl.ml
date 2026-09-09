@@ -122,6 +122,16 @@ module Make_typed (Language : Language) = struct
 
     let name = "typechecker"
 
+    let collect ?dir () =
+      Eval.collect ?dir ()
+      |> List.map (fun (input : input) ->
+             if
+               Core.String.is_substring
+                 (Filename.basename input.filename)
+                 ~substring:"_runtime_error"
+             then { input with expect = Spectec.Task.Positive }
+             else input)
+
     let parse_input ~spec input =
       Eval.parse_input ~spec input
       |> Result.map (fun (_, values) -> ("Check_prog", values))
