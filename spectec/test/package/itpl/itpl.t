@@ -11,6 +11,7 @@ The ITPL package owns its plugins and their separate default specifications.
   $ grep -q 'target_plugins/lfae/META' ../../../../spectec-target-itpl.install
   $ grep -q 'target_plugins/kfae/META' ../../../../spectec-target-itpl.install
   $ grep -q 'target_plugins/tfae/META' ../../../../spectec-target-itpl.install
+  $ grep -q 'target_plugins/trfae/META' ../../../../spectec-target-itpl.install
   $ grep -q 'ae/spec.spectec' ../../../../spectec-target-itpl.install
   $ grep -q 'vae/spec.spectec' ../../../../spectec-target-itpl.install
   $ grep -q 'f1vae/spec.spectec' ../../../../spectec-target-itpl.install
@@ -22,8 +23,9 @@ The ITPL package owns its plugins and their separate default specifications.
   $ grep -q 'lfae/spec.spectec' ../../../../spectec-target-itpl.install
   $ grep -q 'kfae/spec.spectec' ../../../../spectec-target-itpl.install
   $ grep -q 'tfae/spec.spectec' ../../../../spectec-target-itpl.install
+  $ grep -q 'trfae/spec.spectec' ../../../../spectec-target-itpl.install
 
-  $ spectec --help | grep -E '^  (ae|vae|f1vae|fvae|fae|rfae|bfae|mfae|lfae|kfae|tfae) '
+  $ spectec --help | grep -E '^  (ae|vae|f1vae|fvae|fae|rfae|bfae|mfae|lfae|kfae|tfae|trfae) '
     ae                         . AE commands
     bfae                       . BFAE commands
     f1vae                      . F1VAE commands
@@ -34,6 +36,7 @@ The ITPL package owns its plugins and their separate default specifications.
     mfae                       . MFAE commands
     rfae                       . RFAE commands
     tfae                       . TFAE commands
+    trfae                      . TRFAE commands
     vae                        . VAE commands
 
 The commands use the installed specifications without a --spec override.
@@ -62,3 +65,7 @@ The commands use the installed specifications without a --spec override.
   num
   $ spectec tfae eval -p ../../../testdata/interp/itpl/tfae/twice.tfae --color never
   42
+  $ spectec trfae typecheck -p ../../../testdata/interp/itpl/trfae/sum.trfae --color never
+  num
+  $ spectec trfae eval -p ../../../testdata/interp/itpl/trfae/sum.trfae --color never
+  55

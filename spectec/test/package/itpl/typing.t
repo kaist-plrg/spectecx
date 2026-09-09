@@ -1,4 +1,4 @@
-TFAE infers the same types and produces the same values in IL, SL, and PL. Successful inputs round-trip with their annotations intact.
+Typed targets infer the same types and produce the same values in IL, SL, and PL. Successful inputs round-trip with their annotations intact.
 
   $ check() {
   >   target=$1
@@ -32,9 +32,9 @@ TFAE infers the same types and produces the same values in IL, SL, and PL. Succe
   >   spectec "$target" parse -r -p "input.$target" --color never > /dev/null
   > }
 
-TFAE checks numeric operations, lexical scope, binding initializers, and higher-order applications. Arrow types associate to the right, and parentheses can select a function parameter type.
+Both languages check numeric operations, lexical scope, binding initializers, and higher-order applications. Arrow types associate to the right, and parentheses can select a function parameter type.
 
-  $ for target in tfae; do
+  $ for target in tfae trfae; do
   >   check "$target" num -3 '(2 - 8) + 3' || exit 1
   >   check "$target" num -3 '(fun (x : num) -> x) (-3)' || exit 1
   >   check "$target" num 21 'val x = 10 in (val x = x + 1 in x) + x' || exit 1
@@ -59,6 +59,33 @@ TFAE local definitions are nonrecursive sugar for val and an annotated function.
   $ check tfae num 5 'val f = fun (x : num) -> x + 1 in def f(x : num) = f x in f 4'
   $ check tfae num 3 'def if0(then : num) = then + 1 in val else = 2 in if0 else'
 
+TRFAE checks both branches but evaluates only the selected branch. Recursive functions can return functions, escape their definition, and capture outer bindings. A parameter shadows a self-binding with the same name.
+
+  $ check trfae num 55 'def sum(x : num) : num = if0 x then 0 else x + sum (x - 1) in sum 10'
+  $ check trfae num 1 'if0 0 then 1 else 2'
+  $ check trfae num 2 'if0 (-1) then 1 else 2'
+  $ check trfae num 3 'if0 0 then if0 1 then 2 else 3 else 4'
+  $ check trfae num 7 'def loop(x : num) : num = loop x in if0 0 then 7 else loop 0'
+  $ check trfae num 7 'def loop(x : num) : num = loop x in if0 1 then loop 0 else 7'
+  $ check trfae num 5 '(if0 0 then fun (x : num) -> x + 1 else fun (x : num) -> x - 1) 4'
+  $ check trfae num 4 'def f(f : num) : num = f + 1 in f 3'
+  $ check trfae num 4 'def f(f : num -> num) : num = f 3 in f (fun (x : num) -> x + 1)'
+  $ check trfae num 13 'val offset = 10 in val f = def sum(x : num) : num = if0 x then offset else 1 + sum (x - 1) in sum in val offset = 100 in f 3'
+  $ check trfae num 10 'def f(x : num) : num -> num = if0 x then fun (y : num) -> y else fun (y : num) -> (f (x - 1)) (y + 1) in f 3 7'
+  $ check trfae num 9 'def f(x : num) : num = if0 x then 0 else 1 + f (x - 1) in def g(x : num) : num = f x + x in g 3 + f 3'
+  $ check trfae num 7 'val x = 7 in def f(x : num) : num = x in x'
+  $ check_type trfae '(num -> num)' 'def f(x : num) : num = x in f'
+
+Type checking terminates for a well-typed recursive program even when evaluation would diverge.
+
+  $ printf '%s\n' 'def loop(x : num) : num = loop x in loop 0' > loop.trfae
+  $ for mode in '' --sl --pl; do
+  >   spectec trfae typecheck $mode -p loop.trfae --color never || exit 1
+  > done
+  num
+  num
+  num
+
 Ill-typed expressions parse successfully but fail both typecheck and eval, including errors in unused function bodies and bindings.
 
   $ rejects() {
@@ -77,7 +104,7 @@ Ill-typed expressions parse successfully but fail both typecheck and eval, inclu
   >   done
   > }
 
-  $ for target in tfae; do
+  $ for target in tfae trfae; do
   >   rejects "$target" 'missing' || exit 1
   >   rejects "$target" '1 2' || exit 1
   >   rejects "$target" '(fun (x : num) -> x) + 1' || exit 1
@@ -97,10 +124,25 @@ Ill-typed expressions parse successfully but fail both typecheck and eval, inclu
   $ rejects tfae 'def f(x : num) = f x in 7'
   $ rejects tfae 'val f = fun (x : num) -> f x in 7'
 
+TRFAE requires a numeric condition, equal branch types, and the declared recursive return type. Function parameters are confined to the function body.
+
+  $ rejects trfae 'if0 (fun (x : num) -> x) then 1 else 2'
+  $ rejects trfae 'if0 0 then 1 else fun (x : num) -> x'
+  $ rejects trfae 'if0 1 then fun (x : num) -> x else 2'
+  $ rejects trfae 'if0 0 then 1 else missing'
+  $ rejects trfae 'def f(x : num) : num = fun (y : num) -> y in 7'
+  $ rejects trfae 'def f(x : num) : num -> num = x in 7'
+  $ rejects trfae 'def f(x : num) : num = f (fun (y : num) -> y) in 7'
+  $ rejects trfae 'def f(x : num) : num = missing in 7'
+  $ rejects trfae 'def f(x : num) : num = x in x'
+  $ rejects trfae '(def f(x : num) : num = x in f 1) + f 1'
+  $ rejects trfae 'def f(f : num) : num = f 3 in 7'
+  $ rejects trfae 'val f = fun (x : num) -> x in def f(x : num) : num = f in 7'
+
 Batch runs both tasks, collects inputs recursively, and treats _error files as expected failures.
 
   $ mkdir -p corpus/nested
-  $ for target in tfae; do
+  $ for target in tfae trfae; do
   >   printf '%s\n' '(fun (x : num) -> x + 1) 2' > "corpus/nested/good.$target"
   >   printf '%s\n' 'fun (x : num) -> missing' > "corpus/unused_error.$target"
   >   for mode in '' --sl --pl; do

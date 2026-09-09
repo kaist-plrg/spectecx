@@ -15,6 +15,7 @@ The `spectec-target-itpl` package provides independently registered targets for 
 | [LFAE](lfae/spec.spectec) | 14.1 | Call-by-name evaluation |
 | [KFAE](kfae/spec.spectec) | 16.1, 17.2 | First-class continuations, explicit big-step rules |
 | [TFAE](tfae/spec.spectec) | 19.5, 19.6.1 | Annotated functions and nonrecursive bindings |
+| [TRFAE](trfae/spec.spectec) | 20.1-20.5 | Numeric conditions and annotated recursion |
 
 ## Use
 
@@ -48,8 +49,9 @@ In BFAE, `box` and `!` bind tighter than application. Assignment binds below ari
 | MFAE | Implements call-by-value (§12.2), excluding call-by-reference (§12.4). Sequencing is application sugar. Its unused parameter is absent from all identifier occurrences, including assignment targets, a stronger condition than absence from free identifiers. |
 | LFAE | Implements call-by-name (§14.1), excluding the call-by-need cache (§14.3). `Strict` forces delayed values in arithmetic, function position, and the final result. |
 | KFAE | Uses §17.2's bracketed continuation contexts with `HOLE` for the square hole. Subtraction extends the displayed addition rules symmetrically. Capture uses `vcc x in e` from §16.1's abstract grammar, which §17.2 writes as `vcc x; e`. |
-| TFAE | Functions use `fun (x : t) -> e`, with `num` and right-associative function types `t1 -> t2`. The parser accepts `num` as a term identifier. The specifications define primitive, unannotated, eager `val` bindings (§19.6.1). |
+| TFAE and TRFAE | Functions use `fun (x : t) -> e`, with `num` and right-associative function types `t1 -> t2`. The parser accepts `num` as a term identifier. The specifications define primitive, unannotated, eager `val` bindings (§19.6.1). Type environments use overriding maps, with `:` separating identifiers from types. |
 | TFAE | The parser translates nonrecursive local `def` bindings into `val` bindings of annotated functions. The pair extension (§19.6.2) is absent. |
+| TRFAE | Recursive functions use `def f(x : t1) : t2 = e1 in e2`, requiring both annotations. The checker follows Typ-If0, requiring a numeric condition and equal branch types. Recursive environment entries and ordinary closures follow RFAE. Lookup reconstructs the self-binding, and application binds the parameter, which takes precedence if the parameter and function names coincide. |
 
 ## Limits
 

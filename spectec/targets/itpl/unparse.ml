@@ -37,6 +37,12 @@ let rec print_expr fmt expr =
   | _, [ "DEF"; "("; ")"; "="; "IN" ], [ f; x; func_body; body ] ->
       Format.fprintf fmt "(def %a(%a) = %a in %a)" print_expr f print_expr x
         print_expr func_body print_expr body
+  | ( _,
+      [ "DEF"; "("; ":"; ")"; ":"; "="; "IN" ],
+      [ f; x; param; result; func_body; body ] ) ->
+      Format.fprintf fmt "(def %a(%a : %a) : %a = %a in %a)" print_expr f
+        print_expr x print_type param print_type result print_expr func_body
+        print_expr body
   | _ -> invalid_arg "expected an ITPL expression"
 
 let print_fundef fmt definition =

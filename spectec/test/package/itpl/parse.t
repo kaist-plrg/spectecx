@@ -84,7 +84,7 @@ KFAE requires a name and body for vcc. LFAE uses FAE syntax, and both languages 
   $ rejects lfae '1; 2'
   $ rejects lfae 'x := 1'
 
-Typed functions require parameter annotations. Type names and arrow operands must be complete.
+Typed functions require parameter annotations, and TRFAE recursive definitions also require return annotations. Type names and arrow operands must be complete.
 
   $ rejects tfae 'fun x -> x'
   $ rejects tfae 'fun (x) -> x'
@@ -95,6 +95,14 @@ Typed functions require parameter annotations. Type names and arrow operands mus
   $ rejects tfae 'def f(x : num) : num = x in f 1'
   $ rejects tfae 'val x : num = 1 in x'
   $ rejects tfae '1; 2'
+  $ rejects trfae 'fun x -> x'
+  $ rejects trfae 'def f(x : num) = x in f 1'
+  $ rejects trfae 'def f(x) : num = x in f 1'
+  $ rejects trfae 'def f(x : num) : num = x'
+  $ rejects trfae 'def f(x : num) : num -> = x in f 1'
+  $ rejects trfae 'if0 0 then 1'
+  $ rejects trfae 'if0 0 then 1 else'
+  $ rejects trfae 'x := 1'
   $ rejects fae 'fun (x : num) -> x'
   $ rejects rfae 'def f(x : num) : num = x in f 1'
 
@@ -189,6 +197,6 @@ Mutation syntax and sequencing sugar round-trip without fixing the generated par
 
 The parser accepts num as an identifier in languages with term variables.
 
-  $ for target in vae f1vae fvae fae rfae bfae mfae lfae kfae tfae ; do
+  $ for target in vae f1vae fvae fae rfae bfae mfae lfae kfae tfae trfae; do
   >   accepts "$target" 'val num = 3 in num' || exit 1
   > done

@@ -41,6 +41,7 @@ assert_missing mfae
 assert_missing lfae
 assert_missing kfae
 assert_missing tfae
+assert_missing trfae
 
 check_target spectec-target-p4 p4 p4 parse -p spectec/testdata/interp/p4/p4c/p4_16_samples/issue2342.p4 --color never
 check_target spectec-target-miniml miniml miniml parse -p spectec/testdata/interp/miniml/add.ml --color never
@@ -74,7 +75,9 @@ check_itpl mfae 2 "${repo_root}/spectec/testdata/interp/itpl/mfae/counter.mfae"
 check_itpl lfae 7 "${repo_root}/spectec/testdata/interp/itpl/lfae/unused.lfae"
 check_itpl kfae 3 "${repo_root}/spectec/testdata/interp/itpl/kfae/escape.kfae"
 check_itpl tfae 42 "${repo_root}/spectec/testdata/interp/itpl/tfae/twice.tfae"
+check_itpl trfae 55 "${repo_root}/spectec/testdata/interp/itpl/trfae/sum.trfae"
 check_itpl tfae num "${repo_root}/spectec/testdata/interp/itpl/tfae/twice.tfae" typecheck
+check_itpl trfae num "${repo_root}/spectec/testdata/interp/itpl/trfae/sum.trfae" typecheck
 opam remove --yes spectec-target-itpl
 assert_missing ae
 assert_missing vae
@@ -87,3 +90,4 @@ assert_missing mfae
 assert_missing lfae
 assert_missing kfae
 assert_missing tfae
+assert_missing trfae

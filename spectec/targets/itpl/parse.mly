@@ -51,6 +51,10 @@ let arrow_type param result =
   [arg param; op "->"; arg result] |> case_v ~var:"type"
 let typed_function x param body =
   [kw "LAMBDA"; arg (identifier x); op ":"; arg param; op "."; arg body] |> case_v ~var:"expr"
+let typed_recursive_binding f x param result func_body body =
+  [kw "DEF"; arg (identifier f); lparen (); arg (identifier x); op ":"; arg param;
+   rparen (); op ":"; arg result; op "="; arg func_body; kw "IN"; arg body]
+  |> case_v ~var:"expr"
 %}
 
 %token EOF
@@ -59,7 +63,7 @@ let typed_function x param body =
 %token PLUS MINUS LPAR RPAR VAL IN EQUAL DEF SEMI FUN ARROW IF0 THEN ELSE BOX BANG ASSIGN VCC
 %token COLON NUMTYPE
 
-%start <Lang.Il.value> ae vae f1vae fvae fae rfae bfae mfae kfae tfae
+%start <Lang.Il.value> ae vae f1vae fvae fae rfae bfae mfae kfae tfae trfae
 
 %%
 
@@ -92,6 +96,9 @@ kfae:
 
 tfae:
 | e=tfae_expr EOF { e }
+
+trfae:
+| e=trfae_expr EOF { e }
 
 ae_expr:
 | e=ae_atom { e }
@@ -398,3 +405,28 @@ tfae_atom:
 | n=NUM { number n }
 | x=fae_id { identifier x }
 | LPAR e=tfae_expr RPAR { e }
+
+trfae_expr:
+| e=trfae_sum { e }
+| VAL x=rfae_id EQUAL init=trfae_expr IN body=trfae_expr { binding x init body }
+| FUN LPAR x=rfae_id COLON param=typ RPAR ARROW body=trfae_expr
+    { typed_function x param body }
+| DEF f=rfae_id LPAR x=rfae_id COLON param=typ RPAR COLON result=typ EQUAL func_body=trfae_expr IN body=trfae_expr
+    { typed_recursive_binding f x param result func_body body }
+| IF0 condition=trfae_expr THEN consequent=trfae_expr ELSE alternative=trfae_expr
+    { conditional condition consequent alternative }
+
+trfae_sum:
+| e=trfae_app { e }
+| left=trfae_sum PLUS right=trfae_app { binary "+" left right }
+| left=trfae_sum MINUS right=trfae_app { binary "-" left right }
+
+trfae_app:
+| e=trfae_atom { e }
+| MINUS n=NUM { number (Bigint.neg n) }
+| func=trfae_app argument=trfae_atom { application func argument }
+
+trfae_atom:
+| n=NUM { number n }
+| x=rfae_id { identifier x }
+| LPAR e=trfae_expr RPAR { e }

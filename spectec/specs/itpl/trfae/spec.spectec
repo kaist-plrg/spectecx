@@ -1,0 +1,217 @@
+syntax id = _ID text
+syntax literal = _NUM int
+
+syntax type = NUM | type '->' type
+
+syntax expr =
+  | literal
+  | expr '+' expr
+  | expr '-' expr
+  | VAL id '=' expr IN expr
+  | id
+  | LAMBDA id ':' type '.' expr
+  | expr expr
+  | IF0 expr expr expr
+  | DEF id `( id ':' type `) ':' type '=' expr IN expr
+
+syntax value, recdef, binding, env
+
+syntax value =
+  | literal
+  | `< LAMBDA id '.' expr ',' env `>
+
+syntax recdef = `< LAMBDA id '.' expr ',' env `>
+
+syntax binding =
+  | id -> value
+  | id -> RECDEF recdef
+syntax env = binding*
+
+var x : id
+var f : id
+var e : expr
+var n : int
+var v : value
+var b : binding
+var d : recdef
+
+syntax typebinding = id ':' type
+syntax tenv = typebinding*
+
+var t : type
+
+;; Lookup is defined only for identifiers in $domain(env).
+dec $lookup(env, id) : value
+dec $domain(env) : id*
+dec $update(env, id, value) : env
+;; Recursive bindings capture env before adding themselves so values remain finite.
+dec $bind_recursive(env, id, id, expr) : env
+dec $update_binding(env, binding) : env
+dec $binding_name(binding) : id
+
+dec $lookup_type(tenv, id) : type
+dec $domain_type(tenv) : id*
+dec $update_type(tenv, id, type) : tenv
+
+relation Check_expr:
+  tenv |- expr : type
+  hint(input %0 %1)
+
+rule Check_expr/num:
+  tenv |- (_NUM n) : NUM
+
+rule Check_expr/add:
+  tenv |- e_1 '+' e_2 : NUM
+  -- Check_expr: tenv |- e_1 : NUM
+  -- Check_expr: tenv |- e_2 : NUM
+
+rule Check_expr/sub:
+  tenv |- e_1 '-' e_2 : NUM
+  -- Check_expr: tenv |- e_1 : NUM
+  -- Check_expr: tenv |- e_2 : NUM
+
+rule Check_expr/val:
+  tenv |- (VAL x '=' e_1 IN e_2) : t_2
+  -- Check_expr: tenv |- e_1 : t_1
+  -- Check_expr: $update_type(tenv, x, t_1) |- e_2 : t_2
+
+rule Check_expr/id:
+  tenv |- x : $lookup_type(tenv, x)
+  -- if x <- $domain_type(tenv)
+
+rule Check_expr/fun:
+  tenv |- (LAMBDA x ':' t_1 '.' e) : t_1 '->' t_2
+  -- Check_expr: $update_type(tenv, x, t_1) |- e : t_2
+
+rule Check_expr/app:
+  tenv |- (e_1 e_2) : t_2
+  -- Check_expr: tenv |- e_1 : t_1 '->' t_2
+  -- Check_expr: tenv |- e_2 : t_1
+
+rule Check_expr/if0:
+  tenv |- (IF0 e_1 e_2 e_3) : t
+  -- Check_expr: tenv |- e_1 : NUM
+  -- Check_expr: tenv |- e_2 : t
+  -- Check_expr: tenv |- e_3 : t
+
+rule Check_expr/rec:
+  tenv |- (DEF f `( x ':' t_1 `) ':' t_2 '=' e_1 IN e_2) : t
+  -- Check_expr: $update_type($update_type(tenv, f, t_1 '->' t_2), x, t_1) |- e_1 : t_2
+  -- Check_expr: $update_type(tenv, f, t_1 '->' t_2) |- e_2 : t
+
+relation Check_prog:
+  expr : type
+  hint(input %0)
+
+rule Check_prog:
+  e : t
+  -- Check_expr: eps |- e : t
+
+relation Eval_expr:
+  env |- expr ==> value
+  hint(input %0 %1)
+
+rule Eval_expr/num:
+  env |- (_NUM n) ==> (_NUM n)
+
+rule Eval_expr/add:
+  env |- e_1 '+' e_2 ==> (_NUM $(n_1 + n_2))
+  -- Eval_expr: env |- e_1 ==> (_NUM n_1)
+  -- Eval_expr: env |- e_2 ==> (_NUM n_2)
+
+rule Eval_expr/sub:
+  env |- e_1 '-' e_2 ==> (_NUM $(n_1 - n_2))
+  -- Eval_expr: env |- e_1 ==> (_NUM n_1)
+  -- Eval_expr: env |- e_2 ==> (_NUM n_2)
+
+rule Eval_expr/val:
+  env |- (VAL x '=' e_1 IN e_2) ==> v_2
+  -- Eval_expr: env |- e_1 ==> v_1
+  -- Eval_expr: $update(env, x, v_1) |- e_2 ==> v_2
+
+rule Eval_expr/id:
+  env |- x ==> $lookup(env, x)
+  -- if x <- $domain(env)
+
+rule Eval_expr/fun:
+  env |- (LAMBDA x ':' t '.' e) ==> (`< LAMBDA x '.' e ',' env `>)
+
+rule Eval_expr/app:
+  env |- (e_1 e_2) ==> v
+  -- Eval_expr: env |- e_1 ==> (`< LAMBDA x '.' e_body ',' env_clo `>)
+  -- Eval_expr: env |- e_2 ==> v_arg
+  -- Eval_expr: $update(env_clo, x, v_arg) |- e_body ==> v
+
+rule Eval_expr/if0-z:
+  env |- (IF0 e_1 e_2 e_3) ==> v
+  -- Eval_expr: env |- e_1 ==> (_NUM 0)
+  -- Eval_expr: env |- e_2 ==> v
+
+rule Eval_expr/if0-nz:
+  env |- (IF0 e_1 e_2 e_3) ==> v
+  -- Eval_expr: env |- e_1 ==> v_cond
+  -- if v_cond =/= (_NUM 0)
+  -- Eval_expr: env |- e_3 ==> v
+
+rule Eval_expr/rec:
+  env |- (DEF f `( x ':' t_1 `) ':' t_2 '=' e_1 IN e_2) ==> v
+  -- if env_rec = $bind_recursive(env, f, x, e_1)
+  -- Eval_expr: env_rec |- e_2 ==> v
+
+relation Eval_prog:
+  expr ==> value
+  hint(input %0)
+
+rule Eval_prog:
+  e ==> v
+  -- Eval_expr: eps |- e ==> v
+
+relation Run_prog:
+  expr ==> value
+  hint(input %0)
+
+rule Run_prog:
+  e ==> v
+  -- Check_prog: e : t
+  -- Eval_prog: e ==> v
+
+def $lookup((x_1 -> v)::env, x) = v
+  -- if x = x_1
+def $lookup((x_1 -> v)::env, x) = $lookup(env, x)
+  -- if x =/= x_1
+def $lookup((f -> RECDEF `< LAMBDA x '.' e ',' env_def `>)::env, f_1) =
+  (`< LAMBDA x '.' e ',' $bind_recursive(env_def, f, x, e) `>)
+  -- if f_1 = f
+def $lookup((f -> RECDEF `< LAMBDA x '.' e ',' env_def `>)::env, f_1) = $lookup(env, f_1)
+  -- if f_1 =/= f
+
+def $domain(eps) = eps
+def $domain(b::env) = $binding_name(b)::$domain(env)
+
+def $update(env, x, v) = $update_binding(env, x -> v)
+
+def $bind_recursive(env, f, x, e) =
+  $update_binding(env, f -> RECDEF `< LAMBDA x '.' e ',' env `>)
+
+def $update_binding(eps, b) = b::eps
+def $update_binding(b_1::env, b) = b::env
+  -- if $binding_name(b) = $binding_name(b_1)
+def $update_binding(b_1::env, b) = b_1::$update_binding(env, b)
+  -- otherwise
+
+def $binding_name(x -> v) = x
+def $binding_name(f -> RECDEF d) = f
+
+def $lookup_type((x_1 ':' t)::tenv, x) = t
+  -- if x = x_1
+def $lookup_type((x_1 ':' t)::tenv, x) = $lookup_type(tenv, x)
+  -- otherwise
+
+def $domain_type(eps) = eps
+def $domain_type((x ':' t)::tenv) = x::$domain_type(tenv)
+
+def $update_type(eps, x, t) = (x ':' t)::eps
+def $update_type((x_1 ':' t_1)::tenv, x, t) = (x ':' t)::tenv
+  -- if x = x_1
+def $update_type((x_1 ':' t_1)::tenv, x, t) = (x_1 ':' t_1)::$update_type(tenv, x, t)
+  -- otherwise
