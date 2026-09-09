@@ -1,0 +1,1 @@
+val b = box 1 in val alias = b in alias := 7; !b

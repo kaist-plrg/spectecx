@@ -6,8 +6,10 @@ let rec print_expr fmt expr =
       Format.pp_print_string fmt
         (Bigint.to_string (Xl.Num.to_int (Value.get_num n)))
   | _, [ "_ID" ], [ x ] -> Format.pp_print_string fmt (Value.get_text x)
-  | _, [ (("+" | "-") as operator) ], [ left; right ] ->
+  | _, [ (("+" | "-" | ":=" | ";") as operator) ], [ left; right ] ->
       Format.fprintf fmt "(%a %s %a)" print_expr left operator print_expr right
+  | _, [ "BOX" ], [ expr ] -> Format.fprintf fmt "(box %a)" print_expr expr
+  | _, [ "!" ], [ expr ] -> Format.fprintf fmt "(!%a)" print_expr expr
   | _, [ "VAL"; "="; "IN" ], [ x; init; body ] ->
       Format.fprintf fmt "(val %a = %a in %a)" print_expr x print_expr init
         print_expr body

@@ -1,0 +1,1 @@
+val make = fun x -> fun ignored -> x := x + 1 in val counter = make 0 in counter 0; counter 0

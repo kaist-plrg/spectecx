@@ -1,0 +1,138 @@
+syntax id = _ID text
+syntax literal = _NUM int
+syntax addr = _ADDR nat
+
+syntax expr =
+  | literal
+  | expr '+' expr
+  | expr '-' expr
+  | id
+  | LAMBDA id '.' expr
+  | expr expr
+  | BOX expr
+  | '!' expr
+  | expr ':=' expr
+  | expr ';' expr
+
+syntax value, binding, env
+
+syntax value =
+  | literal
+  | `< LAMBDA id '.' expr ',' env `>
+  | addr
+
+syntax binding = id -> value
+syntax env = binding*
+syntax cell = addr -> value
+syntax store = cell*
+
+var x : id
+var e : expr
+var n : int
+var a : addr
+var i : nat
+var v : value
+
+;; Lookup is defined only for identifiers in $domain(env).
+dec $lookup(env, id) : value
+dec $domain(env) : id*
+dec $update(env, id, value) : env
+dec $store_lookup(store, addr) : value
+dec $store_domain(store) : addr*
+dec $store_update(store, addr, value) : store
+dec $fresh(store) : addr
+dec $max_addr(addr, addr) : addr
+
+relation Eval_expr:
+  env ',' store |- expr ==> value ',' store
+  hint(input %0 %1 %2)
+
+rule Eval_expr/num:
+  env ',' store |- (_NUM n) ==> (_NUM n) ',' store
+
+rule Eval_expr/add:
+  env ',' store |- e_1 '+' e_2 ==> (_NUM $(n_1 + n_2)) ',' store_2
+  -- Eval_expr: env ',' store |- e_1 ==> (_NUM n_1) ',' store_1
+  -- Eval_expr: env ',' store_1 |- e_2 ==> (_NUM n_2) ',' store_2
+
+rule Eval_expr/sub:
+  env ',' store |- e_1 '-' e_2 ==> (_NUM $(n_1 - n_2)) ',' store_2
+  -- Eval_expr: env ',' store |- e_1 ==> (_NUM n_1) ',' store_1
+  -- Eval_expr: env ',' store_1 |- e_2 ==> (_NUM n_2) ',' store_2
+
+rule Eval_expr/fun:
+  env ',' store |- (LAMBDA x '.' e) ==> (`< LAMBDA x '.' e ',' env `>) ',' store
+
+rule Eval_expr/id:
+  env ',' store |- x ==> $lookup(env, x) ',' store
+  -- if x <- $domain(env)
+
+rule Eval_expr/app:
+  env ',' store |- (e_1 e_2) ==> v ',' store_3
+  -- Eval_expr: env ',' store |- e_1 ==> (`< LAMBDA x '.' e_body ',' env_clo `>) ',' store_1
+  -- Eval_expr: env ',' store_1 |- e_2 ==> v_arg ',' store_2
+  -- Eval_expr: $update(env_clo, x, v_arg) ',' store_2 |- e_body ==> v ',' store_3
+
+rule Eval_expr/seq:
+  env ',' store |- (e_1 ';' e_2) ==> v_2 ',' store_2
+  -- Eval_expr: env ',' store |- e_1 ==> v_1 ',' store_1
+  -- Eval_expr: env ',' store_1 |- e_2 ==> v_2 ',' store_2
+
+rule Eval_expr/newbox:
+  env ',' store |- (BOX e) ==> a ',' $store_update(store_1, a, v)
+  -- Eval_expr: env ',' store |- e ==> v ',' store_1
+  -- if a = $fresh(store_1)
+
+rule Eval_expr/openbox:
+  env ',' store |- ('!' e) ==> $store_lookup(store_1, a) ',' store_1
+  -- Eval_expr: env ',' store |- e ==> a ',' store_1
+  -- if a <- $store_domain(store_1)
+
+rule Eval_expr/setbox:
+  env ',' store |- (e_1 ':=' e_2) ==> v ',' $store_update(store_2, a, v)
+  -- Eval_expr: env ',' store |- e_1 ==> a ',' store_1
+  -- Eval_expr: env ',' store_1 |- e_2 ==> v ',' store_2
+
+relation Eval_prog:
+  expr ==> value
+  hint(input %0)
+
+rule Eval_prog:
+  e ==> v
+  -- Eval_expr: eps ',' eps |- e ==> v ',' store
+
+def $lookup((x_1 -> v)::env, x) = v
+  -- if x = x_1
+def $lookup((x_1 -> v)::env, x) = $lookup(env, x)
+  -- otherwise
+
+def $domain(eps) = eps
+def $domain((x -> v)::env) = x::$domain(env)
+
+def $update(eps, x, v) = (x -> v)::eps
+def $update((x_1 -> v_1)::env, x, v) = (x -> v)::env
+  -- if x = x_1
+def $update((x_1 -> v_1)::env, x, v) = (x_1 -> v_1)::$update(env, x, v)
+  -- otherwise
+
+def $store_lookup((a_1 -> v)::store, a) = v
+  -- if a = a_1
+def $store_lookup((a_1 -> v)::store, a) = $store_lookup(store, a)
+  -- otherwise
+
+def $store_domain(eps) = eps
+def $store_domain((a -> v)::store) = a::$store_domain(store)
+
+def $store_update(eps, a, v) = (a -> v)::eps
+def $store_update((a_1 -> v_1)::store, a, v) = (a -> v)::store
+  -- if a = a_1
+def $store_update((a_1 -> v_1)::store, a, v) = (a_1 -> v_1)::$store_update(store, a, v)
+  -- otherwise
+
+def $fresh(eps) = _ADDR 1
+def $fresh(((_ADDR i) -> v)::store) = $max_addr((_ADDR $(i + 1)), $fresh(store))
+
+def $max_addr(_ADDR i_1, _ADDR i_2) = _ADDR i_1
+  -- if $(i_1 >= i_2)
+def $max_addr(_ADDR i_1, _ADDR i_2) = _ADDR i_2
+  -- otherwise

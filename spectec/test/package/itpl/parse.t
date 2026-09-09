@@ -50,6 +50,23 @@ FAE and RFAE require local definitions, and RFAE conditionals require all three 
   $ rejects rfae 'if0 0 then 1 else'
   $ rejects rfae 'val if0 = 1 in if0'
 
+Mutation syntax is limited to BFAE and MFAE. Only BFAE accepts a general expression as an assignment target and provides box operations.
+
+  $ rejects fae '1; 2'
+  $ rejects rfae 'x := 2'
+  $ rejects bfae 'box'
+  $ rejects bfae '!'
+  $ rejects bfae 'val box = 1 in box'
+  $ rejects bfae '1 :='
+  $ rejects bfae '1;'
+  $ rejects bfae 'def f(x) = x; f(1)'
+  $ rejects mfae '1 := 2'
+  $ rejects mfae '(x + 1) := 2'
+  $ rejects mfae '(f x) := 2'
+  $ rejects mfae 'x :='
+  $ rejects mfae '1;'
+  $ rejects mfae '!x'
+
 Lexical errors report the line and column of the invalid character.
 
   $ printf '1 +\n  @\n' > input.ae
@@ -84,6 +101,16 @@ Conditional keywords remain identifiers in the earlier languages.
   $ accepts fvae 'val if0 = fun then -> then + 1 in val else = 2 in if0 else'
   $ accepts fae 'def if0(then) = then + 1 in val else = 2 in if0 else'
 
+Only BFAE reserves box as a keyword.
+
+  $ accepts vae 'val box = 2 in box'
+  $ accepts f1vae 'def box(x) = x + 1; box(2)'
+  $ accepts fvae '(fun box -> box + 1) 2'
+  $ accepts fae 'def box(x) = x + 1 in box 2'
+  $ accepts rfae 'def box(x) = if0 x then 0 else 1 + box (x - 1) in box 3'
+  $ accepts mfae 'val box = 2 in box := 3'
+  $ accepts bfae 'def if0(then) = then + 1 in val else = 2 in if0 else'
+
 Parsing and printing preserve the expression structure.
 
   $ spectec ae parse -r -p ../../../testdata/interp/itpl/ae/arithmetic.ae --color never
@@ -107,3 +134,8 @@ Printing FAE exposes the translation of val and def into functions and applicati
   $ printf '%s\n' 'def f(x) = x + 1 in f 2' > input.fae
   $ spectec fae parse -r -p input.fae --color never
   ((fun f -> (f (2))) ((fun x -> (x + 1))))
+
+Mutation syntax and sequencing sugar round-trip without fixing the generated parameter name.
+
+  $ accepts bfae 'val b = box 1 in b := 2; !b'
+  $ accepts mfae '0; __seq'
