@@ -38,6 +38,8 @@ assert_missing fae
 assert_missing rfae
 assert_missing bfae
 assert_missing mfae
+assert_missing lfae
+assert_missing kfae
 
 check_target spectec-target-p4 p4 p4 parse -p spectec/testdata/interp/p4/p4c/p4_16_samples/issue2342.p4 --color never
 check_target spectec-target-miniml miniml miniml parse -p spectec/testdata/interp/miniml/add.ml --color never
@@ -67,6 +69,8 @@ check_itpl fae 6 "${repo_root}/spectec/testdata/interp/itpl/fae/sugar.fae"
 check_itpl rfae 55 "${repo_root}/spectec/testdata/interp/itpl/rfae/sum.rfae"
 check_itpl bfae 7 "${repo_root}/spectec/testdata/interp/itpl/bfae/alias.bfae"
 check_itpl mfae 2 "${repo_root}/spectec/testdata/interp/itpl/mfae/counter.mfae"
+check_itpl lfae 7 "${repo_root}/spectec/testdata/interp/itpl/lfae/unused.lfae"
+check_itpl kfae 3 "${repo_root}/spectec/testdata/interp/itpl/kfae/escape.kfae"
 opam remove --yes spectec-target-itpl
 assert_missing ae
 assert_missing vae
@@ -76,3 +80,5 @@ assert_missing fae
 assert_missing rfae
 assert_missing bfae
 assert_missing mfae
+assert_missing lfae
+assert_missing kfae

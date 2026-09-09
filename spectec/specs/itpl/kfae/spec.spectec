@@ -1,0 +1,131 @@
+syntax id = _ID text
+syntax literal = _NUM int
+
+syntax expr =
+  | literal
+  | expr '+' expr
+  | expr '-' expr
+  | id
+  | LAMBDA id '.' expr
+  | expr expr
+  | VCC id IN expr
+
+syntax value, binding, env, cont
+
+syntax cont =
+  | `[ HOLE `]
+  | `[ HOLE '+' `( expr ',' env `) `] '::' cont
+  | `[ value '+' HOLE `] '::' cont
+  | `[ HOLE '-' `( expr ',' env `) `] '::' cont
+  | `[ value '-' HOLE `] '::' cont
+  | `[ HOLE `( expr ',' env `) `] '::' cont
+  | `[ value HOLE `] '::' cont
+
+syntax value =
+  | literal
+  | `< LAMBDA id '.' expr ',' env `>
+  | cont
+
+syntax binding = id -> value
+syntax env = binding*
+
+var x : id
+var e : expr
+var n : int
+var v : value
+var k : cont
+
+;; Lookup is defined only for identifiers in $domain(env).
+dec $lookup(env, id) : value
+dec $domain(env) : id*
+dec $update(env, id, value) : env
+
+relation Eval_expr:
+  env ',' cont |- expr ==> value
+  hint(input %0 %1 %2)
+
+relation Continue:
+  value '->' cont '==>>' value
+  hint(input %0 %1)
+
+rule Eval_expr/num:
+  env ',' k |- (_NUM n) ==> v
+  -- Continue: (_NUM n) '->' k '==>>' v
+
+rule Eval_expr/id:
+  env ',' k |- x ==> v
+  -- if x <- $domain(env)
+  -- Continue: $lookup(env, x) '->' k '==>>' v
+
+rule Eval_expr/fun:
+  env ',' k |- (LAMBDA x '.' e) ==> v
+  -- Continue: (`< LAMBDA x '.' e ',' env `>) '->' k '==>>' v
+
+rule Eval_expr/add:
+  env ',' k |- e_1 '+' e_2 ==> v
+  -- Eval_expr: env ',' (`[ HOLE '+' `( e_2 ',' env `) `] '::' k) |- e_1 ==> v
+
+rule Eval_expr/sub:
+  env ',' k |- e_1 '-' e_2 ==> v
+  -- Eval_expr: env ',' (`[ HOLE '-' `( e_2 ',' env `) `] '::' k) |- e_1 ==> v
+
+rule Eval_expr/app:
+  env ',' k |- (e_1 e_2) ==> v
+  -- Eval_expr: env ',' (`[ HOLE `( e_2 ',' env `) `] '::' k) |- e_1 ==> v
+
+rule Eval_expr/vcc:
+  env ',' k |- (VCC x IN e) ==> v
+  -- Eval_expr: $update(env, x, k) ',' k |- e ==> v
+
+rule Continue/mt:
+  v '->' `[ HOLE `] '==>>' v
+
+rule Continue/add-second:
+  v_1 '->' (`[ HOLE '+' `( e ',' env `) `] '::' k) '==>>' v_2
+  -- Eval_expr: env ',' (`[ v_1 '+' HOLE `] '::' k) |- e ==> v_2
+
+rule Continue/do-add:
+  (_NUM n_2) '->' (`[ (_NUM n_1) '+' HOLE `] '::' k) '==>>' v
+  -- Continue: (_NUM $(n_1 + n_2)) '->' k '==>>' v
+
+rule Continue/sub-second:
+  v_1 '->' (`[ HOLE '-' `( e ',' env `) `] '::' k) '==>>' v_2
+  -- Eval_expr: env ',' (`[ v_1 '-' HOLE `] '::' k) |- e ==> v_2
+
+rule Continue/do-sub:
+  (_NUM n_2) '->' (`[ (_NUM n_1) '-' HOLE `] '::' k) '==>>' v
+  -- Continue: (_NUM $(n_1 - n_2)) '->' k '==>>' v
+
+rule Continue/app-arg:
+  v_1 '->' (`[ HOLE `( e ',' env `) `] '::' k) '==>>' v_2
+  -- Eval_expr: env ',' (`[ v_1 HOLE `] '::' k) |- e ==> v_2
+
+rule Continue/do-app-clo:
+  v_arg '->' (`[ (`< LAMBDA x '.' e ',' env `>) HOLE `] '::' k) '==>>' v
+  -- Eval_expr: $update(env, x, v_arg) ',' k |- e ==> v
+
+rule Continue/do-app-cont:
+  v_arg '->' (`[ k_saved HOLE `] '::' k) '==>>' v
+  -- Continue: v_arg '->' k_saved '==>>' v
+
+relation Eval_prog:
+  expr ==> value
+  hint(input %0)
+
+rule Eval_prog:
+  e ==> v
+  -- Eval_expr: eps ',' `[ HOLE `] |- e ==> v
+
+def $lookup((x_1 -> v)::env, x) = v
+  -- if x = x_1
+def $lookup((x_1 -> v)::env, x) = $lookup(env, x)
+  -- otherwise
+
+def $domain(eps) = eps
+def $domain((x -> v)::env) = x::$domain(env)
+
+def $update(eps, x, v) = (x -> v)::eps
+def $update((x_1 -> v_1)::env, x, v) = (x -> v)::env
+  -- if x = x_1
+def $update((x_1 -> v_1)::env, x, v) = (x_1 -> v_1)::$update(env, x, v)
+  -- otherwise

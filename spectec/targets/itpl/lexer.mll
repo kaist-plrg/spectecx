@@ -28,6 +28,7 @@ rule token = parse
 | "then" { THEN }
 | "else" { ELSE }
 | "box" { BOX }
+| "vcc" { VCC }
 | initial subsequent* as x { ID x }
 | '+' { PLUS }
 | '-' { MINUS }

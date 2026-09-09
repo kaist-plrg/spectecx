@@ -38,6 +38,8 @@ let sequence_sugar first second =
   let_expr (fresh "__seq") first second
 let new_box expr = [kw "BOX"; arg expr] |> case_v ~var:"expr"
 let open_box expr = [op "!"; arg expr] |> case_v ~var:"expr"
+let capture x body =
+  [kw "VCC"; arg (identifier x); kw "IN"; arg body] |> case_v ~var:"expr"
 let conditional condition consequent alternative =
   [kw "IF0"; arg condition; arg consequent; arg alternative]
   |> case_v ~var:"expr"
@@ -49,9 +51,9 @@ let recursive_binding f x func_body body =
 %token EOF
 %token <Bigint.t> NUM
 %token <string> ID
-%token PLUS MINUS LPAR RPAR VAL IN EQUAL DEF SEMI FUN ARROW IF0 THEN ELSE BOX BANG ASSIGN
+%token PLUS MINUS LPAR RPAR VAL IN EQUAL DEF SEMI FUN ARROW IF0 THEN ELSE BOX BANG ASSIGN VCC
 
-%start <Lang.Il.value> ae vae f1vae fvae fae rfae bfae mfae
+%start <Lang.Il.value> ae vae f1vae fvae fae rfae bfae mfae kfae
 
 %%
 
@@ -78,6 +80,9 @@ bfae:
 
 mfae:
 | e=mfae_expr EOF { e }
+
+kfae:
+| e=kfae_expr EOF { e }
 
 ae_expr:
 | e=ae_atom { e }
@@ -110,6 +115,7 @@ vae_id:
 | THEN { "then" }
 | ELSE { "else" }
 | BOX { "box" }
+| VCC { "vcc" }
 
 f1vae_id:
 | x=ID { x }
@@ -118,6 +124,7 @@ f1vae_id:
 | THEN { "then" }
 | ELSE { "else" }
 | BOX { "box" }
+| VCC { "vcc" }
 
 fvae_id:
 | x=ID { x }
@@ -126,6 +133,7 @@ fvae_id:
 | THEN { "then" }
 | ELSE { "else" }
 | BOX { "box" }
+| VCC { "vcc" }
 
 fae_id:
 | x=ID { x }
@@ -133,16 +141,19 @@ fae_id:
 | THEN { "then" }
 | ELSE { "else" }
 | BOX { "box" }
+| VCC { "vcc" }
 
 rfae_id:
 | x=ID { x }
 | BOX { "box" }
+| VCC { "vcc" }
 
 bfae_id:
 | x=ID { x }
 | IF0 { "if0" }
 | THEN { "then" }
 | ELSE { "else" }
+| VCC { "vcc" }
 
 mfae_id:
 | x=ID { x }
@@ -150,6 +161,7 @@ mfae_id:
 | THEN { "then" }
 | ELSE { "else" }
 | BOX { "box" }
+| VCC { "vcc" }
 
 fbinding:
 | DEF f=f1vae_id LPAR x=f1vae_id RPAR EQUAL body=f1vae_expr SEMI
@@ -304,6 +316,36 @@ mfae_atom:
 | n=NUM { number n }
 | x=mfae_id { identifier x }
 | LPAR e=mfae_expr RPAR { e }
+
+kfae_id:
+| x=ID { x }
+| IF0 { "if0" }
+| THEN { "then" }
+| ELSE { "else" }
+| BOX { "box" }
+
+kfae_expr:
+| e=kfae_sum { e }
+| VCC x=kfae_id IN body=kfae_expr { capture x body }
+| VAL x=kfae_id EQUAL init=kfae_expr IN body=kfae_expr { let_expr x init body }
+| DEF f=kfae_id LPAR x=kfae_id RPAR EQUAL func_body=kfae_expr IN body=kfae_expr
+    { let_expr f (function_expr x func_body) body }
+| FUN x=kfae_id ARROW body=kfae_expr { function_expr x body }
+
+kfae_sum:
+| e=kfae_app { e }
+| left=kfae_sum PLUS right=kfae_app { binary "+" left right }
+| left=kfae_sum MINUS right=kfae_app { binary "-" left right }
+
+kfae_app:
+| e=kfae_atom { e }
+| MINUS n=NUM { number (Bigint.neg n) }
+| func=kfae_app argument=kfae_atom { application func argument }
+
+kfae_atom:
+| n=NUM { number n }
+| x=kfae_id { identifier x }
+| LPAR e=kfae_expr RPAR { e }
 
 integer:
 | n=NUM { n }

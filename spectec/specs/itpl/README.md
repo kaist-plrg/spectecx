@@ -12,6 +12,8 @@ The `spectec-target-itpl` package provides independently registered targets for 
 | [RFAE](rfae/spec.spectec) | 10.2 | Conditionals and recursive functions |
 | [BFAE](bfae/spec.spectec) | 11.2 | Mutable boxes over FAE |
 | [MFAE](mfae/spec.spectec) | 12.2 | Mutable variables over FAE, call-by-value |
+| [LFAE](lfae/spec.spectec) | 14.1 | Call-by-name evaluation |
+| [KFAE](kfae/spec.spectec) | 16.1, 17.2 | First-class continuations, explicit big-step rules |
 
 ## Use
 
@@ -43,6 +45,8 @@ In BFAE, `box` and `!` bind tighter than application. Assignment binds below ari
 | RFAE | Finite recursive bindings encode the cyclic environment equation in Rec. A binding captures the environment before installing itself. Lookup reconstructs an ordinary closure with the self-binding, so App uses ordinary closures. Concrete `if0 e then e else e` delimits the three abstract operands. |
 | BFAE and MFAE | `_ADDR nat` distinguishes addresses from integers. `$fresh` selects one above the largest allocated address, starting at 1, while the textbook permits any fresh address. Address labels are representation choices, and textbook comparisons must account for address renaming. Both targets extend FAE without RFAE conditionals or recursive definitions. |
 | MFAE | Implements call-by-value (§12.2), excluding call-by-reference (§12.4). Sequencing is application sugar. Its unused parameter is absent from all identifier occurrences, including assignment targets, a stronger condition than absence from free identifiers. |
+| LFAE | Implements call-by-name (§14.1), excluding the call-by-need cache (§14.3). `Strict` forces delayed values in arithmetic, function position, and the final result. |
+| KFAE | Uses §17.2's bracketed continuation contexts with `HOLE` for the square hole. Subtraction extends the displayed addition rules symmetrically. Capture uses `vcc x in e` from §16.1's abstract grammar, which §17.2 writes as `vcc x; e`. |
 
 ## Limits
 

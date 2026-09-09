@@ -67,6 +67,23 @@ Mutation syntax is limited to BFAE and MFAE. Only BFAE accepts a general express
   $ rejects mfae '1;'
   $ rejects mfae '!x'
 
+KFAE requires a name and body for vcc. LFAE uses FAE syntax, and both languages require complete function expressions.
+
+  $ rejects kfae 'vcc'
+  $ rejects kfae 'vcc x'
+  $ rejects kfae 'vcc x in'
+  $ rejects kfae 'vcc in 1'
+  $ rejects kfae 'vcc vcc in 1'
+  $ rejects kfae 'val vcc = 1 in vcc'
+  $ rejects kfae 'fun x ->'
+  $ rejects kfae 'def f(x) = x; f(1)'
+  $ rejects kfae '1; 2'
+  $ rejects lfae 'fun x ->'
+  $ rejects lfae 'def f(x) = x; f(1)'
+  $ rejects lfae 'vcc x in x'
+  $ rejects lfae '1; 2'
+  $ rejects lfae 'x := 1'
+
 Lexical errors report the line and column of the invalid character.
 
   $ printf '1 +\n  @\n' > input.ae
@@ -111,6 +128,18 @@ Only BFAE reserves box as a keyword.
   $ accepts mfae 'val box = 2 in box := 3'
   $ accepts bfae 'def if0(then) = then + 1 in val else = 2 in if0 else'
 
+Only KFAE reserves vcc as a keyword.
+
+  $ accepts vae 'val vcc = 2 in vcc'
+  $ accepts f1vae 'def vcc(x) = x + 1; vcc(2)'
+  $ accepts fvae '(fun vcc -> vcc + 1) 2'
+  $ accepts fae 'def vcc(x) = x + 1 in vcc 2'
+  $ accepts rfae 'def vcc(x) = if0 x then 0 else 1 + vcc (x - 1) in vcc 3'
+  $ accepts bfae 'val vcc = box 2 in vcc := 3; !vcc'
+  $ accepts mfae 'val vcc = 2 in vcc := 3'
+  $ accepts lfae 'val vcc = 3 in vcc'
+  $ accepts kfae 'def if0(then) = then + 1 in val else = 2 in if0 else'
+
 Parsing and printing preserve the expression structure.
 
   $ spectec ae parse -r -p ../../../testdata/interp/itpl/ae/arithmetic.ae --color never
@@ -125,6 +154,10 @@ Parsing and printing preserve the expression structure.
   ((fun twice -> (twice (3))) ((fun x -> (x + x))))
   $ spectec rfae parse -r -p ../../../testdata/interp/itpl/rfae/sum.rfae --color never
   (def sum(x) = (if0 x then 0 else (x + (sum ((x - 1))))) in (sum (10)))
+  $ spectec lfae parse -r -p ../../../testdata/interp/itpl/lfae/unused.lfae --color never
+  ((fun x -> 7) (missing))
+  $ spectec kfae parse -r -p ../../../testdata/interp/itpl/kfae/escape.kfae --color never
+  (1 + (vcc k in ((k (2)) + 3)))
 
 Printing FAE exposes the translation of val and def into functions and applications.
 

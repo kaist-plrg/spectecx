@@ -8,6 +8,8 @@ The ITPL package owns its plugins and their separate default specifications.
   $ grep -q 'target_plugins/rfae/META' ../../../../spectec-target-itpl.install
   $ grep -q 'target_plugins/bfae/META' ../../../../spectec-target-itpl.install
   $ grep -q 'target_plugins/mfae/META' ../../../../spectec-target-itpl.install
+  $ grep -q 'target_plugins/lfae/META' ../../../../spectec-target-itpl.install
+  $ grep -q 'target_plugins/kfae/META' ../../../../spectec-target-itpl.install
   $ grep -q 'ae/spec.spectec' ../../../../spectec-target-itpl.install
   $ grep -q 'vae/spec.spectec' ../../../../spectec-target-itpl.install
   $ grep -q 'f1vae/spec.spectec' ../../../../spectec-target-itpl.install
@@ -16,13 +18,17 @@ The ITPL package owns its plugins and their separate default specifications.
   $ grep -q 'rfae/spec.spectec' ../../../../spectec-target-itpl.install
   $ grep -q 'bfae/spec.spectec' ../../../../spectec-target-itpl.install
   $ grep -q 'mfae/spec.spectec' ../../../../spectec-target-itpl.install
+  $ grep -q 'lfae/spec.spectec' ../../../../spectec-target-itpl.install
+  $ grep -q 'kfae/spec.spectec' ../../../../spectec-target-itpl.install
 
-  $ spectec --help | grep -E '^  (ae|vae|f1vae|fvae|fae|rfae|bfae|mfae) '
+  $ spectec --help | grep -E '^  (ae|vae|f1vae|fvae|fae|rfae|bfae|mfae|lfae|kfae) '
     ae                         . AE commands
     bfae                       . BFAE commands
     f1vae                      . F1VAE commands
     fae                        . FAE commands
     fvae                       . FVAE commands
+    kfae                       . KFAE commands
+    lfae                       . LFAE commands
     mfae                       . MFAE commands
     rfae                       . RFAE commands
     vae                        . VAE commands
@@ -45,3 +51,7 @@ The commands use the installed specifications without a --spec override.
   7
   $ spectec mfae eval -p ../../../testdata/interp/itpl/mfae/counter.mfae --color never
   2
+  $ spectec lfae eval -p ../../../testdata/interp/itpl/lfae/unused.lfae --color never
+  7
+  $ spectec kfae eval -p ../../../testdata/interp/itpl/kfae/escape.kfae --color never
+  3

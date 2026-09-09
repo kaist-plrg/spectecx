@@ -18,7 +18,9 @@
    register_fae
    register_rfae
    register_bfae
-   register_mfae))
+   register_mfae
+   register_lfae
+   register_kfae))
  (libraries
   spectec
   spectec.cli
@@ -135,5 +137,31 @@
  (name mfae)
  (package spectec-target-itpl)
  (libraries spectec-target-itpl.mfae_plugin)
+ (site
+  (spectec target_plugins)))
+
+(library
+ (name register_lfae)
+ (public_name spectec-target-itpl.lfae_plugin)
+ (modules register_lfae)
+ (libraries spectec.cli spectec-target-itpl.target))
+
+(plugin
+ (name lfae)
+ (package spectec-target-itpl)
+ (libraries spectec-target-itpl.lfae_plugin)
+ (site
+  (spectec target_plugins)))
+
+(library
+ (name register_kfae)
+ (public_name spectec-target-itpl.kfae_plugin)
+ (modules register_kfae)
+ (libraries spectec.cli spectec-target-itpl.target))
+
+(plugin
+ (name kfae)
+ (package spectec-target-itpl)
+ (libraries spectec-target-itpl.kfae_plugin)
  (site
   (spectec target_plugins)))

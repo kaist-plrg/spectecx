@@ -17,6 +17,8 @@ let rec print_expr fmt expr =
       Format.fprintf fmt "%a(%a)" print_expr f print_expr argument
   | _, [ "LAMBDA"; "." ], [ x; body ] ->
       Format.fprintf fmt "(fun %a -> %a)" print_expr x print_expr body
+  | _, [ "VCC"; "IN" ], [ x; body ] ->
+      Format.fprintf fmt "(vcc %a in %a)" print_expr x print_expr body
   | _, [], [ func; argument ] ->
       Format.fprintf fmt "(%a (%a))" print_expr func print_expr argument
   | _, [ "IF0" ], [ condition; consequent; alternative ] ->
