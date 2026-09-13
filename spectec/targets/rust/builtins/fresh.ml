@@ -47,11 +47,25 @@ let fresh_tyid ~at : Value.t result =
 
 (* dec $fresh_rvar() : nat *)
 let fresh_rvar ~at : Value.t result =
-  at |> ignore;
-  (* The provider's spelling is "?<prefix><n>"; the number is what RVAR takes. *)
+  (* The provider's spelling is "?<prefix><n>" and the number is what RVAR takes, but a
+     provider is installable ([with_provider]) and the default one is a literal, so the
+     spelling is not a thing this function may assume.  A spelling it cannot read is reported
+     as a runtime error, not raised out of the builtin: [String.sub] and [Bigint.of_string]
+     would both escape the interpreter's result monad. *)
   let s = GlobalFreshProvider.fresh "r" in
-  let digits = String.sub s 2 (String.length s - 2) in
-  Ok (Il.Value.nat (Bigint.of_string digits))
+  let digits =
+    if String.length s > 2 && s.[0] = '?' then
+      Some (String.sub s 2 (String.length s - 2))
+    else None
+  in
+  match Option.bind digits Bigint.of_string_opt with
+  | Some n -> Ok (Il.Value.nat n)
+  | None ->
+      let msg =
+        Printf.sprintf
+          "fresh_rvar: the fresh-id provider yielded %S, which is not \"?r<n>\"" s
+      in
+      Error (Error.RuntimeError (at, msg))
 
 let builtins =
   [ ("fresh_rgid", Define.T0.a0 fresh_rgid);
