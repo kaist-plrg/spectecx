@@ -87,14 +87,12 @@ module Target : Spectec.Target.S = struct
      Chapter 10's region variables or Chapter 14's inference variables will look;
      `rust-type-semantics/notes/extraction/spectec-ch02-04.md` §7 states it too.
 
-     Chapters 2-4 (Task 38) add no name that wants unconditional caching: every
-     traversal of the congruence layer is pure, and every relation of Chapter 3's
-     stage 0 is deterministic in its inputs.  Tasks 39-44 revisit this list. *)
-  let is_impure_func = function
-    | "fresh_rgid" | "fresh_tyid" -> false
-    | _ -> false
-
-  let is_impure_rel = function _ -> false
+     Chapters 2-4 (Task 38) add no name that wants unconditional caching either:
+     every traversal of the congruence layer is pure, and every relation of
+     Chapter 3's stage 0 is deterministic in its inputs.  Both lists are therefore
+     empty; Tasks 39-44 revisit them. *)
+  let is_impure_func _ = false
+  let is_impure_rel _ = false
   let state_version = fresh_counter
 end
 
