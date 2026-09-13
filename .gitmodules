@@ -1,0 +1,3 @@
+[submodule "spectec/specs/rust"]
+	path = spectec/specs/rust
+	url = https://github.com/kaist-plrg/rust-spectec.git
