@@ -1,0 +1,7 @@
+(cram
+ (package spectec-target-rust)
+ (deps
+  %{bin:spectec}
+  (package spectec-target-rust)
+  ../../../../spectec-target-rust.install
+  (source_tree ../../../testdata/interp/rust)))

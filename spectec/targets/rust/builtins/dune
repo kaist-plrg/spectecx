@@ -1,0 +1,4 @@
+(library
+ (name builtins_rust)
+ (public_name spectec-target-rust.builtins)
+ (libraries spectec.interp.builtins))

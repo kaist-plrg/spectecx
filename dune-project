@@ -67,3 +67,15 @@
     (core_unix (>= 0.17.0))
     dune-site
     ppx_let))
+
+(package
+  (name spectec-target-rust)
+  (synopsis "Rust target for SpecTecX")
+  (sites
+    (share specs))
+  (depends
+    (ocaml (>= 5.1.0))
+    (spectec (= :version))
+    (core (>= 0.17.1))
+    dune-site
+    ppx_let))

@@ -1,0 +1,42 @@
+# Written by tools/run_encoding.py sync_testdata -- do not edit.
+# The DOCUMENT's verdict for each program of rust-spectec/tests/inventory.yaml;
+# `spectecx rust` reads it instead of guessing from the file name.
+100051.rs: negative
+104005.rs: negative
+104763.rs: negative
+104764.rs: negative
+105251.rs: negative
+105787.rs: negative
+106040.rs: negative
+107268.rs: negative
+108468-2024.rs: negative
+108468.rs: negative
+109628.rs: negative
+110925.rs: negative
+111935.rs: negative
+112417.rs: negative
+114061.rs: negative
+114389.rs: negative
+118876.rs: negative
+123312.rs: negative
+126079.rs: negative
+133361.rs: negative
+134311.rs: negative
+136508.rs: negative
+139406.rs: negative
+141713.rs: negative
+144045.rs: negative
+96460.rs: negative
+96927.rs: negative
+98117.rs: negative
+98543.rs: negative
+99158.rs: negative
+99554.rs: negative
+def-use-uncaptured-region.rs: positive
+implicit-region-bound.rs: positive
+never-fallback-bounded.rs: positive
+no-cand-alias-bound.rs: negative
+object-impl-agreement-match.rs: positive
+object-impl-agreement.rs: negative
+opaque-two-defining-uses-recursive.rs: positive
+opaque-two-defining-uses.rs: negative

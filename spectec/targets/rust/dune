@@ -1,0 +1,37 @@
+(ocamllex
+ (modules lexer))
+
+(library
+ (name targets_rust)
+ (public_name spectec-target-rust.target)
+ (modules
+  (:standard \ register))
+ (libraries
+  spectec
+  spectec.cli
+  spectec.common
+  spectec.lang
+  spectec.interp.builtins
+  builtins_rust
+  core
+  dune-site
+  str)
+ (preprocess
+  (pps ppx_let)))
+
+(generate_sites_module
+ (module rust_sites)
+ (sites spectec-target-rust))
+
+(library
+ (name register_rust)
+ (public_name spectec-target-rust.plugin)
+ (modules register)
+ (libraries spectec.cli spectec-target-rust.target))
+
+(plugin
+ (name rust)
+ (package spectec-target-rust)
+ (libraries spectec-target-rust.plugin)
+ (site
+  (spectec target_plugins)))
