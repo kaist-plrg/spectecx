@@ -352,8 +352,16 @@ the bare type when it does not" (0 → `UNIT`, 1 → that type, $\ge 2$ → `TUP
 `Box<dyn FnOnce(&T) -> …>` in `bugs/witnesses/118876.rs` and
 `FnOnce() -> T` in `bugs/witnesses/141713.rs` are the cases that exercise it.
 **Chapter 6's built-in `Fn`/`FnMut`/`FnOnce` impls must adopt the same reading**,
-or a one-argument `Fn` bound will not solve. Filed as row 3 of
-`notes/phase4-open-questions.md`.
+or a one-argument `Fn` bound will not solve.
+
+**Settled (Task 39, correction C4-3).** The document now states the reading, in
+one clause under §2.9's desug table: $(\ov\ty)$ is the tuple when
+$|\ov\ty| \neq 1$ — the empty list giving $()$ — and the single type when
+$|\ov\ty| = 1$. The encoding's `$fn_tuple` (`2-syntax.spectec`, §2.9) is that
+reading, and `(ent-builtin-fn)`, `(norm-builtin-fn)` and `builtincand` all spell
+the trait argument with it, so the parser's fold and the built-in impls agree.
+Row 3 of `notes/phase4-open-questions.md` is closed; the correction is `C4-3` of
+`notes/corrections.yaml`, verdict impact none.
 
 ### 7b. Name classification (`resolve.ml`)
 
