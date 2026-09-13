@@ -23,6 +23,38 @@ unit tail.
   struct Bounded<'a, 'b: 'static, T>(&'a T, [&'b (); 0]) ;
   pub fn extend<T>(input: &'_ T) -> &'static T { let n: Box<dyn FnOnce<&'_ T, Output = Bounded<T, 'static, '_>>> = box_new(|x| { Bounded(x, []) }); n(input).0 }
 
+An edition is not written in the file, so `-e` supplies it and the crate label carries it
+through the round trip.  Two rows of the inventory are edition 2024.
+
+  $ spectec rust parse -p ../../../testdata/interp/rust/108468-2024.rs -e 2024 -r --color never
+  //@ crate 108468-2024 local 2024
+  pub async fn test(_args: impl Iterator<Item = &'_ str>) -> () { () }
+
+  $ spectec rust parse -p ../../../testdata/interp/rust/108468-2024.rs -r --color never
+  //@ crate 108468-2024 local 2021
+  pub async fn test(_args: impl Iterator<Item = &'_ str>) -> () { () }
+
+`struct S;` is the empty named-field list of section 2.2, and a where clause may stand
+between the generics and the `;`.
+
+  $ cat > unit.rs <<'EOF'
+  > pub struct Unit;
+  > pub struct Bounded<T> where T: Copy;
+  > EOF
+  $ spectec rust parse -p unit.rs -r --color never
+  //@ crate unit local 2021
+  pub struct Unit { }
+  pub struct Bounded<T> where T: Copy { }
+
+`expect.yaml` carries one entry per inventory ROW, so a program the inventory lists at both
+editions is collected twice; the batch runner's ids are the rows.
+
+  $ grep -c . ../../../testdata/interp/rust/expect.yaml
+  46
+  $ grep 'never-fallback-bounded' ../../../testdata/interp/rust/expect.yaml
+  never-fallback-bounded.rs 2021: positive
+  never-fallback-bounded.rs 2024: positive
+
 Every program of the acceptance inventory round-trips.
 
   $ for f in ../../../testdata/interp/rust/*.rs; do

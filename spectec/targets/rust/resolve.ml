@@ -9,7 +9,53 @@
 
     It is *not* Ch. 3's resolution: it settles the sort of a name, nothing else.
     The three shorthand-path forms and the bare prelude variant stay as the sugar
-    constructors [GRAMMAR.md] gives them, for the spec's $\desug$ to eliminate. *)
+    constructors [GRAMMAR.md] gives them, for the spec's $\desug$ to eliminate.
+
+    {1 The procedure}
+
+    Ordered tests, first match wins.  The declaration sets are the program's own
+    (every crate of the file, collected by {!collect}) plus Fig. 2.7's prelude
+    and foreign declarations, listed literally below.  [GRAMMAR.md] §7 repeats
+    the procedure, because the spec side needs it to read the converter's output.
+
+    - A type name [TName (n, ts, rs)]:
+      + [n] is a type parameter in scope and takes no arguments -> [TPARAM n];
+      + [n] is a transparent alias -> [ALIASU];
+      + otherwise -> [ADT].
+
+      A parameter is in scope when the enclosing item's [gparam]s bind it, plus
+      [Self] inside a trait or impl header ("trait and impl headers bind it in
+      Gamma", §2.2).  The five primitive spellings ([bool], [i32], [u8],
+      [usize], [str]) never reach here: {!Parse} maps an unapplied one straight
+      to its own constructor.
+    - A bare name in path position ([PName], and [EIdent] for a name written
+      with no turbofish): prelude variant -> [PBVARIANT]; fn item -> [PFN];
+      const item -> [PCONST]; struct -> [PSTRUCT]; otherwise the
+      {e capitalisation fallback}: an initial upper-case letter -> [PSTRUCT],
+      anything else -> [PFN].  [EIdent] is an [EVAR] when none of the four sets
+      contains the name, which is the common case for a term variable.
+    - A two-segment name [PName2 (a, b)] (module segments are already dropped by
+      {!Parse}): [Box::new] / [Box::leak] -> the prelude fn items [box_new] /
+      [box_leak] (§2.7, in prose); [a] an enum -> [PVARIANT]; [a] a trait ->
+      [PDSHORT]; otherwise -> [PSHORT] over [a] read as a type.
+    - A qualified path [PQual (t, D<..>, x)]: [PQCONST] when [D] declares [x] as
+      a [const], [PQFN] otherwise.
+
+    {1 Two limits, recorded}
+
+    The capitalisation fallback is a guess, reached only for a name that no
+    declaration of the program and no entry of the prelude introduces.  Such a
+    program is ill formed anyway -- Ch. 11's collection has nothing to bind the
+    name to -- so the guess decides only which error a later chapter reports.
+
+    [EIdent] has {e no local-binding scope}: the sets are top-level declarations,
+    so a [let], a closure parameter or a fn parameter that shadows a declared fn,
+    const, struct or prelude-variant name would still resolve to the path rather
+    than to [EVAR].  No program of the acceptance corpus does that; the one
+    near-miss, [weird], is a fn item in witness 96460 and a parameter in witness
+    141713, which are different files and so different declaration sets.  Fixing
+    it means threading the binders of [ELET], [ECLOSURE] and [fparam] through
+    this pass, and nothing needs it yet. *)
 
 open Ast
 module S = Set.Make (String)

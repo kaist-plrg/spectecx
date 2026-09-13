@@ -317,7 +317,7 @@ the folded form, which re-parses to the same value.
 | $\desug$ row | folded to |
 |---|---|
 | receivers `self`, `&'a self`, `&'a mut self` | `ASELF (TPARAM "Self")`, `ASELF (REF …)`, `ASELF (REFMUT …)` |
-| parenthesized `Fn`: $D(\ov\ty)\to\ty$ | `BTRAIT D [tuple of args] [] [CEQ "Output" ty]` (0 args → `UNIT`, 1 arg → that type, $\ge2$ → `TUP`) |
+| parenthesized `Fn`: $D(\ov\ty)\to\ty$ | `BTRAIT D [tuple of args] [] [CEQ "Output" ty]` (0 args → `UNIT`, 1 arg → that type, $\ge2$ → `TUP`) — a **reading**, see below |
 | elided regions in `&τ`, `&mut τ`, `S<τ̄>`, `D<τ̄,δ̄>`, `<τ as D<τ̄>>::A` | `RANON` in each omitted position (**not** in a `dyn` type — see §3) |
 | elided returns | `-> ()` |
 | fn-pointer binder $\kw{for}\gen{\ov{\lt r}}\;\kw{fn}(\ov\ty)\to\ty$ | `FNPTR r̄ τ̄ τ` |
@@ -341,6 +341,61 @@ unit-struct value `S` (already `PSTRUCT`), bare prelude variant `V`
 (`PBVARIANT`), the three shorthand paths (`TSHORT`, `PSHORT`, `PDSHORT`),
 inline bounds on $\gamma$ (`GTYB`/`GRGB`, which are core Fig. 2.1 productions),
 and `pub` (`VPUB`, a core production).
+
+### 7a. The one-argument parenthesized `Fn` is a reading, not a transcription
+
+§2.9's row writes $D(\ov\ty)\to\ty \rightsquigarrow D\gen{(\ov\ty),\,\mathit{Output} = \ty}$
+with $(\ov\ty)$ a **tuple**, but Fig. 2.2's tuple production is
+$(\ty_1,\dots,\ty_m)$ with $m \geq 2$: there is no one-element tuple to build for
+$|\ov\ty| = 1$. The parser reads the row as "the tuple when the grammar has one,
+the bare type when it does not" (0 → `UNIT`, 1 → that type, $\ge 2$ → `TUP`).
+`Box<dyn FnOnce(&T) -> …>` in `bugs/witnesses/118876.rs` and
+`FnOnce() -> T` in `bugs/witnesses/141713.rs` are the cases that exercise it.
+**Chapter 6's built-in `Fn`/`FnMut`/`FnOnce` impls must adopt the same reading**,
+or a one-argument `Fn` bound will not solve. Filed as row 3 of
+`notes/phase4-open-questions.md`.
+
+### 7b. Name classification (`resolve.ml`)
+
+Fig. 2.3 has separate productions for a term variable `x`, a fn item `f`, a
+struct `S`, a const `C` and a variant `E::V`; Fig. 2.2 for a type parameter `T`,
+an ADT and a transparent alias. The token stream does not say which a name is,
+so `resolve.ml` decides it from the program's declarations plus Fig. 2.7's
+prelude. Ordered tests, first match wins — the spec side needs the procedure to
+read the converter's output:
+
+| written | resolved to |
+|---|---|
+| a type name with no arguments, bound by an enclosing `γ` or by a trait/impl header (`Self`) | `TPARAM` |
+| a type name declared `type A<γ̄> = τ;` | `ALIASU` |
+| any other type name | `ADT` |
+| a bare path name that is a prelude variant (`None`, `Some`, `Ok`, `Err`, `Break`, `Continue`) | `PBVARIANT` |
+| a bare path name that is a declared or prelude `fn` | `PFN` |
+| a bare path name that is a declared `const` | `PCONST` |
+| a bare path name that is a declared or prelude `struct` | `PSTRUCT` |
+| any other bare path name — the **capitalisation fallback** | `PSTRUCT` if it starts upper-case, else `PFN` |
+| a bare name in *term* position in none of those four sets | `EVAR` |
+| `Box::new`, `Box::leak` | `PFN "box_new"`, `PFN "box_leak"` |
+| `A::B` with `A` a declared enum | `PVARIANT` |
+| `A::B` with `A` a declared or prelude trait | `PDSHORT` |
+| any other `A::B` | `PSHORT` over `A` read as a type |
+| `<τ as D<..>>::x` with `D` declaring `const x` | `PQCONST` |
+| any other `<τ as D<..>>::x` | `PQFN` |
+
+Two limits, recorded rather than fixed:
+
+- The **capitalisation fallback** is a guess, reached only for a name no
+  declaration and no prelude entry introduces. Such a program is ill formed
+  anyway (Ch. 11's collection has nothing to bind the name to), so the guess
+  decides only which error a later chapter reports.
+- A bare term name has **no local-binding scope**: the sets are top-level
+  declarations, so a `let`, a closure parameter or a fn parameter that shadows a
+  declared `fn`, `const`, `struct` or prelude-variant name would resolve to the
+  path, not to `EVAR`. No program of the acceptance corpus does that — the one
+  near-miss, `weird`, is a fn item in witness 96460 and a parameter in witness
+  141713, in different files and so under different declaration sets. Fixing it
+  means threading the binders of `ELET`, `ECLOSURE` and `fparam` through the
+  pass; nothing needs it yet.
 
 ## 8. Gap against Fig. 2.1
 

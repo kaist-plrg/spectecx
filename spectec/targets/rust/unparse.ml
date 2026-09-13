@@ -10,6 +10,9 @@ open Ast
 
 let concat sep f l = String.concat sep (List.map f l)
 
+(* `{ a, b }`, and `{ }` rather than `{  }` when there is nothing to brace. *)
+let braced f l = if l = [] then "{ }" else "{ " ^ concat ", " f l ^ " }"
+
 (* ------------------------------------------------------------------ *)
 (* Types                                                               *)
 (* ------------------------------------------------------------------ *)
@@ -161,9 +164,8 @@ let rec string_of_term ~prec (e : term) : string =
   | ELit l -> string_of_lit l
   | ETup es -> "(" ^ concat ", " (string_of_term ~prec:0) es ^ ")"
   | EStruct (s, ta, fs) ->
-      s ^ string_of_targs ta ^ " { "
-      ^ concat ", " (fun (x, e) -> x ^ ": " ^ string_of_term ~prec:0 e) fs
-      ^ " }"
+      s ^ string_of_targs ta ^ " "
+      ^ braced (fun (x, e) -> x ^ ": " ^ string_of_term ~prec:0 e) fs
   | EArray es -> "[" ^ concat ", " (string_of_term ~prec:0) es ^ "]"
   | ERepeat (e, n) ->
       "[" ^ string_of_term ~prec:0 e ^ "; " ^ Bigint.to_string n ^ "]"
@@ -256,20 +258,17 @@ let string_of_iitem = function
 let string_of_item = function
   | IStruct (v, s, gs, w, fs) ->
       string_of_vis v ^ "struct " ^ s ^ string_of_gparams gs
-      ^ string_of_where w ^ "{ "
-      ^ concat ", " (fun (SF (x, t)) -> x ^ ": " ^ string_of_typ t) fs
-      ^ " }\n"
+      ^ string_of_where w
+      ^ braced (fun (SF (x, t)) -> x ^ ": " ^ string_of_typ t) fs
+      ^ "\n"
   | ITupStruct (v, s, gs, w, ts) ->
       string_of_vis v ^ "struct " ^ s ^ string_of_gparams gs ^ "("
       ^ concat ", " string_of_typ ts
       ^ ")" ^ string_of_where w ^ ";\n"
   | IEnum (v, e, gs, w, vs) ->
       string_of_vis v ^ "enum " ^ e ^ string_of_gparams gs ^ string_of_where w
-      ^ "{ "
-      ^ concat ", "
-          (fun (VAR (n, ts)) -> n ^ "(" ^ concat ", " string_of_typ ts ^ ")")
-          vs
-      ^ " }\n"
+      ^ braced (fun (VAR (n, ts)) -> n ^ "(" ^ concat ", " string_of_typ ts ^ ")") vs
+      ^ "\n"
   | ITrait (v, d, gs, sup, w, its) ->
       string_of_vis v ^ "trait " ^ d ^ string_of_gparams gs
       ^ (if sup = [] then "" else ": " ^ concat " + " string_of_bound sup)

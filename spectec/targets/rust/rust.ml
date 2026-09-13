@@ -89,50 +89,107 @@ type input = {
   edition : Ast.edition;
 }
 
-(* A test's expectation is the DOCUMENT's verdict, so it can never be read off
-   the file name.  `run_encoding.sync_testdata` writes it beside the copied
-   programs as `expect.yaml`, one `<file>: positive|negative` line per program
-   (Phase 4 design §6). *)
-let load_expectations dir : (string * Spectec.Task.expectation) list =
-  let path = Filename.concat dir "expect.yaml" in
+(* A test's expectation is the DOCUMENT's verdict and its edition is the crate
+   metadata the inventory carries, so neither can be read off the file name.
+   `run_encoding.sync_testdata` writes both beside the copied programs as
+   `expect.yaml`, ONE ENTRY PER INVENTORY ROW (Phase 4 design §6):
+
+     <file> <edition>: positive|negative
+
+   A program with a row at each edition -- `never-fallback-bounded.rs`, whose
+   verdict Ch. 14 argues separately for 2021 and 2024 -- therefore has two
+   entries and yields two inputs. *)
+type entry = { e_name : string; e_edition : Ast.edition; e_expect : Spectec.Task.expectation }
+
+let expect_path dir = Filename.concat dir "expect.yaml"
+
+let load_expectations dir : entry list =
+  let path = expect_path dir in
   if not (Sys.file_exists path) then []
   else
     read_file path |> String.split_on_char '\n'
-    |> List.filter_map (fun line ->
+    |> List.concat_map (fun line ->
            let line =
              match String.index_opt line '#' with
              | Some i -> String.sub line 0 i
              | None -> line
            in
            match String.index_opt line ':' with
-           | None -> None
+           | None -> []
            | Some i ->
                let key = String.trim (String.sub line 0 i) in
                let value =
                  String.trim
                    (String.sub line (i + 1) (String.length line - i - 1))
                in
-               if key = "" || value = "" then None
+               if key = "" || value = "" then []
                else
-                 Some
-                   ( key,
-                     match value with
-                     | "negative" -> Spectec.Task.Negative
-                     | _ -> Spectec.Task.Positive ))
+                 let e_expect =
+                   match value with
+                   | "negative" -> Spectec.Task.Negative
+                   | "positive" -> Spectec.Task.Positive
+                   | v ->
+                       failwith
+                         (Printf.sprintf "%s: %S is not positive or negative"
+                            path v)
+                 in
+                 let words =
+                   String.split_on_char ' ' key |> List.filter (( <> ) "")
+                 in
+                 (match words with
+                  | [ e_name; ed ] ->
+                      let e_edition =
+                        match ed with
+                        | "2021" -> Ast.E2021
+                        | "2024" -> Ast.E2024
+                        | _ ->
+                            failwith
+                              (Printf.sprintf "%s: %S is not an edition" path ed)
+                      in
+                      [ { e_name; e_edition; e_expect } ]
+                  | _ ->
+                      failwith
+                        (Printf.sprintf
+                           "%s: expected `<file> <edition>: positive|negative`, \
+                            got %S"
+                           path key)))
 
 let collect ?dir () =
   match dir with
   | None -> []
   | Some test_dir ->
-      let expects = load_expectations test_dir in
-      collect_files_recursive ~suffix:".rs" test_dir
-      |> List.map (fun filename ->
-             let expect =
-               match List.assoc_opt (Filename.basename filename) expects with
-               | Some e -> e
-               | None -> Spectec.Task.Positive
-             in
-             { filename; expect; edition = Ast.E2021 })
+      let files = collect_files_recursive ~suffix:".rs" test_dir in
+      let entries = load_expectations test_dir in
+      if files <> [] && entries = [] then
+        failwith
+          (Printf.sprintf
+             "%s: no expectations; run `run_encoding.py --parse-only` to write it"
+             (expect_path test_dir));
+      (* Strict in both directions: an entry names a file that must be there,
+         and a file must be named by at least one entry.  A program that is not
+         in the inventory has no DOCUMENT verdict, so it cannot be run. *)
+      List.iter
+        (fun f ->
+          let base = Filename.basename f in
+          if not (List.exists (fun e -> e.e_name = base) entries) then
+            failwith
+              (Printf.sprintf "%s: %s has no entry in %s" test_dir base
+                 (expect_path test_dir)))
+        files;
+      List.map
+        (fun e ->
+          let filename =
+            match
+              List.find_opt (fun f -> Filename.basename f = e.e_name) files
+            with
+            | Some f -> f
+            | None ->
+                failwith
+                  (Printf.sprintf "%s names %s, which is not in %s"
+                     (expect_path test_dir) e.e_name test_dir)
+          in
+          { filename; expect = e.e_expect; edition = e.e_edition })
+        entries
 
 (* ------------------------------------------------------------------ *)
 (* Parsing facade                                                      *)
@@ -170,7 +227,13 @@ module Task_common = struct
 
   let unparse = Unparse.unparse
   let parse_string = parse_string
-  let source ({ filename; _ } : input) = filename
+
+  (* The batch runner uses `source` as a test's unique id (and the checkpoint
+     keys on it), and one file may carry a row at each edition, so the edition
+     is part of the id. *)
+  let source ({ filename; edition; _ } : input) =
+    Printf.sprintf "%s@%s" filename
+      (match edition with Ast.E2021 -> "2021" | Ast.E2024 -> "2024")
   let expectation ({ expect; _ } : input) = expect
   let save_output _ _ = ()
   let collect = collect

@@ -797,11 +797,15 @@ let parse_item c : item =
         Cursor.expect c Semi;
         ITupStruct (vis, s, gs, w, List.rev !ts)
       end
-      else if Cursor.eat c Semi then
-        (* `struct S;` is the empty named-field list (§2.2) *)
-        IStruct (vis, s, gs, [], [])
       else begin
+        (* The where clause comes before both endings, so it is parsed before
+           the `;`/`{` is looked at: `struct S<T> where T: D;` is as much a unit
+           struct as `struct S;`. *)
         let w = parse_where c in
+        if Cursor.eat c Semi then
+          (* `struct S;` is the empty named-field list (§2.2) *)
+          IStruct (vis, s, gs, w, [])
+        else begin
         Cursor.expect c LBrace;
         let fs = ref [] in
         while Cursor.peek c <> RBrace do
@@ -812,6 +816,7 @@ let parse_item c : item =
         done;
         Cursor.expect c RBrace;
         IStruct (vis, s, gs, w, List.rev !fs)
+        end
       end
   | KwEnum ->
       Cursor.advance c;
