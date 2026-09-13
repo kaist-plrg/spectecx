@@ -72,10 +72,29 @@ module Target : Spectec.Target.S = struct
   let builtins = Builtins.builtins
   let with_state = with_state
 
-  (* No relation of the encoding is written yet (Tasks 38-44); both guards are
-     revisited when the chapters that call $fresh_rgid/$fresh_tyid land. *)
-  let is_impure_func _ = false
-  let is_impure_rel _ = false
+  (* [is_impure_func] / [is_impure_rel] select the interpreter's UNCONDITIONAL
+     memo table ({!Spectec.Cache}): a name marked here is cached whether or not
+     the call moved [state_version], and a name left unmarked takes the guarded
+     path, which refuses to cache a call that did move it.
+
+     The fresh-id generators must therefore stay UNMARKED.  [$fresh_rgid()] is
+     nullary, so its cache key is the same on every call; it is [fresh_counter]
+     — which is [state_version] — that it bumps, and the guarded path reading
+     that bump is the only thing that stops the cache from handing out one id
+     for the whole run.  Marking them would do the opposite of "the cache never
+     reuses a fresh id".  The two functions are written out rather than left as
+     [fun _ -> false] so that this reading is recorded where the next reader of
+     Chapter 10's region variables or Chapter 14's inference variables will look;
+     `rust-type-semantics/notes/extraction/spectec-ch02-04.md` §7 states it too.
+
+     Chapters 2-4 (Task 38) add no name that wants unconditional caching: every
+     traversal of the congruence layer is pure, and every relation of Chapter 3's
+     stage 0 is deterministic in its inputs.  Tasks 39-44 revisit this list. *)
+  let is_impure_func = function
+    | "fresh_rgid" | "fresh_tyid" -> false
+    | _ -> false
+
+  let is_impure_rel = function _ -> false
   let state_version = fresh_counter
 end
 
