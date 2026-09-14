@@ -1249,9 +1249,6 @@
 (alias
  (name runtest)
  (deps
-  (alias p4-old-il)
-  (alias p4-old-sl)
-  (alias p4-old-pl)
   (alias p4-il)
   (alias p4-sl)
   (alias p4-pl)
