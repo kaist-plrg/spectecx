@@ -36,7 +36,7 @@ SpecTec is a spec programming framework, originally developed for WebAssembly (W
   git submodule deinit spectec/specs/rust
   ```
 
-  Everything in this repository builds and tests without it, the Rust target's own OCaml (`spectec/targets/rust/`) included. The one thing that needs it is `make test-rust`, which is on a dune alias of its own for exactly that reason and is not part of `make test`.
+  Everything in this repository builds and tests without it, the Rust target's own OCaml (`spectec/targets/rust/`) included. The one thing that needs it is `make test-rust`, which is opt-in for exactly that reason and is not part of `make test`. **Measured**, in a scratch clone made without `--recurse-submodules`: `dune build @install` is clean, `dune test` is clean with the Rust cram skipped, and `make test-rust` prints `SKIPPED` with the command that would fetch the submodule.
 
 For development, install every package's pinned dependency versions without installing the packages themselves:
 
@@ -134,7 +134,7 @@ make test
 make test-rust
 ```
 
-- The Rust target, on an alias of its own: every program of the acceptance inventory parses and round-trips, and every one is typechecked end to end against the verdict the *document* gives it. It needs the private `spectec/specs/rust` submodule and is therefore **not** part of `make test`.
+- The Rust target, opt-in: every program of the acceptance inventory parses and round-trips, and every one is typechecked end to end against the verdict the *document* gives it. It needs the private `spectec/specs/rust` submodule and is therefore **not** part of `make test`; its cram stanza carries `(enabled_if (= %{env:SPECTEC_RUST_TESTS=no} yes))`, which this target sets, and the target prints `SKIPPED` when the submodule is absent. (A `cram` stanza's `alias` field ADDS an alias and does not move the test off `runtest` — `enabled_if` is what does.)
 
 ### Adding a New Target
 
