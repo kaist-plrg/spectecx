@@ -11,3 +11,9 @@ editors/vscode/*.vsix
 
 # MacOS
 *.DS_Store
+
+# Local tutorial artifacts (unpacked or downloaded beside the checkout).  This repository is
+# PUBLIC, so anything a working copy accumulates has to be ignored by name rather than left
+# one `git add -A` away from being published.
+spectecx-tutorial/
+spectecx-tutorial.tar.gz

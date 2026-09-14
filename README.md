@@ -52,7 +52,16 @@ The lockfile (`spectec.opam.locked`) records the exact transitive dependency set
 make exe
 ```
 
-This creates an executable `spectecx` in the project root.
+This creates an executable `spectecx` in the project root. `make exe` runs dune from inside
+`spectec/`, which is the invocation the rest of this repository assumes; the equivalent from a
+shell of your own is
+
+```bash
+dune build --root . --promote-install-files=false @install
+```
+
+run **from the repository root**. `--root spectec` does not work: the project's root is where
+`spectec.opam` and `dune-project` are, which is the repository root, and dune says so.
 
 ### Structure
 
