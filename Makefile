@@ -215,8 +215,14 @@ test-package:
 # submodule and this target is then the one thing it cannot run; everything else, the Rust
 # target's own OCaml included, builds without it.
 test-rust:
-	@echo "#### Running Rust target tests (needs the rust-spectec submodule)"
-	@SPECTEC_RUST_TESTS=yes $(DUNE) build --promote-install-files=false @test/package/rust/rust --profile=release && echo OK
+	@if [ ! -f spectec/specs/rust/0-stdlib.spectec ]; then \
+	  echo "#### spectec/specs/rust is not checked out -- it is the PRIVATE rust-spectec"; \
+	  echo "#### submodule, and this target is the one thing a public clone cannot run."; \
+	  echo "#### SKIPPED (git submodule update --init spectec/specs/rust, with access)"; \
+	else \
+	  echo "#### Running Rust target tests (needs the rust-spectec submodule)"; \
+	  SPECTEC_RUST_TESTS=yes $(DUNE) build --promote-install-files=false @test/package/rust/rust --profile=release && echo OK; \
+	fi
 
 # The Task 37 spelling, kept so that older instructions still work.
 test-rust-parse: test-rust
