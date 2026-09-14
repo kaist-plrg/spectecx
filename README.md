@@ -26,8 +26,17 @@ SpecTec is a spec programming framework, originally developed for WebAssembly (W
   opam install ./spectec-target-p4.opam
   opam install ./spectec-target-miniml.opam
   opam install ./spectec-target-impty.opam
+  opam install ./spectec-target-rust.opam
   ```
   Each target package installs its command plugin and default specification. The `spectec` executable discovers installed target plugins at startup.
+
+* **The Rust target's specification is a private submodule.** This repository is public; the Rust specification it is checked against, [`kaist-plrg/rust-spectec`](https://github.com/kaist-plrg/rust-spectec), is **private**, and so is the document it transcribes, [`kaist-plrg/rust-type-semantics`](https://github.com/kaist-plrg/rust-type-semantics). It is included here as a submodule at `spectec/specs/rust`. A clone without access to it must skip that submodule — clone without `--recurse-submodules`, or
+
+  ```bash
+  git submodule deinit spectec/specs/rust
+  ```
+
+  Everything in this repository builds and tests without it, the Rust target's own OCaml (`spectec/targets/rust/`) included. The one thing that needs it is `make test-rust`, which is on a dune alias of its own for exactly that reason and is not part of `make test`.
 
 For development, install every package's pinned dependency versions without installing the packages themselves:
 
@@ -87,7 +96,22 @@ The target-specific examples require the corresponding target package.
 # run a P4 program based on SpecTec IL/SL
 ./spectecx p4 typecheck -i spectec/testdata/interp/p4-tests/includes -p target/file.p4
 ./spectecx p4 typecheck -i spectec/testdata/interp/p4-tests/includes -p target/file.p4 --sl
+
+## Rust-specific commands (need the `spectec/specs/rust` submodule)
+
+# parse a Rust program of the document's subset to an IL value (-r to do a roundtrip test)
+./spectecx rust parse -p file.rs -e 2021 -r --spec <the encoding, in load order>
+
+# run the document's Pgm_ok over a Rust program
+./spectecx rust typecheck -p file.rs -e 2021 --spec <the encoding, in load order>
 ```
+
+The Rust encoding has one correct load order and directory collection does not produce it —
+the generated relation headers must precede the chapters whose rules use them, and
+`Spec_files.collect` sorts `gen/` after every digit-prefixed file — so `rust parse` and `rust
+typecheck` must both be passed `--spec` with the explicit list. It is printed by
+`tools/gen_spectec.py --print-files` in `rust-type-semantics` and documented in
+`spectec/specs/rust/README.md` under "Load order".
 
 ### Editor support
 
@@ -106,6 +130,12 @@ make test
 - Checks parsing, elaboration and structuring using the `spectec/examples/p4-concrete` spec corpus.
 - Checks IL/SL interpreter coupled with the P4 parser using `spectec/testdata/interp/p4-tests` files.
 
+```bash
+make test-rust
+```
+
+- The Rust target, on an alias of its own: every program of the acceptance inventory parses and round-trips, and every one is typechecked end to end against the verdict the *document* gives it. It needs the private `spectec/specs/rust` submodule and is therefore **not** part of `make test`.
+
 ### Adding a New Target
 
 Targets live in `spectec/targets/<name>/`, separate from `spectec/lib/`. The reusable CLI infrastructure (`Target_cli`, `Task_cli`, `Subcommand` constructors) lives in `spectec/lib/cli/`. To add a target:
@@ -118,7 +148,7 @@ Targets live in `spectec/targets/<name>/`, separate from `spectec/lib/`. The reu
 6. Declare a target package in `dune-project`, including any named installation directories for packaged specifications.
 7. Add a Dune `plugin` stanza that installs the entry module in the core package's `target_plugins` directory. Use `generate_sites_module` when target code needs to locate packaged specifications.
 
-The P4, Mini-ML, and Impty targets under `spectec/targets/` are working examples. Each is packaged independently, so adding a target does not require changing `spectec/bin/main.ml`.
+The P4, Mini-ML, Impty, and Rust targets under `spectec/targets/` are working examples. Each is packaged independently, so adding a target does not require changing `spectec/bin/main.ml`.
 
 ### Contributing
 

@@ -1,7 +1,14 @@
+; The Rust target's cram test.  It is on an alias of its OWN and not on `runtest`, because it
+; needs `spectec/specs/rust` -- the PRIVATE `rust-spectec` submodule.  This repository is
+; public and a public clone deinits that submodule (README, "Installation"), after which the
+; encoding and its test corpus are both absent and this test could only fail.  `make test-rust`
+; builds the alias explicitly and the README says so.
 (cram
+ (alias rust)
  (package spectec-target-rust)
  (deps
   %{bin:spectec}
   (package spectec-target-rust)
   ../../../../spectec-target-rust.install
+  (source_tree ../../../specs/rust)
   (source_tree ../../../testdata/interp/rust)))

@@ -342,7 +342,7 @@ unit-struct value `S` (already `PSTRUCT`), bare prelude variant `V`
 inline bounds on $\gamma$ (`GTYB`/`GRGB`, which are core Fig. 2.1 productions),
 and `pub` (`VPUB`, a core production).
 
-### 7a. The one-argument parenthesized `Fn` is a reading, not a transcription
+### 7a. The one-argument parenthesized `Fn` was a reading, and is now the document's
 
 §2.9's row writes $D(\ov\ty)\to\ty \rightsquigarrow D\gen{(\ov\ty),\,\mathit{Output} = \ty}$
 with $(\ov\ty)$ a **tuple**, but Fig. 2.2's tuple production is
@@ -351,8 +351,10 @@ $|\ov\ty| = 1$. The parser reads the row as "the tuple when the grammar has one,
 the bare type when it does not" (0 → `UNIT`, 1 → that type, $\ge 2$ → `TUP`).
 `Box<dyn FnOnce(&T) -> …>` in `bugs/witnesses/118876.rs` and
 `FnOnce() -> T` in `bugs/witnesses/141713.rs` are the cases that exercise it.
-**Chapter 6's built-in `Fn`/`FnMut`/`FnOnce` impls must adopt the same reading**,
-or a one-argument `Fn` bound will not solve.
+Chapter 6's built-in `Fn`/`FnMut`/`FnOnce` impls had to adopt the same reading,
+or a one-argument `Fn` bound would not have solved — which is what the next
+paragraph records the document doing. Until Task 39 this section said the
+document had not decided; it has.
 
 **Settled (Task 39, correction C4-3).** The document now states the reading, in
 one clause under §2.9's desug table: $(\ov\ty)$ is the tuple when
