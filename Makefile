@@ -216,7 +216,7 @@ test-package:
 # target's own OCaml included, builds without it.
 test-rust:
 	@echo "#### Running Rust target tests (needs the rust-spectec submodule)"
-	@$(DUNE) build --promote-install-files=false @test/package/rust/rust --profile=release && echo OK
+	@SPECTEC_RUST_TESTS=yes $(DUNE) build --promote-install-files=false @test/package/rust/rust --profile=release && echo OK
 
 # The Task 37 spelling, kept so that older instructions still work.
 test-rust-parse: test-rust

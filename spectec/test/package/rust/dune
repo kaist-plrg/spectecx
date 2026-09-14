@@ -1,10 +1,16 @@
-; The Rust target's cram test.  It is on an alias of its OWN and not on `runtest`, because it
-; needs `spectec/specs/rust` -- the PRIVATE `rust-spectec` submodule.  This repository is
-; public and a public clone deinits that submodule (README, "Installation"), after which the
-; encoding and its test corpus are both absent and this test could only fail.  `make test-rust`
-; builds the alias explicitly and the README says so.
+; The Rust target's cram test.  It is OPT-IN, and it has to be: it needs `spectec/specs/rust`,
+; the PRIVATE `rust-spectec` submodule, and this repository is public.  A public clone deinits
+; that submodule (README, "Installation"), after which the encoding and its test corpus are
+; both absent and this test could only fail.
+;
+; `(alias rust)` alone is NOT enough -- measured in a scratch clone at Task 45 fix round 1: a
+; `cram` stanza's `alias` field ADDS an alias, it does not move the test off `runtest`, so
+; `dune test` still ran it and it still failed.  `enabled_if` is what takes it off, and
+; `make test-rust`, which sets SPECTEC_RUST_TESTS=yes, is what turns it on.
 (cram
  (alias rust)
+ (enabled_if
+  (= %{env:SPECTEC_RUST_TESTS=no} yes))
  (package spectec-target-rust)
  (deps
   %{bin:spectec}
