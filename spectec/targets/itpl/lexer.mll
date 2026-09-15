@@ -30,6 +30,8 @@ rule token = parse
 | "box" { BOX }
 | "vcc" { VCC }
 | "num" { NUMTYPE }
+| "top" { TOPTYPE }
+| "bottom" { BOTTOMTYPE }
 | "type" { TYPE }
 | "match" { MATCH }
 | "tfun" { TFUN }
@@ -51,6 +53,7 @@ rule token = parse
 | ']' { RBRACK }
 | '@' { AT }
 | '.' { DOT }
+| ',' { COMMA }
 | eof { EOF }
 | _ as c { raise (Parse_error (region lexbuf, Printf.sprintf "unexpected character %C" c)) }
 

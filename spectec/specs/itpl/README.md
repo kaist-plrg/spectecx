@@ -18,6 +18,7 @@ The `spectec-target-itpl` package provides independently registered targets for 
 | [TRFAE](trfae/spec.spectec) | 20.1-20.5 | Numeric conditions and annotated recursion |
 | [TVFAE](tvfae/spec.spectec) | 21.1-21.5 | Named algebraic data types |
 | [PTFAE](ptfae/spec.spectec) | 22.1-22.3 | Explicit polymorphism |
+| [STFAE](stfae/spec.spectec) | 23, exercises 23.3-23.4 | Records and structural subtyping |
 
 ## Use
 
@@ -51,11 +52,12 @@ In BFAE, `box` and `!` bind tighter than application. Assignment binds below ari
 | MFAE | Implements call-by-value (§12.2), excluding call-by-reference (§12.4). Sequencing is application sugar. Its unused parameter is absent from all identifier occurrences, including assignment targets, a stronger condition than absence from free identifiers. |
 | LFAE | Implements call-by-name (§14.1), excluding the call-by-need cache (§14.3). `Strict` forces delayed values in arithmetic, function position, and the final result. |
 | KFAE | Uses §17.2's bracketed continuation contexts with `HOLE` for the square hole. Subtraction extends the displayed addition rules symmetrically. Capture uses `vcc x in e` from §16.1's abstract grammar, which §17.2 writes as `vcc x; e`. |
-| TFAE, TRFAE, TVFAE and PTFAE | Functions use `fun (x : t) -> e`, with `num` and right-associative function types `t1 -> t2`. The parser accepts `num` as a term identifier. The specifications define primitive, unannotated, eager `val` bindings (§19.6.1). Type environments use overriding maps, with `:` separating identifiers from types. |
+| TFAE, TRFAE, TVFAE, PTFAE and STFAE | Functions use `fun (x : t) -> e`, with `num` and right-associative function types `t1 -> t2`. The parser accepts `num` as a term identifier. The specifications define primitive, unannotated, eager `val` bindings (§19.6.1). Type environments use overriding maps, with `:` separating identifiers from types. |
 | TFAE | The parser translates nonrecursive local `def` bindings into `val` bindings of annotated functions. The pair extension (§19.6.2) is absent. |
 | TRFAE | Recursive functions use `def f(x : t1) : t2 = e1 in e2`, requiring both annotations. The checker follows Typ-If0, requiring a numeric condition and equal branch types. Recursive environment entries and ordinary closures follow RFAE. Lookup reconstructs the self-binding, and application binds the parameter, which takes precedence if the parameter and function names coincide. |
 | TVFAE | The parser accepts `type T = C1@t1 + C2@t2 in e` and `e match { C1(x) -> e1; C2(y) -> e2 }`. The checker follows the main Typ-TypeDef rule, including the type-name reuse counterexample in §21.6. When both constructor declarations use the same name, the checker uses the argument type from the second declaration, as in the Scala checker (§21.5). The evaluator accepts repeated match cases and selects the first matching case, as the Scala interpreter does (§21.3). The displayed Match-L and Match-R rules (§21.2) both apply when case names coincide. The specification follows Scala to resolve this apparent omission. A match with two cases for one constructor fails during evaluation if the matched value uses the other constructor. `_runtime_error` examples pass checking and fail evaluation. |
 | PTFAE | The parser accepts `tfun A -> e`, `e[t]`, and `forall A. t`. The specification defines capture-avoiding substitution but retains the named typing rules and structural type equality from §22.3, including the type-name reuse counterexample. The de Bruijn and type-renaming alternatives are absent. `_runtime_error` examples pass checking and fail evaluation. |
+| STFAE | The parser accepts records `{a = e}`, record types `{a : t}`, projection `e.a`, `top`, and `bottom`. `Check_expr` computes a minimal type following exercises 23.3-23.4. `Check_type` checks against a supplied supertype. The specification defines a subtyping algorithm instead of searching the declarative rules. |
 
 ## Limits
 

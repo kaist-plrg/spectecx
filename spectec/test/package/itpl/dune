@@ -2,6 +2,8 @@
  (package spectec-target-itpl)
  (deps
   %{bin:spectec}
+  subtyping.spectec
+  ../../../specs/itpl/stfae/spec.spectec
   substitution.spectec
   ../../../specs/itpl/ptfae/spec.spectec
   (package spectec-target-itpl)

@@ -1,0 +1,1 @@
+(fun (f : {a : num} -> num) -> f {a = 1}) (fun (r : {a : num, b : num}) -> r.b)

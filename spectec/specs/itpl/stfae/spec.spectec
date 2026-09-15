@@ -1,0 +1,323 @@
+syntax id = _ID text
+syntax literal = _NUM int
+
+syntax label = _LABEL text
+syntax type, typefield
+syntax type = NUM | TOP | BOTTOM | type '->' type | `{ typefield* `}
+syntax typefield = label ':' type
+
+syntax expr, exprfield
+
+syntax expr =
+  | literal
+  | expr '+' expr
+  | expr '-' expr
+  | VAL id '=' expr IN expr
+  | id
+  | LAMBDA id ':' type '.' expr
+  | expr expr
+  | `{ exprfield* `}
+  | expr '.' label
+
+syntax exprfield = label '=' expr
+
+syntax value, valuefield, binding, env
+
+syntax value =
+  | literal
+  | `< LAMBDA id '.' expr ',' env `>
+  | `{ valuefield* `}
+
+syntax valuefield = label '=' value
+
+syntax binding = id -> value
+syntax env = binding*
+
+var l : label
+var x : id
+var e : expr
+var n : int
+var v : value
+
+syntax typebinding = id ':' type
+syntax tenv = typebinding*
+
+var t : type
+
+dec $lookup_field_type(typefield*, label) : type?
+
+dec $lookup_field_value(valuefield*, label) : value?
+
+dec $subtype(type, type) : bool
+dec $subtype_fields(typefield*, typefield*) : bool
+
+;; Lookup is defined only for identifiers in $domain(env).
+dec $lookup(env, id) : value
+dec $domain(env) : id*
+dec $update(env, id, value) : env
+
+dec $lookup_type(tenv, id) : type
+dec $domain_type(tenv) : id*
+dec $update_type(tenv, id, type) : tenv
+
+relation Wf_type:
+  |- type
+  hint(input %0)
+
+relation Wf_fields:
+  |- typefield*
+  hint(input %0)
+
+rule Wf_type/num:
+  |- NUM
+
+rule Wf_type/top:
+  |- TOP
+
+rule Wf_type/bottom:
+  |- BOTTOM
+
+rule Wf_type/arrow:
+  |- t_1 '->' t_2
+  -- Wf_type: |- t_1
+  -- Wf_type: |- t_2
+
+rule Wf_type/record:
+  |- `{ typefield* `}
+  -- Wf_fields: |- typefield*
+
+rule Wf_fields/empty:
+  |- eps
+
+rule Wf_fields/field:
+  |- (l ':' t)::typefield*
+  -- Wf_type: |- t
+  -- if $lookup_field_type(typefield*, l) = eps
+  -- Wf_fields: |- typefield*
+
+relation Subtype:
+  type '<:' type
+  hint(input %0 %1)
+
+rule Subtype:
+  t_1 '<:' t_2
+  -- Wf_type: |- t_1
+  -- Wf_type: |- t_2
+  -- if $subtype(t_1, t_2)
+
+relation Check_expr:
+  tenv |- expr : type
+  hint(input %0 %1)
+
+rule Check_expr/num:
+  tenv |- (_NUM n) : NUM
+
+rule Check_expr/add:
+  tenv |- e_1 '+' e_2 : NUM
+  -- Check_expr: tenv |- e_1 : t_1
+  -- Check_expr: tenv |- e_2 : t_2
+  -- if $subtype(t_1, NUM)
+  -- if $subtype(t_2, NUM)
+
+rule Check_expr/sub:
+  tenv |- e_1 '-' e_2 : NUM
+  -- Check_expr: tenv |- e_1 : t_1
+  -- Check_expr: tenv |- e_2 : t_2
+  -- if $subtype(t_1, NUM)
+  -- if $subtype(t_2, NUM)
+
+rule Check_expr/val:
+  tenv |- (VAL x '=' e_1 IN e_2) : t_2
+  -- Check_expr: tenv |- e_1 : t_1
+  -- Check_expr: $update_type(tenv, x, t_1) |- e_2 : t_2
+
+rule Check_expr/id:
+  tenv |- x : $lookup_type(tenv, x)
+  -- if x <- $domain_type(tenv)
+
+rule Check_expr/fun:
+  tenv |- (LAMBDA x ':' t_1 '.' e) : t_1 '->' t_2
+  -- Wf_type: |- t_1
+  -- Check_expr: $update_type(tenv, x, t_1) |- e : t_2
+
+rule Check_expr/app:
+  tenv |- (e_1 e_2) : t_2
+  -- Check_expr: tenv |- e_1 : t_1 '->' t_2
+  -- Check_expr: tenv |- e_2 : t_arg
+  -- if $subtype(t_arg, t_1)
+
+rule Check_expr/app-bottom:
+  tenv |- (e_1 e_2) : BOTTOM
+  -- Check_expr: tenv |- e_1 : BOTTOM
+  -- Check_expr: tenv |- e_2 : t
+
+relation Check_fields:
+  tenv |- exprfield* : typefield*
+  hint(input %0 %1)
+
+rule Check_fields/empty:
+  tenv |- eps : eps
+
+rule Check_fields/field:
+  tenv |- (l '=' e)::exprfield* : (l ':' t)::typefield*
+  -- Check_expr: tenv |- e : t
+  -- Check_fields: tenv |- exprfield* : typefield*
+  -- if $lookup_field_type(typefield*, l) = eps
+
+rule Check_expr/record:
+  tenv |- `{ exprfield* `} : `{ typefield* `}
+  -- Check_fields: tenv |- exprfield* : typefield*
+
+rule Check_expr/projection:
+  tenv |- e '.' l : t
+  -- Check_expr: tenv |- e : `{ typefield* `}
+  -- if $lookup_field_type(typefield*, l) = t
+
+rule Check_expr/projection-bottom:
+  tenv |- e '.' l : BOTTOM
+  -- Check_expr: tenv |- e : BOTTOM
+
+relation Check_type:
+  tenv |- expr : type
+  hint(input %0 %1 %2)
+
+rule Check_type:
+  tenv |- e : t
+  -- Check_expr: tenv |- e : t_min
+  -- Subtype: t_min '<:' t
+
+relation Check_prog:
+  expr : type
+  hint(input %0)
+
+rule Check_prog:
+  e : t
+  -- Check_expr: eps |- e : t
+
+relation Eval_expr:
+  env |- expr ==> value
+  hint(input %0 %1)
+
+rule Eval_expr/num:
+  env |- (_NUM n) ==> (_NUM n)
+
+rule Eval_expr/add:
+  env |- e_1 '+' e_2 ==> (_NUM $(n_1 + n_2))
+  -- Eval_expr: env |- e_1 ==> (_NUM n_1)
+  -- Eval_expr: env |- e_2 ==> (_NUM n_2)
+
+rule Eval_expr/sub:
+  env |- e_1 '-' e_2 ==> (_NUM $(n_1 - n_2))
+  -- Eval_expr: env |- e_1 ==> (_NUM n_1)
+  -- Eval_expr: env |- e_2 ==> (_NUM n_2)
+
+rule Eval_expr/val:
+  env |- (VAL x '=' e_1 IN e_2) ==> v_2
+  -- Eval_expr: env |- e_1 ==> v_1
+  -- Eval_expr: $update(env, x, v_1) |- e_2 ==> v_2
+
+rule Eval_expr/id:
+  env |- x ==> $lookup(env, x)
+  -- if x <- $domain(env)
+
+rule Eval_expr/fun:
+  env |- (LAMBDA x ':' t '.' e) ==> (`< LAMBDA x '.' e ',' env `>)
+
+rule Eval_expr/app:
+  env |- (e_1 e_2) ==> v
+  -- Eval_expr: env |- e_1 ==> (`< LAMBDA x '.' e_body ',' env_clo `>)
+  -- Eval_expr: env |- e_2 ==> v_arg
+  -- Eval_expr: $update(env_clo, x, v_arg) |- e_body ==> v
+
+relation Eval_fields:
+  env |- exprfield* ==> valuefield*
+  hint(input %0 %1)
+
+rule Eval_fields/empty:
+  env |- eps ==> eps
+
+rule Eval_fields/field:
+  env |- (l '=' e)::exprfield* ==> (l '=' v)::valuefield*
+  -- Eval_expr: env |- e ==> v
+  -- Eval_fields: env |- exprfield* ==> valuefield*
+  -- if $lookup_field_value(valuefield*, l) = eps
+
+rule Eval_expr/record:
+  env |- `{ exprfield* `} ==> `{ valuefield* `}
+  -- Eval_fields: env |- exprfield* ==> valuefield*
+
+rule Eval_expr/projection:
+  env |- e '.' l ==> v
+  -- Eval_expr: env |- e ==> `{ valuefield* `}
+  -- if $lookup_field_value(valuefield*, l) = v
+
+relation Eval_prog:
+  expr ==> value
+  hint(input %0)
+
+rule Eval_prog:
+  e ==> v
+  -- Eval_expr: eps |- e ==> v
+
+relation Run_prog:
+  expr ==> value
+  hint(input %0)
+
+rule Run_prog:
+  e ==> v
+  -- Check_prog: e : t
+  -- Eval_prog: e ==> v
+
+def $lookup((x_1 -> v)::env, x) = v
+  -- if x = x_1
+def $lookup((x_1 -> v)::env, x) = $lookup(env, x)
+  -- otherwise
+
+def $domain(eps) = eps
+def $domain((x -> v)::env) = x::$domain(env)
+
+def $update(eps, x, v) = (x -> v)::eps
+def $update((x_1 -> v_1)::env, x, v) = (x -> v)::env
+  -- if x = x_1
+def $update((x_1 -> v_1)::env, x, v) = (x_1 -> v_1)::$update(env, x, v)
+  -- otherwise
+
+def $lookup_type((x_1 ':' t)::tenv, x) = t
+  -- if x = x_1
+def $lookup_type((x_1 ':' t)::tenv, x) = $lookup_type(tenv, x)
+  -- otherwise
+
+def $domain_type(eps) = eps
+def $domain_type((x ':' t)::tenv) = x::$domain_type(tenv)
+
+def $update_type(eps, x, t) = (x ':' t)::eps
+def $update_type((x_1 ':' t_1)::tenv, x, t) = (x ':' t)::tenv
+  -- if x = x_1
+def $update_type((x_1 ':' t_1)::tenv, x, t) = (x_1 ':' t_1)::$update_type(tenv, x, t)
+  -- otherwise
+
+def $lookup_field_type(eps, l) = eps
+def $lookup_field_type((l_1 ':' t)::typefield*, l) = t
+  -- if l = l_1
+def $lookup_field_type((l_1 ':' t)::typefield*, l) = $lookup_field_type(typefield*, l)
+  -- otherwise
+
+def $lookup_field_value(eps, l) = eps
+def $lookup_field_value((l_1 '=' v)::valuefield*, l) = v
+  -- if l = l_1
+def $lookup_field_value((l_1 '=' v)::valuefield*, l) = $lookup_field_value(valuefield*, l)
+  -- otherwise
+
+def $subtype(t, TOP) = true
+def $subtype(BOTTOM, t) = true
+def $subtype(NUM, NUM) = true
+def $subtype(t_1 '->' t_2, t_3 '->' t_4) = $subtype(t_3, t_1) /\ $subtype(t_2, t_4)
+def $subtype(`{ typefield_1* `}, `{ typefield_2* `}) = $subtype_fields(typefield_1*, typefield_2*)
+def $subtype(t_1, t_2) = false
+  -- otherwise
+
+def $subtype_fields(typefield*, eps) = true
+def $subtype_fields(typefield_1*, (l ':' t_2)::typefield_2*) = $subtype(t_1, t_2) /\ $subtype_fields(typefield_1*, typefield_2*)
+  -- if $lookup_field_type(typefield_1*, l) = t_1
+def $subtype_fields(typefield_1*, (l ':' t_2)::typefield_2*) = false
+  -- otherwise

@@ -131,6 +131,22 @@ TVFAE requires exactly two constructor declarations and two delimited match case
   $ rejects tfae '(fun (x : num) -> x)[num]'
   $ rejects tfae 'type T = A@num + B@num in 0'
 
+STFAE requires well-delimited records, projections, and parameter annotations.
+
+  $ rejects stfae '{a = 1,}'
+  $ rejects stfae '{a = 1 b = 2}'
+  $ rejects stfae '{a : num}'
+  $ rejects stfae '{a = }'
+  $ rejects stfae '{a = 1'
+  $ rejects stfae '{1 = 2}'
+  $ rejects stfae '{}.'
+  $ rejects stfae '{}.1'
+  $ rejects stfae 'fun x -> x'
+  $ rejects stfae 'fun (x : {a = num}) -> x'
+  $ rejects stfae 'fun (x : {a : num,}) -> x'
+  $ rejects stfae 'fun (x : missing) -> x'
+  $ rejects stfae 'fun (x : top ->) -> x'
+
 Lexical errors report the line and column of the invalid character.
 
   $ printf '1 +\n  #\n' > input.ae
@@ -233,3 +249,11 @@ Type and polymorphism keywords remain identifiers outside their own languages.
   > done
   $ accepts tvfae 'val tfun = 1 in val forall = 2 in tfun + forall'
   $ accepts ptfae 'val type = 1 in val match = 2 in type + match'
+
+Top and bottom remain term identifiers and can name user-defined types outside STFAE.
+
+  $ for target in vae f1vae fvae fae rfae bfae mfae lfae kfae tfae trfae tvfae ptfae stfae ; do
+  >   accepts "$target" 'val top = 1 in val bottom = 2 in top + bottom' || exit 1
+  > done
+  $ accepts tvfae 'type top = A@num + B@num in (fun (x : top) -> x match { A(x) -> x; B(y) -> y }) (A 3)'
+  $ accepts ptfae '(tfun bottom -> fun (x : bottom) -> x)[num] 3'

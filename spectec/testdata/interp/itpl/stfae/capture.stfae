@@ -1,0 +1,1 @@
+val x = 10 in val r = {f = fun (n : num) -> x + n} in val x = 100 in r.f 1

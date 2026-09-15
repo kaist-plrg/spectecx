@@ -71,15 +71,23 @@ let type_abstraction a body =
   [kw "TLAMBDA"; arg (type_identifier a); op "."; arg body] |> case_v ~var:"expr"
 let type_application expr typ =
   [arg expr; lbrack (); arg typ; rbrack ()] |> case_v ~var:"expr"
+let label x = [tag "LABEL"; arg (text x)] |> case_v ~var:"label"
+let field kind separator name value =
+  [arg (label name); op separator; arg value] |> case_v ~var:kind
+let record kind field_kind fields =
+  [lbrace (); arg (list (Lang.Il.Typ.var field_kind [] $ no_region) fields); rbrace ()]
+  |> case_v ~var:kind
+let projection expr name =
+  [arg expr; op "."; arg (label name)] |> case_v ~var:"expr"
 %}
 
 %token EOF
 %token <Bigint.t> NUM
 %token <string> ID
 %token PLUS MINUS LPAR RPAR VAL IN EQUAL DEF SEMI FUN ARROW IF0 THEN ELSE BOX BANG ASSIGN VCC
-%token COLON NUMTYPE TYPE MATCH TFUN FORALL LBRACE RBRACE LBRACK RBRACK AT DOT
+%token COLON NUMTYPE TYPE MATCH TFUN FORALL LBRACE RBRACE LBRACK RBRACK AT DOT TOPTYPE BOTTOMTYPE COMMA
 
-%start <Lang.Il.value> ae vae f1vae fvae fae rfae bfae mfae kfae tfae trfae tvfae ptfae
+%start <Lang.Il.value> ae vae f1vae fvae fae rfae bfae mfae kfae tfae trfae tvfae ptfae stfae
 
 %%
 
@@ -122,6 +130,9 @@ tvfae:
 ptfae:
 | e=ptfae_expr EOF { e }
 
+stfae:
+| e=stfae_expr EOF { e }
+
 ae_expr:
 | e=ae_atom { e }
 | left=ae_expr PLUS right=ae_atom { binary "+" left right }
@@ -147,6 +158,8 @@ vae_atom:
 
 common_id:
 | x=ID { x }
+| TOPTYPE { "top" }
+| BOTTOMTYPE { "bottom" }
 | NUMTYPE { "num" }
 | TYPE { "type" }
 | MATCH { "match" }
@@ -455,6 +468,8 @@ trfae_atom:
 
 tvfae_type_name:
 | x=ID { x }
+| TOPTYPE { "top" }
+| BOTTOMTYPE { "bottom" }
 | IF0 { "if0" }
 | THEN { "then" }
 | ELSE { "else" }
@@ -508,6 +523,8 @@ tvfae_atom:
 
 ptfae_type_name:
 | x=ID { x }
+| TOPTYPE { "top" }
+| BOTTOMTYPE { "bottom" }
 | IF0 { "if0" }
 | THEN { "then" }
 | ELSE { "else" }
@@ -554,3 +571,60 @@ ptfae_atom:
 | n=NUM { number n }
 | x=ptfae_id { identifier x }
 | LPAR e=ptfae_expr RPAR { e }
+
+field_label:
+| x=common_id { x }
+| VAL { "val" }
+| IN { "in" }
+| DEF { "def" }
+| FUN { "fun" }
+| IF0 { "if0" }
+| THEN { "then" }
+| ELSE { "else" }
+| BOX { "box" }
+| VCC { "vcc" }
+
+stfae_typ:
+| t=stfae_typ_atom { t }
+| param=stfae_typ_atom ARROW result=stfae_typ { arrow_type param result }
+
+stfae_typ_atom:
+| NUMTYPE { num_type () }
+| TOPTYPE { [kw "TOP"] |> case_v ~var:"type" }
+| BOTTOMTYPE { [kw "BOTTOM"] |> case_v ~var:"type" }
+| LPAR t=stfae_typ RPAR { t }
+| LBRACE fields=separated_list(COMMA, stfae_typefield) RBRACE { record "type" "typefield" fields }
+
+stfae_typefield:
+| name=field_label COLON typ=stfae_typ { field "typefield" ":" name typ }
+
+stfae_expr:
+| e=stfae_sum { e }
+| VAL x=fae_id EQUAL init=stfae_expr IN body=stfae_expr { binding x init body }
+| FUN LPAR x=fae_id COLON param=stfae_typ RPAR ARROW body=stfae_expr
+    { typed_function x param body }
+| DEF f=fae_id LPAR x=fae_id COLON param=stfae_typ RPAR EQUAL func_body=stfae_expr IN body=stfae_expr
+    { binding f (typed_function x param func_body) body }
+
+stfae_sum:
+| e=stfae_app { e }
+| left=stfae_sum PLUS right=stfae_app { binary "+" left right }
+| left=stfae_sum MINUS right=stfae_app { binary "-" left right }
+
+stfae_app:
+| e=stfae_postfix { e }
+| MINUS n=NUM { number (Bigint.neg n) }
+| func=stfae_app argument=stfae_postfix { application func argument }
+
+stfae_postfix:
+| e=stfae_atom { e }
+| expr=stfae_postfix DOT name=field_label { projection expr name }
+
+stfae_atom:
+| n=NUM { number n }
+| x=fae_id { identifier x }
+| LPAR e=stfae_expr RPAR { e }
+| LBRACE fields=separated_list(COMMA, stfae_exprfield) RBRACE { record "expr" "exprfield" fields }
+
+stfae_exprfield:
+| name=field_label EQUAL expr=stfae_expr { field "exprfield" "=" name expr }

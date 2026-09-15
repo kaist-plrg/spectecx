@@ -1,7 +1,29 @@
 open Lang.Il
 
+let print_label fmt label =
+  match Value.flatten_case_v label with
+  | _, [ "_LABEL" ], [ name ] ->
+      Format.pp_print_string fmt (Value.get_text name)
+  | _ -> invalid_arg "expected an ITPL field label"
+
+let print_fields separator print_value fmt fields =
+  let print_field fmt field =
+    match Value.flatten_case_v field with
+    | _, [ operator ], [ label; value ] when operator = separator ->
+        Format.fprintf fmt "%a %s %a" print_label label separator print_value
+          value
+    | _ -> invalid_arg "expected an ITPL record field"
+  in
+  Format.pp_print_list
+    ~pp_sep:(fun fmt () -> Format.pp_print_string fmt ", ")
+    print_field fmt (Value.get_list fields)
+
 let rec print_type fmt typ =
   match Value.flatten_case_v typ with
+  | _, [ "TOP" ], [] -> Format.pp_print_string fmt "top"
+  | _, [ "BOTTOM" ], [] -> Format.pp_print_string fmt "bottom"
+  | _, [ "{"; "}" ], [ fields ] ->
+      Format.fprintf fmt "{%a}" (print_fields ":" print_type) fields
   | _, [ "NUM" ], [] -> Format.pp_print_string fmt "num"
   | _, [ "_TID" ], [ a ] -> Format.pp_print_string fmt (Value.get_text a)
   | _, [ "->" ], [ param; result ] ->
@@ -12,6 +34,10 @@ let rec print_type fmt typ =
 
 let rec print_expr fmt expr =
   match Value.flatten_case_v expr with
+  | _, [ "{"; "}" ], [ fields ] ->
+      Format.fprintf fmt "{%a}" (print_fields "=" print_expr) fields
+  | _, [ "." ], [ expr; label ] ->
+      Format.fprintf fmt "(%a.%a)" print_expr expr print_label label
   | _, [ "_NUM" ], [ n ] ->
       Format.pp_print_string fmt
         (Bigint.to_string (Xl.Num.to_int (Value.get_num n)))
