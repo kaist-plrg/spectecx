@@ -22,6 +22,9 @@ let rec print_type fmt typ =
   match Value.flatten_case_v typ with
   | _, [ "TOP" ], [] -> Format.pp_print_string fmt "top"
   | _, [ "BOTTOM" ], [] -> Format.pp_print_string fmt "bottom"
+  | _, [ "_TVAR" ], [ n ] ->
+      Format.fprintf fmt "'t%s"
+        (Bigint.to_string (Xl.Num.to_int (Value.get_num n)))
   | _, [ "{"; "}" ], [ fields ] ->
       Format.fprintf fmt "{%a}" (print_fields ":" print_type) fields
   | _, [ "NUM" ], [] -> Format.pp_print_string fmt "num"

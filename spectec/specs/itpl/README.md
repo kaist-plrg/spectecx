@@ -19,6 +19,7 @@ The `spectec-target-itpl` package provides independently registered targets for 
 | [TVFAE](tvfae/spec.spectec) | 21.1-21.5 | Named algebraic data types |
 | [PTFAE](ptfae/spec.spectec) | 22.1-22.3 | Explicit polymorphism |
 | [STFAE](stfae/spec.spectec) | 23, exercises 23.3-23.4 | Records and structural subtyping |
+| [TIFAE](tifae/spec.spectec) | 24.3-24.4 | Constraint generation and unification |
 
 ## Use
 
@@ -58,6 +59,7 @@ In BFAE, `box` and `!` bind tighter than application. Assignment binds below ari
 | TVFAE | The parser accepts `type T = C1@t1 + C2@t2 in e` and `e match { C1(x) -> e1; C2(y) -> e2 }`. The checker follows the main Typ-TypeDef rule, including the type-name reuse counterexample in §21.6. When both constructor declarations use the same name, the checker uses the argument type from the second declaration, as in the Scala checker (§21.5). The evaluator accepts repeated match cases and selects the first matching case, as the Scala interpreter does (§21.3). The displayed Match-L and Match-R rules (§21.2) both apply when case names coincide. The specification follows Scala to resolve this apparent omission. A match with two cases for one constructor fails during evaluation if the matched value uses the other constructor. `_runtime_error` examples pass checking and fail evaluation. |
 | PTFAE | The parser accepts `tfun A -> e`, `e[t]`, and `forall A. t`. The specification defines capture-avoiding substitution but retains the named typing rules and structural type equality from §22.3, including the type-name reuse counterexample. The de Bruijn and type-renaming alternatives are absent. `_runtime_error` examples pass checking and fail evaluation. |
 | STFAE | The parser accepts records `{a = e}`, record types `{a : t}`, projection `e.a`, `top`, and `bottom`. `Check_expr` computes a minimal type following exercises 23.3-23.4. `Check_type` checks against a supplied supertype. The specification defines a subtyping algorithm instead of searching the declarative rules. |
+| TIFAE | The parser accepts FAE inputs and translates nonrecursive `val` and local `def` bindings into function applications. The specification defines an inference algorithm using fresh type variables, equality constraints, and unification with an occurs check. The parser and specification support subtraction, which is absent from the addition-only grammar in §24.1. The checker assigns the same inferred type to every use of a bound identifier. Unresolved type variables print as `'tN`. |
 
 ## Limits
 

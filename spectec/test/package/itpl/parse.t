@@ -131,7 +131,7 @@ TVFAE requires exactly two constructor declarations and two delimited match case
   $ rejects tfae '(fun (x : num) -> x)[num]'
   $ rejects tfae 'type T = A@num + B@num in 0'
 
-STFAE requires well-delimited records, projections, and parameter annotations.
+STFAE requires well-delimited records, projections, and parameter annotations. TIFAE uses unannotated FAE syntax.
 
   $ rejects stfae '{a = 1,}'
   $ rejects stfae '{a = 1 b = 2}'
@@ -146,6 +146,12 @@ STFAE requires well-delimited records, projections, and parameter annotations.
   $ rejects stfae 'fun (x : {a : num,}) -> x'
   $ rejects stfae 'fun (x : missing) -> x'
   $ rejects stfae 'fun (x : top ->) -> x'
+  $ rejects tifae 'fun (x : num) -> x'
+  $ rejects tifae 'def f(x : num) = x in f 1'
+  $ rejects tifae 'fun x ->'
+  $ rejects tifae '{}'
+  $ rejects tifae '1.a'
+  $ rejects tifae '(fun x -> x)[num]'
 
 Lexical errors report the line and column of the invalid character.
 
@@ -252,7 +258,7 @@ Type and polymorphism keywords remain identifiers outside their own languages.
 
 Top and bottom remain term identifiers and can name user-defined types outside STFAE.
 
-  $ for target in vae f1vae fvae fae rfae bfae mfae lfae kfae tfae trfae tvfae ptfae stfae ; do
+  $ for target in vae f1vae fvae fae rfae bfae mfae lfae kfae tfae trfae tvfae ptfae stfae tifae; do
   >   accepts "$target" 'val top = 1 in val bottom = 2 in top + bottom' || exit 1
   > done
   $ accepts tvfae 'type top = A@num + B@num in (fun (x : top) -> x match { A(x) -> x; B(y) -> y }) (A 3)'

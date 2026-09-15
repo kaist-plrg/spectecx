@@ -1,4 +1,4 @@
-STFAE subtyping produces the expected types and values in IL, SL, and PL. Each input also round-trips.
+STFAE subtyping and TIFAE inference produce the expected types and values in IL, SL, and PL. Each input also round-trips.
 
   $ check() {
   >   target=$1
@@ -41,10 +41,22 @@ Records support width, depth, permutation, empty records, and function fields. P
   $ check stfae top 3 '(fun (x : top) -> x) 3'
   $ check stfae num 3 '(fun (f : num -> top) -> 3) (fun (x : top) -> 1)'
   $ check stfae num 3 '(fun (f : num -> num) -> f 0) (fun (x : top) -> 3)'
+  $ check tifae num 42 '(fun x -> x) 42'
+  $ check tifae num 7 '(fun f -> fun g -> fun x -> f (g x)) (fun x -> x + 1) (fun x -> x + x) 3'
+  $ check tifae num 11 'val x = 10 in val f = fun y -> x + y in val x = 100 in f 1'
+  $ check tifae num 6 'def twice(x) = x + x in twice 3'
+  $ check tifae num 3 '(fun f -> f (f 1)) (fun x -> x + 1)'
+  $ check tifae num 3 'val id = fun x -> x in id (id 3)'
+  $ check tifae num 3 '(fun x -> x) (fun x -> x) 3'
+  $ check tifae num 3 'val n = (fun x -> x) 1 in (fun x -> x) (fun x -> x + n) 2'
+  $ check tifae num 6 '(fun x -> fun x -> x + x) (fun y -> y) 3'
+  $ check tifae num 7 '(fun unused -> 7) (fun x -> x)'
+  $ check tifae num -3 '(fun x -> x + 1) (-4)'
 
   $ check stfae num -3 '{a = -4}.a - (-1)'
+  $ check tifae num 3 '7 - (fun x -> x) 4'
 
-Minimal types retain record field order. Bottom-typed expressions can be used as numbers, functions, or records.
+Minimal types retain record field order. Bottom-typed expressions can be used as numbers, functions, or records. Inferred variables remain visible when constraints do not determine them.
 
   $ type_is() {
   >   target=$1
@@ -71,11 +83,20 @@ Minimal types retain record field order. Bottom-typed expressions can be used as
   $ type_is stfae '(bottom -> bottom)' 'fun (x : bottom) -> x.missing 1'
   $ type_is stfae '({a : bottom} -> bottom)' 'fun (r : {a : bottom}) -> r.a'
   $ type_is stfae '(top -> top)' 'fun (x : top) -> x'
+  $ type_is tifae '('"'"'t0 -> '"'"'t0)' 'fun x -> x'
+  $ type_is tifae '('"'"'t0 -> ('"'"'t1 -> '"'"'t0))' 'fun x -> fun y -> x'
+  $ type_is tifae '(('"'"'t1 -> '"'"'t2) -> ('"'"'t1 -> '"'"'t2))' 'fun f -> fun x -> f x'
+  $ type_is tifae '((num -> num) -> num)' 'fun f -> f (f 1)'
+  $ type_is tifae '((num -> '"'"'t1) -> '"'"'t1)' 'fun f -> f 1'
+  $ type_is tifae '(num -> num)' 'fun x -> x + 1'
+  $ type_is tifae '('"'"'t1 -> '"'"'t1)' '(fun x -> x) (fun x -> x)'
 
+  $ type_is tifae "(('t2 -> 't3) -> ((('t2 -> 't3) -> 't2) -> 't3))" 'fun x -> fun y -> x (y x)'
 
   $ type_is stfae '(bottom -> num)' 'fun (x : bottom) -> 1 - x'
+  $ type_is tifae '(num -> num)' 'fun x -> 1 - x'
 
-Invalid operations, duplicate labels, and incompatible types fail both commands after parsing succeeds.
+Invalid operations, duplicate labels, and incompatible or infinite types fail both commands after parsing succeeds. Local bindings in TIFAE have one shared type and are not generalized.
 
   $ rejects() {
   >   target=$1
@@ -113,13 +134,26 @@ Invalid operations, duplicate labels, and incompatible types fail both commands 
   $ rejects stfae 'fun (f : num -> {a : num, a : num}) -> 0'
   $ rejects stfae 'fun (x : {a : {b : num, b : top}}) -> 0'
   $ rejects stfae '(fun (x : bottom) -> 0) 1'
+  $ rejects tifae 'fun x -> missing'
+  $ rejects tifae '1 2'
+  $ rejects tifae '(fun x -> x) + 1'
+  $ rejects tifae 'fun x -> x x'
+  $ rejects tifae 'fun x -> fun y -> (x y) + (y x)'
+  $ rejects tifae 'fun f -> (f 1) + (f (fun x -> x))'
+  $ rejects tifae 'val id = fun x -> x in val n = id 1 in id (fun x -> x)'
+  $ rejects tifae '(fun unused -> 7) missing'
+  $ rejects tifae 'val x = 1 in (fun unused -> 7) (x x)'
+  $ rejects tifae 'fun f -> fun x -> (f x) + (f 1) + x x'
+  $ rejects tifae 'fun x -> fun y -> (x y) (y x)'
+  $ rejects tifae 'fun f -> (f 1) + (f 1 2)'
 
   $ rejects stfae '(fun (x : num) -> x) - 1'
+  $ rejects tifae '(fun x -> x) - 1'
 
 Batch checks both tasks across nested input directories in every interpreter.
 
   $ mkdir -p corpus/nested
-  $ for target in stfae; do
+  $ for target in stfae tifae; do
   >   printf '%s\n' '1 + 2' > "corpus/nested/good.$target"
   >   printf '%s\n' missing > "corpus/free_error.$target"
   >   for mode in '' --sl --pl; do
@@ -152,7 +186,7 @@ Checking against an explicit supertype accepts subsumption, rejects narrowing an
 
 The example corpora include function results and static failures.
 
-  $ for target in stfae; do
+  $ for target in stfae tifae; do
   >   for mode in '' --sl --pl; do
   >     spectec "$target" batch $mode --batch-dir "../../../testdata/interp/itpl/$target" --color never > summary || { cat summary; exit 1; }
   >     grep -Fx 'typechecker: 12/12 passed, 0 failed' summary > /dev/null || { cat summary; exit 1; }

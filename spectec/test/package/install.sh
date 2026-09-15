@@ -45,6 +45,7 @@ assert_missing trfae
 assert_missing tvfae
 assert_missing ptfae
 assert_missing stfae
+assert_missing tifae
 
 check_target spectec-target-p4 p4 p4 parse -p spectec/testdata/interp/p4/p4c/p4_16_samples/issue2342.p4 --color never
 check_target spectec-target-miniml miniml miniml parse -p spectec/testdata/interp/miniml/add.ml --color never
@@ -82,11 +83,13 @@ check_itpl trfae 55 "${repo_root}/spectec/testdata/interp/itpl/trfae/sum.trfae"
 check_itpl tvfae 8 "${repo_root}/spectec/testdata/interp/itpl/tvfae/variant.tvfae"
 check_itpl ptfae 42 "${repo_root}/spectec/testdata/interp/itpl/ptfae/identity.ptfae"
 check_itpl stfae 7 "${repo_root}/spectec/testdata/interp/itpl/stfae/width.stfae"
+check_itpl tifae 42 "${repo_root}/spectec/testdata/interp/itpl/tifae/identity.tifae"
 check_itpl tfae num "${repo_root}/spectec/testdata/interp/itpl/tfae/twice.tfae" typecheck
 check_itpl trfae num "${repo_root}/spectec/testdata/interp/itpl/trfae/sum.trfae" typecheck
 check_itpl tvfae num "${repo_root}/spectec/testdata/interp/itpl/tvfae/variant.tvfae" typecheck
 check_itpl ptfae num "${repo_root}/spectec/testdata/interp/itpl/ptfae/identity.ptfae" typecheck
 check_itpl stfae num "${repo_root}/spectec/testdata/interp/itpl/stfae/width.stfae" typecheck
+check_itpl tifae num "${repo_root}/spectec/testdata/interp/itpl/tifae/identity.tifae" typecheck
 opam remove --yes spectec-target-itpl
 assert_missing ae
 assert_missing vae
@@ -103,3 +106,4 @@ assert_missing trfae
 assert_missing tvfae
 assert_missing ptfae
 assert_missing stfae
+assert_missing tifae

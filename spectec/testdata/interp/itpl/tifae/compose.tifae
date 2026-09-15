@@ -1,0 +1,1 @@
+(fun f -> fun g -> fun x -> f (g x)) (fun x -> x + 1) (fun x -> x + x) 3

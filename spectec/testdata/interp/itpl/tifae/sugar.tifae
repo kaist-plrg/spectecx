@@ -1,0 +1,1 @@
+def twice(x) = x + x in twice 3

@@ -15,7 +15,9 @@ The ITPL package owns its plugins and their separate default specifications.
   $ grep -q 'target_plugins/tvfae/META' ../../../../spectec-target-itpl.install
   $ grep -q 'target_plugins/ptfae/META' ../../../../spectec-target-itpl.install
   $ grep -q 'target_plugins/stfae/META' ../../../../spectec-target-itpl.install
+  $ grep -q 'target_plugins/tifae/META' ../../../../spectec-target-itpl.install
   $ grep -q 'stfae/spec.spectec' ../../../../spectec-target-itpl.install
+  $ grep -q 'tifae/spec.spectec' ../../../../spectec-target-itpl.install
   $ grep -q 'ae/spec.spectec' ../../../../spectec-target-itpl.install
   $ grep -q 'vae/spec.spectec' ../../../../spectec-target-itpl.install
   $ grep -q 'f1vae/spec.spectec' ../../../../spectec-target-itpl.install
@@ -31,7 +33,7 @@ The ITPL package owns its plugins and their separate default specifications.
   $ grep -q 'tvfae/spec.spectec' ../../../../spectec-target-itpl.install
   $ grep -q 'ptfae/spec.spectec' ../../../../spectec-target-itpl.install
 
-  $ spectec --help | grep -E '^  (ae|vae|f1vae|fvae|fae|rfae|bfae|mfae|lfae|kfae|tfae|trfae|tvfae|ptfae|stfae) '
+  $ spectec --help | grep -E '^  (ae|vae|f1vae|fvae|fae|rfae|bfae|mfae|lfae|kfae|tfae|trfae|tvfae|ptfae|stfae|tifae) '
     ae                         . AE commands
     bfae                       . BFAE commands
     f1vae                      . F1VAE commands
@@ -44,6 +46,7 @@ The ITPL package owns its plugins and their separate default specifications.
     rfae                       . RFAE commands
     stfae                      . STFAE commands
     tfae                       . TFAE commands
+    tifae                      . TIFAE commands
     trfae                      . TRFAE commands
     tvfae                      . TVFAE commands
     vae                        . VAE commands
@@ -92,3 +95,7 @@ The commands use the installed specifications without a --spec override.
   num
   $ spectec stfae eval -p ../../../testdata/interp/itpl/stfae/width.stfae --color never
   7
+  $ spectec tifae typecheck -p ../../../testdata/interp/itpl/tifae/identity.tifae --color never
+  num
+  $ spectec tifae eval -p ../../../testdata/interp/itpl/tifae/identity.tifae --color never
+  42
