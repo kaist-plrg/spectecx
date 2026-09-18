@@ -13,7 +13,7 @@ EXELSP = _build/default/spectec/bin/lsp_main.exe
 
 exe:
 	rm -f ./$(NAME)
-	$(DUNE) build --promote-install-files=false @install
+	$(OPAM_EXEC) dune build --promote-install-files=false @install
 	@echo
 	@printf '%s\n' \
 	  '#!/bin/sh' \
