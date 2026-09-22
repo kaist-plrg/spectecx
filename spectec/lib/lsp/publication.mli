@@ -6,6 +6,7 @@ val empty : t
     combine diagnostics from overlapping specs and include empty lists for files
     whose diagnostics must be cleared. *)
 val update :
+  encoding:Convert.encoding ->
   ?closed:Sources.scope ->
   t ->
   Workspace.analysis list ->

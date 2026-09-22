@@ -2,7 +2,7 @@ module Sources = Spectec_lsp.Sources
 module Workspace = Spectec_lsp.Workspace
 module Publication = Spectec_lsp.Publication
 
-let update = Publication.update
+let update = Publication.update ~encoding:`UTF16
 
 let () =
   let outer = Sources.canonical "overlapping/1-outer.spectec" in

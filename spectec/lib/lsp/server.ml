@@ -21,7 +21,9 @@ let server =
     val mutable published = Publication.empty
 
     method private publish ~notify_back ?closed analyses =
-      let next, reports = Publication.update ?closed published analyses in
+      let next, reports =
+        Publication.update ~encoding:positionEncoding ?closed published analyses
+      in
       published <- next;
       List.iter
         (fun (file, diagnostics) ->

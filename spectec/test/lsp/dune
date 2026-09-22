@@ -49,6 +49,11 @@
   (source_tree overlapping)))
 
 (test
+ (name convert)
+ (modules convert)
+ (libraries spectec.lsp spectec.common linol-eio))
+
+(test
  (name publication)
  (modules publication)
  (libraries spectec.lsp)

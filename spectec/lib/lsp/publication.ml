@@ -15,7 +15,7 @@ let files_for scope published =
   | Some spec -> spec.files
   | None -> []
 
-let update ?closed published analyses =
+let update ~encoding ?closed published analyses =
   let removed =
     Option.fold ~none:[] ~some:(fun scope -> files_for scope published) closed
   in
@@ -29,7 +29,10 @@ let update ?closed published analyses =
       (fun (published, files) (analysis : Workspace.analysis) ->
         let scope = analysis.sources.scope in
         let old = files_for scope published in
-        let diagnostics = Check.diagnostics analysis.diagnostics in
+        let diagnostics =
+          Check.diagnostics ~encoding ~sources:analysis.sources
+            analysis.diagnostics
+        in
         let current =
           List.sort_uniq Spectec.compare_spec_files
             (analysis.sources.files @ List.map fst diagnostics)

@@ -131,6 +131,108 @@ let overlapping server_bin =
   assert (counts = [ 0; 1; 1; 1; 0; 0 ]);
   print_endline "overlapping spec diagnostics: ok"
 
+let encoded_diagnostics server_bin encoding =
+  let uri =
+    Linol_eio.DocumentUri.(
+      to_string
+        (of_path
+           (Filename.concat (Sys.getcwd ())
+              "unmarked/../unmarked/5-unicode.spectec")))
+  in
+  let start = if encoding = "utf-8" then 29 else 26 in
+  let position character =
+    `Assoc [ ("line", `Int 3); ("character", `Int character) ]
+  in
+  let range =
+    `Assoc [ ("start", position start); ("end", position (start + 7)) ]
+  in
+  let replies =
+    roundtrip server_bin
+      [
+        request 1 "initialize"
+          (`Assoc
+             [
+               ( "capabilities",
+                 `Assoc
+                   [
+                     ( "general",
+                       `Assoc
+                         [ ("positionEncodings", `List [ `String encoding ]) ]
+                     );
+                   ] );
+             ]);
+        initialized;
+        did_open uri
+          "dec $take(text, nat): nat\n\
+           def $take(text, nat) = nat\n\
+           dec $run(): nat\n\
+           def $run() = $take(\"é😀\", missing)\n";
+        notification "textDocument/didChange"
+          (`Assoc
+             [
+               ( "textDocument",
+                 `Assoc [ ("uri", `String uri); ("version", `Int 2) ] );
+               ( "contentChanges",
+                 `List [ `Assoc [ ("range", range); ("text", `String "0") ] ] );
+             ]);
+        notification "textDocument/didSave"
+          (`Assoc [ ("textDocument", `Assoc [ ("uri", `String uri) ]) ]);
+        did_close uri;
+        shutdown;
+        exit_;
+      ]
+  in
+  let response =
+    List.find (fun reply -> Json.member "id" reply = `Int 1) replies
+  in
+  let capabilities =
+    response |> Json.member "result" |> Json.member "capabilities"
+  in
+  assert (Json.member "positionEncoding" capabilities = `String encoding);
+  List.iter
+    (fun capability -> assert (Json.member capability capabilities = `Null))
+    [
+      "hoverProvider";
+      "definitionProvider";
+      "referencesProvider";
+      "documentSymbolProvider";
+      "completionProvider";
+      "signatureHelpProvider";
+      "renameProvider";
+    ];
+  let diagnostics =
+    List.filter_map
+      (fun reply ->
+        if
+          Json.member "method" reply
+          <> `String "textDocument/publishDiagnostics"
+        then None
+        else
+          let params = Json.member "params" reply in
+          if Json.member "uri" params <> `String uri then None
+          else Some (Json.to_list (Json.member "diagnostics" params)))
+      replies
+  in
+  match diagnostics with
+  | [ errors; []; []; [] ] ->
+      let diagnostic =
+        List.find (fun d -> Json.member "severity" d = `Int 1) errors
+      in
+      let actual = Json.member "range" diagnostic in
+      List.iter
+        (fun endpoint ->
+          let actual = Json.member endpoint actual in
+          let expected = Json.member endpoint range in
+          assert (Json.member "line" actual = Json.member "line" expected);
+          assert (
+            Json.member "character" actual = Json.member "character" expected))
+        [ "start"; "end" ]
+  | _ ->
+      failwith
+        ("unexpected diagnostic updates for " ^ encoding ^ ": "
+        ^ Yojson.Safe.to_string
+            (`List (List.map (fun ds -> `List ds) diagnostics)))
+
 let () =
   Sys.set_signal Sys.sigalrm
     (Sys.Signal_handle
@@ -190,4 +292,5 @@ let () =
         Printf.printf "publishDiagnostics %s: %d diagnostic(s) [%s]\n" uri
           (List.length diagnostics) codes)
     replies;
-  overlapping Sys.argv.(1)
+  overlapping Sys.argv.(1);
+  List.iter (encoded_diagnostics Sys.argv.(1)) [ "utf-8"; "utf-16" ]

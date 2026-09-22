@@ -22,7 +22,9 @@ let case ?path ?(buffers = []) name text =
       ~buffers:(Spectec.{ filename = path; contents = text } :: buffers)
   in
   Printf.printf "## %s\n" name;
-  Check.analyze sources |> Check.diagnostics |> print_diagnostics;
+  Check.analyze sources
+  |> Check.diagnostics ~encoding:`UTF16 ~sources
+  |> print_diagnostics;
   print_newline ()
 
 let project_cases () =
