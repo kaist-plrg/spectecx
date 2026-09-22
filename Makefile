@@ -106,7 +106,7 @@ vsix:
 #
 # CLI snapshot tests (target commands and instrumentation):
 #   make test-cli        - target CLI and instrumentation snapshots
-#   make test-lsp        - LSP diagnostics snapshot (Check.run -> LSP JSON)
+#   make test-lsp        - LSP multi-file diagnostics
 #
 # Grouped tests:
 #   make test-quick      - Fast tests, including relation, Mini-ML, and package tests
@@ -177,7 +177,7 @@ test-cli:
 	@$(DUNE) build @test/cli/runtest --profile=release && echo OK
 
 test-lsp:
-	@echo "#### Running LSP diagnostics test"
+	@echo "#### Running LSP tests"
 	@$(DUNE) build @test/lsp/runtest --profile=release && echo OK
 
 test-struct:
