@@ -14,7 +14,7 @@ For VSCodium, use `codium --install-extension editors/vscode/spectecx.vsix`.
 
 ## Build from source
 
-Set up the OCaml toolchain following the root [README's Building the Project section](https://github.com/kaist-plrg/spectecx/blob/main/README.md#building-the-project), then run the following from the repository root with Node.js 22 or later installed:
+Set up the OCaml toolchain following the root [README's Building the Project section](https://github.com/kaist-plrg/spectecx/blob/main/README.md#building-the-project), then run the following from the repository root with Node.js 22.13 or later in the 22.x series, or Node.js 24 or later installed:
 
 ```bash
 make lsp
@@ -36,3 +36,5 @@ The server checks the whole spec synchronously after each edit. Large specs can 
 ## Tests
 
 `make test-lsp` tests the server and its editor protocol. From this directory, `npm test` checks extension startup, configuration and shutdown. `npm run test:host` checks multi-file diagnostics, editing recovery, server restart and startup cancellation in an isolated VS Code profile. It requires a built server and a VS Code executable on `PATH`, or the `VSCODE_EXECUTABLE` environment variable. It does not modify the normal editor profile. Successful runs remove their temporary profile, and failed runs retain it for inspection.
+
+Run `npm ci --include=dev --ignore-scripts` to install the development tools. `npm run format` formats JavaScript and the package manifest. `npm run format:check` and `npm run lint` check the JavaScript conventions. CI runs these checks, the unit tests and extension packaging.

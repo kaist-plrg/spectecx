@@ -18,6 +18,8 @@ A few `make` targets matter mostly to contributors:
 
 OCaml conventions: `snake_case` for values and types, `PascalCase` for modules and constructors.
 
+JavaScript conventions: `camelCase` for values and functions, `PascalCase` for classes, and `UPPER_SNAKE_CASE` for module constants. Use CommonJS modules and `node:` imports for Node.js built-ins. Use `const` unless a binding is reassigned. Await promises or handle their rejection explicitly. Keep process startup and shutdown testable, including failure and cancellation. In `editors/vscode`, run `npm run format` and `npm run lint` before staging. Prettier defines formatting, and ESLint checks common errors.
+
 **Don't let naming get ahead of architecture.** Rename only once the code has earned the new name. If the boundary or responsibility behind the name isn't yet right, fix that first.
 
 **No backward-compatibility aliases during refactors.** A rename worth doing is worth completing. Transitional names accumulate.
@@ -70,7 +72,7 @@ type(scope): imperative summary
 
 Standard types apply (`feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `perf`, `style`). Plus:
 
-- **`spec`** — changes to `.spectec` files. *All other commits are assumed to be OCaml changes* under the appropriate standard type. A spec rule update is `spec(...)`; a change to the elaborator that consumes it is `refactor(elaborate): ...`.
+- **`spec`** covers changes to `.spectec` files. Other changes use the appropriate standard type. A spec rule update is `spec(...)`. A change to the elaborator that consumes it is `refactor(elaborate): ...`.
 - **`reorg`** — directory renames, file moves, or layout-only changes that don't restructure code or alter behavior. Distinct from `refactor` (changes code structure) and `chore` (build config or deps). When a rename forces caller updates, the change stays `reorg` if the caller updates are mechanical path/identifier swaps; promote to `refactor` when the rename motivates a real API or structure change.
 
   The type exists because behavior preservation is a useful property to advertise — tools and reviewers can act differently when they know a change is layout-only. Reviewers seeing `reorg:` skip semantic review and focus on the mechanical check ("did all references update? did anything break the build?"). `git bisect skip $(git log --grep "^reorg" bad..good --format=%H)` removes layout noise from regression bisects. Cherry-picks and reverts are mechanical (paths or identifiers) rather than requiring behavioral analysis.

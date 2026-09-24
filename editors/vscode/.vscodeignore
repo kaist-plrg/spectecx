@@ -2,3 +2,5 @@
 test/**
 package-lock.json
 .gitignore
+eslint.config.js
+.prettierrc.json

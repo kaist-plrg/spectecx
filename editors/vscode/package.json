@@ -88,11 +88,17 @@
     }
   },
   "scripts": {
+    "format": "prettier --write \"*.js\" \"test/*.js\" package.json .prettierrc.json",
+    "format:check": "prettier --check \"*.js\" \"test/*.js\" package.json .prettierrc.json",
+    "lint": "eslint . --max-warnings=0",
     "test": "node --test test/*.test.js",
     "test:host": "node test/run-host.js",
     "package": "vsce package -o spectecx.vsix"
   },
   "devDependencies": {
-    "@vscode/vsce": "4.0.0"
+    "@vscode/vsce": "4.0.0",
+    "@eslint/js": "10.0.1",
+    "eslint": "10.11.0",
+    "prettier": "3.9.9"
   }
 }
