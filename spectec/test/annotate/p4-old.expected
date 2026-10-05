@@ -1853,12 +1853,16 @@ xref:bin_plus[$bin_plus(value, value')]
 
  .. Let ``i~l'~`` be ``xref:to_int[$to_int(w, i~l~)]``.
  .. Let ``i~r'~`` be ``xref:to_int[$to_int(w, i~r~)]``.
- .. Let ``i'`` be ``xref:to_bitstr[$to_bitstr(w, i~l'~ + i~r'~)]``.
- .. Return ``w +S+ i'``.
- .. Let ``i'`` be ``xref:to_bitstr[$to_bitstr(w, i~l'~ - i~r'~)]``.
- .. Return ``w +S+ i'``.
- .. Let ``i'`` be ``xref:to_bitstr[$to_bitstr(w, i~l'~ * i~r'~)]``.
- .. Return ``w +S+ i'``.
+ .. Try:
+  ... {empty}
+   .... Let ``i'`` be ``xref:to_bitstr[$to_bitstr(w, i~l'~ + i~r'~)]``.
+   .... Return ``w +S+ i'``.
+  ... {empty}
+   .... Let ``i'`` be ``xref:to_bitstr[$to_bitstr(w, i~l'~ - i~r'~)]``.
+   .... Return ``w +S+ i'``.
+  ... {empty}
+   .... Let ``i'`` be ``xref:to_bitstr[$to_bitstr(w, i~l'~ * i~r'~)]``.
+   .... Return ``w +S+ i'``.
 
 xref:bin_satplus[$bin_satplus(value, value')]
 
@@ -1881,10 +1885,13 @@ xref:bin_minus[$bin_minus(value, value')]
 
  .. Let ``i~l'~`` be ``xref:to_int[$to_int(w, i~l~)]``.
  .. Let ``i~r'~`` be ``xref:to_int[$to_int(w, i~r~)]``.
- .. Let ``i'`` be ``xref:to_bitstr[$to_bitstr(w, i~l'~ - i~r'~)]``.
- .. Return ``w +W+ i'``.
- .. Let ``i'`` be ``xref:to_bitstr[$to_bitstr(w, i~l'~ * i~r'~)]``.
- .. Return ``w +W+ i'``.
+ .. Try:
+  ... {empty}
+   .... Let ``i'`` be ``xref:to_bitstr[$to_bitstr(w, i~l'~ - i~r'~)]``.
+   .... Return ``w +W+ i'``.
+  ... {empty}
+   .... Let ``i'`` be ``xref:to_bitstr[$to_bitstr(w, i~l'~ * i~r'~)]``.
+   .... Return ``w +W+ i'``.
 
 xref:bin_satminus[$bin_satminus(value, value')]
 
@@ -2280,14 +2287,18 @@ xref:bin_eqs_fields[$bin_eqs_fields((value, id)^{asterisk}^, (value, id)'^{aster
  .. If ``(value, id)'^{asterisk}^`` matches pattern ``[]``: return ``true``.
  .. Else: return ``false``.
 . Else:
- .. Check that ``(value, id)'^{asterisk}^`` is an empty list.
+ .. Try:
+  ... {empty}
+   .... Let ``++_++ {two-colons} ++_++^{asterisk}^`` be ``(value, id)^{asterisk}^``.
+   .... Check that ``(value, id)'^{asterisk}^`` is an empty list.
  return ``false``.
- .. Let ``( value~a_h~, id~a_h~ ) {two-colons} ( value~a_t~, id~a_t~ )^{asterisk}^`` be ``(value, id)^{asterisk}^``.
- .. Let!~type~ ``( value~b_h~, id~b_h~ ) {two-colons} ( value~b_t~, id~b_t~ )^{asterisk}^`` be ``(value, id)'^{asterisk}^``.
+  ... {empty}
+   .... Let ``( value~a_h~, id~a_h~ ) {two-colons} ( value~a_t~, id~a_t~ )^{asterisk}^`` be ``(value, id)^{asterisk}^``.
+   .... Let!~type~ ``( value~b_h~, id~b_h~ ) {two-colons} ( value~b_t~, id~b_t~ )^{asterisk}^`` be ``(value, id)'^{asterisk}^``.
 
- .. Let ``bool`` be ``xref:bin_eq[$bin_eq(value~a_h~, value~b_h~)]``.
- .. Let ``bool'`` be ``xref:bin_eqs_fields[$bin_eqs_fields(( value~a_t~, id~a_t~ )^{asterisk}^, ( value~b_t~, id~b_t~ )^{asterisk}^)]``.
- .. Return ``id~a_h~`` is equal to ``id~b_h~`` and ``bool`` and ``bool'``.
+   .... Let ``bool`` be ``xref:bin_eq[$bin_eq(value~a_h~, value~b_h~)]``.
+   .... Let ``bool'`` be ``xref:bin_eqs_fields[$bin_eqs_fields(( value~a_t~, id~a_t~ )^{asterisk}^, ( value~b_t~, id~b_t~ )^{asterisk}^)]``.
+   .... Return ``id~a_h~`` is equal to ``id~b_h~`` and ``bool`` and ``bool'``.
 
 xref:bin_ne[$bin_ne(value~l~, value~r~)]
 
@@ -2524,11 +2535,9 @@ xref:default'[$default'(typeIR'')]
   ... Return ``tid +.+ id~f_h~``.
  .. Else:
   ... Let ``value~zero~`` be ``xref:cast_arbint[$cast_arbint(typeIR, 0)]``.
-  ... Let ``id^?^`` be ``xref:assoc_[$assoc_<value, id>(value~zero~, ( value~f~, id~f~ )^{asterisk}^)]``.
   ... Try:
    .... {empty}
-    ..... Let!~type~ ``id~zero~`` be ``id^?^``.
-
+    ..... Let ``id~zero~`` be xref:option_get[*!*] ``xref:assoc_[$assoc_<value, id>(value~zero~, ( value~f~, id~f~ )^{asterisk}^)]``.
     ..... Return ``tid +.+ id~zero~ +#+ value~zero~``.
    .... {empty}
     ..... Check that ``·`` is equal to ``xref:assoc_[$assoc_<value, id>(value~zero~, ( value~f~, id~f~ )^{asterisk}^)]``.
@@ -3022,45 +3031,48 @@ xref:find_match_unnamed_default[$find_match_unnamed_default<V>(rid, V, id~arg~^?
 
 xref:find_matching[$find_matching<V>(id~r~, id~arg~^?^^{asterisk}^, id~arg''~^{asterisk}^, id~r'~ +(+pid~r''~^{asterisk}^+)+, V)]
 
-. Check that ``~xref:check_routine_name[$check_routine_name(id~r~, id~r'~)]``.
-
-. Return ``·``.
-. Let ``id~param'~ +#+ bool~param'~`` be ``pid~r''~``, for all ``pid~r''~`` in ``pid~r''~^{asterisk}^``, ``bool~param'~`` in ``bool~param'~^{asterisk}^``, and ``id~param'~`` in ``id~param'~^{asterisk}^``.
 . Try:
  .. {empty}
-  ... Check that ``xref:check_routine_name[$check_routine_name(id~r~, id~r'~)]``.
-
-  ... Check that ``xref:check_arity_more[$check_arity_more(id~arg~^?^^{asterisk}^, id~param'~^{asterisk}^)]``.
+  ... Check that ``~xref:check_routine_name[$check_routine_name(id~r~, id~r'~)]``.
 
   ... Return ``·``.
  .. {empty}
-  ... Check that the length of ``id~arg''~^{asterisk}^`` is greater than ``0``.
-
-  ... Check that ``xref:check_routine_name[$check_routine_name(id~r~, id~r'~)]``.
-
+  ... Let ``id~param'~ +#+ bool~param'~`` be ``pid~r''~``, for all ``pid~r''~`` in ``pid~r''~^{asterisk}^``, ``bool~param'~`` in ``bool~param'~^{asterisk}^``, and ``id~param'~`` in ``id~param'~^{asterisk}^``.
   ... Try:
    .... {empty}
-    ..... Check that ``xref:check_arity[$check_arity(id~arg~^?^^{asterisk}^, id~param'~^{asterisk}^)]``.
+    ..... Check that ``xref:check_routine_name[$check_routine_name(id~r~, id~r'~)]``.
 
-    ..... Return ``xref:find_match_named[$find_match_named<V>(id~r'~ +(+( id~param'~ +#+ bool~param'~ )^{asterisk}^+)+, V, id~arg''~^{asterisk}^, ( id~param'~ +#+ bool~param'~ )^{asterisk}^)]``.
+    ..... Check that ``xref:check_arity_more[$check_arity_more(id~arg~^?^^{asterisk}^, id~param'~^{asterisk}^)]``.
+
+    ..... Return ``·``.
    .... {empty}
-    ..... Check that ``xref:check_arity_less[$check_arity_less(id~arg~^?^^{asterisk}^, id~param'~^{asterisk}^)]``.
+    ..... Check that the length of ``id~arg''~^{asterisk}^`` is greater than ``0``.
 
-    ..... Return ``xref:find_match_named_default[$find_match_named_default<V>(id~r'~ +(+( id~param'~ +#+ bool~param'~ )^{asterisk}^+)+, V, id~arg''~^{asterisk}^, ( id~param'~ +#+ bool~param'~ )^{asterisk}^)]``.
- .. {empty}
-  ... Check that ``id~arg''~^{asterisk}^`` is an empty list.
+    ..... Check that ``xref:check_routine_name[$check_routine_name(id~r~, id~r'~)]``.
 
-  ... Check that ``xref:check_routine_name[$check_routine_name(id~r~, id~r'~)]``.
+    ..... Try:
+     ...... {empty}
+      ....... Check that ``xref:check_arity[$check_arity(id~arg~^?^^{asterisk}^, id~param'~^{asterisk}^)]``.
 
-  ... Try:
+      ....... Return ``xref:find_match_named[$find_match_named<V>(id~r'~ +(+( id~param'~ +#+ bool~param'~ )^{asterisk}^+)+, V, id~arg''~^{asterisk}^, ( id~param'~ +#+ bool~param'~ )^{asterisk}^)]``.
+     ...... {empty}
+      ....... Check that ``xref:check_arity_less[$check_arity_less(id~arg~^?^^{asterisk}^, id~param'~^{asterisk}^)]``.
+
+      ....... Return ``xref:find_match_named_default[$find_match_named_default<V>(id~r'~ +(+( id~param'~ +#+ bool~param'~ )^{asterisk}^+)+, V, id~arg''~^{asterisk}^, ( id~param'~ +#+ bool~param'~ )^{asterisk}^)]``.
    .... {empty}
-    ..... Check that ``xref:check_arity[$check_arity(id~arg~^?^^{asterisk}^, id~param'~^{asterisk}^)]``.
+    ..... Check that ``id~arg''~^{asterisk}^`` is an empty list.
 
-    ..... Return ( ``id~r'~ +(+( id~param'~ +#+ bool~param'~ )^{asterisk}^+)+``, ``V``, ``·`` ).
-   .... {empty}
-    ..... Check that ``xref:check_arity_less[$check_arity_less(id~arg~^?^^{asterisk}^, id~param'~^{asterisk}^)]``.
+    ..... Check that ``xref:check_routine_name[$check_routine_name(id~r~, id~r'~)]``.
 
-    ..... Return ``xref:find_match_unnamed_default[$find_match_unnamed_default<V>(id~r'~ +(+( id~param'~ +#+ bool~param'~ )^{asterisk}^+)+, V, id~arg~^?^^{asterisk}^, ( id~param'~ +#+ bool~param'~ )^{asterisk}^)]``.
+    ..... Try:
+     ...... {empty}
+      ....... Check that ``xref:check_arity[$check_arity(id~arg~^?^^{asterisk}^, id~param'~^{asterisk}^)]``.
+
+      ....... Return ( ``id~r'~ +(+( id~param'~ +#+ bool~param'~ )^{asterisk}^+)+``, ``V``, ``·`` ).
+     ...... {empty}
+      ....... Check that ``xref:check_arity_less[$check_arity_less(id~arg~^?^^{asterisk}^, id~param'~^{asterisk}^)]``.
+
+      ....... Return ``xref:find_match_unnamed_default[$find_match_unnamed_default<V>(id~r'~ +(+( id~param'~ +#+ bool~param'~ )^{asterisk}^+)+, V, id~arg~^?^^{asterisk}^, ( id~param'~ +#+ bool~param'~ )^{asterisk}^)]``.
 
 xref:find_matchings[$find_matchings<V>(id~r~, id~arg~^?^^{asterisk}^, id~arg'~^{asterisk}^, rid''^{asterisk}^, V''^{asterisk}^)]
 
@@ -3071,12 +3083,15 @@ xref:find_matchings[$find_matchings<V>(id~r~, id~arg~^?^^{asterisk}^, id~arg'~^{
 . Else:
  .. Let!~type~ ``V~h~ {two-colons} V~t~^{asterisk}^`` be ``V''^{asterisk}^``.
 
- .. Check that ``xref:find_matching[$find_matching<V>(id~r~, id~arg~^?^^{asterisk}^, id~arg'~^{asterisk}^, rid~h~, V~h~)]`` is equal to ``·``.
+ .. Try:
+  ... {empty}
+   .... Check that ``xref:find_matching[$find_matching<V>(id~r~, id~arg~^?^^{asterisk}^, id~arg'~^{asterisk}^, rid~h~, V~h~)]`` is equal to ``·``.
 
- .. Return ``xref:find_matchings[$find_matchings<V>(id~r~, id~arg~^?^^{asterisk}^, id~arg'~^{asterisk}^, rid~t~^{asterisk}^, V~t~^{asterisk}^)]``.
- .. Let ``( rid, V, id~default~^{asterisk}^ )`` be xref:option_get[*!*] ``xref:find_matching[$find_matching<V>(id~r~, id~arg~^?^^{asterisk}^, id~arg'~^{asterisk}^, rid~h~, V~h~)]``.
- .. Let ``(rid, V, id*)'^{asterisk}^`` be ``xref:find_matchings[$find_matchings<V>(id~r~, id~arg~^?^^{asterisk}^, id~arg'~^{asterisk}^, rid~t~^{asterisk}^, V~t~^{asterisk}^)]``.
- .. Return ``( rid, V, id~default~^{asterisk}^ ) {two-colons} (rid, V, id*)'^{asterisk}^``.
+   .... Return ``xref:find_matchings[$find_matchings<V>(id~r~, id~arg~^?^^{asterisk}^, id~arg'~^{asterisk}^, rid~t~^{asterisk}^, V~t~^{asterisk}^)]``.
+  ... {empty}
+   .... Let ``( rid, V, id~default~^{asterisk}^ )`` be xref:option_get[*!*] ``xref:find_matching[$find_matching<V>(id~r~, id~arg~^?^^{asterisk}^, id~arg'~^{asterisk}^, rid~h~, V~h~)]``.
+   .... Let ``(rid, V, id*)'^{asterisk}^`` be ``xref:find_matchings[$find_matchings<V>(id~r~, id~arg~^?^^{asterisk}^, id~arg'~^{asterisk}^, rid~t~^{asterisk}^, V~t~^{asterisk}^)]``.
+   .... Return ``( rid, V, id~default~^{asterisk}^ ) {two-colons} (rid, V, id*)'^{asterisk}^``.
 
 xref:find_overloaded[$find_overloaded<V>(+{+( rid +:+ V )^{asterisk}^+}+, id~r~, id~arg~^?^^{asterisk}^)]
 
@@ -3088,23 +3103,29 @@ xref:find_overloaded[$find_overloaded<V>(+{+( rid +:+ V )^{asterisk}^+}+, id~r~,
   ... Check that ``id^?^`` is defined, for all ``id^?^`` in ``id^?^^{asterisk}^``.
 
   ... Let ``id~arg'~`` be ``id^?^``, for all ``id^?^`` in ``id^?^^{asterisk}^`` and ``id~arg'~`` in ``id~arg'~^{asterisk}^``.
-  ... Check that ``xref:find_matchings[$find_matchings<V>(id~r~, id~arg~^?^^{asterisk}^, id~arg'~^{asterisk}^, rid^{asterisk}^, V^{asterisk}^)]`` is equal to ``·``.
+  ... Try:
+   .... {empty}
+    ..... Check that ``xref:find_matchings[$find_matchings<V>(id~r~, id~arg~^?^^{asterisk}^, id~arg'~^{asterisk}^, rid^{asterisk}^, V^{asterisk}^)]`` is equal to ``·``.
 
-  ... Return ``·``.
-  ... Let ``(rid, V, id*)^{asterisk}^`` be ``xref:find_matchings[$find_matchings<V>(id~r~, id~arg~^?^^{asterisk}^, id~arg'~^{asterisk}^, rid^{asterisk}^, V^{asterisk}^)]``.
-  ... Let!~type~ ``( rid', V', id~default~^{asterisk}^ )`` be ``(rid, V, id*)^{asterisk}^``.
+    ..... Return ``·``.
+   .... {empty}
+    ..... Let ``(rid, V, id*)^{asterisk}^`` be ``xref:find_matchings[$find_matchings<V>(id~r~, id~arg~^?^^{asterisk}^, id~arg'~^{asterisk}^, rid^{asterisk}^, V^{asterisk}^)]``.
+    ..... Let!~type~ ``( rid', V', id~default~^{asterisk}^ )`` be ``(rid, V, id*)^{asterisk}^``.
 
-  ... Return ( ``rid'``, ``V'``, ``id~default~^{asterisk}^`` ).
+    ..... Return ( ``rid'``, ``V'``, ``id~default~^{asterisk}^`` ).
  .. {empty}
   ... Check that ``id~arg~^?^`` is equal to ``·``, for all ``id~arg~^?^`` in ``id~arg~^?^^{asterisk}^``.
 
-  ... Check that ``xref:find_matchings[$find_matchings<V>(id~r~, id~arg~^?^^{asterisk}^, ·, rid^{asterisk}^, V^{asterisk}^)]`` is equal to ``·``.
+  ... Try:
+   .... {empty}
+    ..... Check that ``xref:find_matchings[$find_matchings<V>(id~r~, id~arg~^?^^{asterisk}^, ·, rid^{asterisk}^, V^{asterisk}^)]`` is equal to ``·``.
 
-  ... Return ``·``.
-  ... Let ``(rid, V, id*)^{asterisk}^`` be ``xref:find_matchings[$find_matchings<V>(id~r~, id~arg~^?^^{asterisk}^, ·, rid^{asterisk}^, V^{asterisk}^)]``.
-  ... Let!~type~ ``( rid', V', id~default~^{asterisk}^ )`` be ``(rid, V, id*)^{asterisk}^``.
+    ..... Return ``·``.
+   .... {empty}
+    ..... Let ``(rid, V, id*)^{asterisk}^`` be ``xref:find_matchings[$find_matchings<V>(id~r~, id~arg~^?^^{asterisk}^, ·, rid^{asterisk}^, V^{asterisk}^)]``.
+    ..... Let!~type~ ``( rid', V', id~default~^{asterisk}^ )`` be ``(rid, V, id*)^{asterisk}^``.
 
-  ... Return ( ``rid'``, ``V'``, ``id~default~^{asterisk}^`` ).
+    ..... Return ( ``rid'``, ``V'``, ``id~default~^{asterisk}^`` ).
 
 xref:find_non_overloaded[$find_non_overloaded<V>(+{+( rid +:+ V )^{asterisk}^+}+, id)]
 
@@ -3119,19 +3140,22 @@ xref:find_non_overloaded[$find_non_overloaded<V>(+{+( rid +:+ V )^{asterisk}^+}+
 
 xref:find_non_overloaded'[$find_non_overloaded'<V>(set<pair<rid, V>>', id)]
 
-. Check that ``set<pair<rid, V>>'`` is equal to ``+{+·+}+``.
+. Try:
+ .. {empty}
+  ... Check that ``set<pair<rid, V>>'`` is equal to ``+{+·+}+``.
 
-. Return ``·``.
-. Let ``+{+pair<rid, V>^{asterisk}^+}+`` be ``set<pair<rid, V>>'``.
-. Let!~type~ ``rid~h~ +:+ V~h~ {two-colons} ( rid~t~ +:+ V~t~ )^{asterisk}^`` be ``pair<rid, V>^{asterisk}^``.
+  ... Return ``·``.
+ .. {empty}
+  ... Let ``+{+pair<rid, V>^{asterisk}^+}+`` be ``set<pair<rid, V>>'``.
+  ... Let!~type~ ``rid~h~ +:+ V~h~ {two-colons} ( rid~t~ +:+ V~t~ )^{asterisk}^`` be ``pair<rid, V>^{asterisk}^``.
 
-. Let ``id' +(+++_++^{asterisk}^+)+`` be ``rid~h~``.
-. If ``id'`` is equal to ``id``:
- .. Let ``V~t_found~^{asterisk}^`` be ``xref:find_non_overloaded'[$find_non_overloaded'<V>(+{+( rid~t~ +:+ V~t~ )^{asterisk}^+}+, id)]``.
- .. Return ``V~h~ {two-colons} V~t_found~^{asterisk}^``.
-. Else:
- .. Let ``V~t_found~^{asterisk}^`` be ``xref:find_non_overloaded'[$find_non_overloaded'<V>(+{+( rid~t~ +:+ V~t~ )^{asterisk}^+}+, id)]``.
- .. Return ``V~t_found~^{asterisk}^``.
+  ... Let ``id' +(+++_++^{asterisk}^+)+`` be ``rid~h~``.
+  ... If ``id'`` is equal to ``id``:
+   .... Let ``V~t_found~^{asterisk}^`` be ``xref:find_non_overloaded'[$find_non_overloaded'<V>(+{+( rid~t~ +:+ V~t~ )^{asterisk}^+}+, id)]``.
+   .... Return ``V~h~ {two-colons} V~t_found~^{asterisk}^``.
+  ... Else:
+   .... Let ``V~t_found~^{asterisk}^`` be ``xref:find_non_overloaded'[$find_non_overloaded'<V>(+{+( rid~t~ +:+ V~t~ )^{asterisk}^+}+, id)]``.
+   .... Return ``V~t_found~^{asterisk}^``.
 
 xref:is_extern_blockKind[$is_extern_blockKind(blockKind)]
 
@@ -3300,22 +3324,19 @@ xref:add_vars[$add_vars(p, TC, id^{asterisk}^, varTypeIR^{asterisk}^)]
 
 xref:add_parameter[$add_parameter(cursor, TC, direction typeIR id value^?^)]
 
-. If ``direction`` matches pattern ````:
- .. Let ``varTypeIR`` be ``typeIR +CTK+ value^?^``.
- .. Let ``TC'`` be ``xref:add_var[$add_var(cursor, TC, id, varTypeIR)]``.
- .. Return ``TC'``.
-. Else if ``direction`` matches pattern ``+IN+``:
- .. Let ``varTypeIR`` be ``direction typeIR +DYN+ value^?^``.
- .. Let ``TC'`` be ``xref:add_var[$add_var(cursor, TC, id, varTypeIR)]``.
- .. Return ``TC'``.
-. Else if ``direction`` matches pattern ``+OUT+``:
- .. Let ``varTypeIR`` be ``direction typeIR +DYN+ value^?^``.
- .. Let ``TC'`` be ``xref:add_var[$add_var(cursor, TC, id, varTypeIR)]``.
- .. Return ``TC'``.
-. Else:
- .. Let ``varTypeIR`` be ``direction typeIR +DYN+ value^?^``.
- .. Let ``TC'`` be ``xref:add_var[$add_var(cursor, TC, id, varTypeIR)]``.
- .. Return ``TC'``.
+. Try:
+ .. {empty}
+  ... Check that ``direction`` matches pattern ````.
+
+  ... Let ``varTypeIR`` be ``typeIR +CTK+ value^?^``.
+  ... Let ``TC'`` be ``xref:add_var[$add_var(cursor, TC, id, varTypeIR)]``.
+  ... Return ``TC'``.
+ .. {empty}
+  ... Check that ``direction`` is equal to ``+IN+`` or ``direction`` is equal to ``+OUT+`` or ``direction`` is equal to ``+INOUT+``.
+
+  ... Let ``varTypeIR`` be ``direction typeIR +DYN+ value^?^``.
+  ... Let ``TC'`` be ``xref:add_var[$add_var(cursor, TC, id, varTypeIR)]``.
+  ... Return ``TC'``.
 
 xref:add_parameters[$add_parameters(cursor, TC, parameterTypeIR^{asterisk}^)]
 
@@ -3448,11 +3469,9 @@ xref:find_var[$find_var(p', TC, prefixedNameIR)]
    .... Let!~type~ ``id`` be ``prefixedNameIR``.
 
    .... Let ``frame`` be ``TC.+BLOCK+.+FRAME+``.
-   .... Let ``varTypeIR'^?^`` be ``xref:find_map[$find_map<id, varTypeIR>(frame, id)]``.
    .... Try:
     ..... {empty}
-     ...... Let!~type~ ``varTypeIR`` be ``varTypeIR'^?^``.
-
+     ...... Let ``varTypeIR`` be xref:option_get[*!*] ``xref:find_map[$find_map<id, varTypeIR>(frame, id)]``.
      ...... Return ``varTypeIR``.
     ..... {empty}
      ...... Check that ``·`` is equal to ``xref:find_map[$find_map<id, varTypeIR>(frame, id)]``.
@@ -3462,11 +3481,9 @@ xref:find_var[$find_var(p', TC, prefixedNameIR)]
    .... Let!~type~ ``id`` be ``prefixedNameIR``.
 
    .... Let ``frame^{asterisk}^`` be ``TC.+LOCAL+.+FRAMES+``.
-   .... Let ``varTypeIR'^?^`` be ``xref:find_maps[$find_maps<id, varTypeIR>(frame^{asterisk}^, id)]``.
    .... Try:
     ..... {empty}
-     ...... Let!~type~ ``varTypeIR`` be ``varTypeIR'^?^``.
-
+     ...... Let ``varTypeIR`` be xref:option_get[*!*] ``xref:find_maps[$find_maps<id, varTypeIR>(frame^{asterisk}^, id)]``.
      ...... Return ``varTypeIR``.
     ..... {empty}
      ...... Check that ``·`` is equal to ``xref:find_maps[$find_maps<id, varTypeIR>(frame^{asterisk}^, id)]``.
@@ -3497,11 +3514,9 @@ xref:find_value[$find_value(p', TC, prefixedNameIR)]
    .... Let!~type~ ``id`` be ``prefixedNameIR``.
 
    .... Let ``frame`` be ``TC.+BLOCK+.+FRAME+``.
-   .... Let ``varTypeIR^?^`` be ``xref:find_map[$find_map<id, varTypeIR>(frame, id)]``.
    .... Try:
     ..... {empty}
-     ...... Let!~type~ ``++_++ ++_++ ++_++ value'^?^`` be ``varTypeIR^?^``.
-
+     ...... Let ``++_++ ++_++ ++_++ value'^?^`` be xref:option_get[*!*] ``xref:find_map[$find_map<id, varTypeIR>(frame, id)]``.
      ...... Let!~type~ ``value`` be ``value'^?^``.
 
      ...... Return ``value``.
@@ -3513,11 +3528,9 @@ xref:find_value[$find_value(p', TC, prefixedNameIR)]
    .... Let!~type~ ``id`` be ``prefixedNameIR``.
 
    .... Let ``frame^{asterisk}^`` be ``TC.+LOCAL+.+FRAMES+``.
-   .... Let ``varTypeIR^?^`` be ``xref:find_maps[$find_maps<id, varTypeIR>(frame^{asterisk}^, id)]``.
    .... Try:
     ..... {empty}
-     ...... Let!~type~ ``++_++ ++_++ ++_++ value'^?^`` be ``varTypeIR^?^``.
-
+     ...... Let ``++_++ ++_++ ++_++ value'^?^`` be xref:option_get[*!*] ``xref:find_maps[$find_maps<id, varTypeIR>(frame^{asterisk}^, id)]``.
      ...... Let!~type~ ``value`` be ``value'^?^``.
 
      ...... Return ``value``.
@@ -3544,11 +3557,9 @@ xref:find_type[$find_type(p', TC, prefixedNameIR)]
    .... Let!~type~ ``tid`` be ``prefixedNameIR``.
 
    .... Let ``tdenv`` be ``TC.+BLOCK+.+TDENV+``.
-   .... Let ``typeDefIR'^?^`` be ``xref:find_map[$find_map<tid, typeDefIR>(tdenv, tid)]``.
    .... Try:
     ..... {empty}
-     ...... Let!~type~ ``typeDefIR`` be ``typeDefIR'^?^``.
-
+     ...... Let ``typeDefIR`` be xref:option_get[*!*] ``xref:find_map[$find_map<tid, typeDefIR>(tdenv, tid)]``.
      ...... Return ``typeDefIR``.
     ..... {empty}
      ...... Check that ``·`` is equal to ``xref:find_map[$find_map<tid, typeDefIR>(tdenv, tid)]``.
@@ -3558,11 +3569,9 @@ xref:find_type[$find_type(p', TC, prefixedNameIR)]
    .... Let!~type~ ``tid`` be ``prefixedNameIR``.
 
    .... Let ``tdenv^{asterisk}^`` be ``TC.+LOCAL+.+TDENV+``.
-   .... Let ``typeDefIR'^?^`` be ``xref:find_maps[$find_maps<tid, typeDefIR>(tdenv^{asterisk}^, tid)]``.
    .... Try:
     ..... {empty}
-     ...... Let!~type~ ``typeDefIR`` be ``typeDefIR'^?^``.
-
+     ...... Let ``typeDefIR`` be xref:option_get[*!*] ``xref:find_maps[$find_maps<tid, typeDefIR>(tdenv^{asterisk}^, tid)]``.
      ...... Return ``typeDefIR``.
     ..... {empty}
      ...... Check that ``·`` is equal to ``xref:find_maps[$find_maps<tid, typeDefIR>(tdenv^{asterisk}^, tid)]``.
@@ -3604,11 +3613,9 @@ xref:find_routine_overloaded[$find_routine_overloaded(cursor, TC, prefixedNameIR
 
  .. Let ``rdenv`` be ``TC.+BLOCK+.+RDENV+``.
  .. Let ``id~arg~^?^^{asterisk}^`` be ``xref:ids_arguments[$ids_arguments(argumentIR^{asterisk}^)]``.
- .. Let ``(rid, routineTypeDefIR, id*)^?^`` be ``xref:find_overloaded[$find_overloaded<routineTypeDefIR>(rdenv, id, id~arg~^?^^{asterisk}^)]``.
  .. Try:
   ... {empty}
-   .... Let!~type~ ``( rid, routineTypeDefIR, id~default~^{asterisk}^ )`` be ``(rid, routineTypeDefIR, id*)^?^``.
-
+   .... Let ``( rid, routineTypeDefIR, id~default~^{asterisk}^ )`` be xref:option_get[*!*] ``xref:find_overloaded[$find_overloaded<routineTypeDefIR>(rdenv, id, id~arg~^?^^{asterisk}^)]``.
    .... Return ( ``rid``, ``routineTypeDefIR``, ``id~default~^{asterisk}^`` ).
   ... {empty}
    .... Check that ``·`` is equal to ``xref:find_overloaded[$find_overloaded<routineTypeDefIR>(rdenv, id, id~arg~^?^^{asterisk}^)]``.
@@ -3634,11 +3641,9 @@ xref:find_routine_non_overloaded[$find_routine_non_overloaded(p', TC, prefixedNa
   ... Else if ``p'`` matches pattern ``+BLOCK+``:
    .... Let!~type~ ``id`` be ``prefixedNameIR``.
 
-   .... Let ``routineTypeDefIR'^?^`` be ``xref:find_non_overloaded[$find_non_overloaded<routineTypeDefIR>(TC.+BLOCK+.+RDENV+, id)]``.
    .... Try:
     ..... {empty}
-     ...... Let!~type~ ``routineTypeDefIR`` be ``routineTypeDefIR'^?^``.
-
+     ...... Let ``routineTypeDefIR`` be xref:option_get[*!*] ``xref:find_non_overloaded[$find_non_overloaded<routineTypeDefIR>(TC.+BLOCK+.+RDENV+, id)]``.
      ...... Return ``routineTypeDefIR``.
     ..... {empty}
      ...... Check that ``·`` is equal to ``xref:find_non_overloaded[$find_non_overloaded<routineTypeDefIR>(TC.+BLOCK+.+RDENV+, id)]``.
@@ -3662,9 +3667,9 @@ xref:find_constructor_overloaded[$find_constructor_overloaded(TC, prefixedNameIR
 
 xref:find_return_type[$find_return_type(TC)]
 
-. Let ``localKind`` be ``TC.+LOCAL+.+KIND+``.
 . Try:
  .. {empty}
+  ... Let ``localKind`` be ``TC.+LOCAL+.+KIND+``.
   ... If let ``+FUNCTION+ +->+ typeIR~ret~`` be ``localKind``:
    .... Return ``typeIR~ret~``.
   ... Else:
@@ -3673,9 +3678,8 @@ xref:find_return_type[$find_return_type(TC)]
   ... Check that ``+ACTION+`` is equal to ``TC.+LOCAL+.+KIND+``.
 
   ... Return ``+VOID+``.
-. Let ``localKind`` be ``TC.+LOCAL+.+KIND+``.
-. Try:
  .. {empty}
+  ... Let ``localKind`` be ``TC.+LOCAL+.+KIND+``.
   ... If let ``+EXTERN_METHOD+ +->+ typeIR~ret~`` be ``localKind``:
    .... Return ``typeIR~ret~``.
   ... Else:
@@ -3741,29 +3745,38 @@ xref:update_mode'[$update_mode'(TBLC, text', typeIR'')]
 
    .... Return ``TBLC`` with ``+MODE+`` set to ``+PRILPM+``.
 . Else if ``text'`` is equal to ``"range"``:
- .. Check that ``TBLC.+MODE+`` matches pattern ``+NOPRI+``.
+ .. Try:
+  ... {empty}
+   .... Check that ``TBLC.+MODE+`` matches pattern ``+NOPRI+``.
 
- .. Return ``TBLC`` with ``+MODE+`` set to ``+PRI+``.
- .. Let ``matchMode`` be ``TBLC.+MODE+``.
- .. Let!~type~ ``+NOPRILPM+ ++_++`` be ``matchMode``.
+   .... Return ``TBLC`` with ``+MODE+`` set to ``+PRI+``.
+  ... {empty}
+   .... Let ``matchMode`` be ``TBLC.+MODE+``.
+   .... Let!~type~ ``+NOPRILPM+ ++_++`` be ``matchMode``.
 
- .. Return ``TBLC`` with ``+MODE+`` set to ``+PRILPM+``.
+   .... Return ``TBLC`` with ``+MODE+`` set to ``+PRILPM+``.
 . Else if ``text'`` is equal to ``"ternary"``:
- .. Check that ``TBLC.+MODE+`` matches pattern ``+NOPRI+``.
+ .. Try:
+  ... {empty}
+   .... Check that ``TBLC.+MODE+`` matches pattern ``+NOPRI+``.
 
- .. Return ``TBLC`` with ``+MODE+`` set to ``+PRI+``.
- .. Let ``matchMode`` be ``TBLC.+MODE+``.
- .. Let!~type~ ``+NOPRILPM+ ++_++`` be ``matchMode``.
+   .... Return ``TBLC`` with ``+MODE+`` set to ``+PRI+``.
+  ... {empty}
+   .... Let ``matchMode`` be ``TBLC.+MODE+``.
+   .... Let!~type~ ``+NOPRILPM+ ++_++`` be ``matchMode``.
 
- .. Return ``TBLC`` with ``+MODE+`` set to ``+PRILPM+``.
+   .... Return ``TBLC`` with ``+MODE+`` set to ``+PRILPM+``.
 . Else:
- .. Check that ``TBLC.+MODE+`` matches pattern ``+NOPRI+``.
+ .. Try:
+  ... {empty}
+   .... Check that ``TBLC.+MODE+`` matches pattern ``+NOPRI+``.
 
- .. Return ``TBLC`` with ``+MODE+`` set to ``+PRI+``.
- .. Let ``matchMode`` be ``TBLC.+MODE+``.
- .. Let!~type~ ``+NOPRILPM+ ++_++`` be ``matchMode``.
+   .... Return ``TBLC`` with ``+MODE+`` set to ``+PRI+``.
+  ... {empty}
+   .... Let ``matchMode`` be ``TBLC.+MODE+``.
+   .... Let!~type~ ``+NOPRILPM+ ++_++`` be ``matchMode``.
 
- .. Return ``TBLC`` with ``+MODE+`` set to ``+PRILPM+``.
+   .... Return ``TBLC`` with ``+MODE+`` set to ``+PRILPM+``.
 
 . Otherwise:
  .. Otherwise:
@@ -4799,9 +4812,12 @@ xref:definable_routine_poly[$definable_routine_poly(routineTypeIR')]
 
 xref:nestable_constructor_extern[$nestable_constructor_extern(typeIR)]
 
-. Let ``typeIR'`` be ``xref:canon[$canon(typeIR)]``.
-. Return ``xref:nestable'_constructor_extern[$nestable'_constructor_extern(typeIR')]``.
-. Let!~type~ ``+PARSER+ +(+++_++^{asterisk}^+)+`` be ``typeIR``.
+. Try:
+ .. {empty}
+  ... Let ``typeIR'`` be ``xref:canon[$canon(typeIR)]``.
+  ... Return ``xref:nestable'_constructor_extern[$nestable'_constructor_extern(typeIR')]``.
+ .. {empty}
+  ... Let!~type~ ``+PARSER+ +(+++_++^{asterisk}^+)+`` be ``typeIR``.
  return ``false``.
 
 xref:nestable'_constructor_extern[$nestable'_constructor_extern(typeIR')]
@@ -5161,21 +5177,24 @@ xref:Type_ok[Type_ok: ``p TC ⊢ typeOrVoid +:+ % +#+ %``]
    .... Else:
     ..... Result in ``polyTypeDefIR +<+·+>+`` and ``·``.
   ... Else if let ``prefixedTypeName +<+typeArgumentList+>+`` be ``typeOrVoid``:
-   .... Check that ``typeArgumentList`` matches pattern ````.
+   .... Try:
+    ..... {empty}
+     ...... Check that ``typeArgumentList`` matches pattern ````.
 
-   .... Let ``prefixedNameIR`` be ``xref:prefixedTypeName[$prefixedTypeName(prefixedTypeName)]``.
-   .... Let ``typeDefIR`` be xref:option_get[*!*] ``xref:find_type[$find_type(p, TC, prefixedNameIR)]``.
-   .... Let!~type~ ``typeIR`` be ``typeDefIR``.
+     ...... Let ``prefixedNameIR`` be ``xref:prefixedTypeName[$prefixedTypeName(prefixedTypeName)]``.
+     ...... Let ``typeDefIR`` be xref:option_get[*!*] ``xref:find_type[$find_type(p, TC, prefixedNameIR)]``.
+     ...... Let!~type~ ``typeIR`` be ``typeDefIR``.
 
-   .... Result in ``typeIR`` and ``·``.
-   .... Let ``prefixedNameIR`` be ``xref:prefixedTypeName[$prefixedTypeName(prefixedTypeName)]``.
-   .... Let ``typeDefIR`` be xref:option_get[*!*] ``xref:find_type[$find_type(p, TC, prefixedNameIR)]``.
-   .... Let!~type~ ``polyTypeDefIR`` be ``typeDefIR``.
+     ...... Result in ``typeIR`` and ``·``.
+    ..... {empty}
+     ...... Let ``prefixedNameIR`` be ``xref:prefixedTypeName[$prefixedTypeName(prefixedTypeName)]``.
+     ...... Let ``typeDefIR`` be xref:option_get[*!*] ``xref:find_type[$find_type(p, TC, prefixedNameIR)]``.
+     ...... Let!~type~ ``polyTypeDefIR`` be ``typeDefIR``.
 
-   .... Let ``typeIR +<+tid~expl~^{asterisk}^ +,+ tid~impl~^{asterisk}^+>+`` be ``polyTypeDefIR``.
-   .... Let ``typeArgument^{asterisk}^`` be ``xref:flatten_typeArgumentList[$flatten_typeArgumentList(typeArgumentList)]``.
-   .... Let xref:TypeArguments_ok[``p TC ⊢ typeArgument^{asterisk}^ +:+ typeIR~arg~^{asterisk}^ +#+ tid~fresh~^{asterisk}^``].
-   .... Result in ``polyTypeDefIR +<+typeIR~arg~^{asterisk}^+>+`` and ``tid~fresh~^{asterisk}^``.
+     ...... Let ``typeIR +<+tid~expl~^{asterisk}^ +,+ tid~impl~^{asterisk}^+>+`` be ``polyTypeDefIR``.
+     ...... Let ``typeArgument^{asterisk}^`` be ``xref:flatten_typeArgumentList[$flatten_typeArgumentList(typeArgumentList)]``.
+     ...... Let xref:TypeArguments_ok[``p TC ⊢ typeArgument^{asterisk}^ +:+ typeIR~arg~^{asterisk}^ +#+ tid~fresh~^{asterisk}^``].
+     ...... Result in ``polyTypeDefIR +<+typeIR~arg~^{asterisk}^+>+`` and ``tid~fresh~^{asterisk}^``.
   ... Else if let ``namedType +[+expression~size~+]+`` be ``typeOrVoid``:
    .... If let ``typeName`` be ``namedType``:
     ..... Let xref:Type_ok[``p TC ⊢ typeName +:+ typeIR~base~ +#+ tid^{asterisk}^``].
@@ -5993,31 +6012,32 @@ xref:Expr_ok[Expr_ok: ``p TC ⊢ expression''' +:+ %``]
 
       ....... Let ``expressionNoteIR`` be ``+(+typeIR +DYN++)+``.
       ....... Result in ``typedExpressionIR~base~ +.+ "next" +#+ expressionNoteIR``.
-    ..... Let xref:Expr_ok[``p TC ⊢ expression~base~ +:+ typedExpressionIR~base~``].
-    ..... Let ``++_++ +#+ +(+typeIR~base~ ++_+++)+`` be ``typedExpressionIR~base~``.
-    ..... Let ``typeIR'`` be ``xref:canon[$canon(typeIR~base~)]``.
-    ..... If let ``+STRUCT+ ++_++ +{+( typeIR~f~ nameIR~f~ +;+ )^{asterisk}^+}+`` be ``typeIR'``:
-     ...... Let ``nameIR`` be ``xref:name[$name(member)]``.
-     ...... Let ``typeIR`` be xref:option_get[*!*] ``xref:assoc_[$assoc_<nameIR, typeIR>(nameIR, ( nameIR~f~, typeIR~f~ )^{asterisk}^)]``.
-     ...... Let ``expressionNoteIR`` be ``+(+typeIR +DYN++)+``.
-     ...... Result in ``typedExpressionIR~base~ +.+ nameIR +#+ expressionNoteIR``.
-    ..... Else if let ``+HEADER+ ++_++ +{+( typeIR~f~ nameIR~f~ +;+ )^{asterisk}^+}+`` be ``typeIR'``:
-     ...... Let ``nameIR`` be ``xref:name[$name(member)]``.
-     ...... Let ``typeIR`` be xref:option_get[*!*] ``xref:assoc_[$assoc_<nameIR, typeIR>(nameIR, ( nameIR~f~, typeIR~f~ )^{asterisk}^)]``.
-     ...... Let ``expressionNoteIR`` be ``+(+typeIR +DYN++)+``.
-     ...... Result in ``typedExpressionIR~base~ +.+ nameIR +#+ expressionNoteIR``.
-    ..... Else if let ``+HEADER_UNION+ ++_++ +{+( typeIR~f~ nameIR~f~ +;+ )^{asterisk}^+}+`` be ``typeIR'``:
-     ...... Let ``nameIR`` be ``xref:name[$name(member)]``.
-     ...... Let ``typeIR`` be xref:option_get[*!*] ``xref:assoc_[$assoc_<nameIR, typeIR>(nameIR, ( nameIR~f~, typeIR~f~ )^{asterisk}^)]``.
-     ...... Let ``expressionNoteIR`` be ``+(+typeIR +DYN++)+``.
-     ...... Result in ``typedExpressionIR~base~ +.+ nameIR +#+ expressionNoteIR``.
-    ..... Else if let ``tableTypeIR`` be ``typeIR'``:
-     ...... Let!~type~ ``+TABLE_STRUCT+ ++_++ +{+( typeIR~f~ nameIR~f~ +;+ )^{asterisk}^+}+`` be ``tableTypeIR``.
+     ...... {empty}
+      ....... Let xref:Expr_ok[``p TC ⊢ expression~base~ +:+ typedExpressionIR~base~``].
+      ....... Let ``++_++ +#+ +(+typeIR~base~ ++_+++)+`` be ``typedExpressionIR~base~``.
+      ....... Let ``typeIR'`` be ``xref:canon[$canon(typeIR~base~)]``.
+      ....... If let ``+STRUCT+ ++_++ +{+( typeIR~f~ nameIR~f~ +;+ )^{asterisk}^+}+`` be ``typeIR'``:
+       ........ Let ``nameIR`` be ``xref:name[$name(member)]``.
+       ........ Let ``typeIR`` be xref:option_get[*!*] ``xref:assoc_[$assoc_<nameIR, typeIR>(nameIR, ( nameIR~f~, typeIR~f~ )^{asterisk}^)]``.
+       ........ Let ``expressionNoteIR`` be ``+(+typeIR +DYN++)+``.
+       ........ Result in ``typedExpressionIR~base~ +.+ nameIR +#+ expressionNoteIR``.
+      ....... Else if let ``+HEADER+ ++_++ +{+( typeIR~f~ nameIR~f~ +;+ )^{asterisk}^+}+`` be ``typeIR'``:
+       ........ Let ``nameIR`` be ``xref:name[$name(member)]``.
+       ........ Let ``typeIR`` be xref:option_get[*!*] ``xref:assoc_[$assoc_<nameIR, typeIR>(nameIR, ( nameIR~f~, typeIR~f~ )^{asterisk}^)]``.
+       ........ Let ``expressionNoteIR`` be ``+(+typeIR +DYN++)+``.
+       ........ Result in ``typedExpressionIR~base~ +.+ nameIR +#+ expressionNoteIR``.
+      ....... Else if let ``+HEADER_UNION+ ++_++ +{+( typeIR~f~ nameIR~f~ +;+ )^{asterisk}^+}+`` be ``typeIR'``:
+       ........ Let ``nameIR`` be ``xref:name[$name(member)]``.
+       ........ Let ``typeIR`` be xref:option_get[*!*] ``xref:assoc_[$assoc_<nameIR, typeIR>(nameIR, ( nameIR~f~, typeIR~f~ )^{asterisk}^)]``.
+       ........ Let ``expressionNoteIR`` be ``+(+typeIR +DYN++)+``.
+       ........ Result in ``typedExpressionIR~base~ +.+ nameIR +#+ expressionNoteIR``.
+      ....... Else if let ``tableTypeIR`` be ``typeIR'``:
+       ........ Let!~type~ ``+TABLE_STRUCT+ ++_++ +{+( typeIR~f~ nameIR~f~ +;+ )^{asterisk}^+}+`` be ``tableTypeIR``.
 
-     ...... Let ``nameIR`` be ``xref:name[$name(member)]``.
-     ...... Let ``typeIR`` be xref:option_get[*!*] ``xref:assoc_[$assoc_<nameIR, typeIR>(nameIR, ( nameIR~f~, typeIR~f~ )^{asterisk}^)]``.
-     ...... Let ``expressionNoteIR`` be ``+(+typeIR +DYN++)+``.
-     ...... Result in ``typedExpressionIR~base~ +.+ nameIR +#+ expressionNoteIR``.
+       ........ Let ``nameIR`` be ``xref:name[$name(member)]``.
+       ........ Let ``typeIR`` be xref:option_get[*!*] ``xref:assoc_[$assoc_<nameIR, typeIR>(nameIR, ( nameIR~f~, typeIR~f~ )^{asterisk}^)]``.
+       ........ Let ``expressionNoteIR`` be ``+(+typeIR +DYN++)+``.
+       ........ Result in ``typedExpressionIR~base~ +.+ nameIR +#+ expressionNoteIR``.
   ... Else if let ``indexAccessExpression`` be ``expression'''``:
    .... If let ``expression~base~ +[+expression~index~+]+`` be ``indexAccessExpression``:
     ..... Let xref:Expr_ok[``p TC ⊢ expression~base~ +:+ typedExpressionIR~base~``].
@@ -6382,9 +6402,9 @@ xref:Stmt_ok[Stmt_ok: ``p' TC' f' ⊢ statement +:+ % % %``]
   ... Else if let ``+SWITCH+ +(+expression~switch~+)+ +{+switchCaseList+}+`` be ``statement``:
    .... Let xref:Expr_ok[``+LOCAL+ TC' ⊢ expression~switch~ +:+ typedExpressionIR~switch~``].
    .... Let ``++_++ +#+ +(+typeIR~switch~ ++_+++)+`` be ``typedExpressionIR~switch~``.
-   .... Let ``typeIR`` be ``xref:canon[$canon(typeIR~switch~)]``.
    .... Try:
     ..... {empty}
+     ...... Let ``typeIR`` be ``xref:canon[$canon(typeIR~switch~)]``.
      ...... Let!~type~ ``tableTypeIR`` be ``typeIR``.
 
      ...... Let!~type~ ``+TABLE_ENUM+ tid~table_enum~ +{+++_++^{asterisk}^+}+`` be ``tableTypeIR``.
@@ -6511,9 +6531,9 @@ xref:Parameters_ok[Parameters_ok: ``p TC ⊢ parameter^{asterisk}^ +:+ % +#+ %``
 
 xref:parameterIR[$parameterIR(++_++ direction typeIR nameIR constantInitializerOptIR')]
 
-. Let ``constantInitializerIR^?^`` be ``constantInitializerOptIR'``.
 . Try:
  .. {empty}
+  ... Let ``constantInitializerIR^?^`` be ``constantInitializerOptIR'``.
   ... Check that ``constantInitializerIR^?^`` is none.
 
   ... Return ``direction typeIR nameIR ·``.
@@ -6973,9 +6993,9 @@ xref:TableEntry_keyset_ok[TableEntry_keyset_ok: ``TC TBLC ⊢ keysetExpression +
 
     ..... Result in ``TBLS`` and ``+(+simpleKeysetExpressionIR+)+``.
    .... Else if ``tupleKeysetExpression`` matches pattern ``+(++DEFAULT++)+``:
-    ..... Let ``matchMode`` be ``TBLC.+MODE+``.
     ..... Try:
      ...... {empty}
+      ....... Let ``matchMode`` be ``TBLC.+MODE+``.
       ....... Let!~type~ ``+NOPRILPM+ n`` be ``matchMode``.
 
       ....... Let ``TBLS`` be ``+LPM+ n``.
@@ -6986,9 +7006,9 @@ xref:TableEntry_keyset_ok[TableEntry_keyset_ok: ``TC TBLC ⊢ keysetExpression +
       ....... Let ``TBLS`` be ``+NOLPM+``.
       ....... Result in ``TBLS`` and ``+(++DEFAULT++)+``.
    .... Else if ``tupleKeysetExpression`` matches pattern ``+(++_++)+``:
-    ..... Let ``matchMode`` be ``TBLC.+MODE+``.
     ..... Try:
      ...... {empty}
+      ....... Let ``matchMode`` be ``TBLC.+MODE+``.
       ....... Let!~type~ ``+NOPRILPM+ n`` be ``matchMode``.
 
       ....... Let ``TBLS`` be ``+LPM+ 0``.
@@ -7023,9 +7043,9 @@ xref:TableEntry_keyset_ok[TableEntry_keyset_ok: ``TC TBLC ⊢ keysetExpression +
 
    .... Result in ``TBLS`` and ``simpleKeysetExpressionIR``.
   ... Else if ``simpleKeysetExpression`` matches pattern ``+DEFAULT+``:
-   .... Let ``matchMode`` be ``TBLC.+MODE+``.
    .... Try:
     ..... {empty}
+     ...... Let ``matchMode`` be ``TBLC.+MODE+``.
      ...... Let!~type~ ``+NOPRILPM+ n`` be ``matchMode``.
 
      ...... Let ``TBLS`` be ``+LPM+ n``.
@@ -7036,9 +7056,9 @@ xref:TableEntry_keyset_ok[TableEntry_keyset_ok: ``TC TBLC ⊢ keysetExpression +
      ...... Let ``TBLS`` be ``+NOLPM+``.
      ...... Result in ``TBLS`` and ``+DEFAULT+``.
   ... Else if ``simpleKeysetExpression`` matches pattern ``+_+``:
-   .... Let ``matchMode`` be ``TBLC.+MODE+``.
    .... Try:
     ..... {empty}
+     ...... Let ``matchMode`` be ``TBLC.+MODE+``.
      ...... Let!~type~ ``+NOPRILPM+ n`` be ``matchMode``.
 
      ...... Let ``TBLS`` be ``+LPM+ 0``.
@@ -7076,12 +7096,13 @@ xref:TableEntry_action_ok[TableEntry_action_ok: ``TC TBLC ⊢ tableActionReferen
 xref:TableEntry_priority_ok[TableEntry_priority_ok: ``TC TBLC' TBLS ⊢ tableEntryPriority''^?^ +:+ % %``]
 
 . If ``tableEntryPriority''^?^`` matches pattern ``()``:
- .. Check that ``TBLC'.+MODE+`` matches pattern ``+NOPRI+``.
-
- .. Result in ``TBLC'`` and ``·``.
- .. Let ``matchMode`` be ``TBLC'.+MODE+``.
  .. Try:
   ... {empty}
+   .... Check that ``TBLC'.+MODE+`` matches pattern ``+NOPRI+``.
+
+   .... Result in ``TBLC'`` and ``·``.
+  ... {empty}
+   .... Let ``matchMode`` be ``TBLC'.+MODE+``.
    .... Let!~type~ ``+NOPRILPM+ n`` be ``matchMode``.
 
    .... Let!~type~ ``+LPM+ n~prefix~`` be ``TBLS``.
@@ -7211,66 +7232,71 @@ xref:TableProperty_ok[TableProperty_ok: ``TC TBLC~0'~ ⊢ tableProperty +:+ % %`
  .. Let xref:TableEntries_ok[``TC TBLC~2~ ⊢ tableEntry^{asterisk}^ +:+ TBLC~3~ tableEntryIR^{asterisk}^``].
  .. Result in ``TBLC~3~`` and ``annotationList constOptIR +ENTRIES+ +=+ +{+tableEntryIR^{asterisk}^+}+``.
 . Else:
- .. Check that ``"default_action"`` is equal to ``xref:tableCustomName[$tableCustomName(tableCustomName)]``.
-
- .. Let xref:TableDefaultAction_ok[``TC TBLC~0'~ ⊢ initializer +:+ tableActionReferenceIR``].
- .. Let ``constOptIR`` be ``xref:flatten_constOpt[$flatten_constOpt(constOpt)]``.
- .. Let ``tablePropertyIR`` be ``annotationList constOptIR +DEFAULT_ACTION+ +=+ tableActionReferenceIR +;+``.
- .. Result in ``TBLC~0'~`` and ``tablePropertyIR``.
- .. Let ``annotationList constOpt tableCustomName +=+ expression +;+`` be ``tableProperty``.
  .. Try:
   ... {empty}
-   .... Check that ``"size"`` is equal to ``xref:tableCustomName[$tableCustomName(tableCustomName)]``.
+   .... Let ``annotationList constOpt tableCustomName initializer +;+`` be ``tableProperty``.
+   .... Check that ``"default_action"`` is equal to ``xref:tableCustomName[$tableCustomName(tableCustomName)]``.
 
-   .... Let xref:Expr_ok[``+LOCAL+ TC ⊢ expression +:+ typedExpressionIR``].
-   .... Let ``++_++ +#+ +(+typeIR ++_+++)+`` be ``typedExpressionIR``.
-   .... Check that ``xref:is_arbitrary_int_typeIR[$is_arbitrary_int_typeIR(typeIR)]`` or ``xref:is_fixed_int_typeIR[$is_fixed_int_typeIR(typeIR)]`` or ``xref:is_fixed_bit_typeIR[$is_fixed_bit_typeIR(typeIR)]``.
-
+   .... Let xref:TableDefaultAction_ok[``TC TBLC~0'~ ⊢ initializer +:+ tableActionReferenceIR``].
    .... Let ``constOptIR`` be ``xref:flatten_constOpt[$flatten_constOpt(constOpt)]``.
-   .... Let ``tablePropertyIR`` be ``annotationList constOptIR +CUSTOM+ "size" +=+ typedExpressionIR +;+``.
+   .... Let ``tablePropertyIR`` be ``annotationList constOptIR +DEFAULT_ACTION+ +=+ tableActionReferenceIR +;+``.
    .... Result in ``TBLC~0'~`` and ``tablePropertyIR``.
   ... {empty}
-   .... Check that ``"largest_priority_wins"`` is equal to ``xref:tableCustomName[$tableCustomName(tableCustomName)]``.
+   .... Let ``annotationList constOpt tableCustomName +=+ expression +;+`` be ``tableProperty``.
+   .... Try:
+    ..... {empty}
+     ...... Check that ``"size"`` is equal to ``xref:tableCustomName[$tableCustomName(tableCustomName)]``.
 
-   .... Let xref:Expr_ok[``+LOCAL+ TC ⊢ expression +:+ typedExpressionIR``].
-   .... Let ``++_++ +#+ +(+typeIR ++_+++)+`` be ``typedExpressionIR``.
-   .... Let!~type~ ``primitiveTypeIR`` be ``typeIR``.
+     ...... Let xref:Expr_ok[``+LOCAL+ TC ⊢ expression +:+ typedExpressionIR``].
+     ...... Let ``++_++ +#+ +(+typeIR ++_+++)+`` be ``typedExpressionIR``.
+     ...... Check that ``xref:is_arbitrary_int_typeIR[$is_arbitrary_int_typeIR(typeIR)]`` or ``xref:is_fixed_int_typeIR[$is_fixed_int_typeIR(typeIR)]`` or ``xref:is_fixed_bit_typeIR[$is_fixed_bit_typeIR(typeIR)]``.
 
-   .... Check that ``primitiveTypeIR`` matches pattern ``+BOOL+``.
+     ...... Let ``constOptIR`` be ``xref:flatten_constOpt[$flatten_constOpt(constOpt)]``.
+     ...... Let ``tablePropertyIR`` be ``annotationList constOptIR +CUSTOM+ "size" +=+ typedExpressionIR +;+``.
+     ...... Result in ``TBLC~0'~`` and ``tablePropertyIR``.
+    ..... {empty}
+     ...... Check that ``"largest_priority_wins"`` is equal to ``xref:tableCustomName[$tableCustomName(tableCustomName)]``.
 
-   .... Let xref:Eval_static[``+LOCAL+ TC ⊢ typedExpressionIR ↝ value``].
-   .... Let!~type~ ``primitiveValue`` be ``value``.
+     ...... Let xref:Expr_ok[``+LOCAL+ TC ⊢ expression +:+ typedExpressionIR``].
+     ...... Let ``++_++ +#+ +(+typeIR ++_+++)+`` be ``typedExpressionIR``.
+     ...... Let!~type~ ``primitiveTypeIR`` be ``typeIR``.
 
-   .... Let!~type~ ``+B+ b~largest_priority_wins~`` be ``primitiveValue``.
+     ...... Check that ``primitiveTypeIR`` matches pattern ``+BOOL+``.
 
-   .... Let ``TBLC~1~`` be ``TBLC~0'~`` with ``+PRIORITIES+.+LARGEST_WINS+`` set to ``b~largest_priority_wins~``.
-   .... Let ``constOptIR`` be ``xref:flatten_constOpt[$flatten_constOpt(constOpt)]``.
-   .... Let ``tablePropertyIR`` be ``annotationList constOptIR +CUSTOM_CONST+ "largest_priority_wins" +=+ +B+ b~largest_priority_wins~ +;+``.
-   .... Result in ``TBLC~1~`` and ``tablePropertyIR``.
-  ... {empty}
-   .... Check that ``"priority_delta"`` is equal to ``xref:tableCustomName[$tableCustomName(tableCustomName)]``.
+     ...... Let xref:Eval_static[``+LOCAL+ TC ⊢ typedExpressionIR ↝ value``].
+     ...... Let!~type~ ``primitiveValue`` be ``value``.
 
-   .... Let xref:Expr_ok[``+LOCAL+ TC ⊢ expression +:+ typedExpressionIR``].
-   .... Let ``++_++ +#+ +(+typeIR ++_+++)+`` be ``typedExpressionIR``.
-   .... Check that ``xref:is_arbitrary_int_typeIR[$is_arbitrary_int_typeIR(typeIR)]`` or ``xref:is_fixed_int_typeIR[$is_fixed_int_typeIR(typeIR)]`` or ``xref:is_fixed_bit_typeIR[$is_fixed_bit_typeIR(typeIR)]``.
+     ...... Let!~type~ ``+B+ b~largest_priority_wins~`` be ``primitiveValue``.
 
-   .... Let xref:Eval_static[``+LOCAL+ TC ⊢ typedExpressionIR ↝ value``].
-   .... Let ``int`` be ``xref:to_number[$to_number(value)]``.
-   .... Let!~type~ ``n~delta~`` be ``int``.
+     ...... Let ``TBLC~1~`` be ``TBLC~0'~`` with ``+PRIORITIES+.+LARGEST_WINS+`` set to ``b~largest_priority_wins~``.
+     ...... Let ``constOptIR`` be ``xref:flatten_constOpt[$flatten_constOpt(constOpt)]``.
+     ...... Let ``tablePropertyIR`` be ``annotationList constOptIR +CUSTOM_CONST+ "largest_priority_wins" +=+ +B+ b~largest_priority_wins~ +;+``.
+     ...... Result in ``TBLC~1~`` and ``tablePropertyIR``.
+    ..... {empty}
+     ...... Check that ``"priority_delta"`` is equal to ``xref:tableCustomName[$tableCustomName(tableCustomName)]``.
 
-   .... Check that ``n~delta~`` is greater than ``0``.
+     ...... Let xref:Expr_ok[``+LOCAL+ TC ⊢ expression +:+ typedExpressionIR``].
+     ...... Let ``++_++ +#+ +(+typeIR ++_+++)+`` be ``typedExpressionIR``.
+     ...... Check that ``xref:is_arbitrary_int_typeIR[$is_arbitrary_int_typeIR(typeIR)]`` or ``xref:is_fixed_int_typeIR[$is_fixed_int_typeIR(typeIR)]`` or ``xref:is_fixed_bit_typeIR[$is_fixed_bit_typeIR(typeIR)]``.
 
-   .... Let ``TBLC~1~`` be ``TBLC~0'~`` with ``+PRIORITIES+.+DELTA+`` set to ``n~delta~``.
-   .... Let ``constOptIR`` be ``xref:flatten_constOpt[$flatten_constOpt(constOpt)]``.
-   .... Let ``tablePropertyIR`` be ``annotationList constOptIR +CUSTOM_CONST+ "priority_delta" +=+ +D+ n~delta~ +;+``.
-   .... Result in ``TBLC~1~`` and ``tablePropertyIR``.
- .. Let ``nameIR`` be ``xref:tableCustomName[$tableCustomName(tableCustomName)]``.
- .. Check that ``nameIR`` is not equal to ``"size"`` and ``nameIR`` is not equal to ``"largest_priority_wins"`` and ``nameIR`` is not equal to ``"priority_delta"``.
+     ...... Let xref:Eval_static[``+LOCAL+ TC ⊢ typedExpressionIR ↝ value``].
+     ...... Let ``int`` be ``xref:to_number[$to_number(value)]``.
+     ...... Let!~type~ ``n~delta~`` be ``int``.
 
- .. Let xref:Expr_ok[``+LOCAL+ TC ⊢ expression +:+ typedExpressionIR``].
- .. Let ``constOptIR`` be ``xref:flatten_constOpt[$flatten_constOpt(constOpt)]``.
- .. Let ``tablePropertyIR`` be ``annotationList constOptIR +CUSTOM+ nameIR +=+ typedExpressionIR +;+``.
- .. Result in ``TBLC~0'~`` and ``tablePropertyIR``.
+     ...... Check that ``n~delta~`` is greater than ``0``.
+
+     ...... Let ``TBLC~1~`` be ``TBLC~0'~`` with ``+PRIORITIES+.+DELTA+`` set to ``n~delta~``.
+     ...... Let ``constOptIR`` be ``xref:flatten_constOpt[$flatten_constOpt(constOpt)]``.
+     ...... Let ``tablePropertyIR`` be ``annotationList constOptIR +CUSTOM_CONST+ "priority_delta" +=+ +D+ n~delta~ +;+``.
+     ...... Result in ``TBLC~1~`` and ``tablePropertyIR``.
+    ..... {empty}
+     ...... Let ``nameIR`` be ``xref:tableCustomName[$tableCustomName(tableCustomName)]``.
+     ...... Check that ``nameIR`` is not equal to ``"size"`` and ``nameIR`` is not equal to ``"largest_priority_wins"`` and ``nameIR`` is not equal to ``"priority_delta"``.
+
+     ...... Let xref:Expr_ok[``+LOCAL+ TC ⊢ expression +:+ typedExpressionIR``].
+     ...... Let ``constOptIR`` be ``xref:flatten_constOpt[$flatten_constOpt(constOpt)]``.
+     ...... Let ``tablePropertyIR`` be ``annotationList constOptIR +CUSTOM+ nameIR +=+ typedExpressionIR +;+``.
+     ...... Result in ``TBLC~0'~`` and ``tablePropertyIR``.
 
 xref:TableProperties_ok[TableProperties_ok: ``TC TBLC' ⊢ tableProperty^{asterisk}^ +:+ % %``]
 
@@ -7746,46 +7772,49 @@ xref:Decl_ok[Decl_ok: ``p' TC~0~ ⊢ declaration +:+ % %``]
        ........ Let ``typedefDeclarationIR`` be ``annotationList +TYPEDEF+ typeIR nameIR +;+``.
        ........ Result in ``TC~1~`` and ``typedefDeclarationIR``.
     ..... Else:
-     ...... Let xref:Decl_ok[``+GLOBAL+ TC~0~ ⊢ derivedTypeDeclaration +:+ TC~1~ declarationIR``].
-     ...... Let!~type~ ``derivedTypeDeclarationIR`` be ``declarationIR``.
+     ...... Try:
+      ....... {empty}
+       ........ Let xref:Decl_ok[``+GLOBAL+ TC~0~ ⊢ derivedTypeDeclaration +:+ TC~1~ declarationIR``].
+       ........ Let!~type~ ``derivedTypeDeclarationIR`` be ``declarationIR``.
 
-     ...... Let ``set<tid>`` be ``xref:dom_map[$dom_map<tid, typeDefIR>(TC~1~.+GLOBAL+.+TDENV+)]``.
-     ...... Let ``set<tid>'`` be ``xref:dom_map[$dom_map<tid, typeDefIR>(TC~0~.+GLOBAL+.+TDENV+)]``.
-     ...... Let ``+{+tid'^{asterisk}^+}+`` be ``xref:diff_set[$diff_set<tid>(set<tid>, set<tid>')]``.
-     ...... Let!~type~ ``tid`` be ``tid'^{asterisk}^``.
+       ........ Let ``set<tid>`` be ``xref:dom_map[$dom_map<tid, typeDefIR>(TC~1~.+GLOBAL+.+TDENV+)]``.
+       ........ Let ``set<tid>'`` be ``xref:dom_map[$dom_map<tid, typeDefIR>(TC~0~.+GLOBAL+.+TDENV+)]``.
+       ........ Let ``+{+tid'^{asterisk}^+}+`` be ``xref:diff_set[$diff_set<tid>(set<tid>, set<tid>')]``.
+       ........ Let!~type~ ``tid`` be ``tid'^{asterisk}^``.
 
-     ...... Let ``typeDefIR`` be xref:option_get[*!*] ``xref:find_type[$find_type(+GLOBAL+, TC~1~, tid)]``.
-     ...... Let!~type~ ``typeIR`` be ``typeDefIR``.
+       ........ Let ``typeDefIR`` be xref:option_get[*!*] ``xref:find_type[$find_type(+GLOBAL+, TC~1~, tid)]``.
+       ........ Let!~type~ ``typeIR`` be ``typeDefIR``.
 
-     ...... Let ``nameIR`` be ``xref:name[$name(name)]``.
-     ...... Let ``typeIR~typedef~`` be ``+TYPEDEF+ nameIR typeIR``.
-     ...... Let ``bound''''''''''''''''`` be ``xref:bound[$bound(+GLOBAL+, TC~0~)]``.
-     ...... If xref:TypeDef_wf[``bound'''''''''''''''' ⊢ typeIR~typedef~``] holds:
-      ....... Let ``TC~2~`` be ``xref:add_type[$add_type(+GLOBAL+, TC~0~, nameIR, typeIR~typedef~)]``.
-      ....... Let ``typedefDeclarationIR`` be ``annotationList +TYPEDEF+ derivedTypeDeclarationIR nameIR +;+``.
-      ....... Result in ``TC~1~`` and ``typedefDeclarationIR``.
-     ...... Let xref:Decl_ok[``+GLOBAL+ TC~0~ ⊢ derivedTypeDeclaration +:+ TC~1~ declarationIR``].
-     ...... Let!~type~ ``derivedTypeDeclarationIR`` be ``declarationIR``.
+       ........ Let ``nameIR`` be ``xref:name[$name(name)]``.
+       ........ Let ``typeIR~typedef~`` be ``+TYPEDEF+ nameIR typeIR``.
+       ........ Let ``bound''''''''''''''''`` be ``xref:bound[$bound(+GLOBAL+, TC~0~)]``.
+       ........ If xref:TypeDef_wf[``bound'''''''''''''''' ⊢ typeIR~typedef~``] holds:
+        ......... Let ``TC~2~`` be ``xref:add_type[$add_type(+GLOBAL+, TC~0~, nameIR, typeIR~typedef~)]``.
+        ......... Let ``typedefDeclarationIR`` be ``annotationList +TYPEDEF+ derivedTypeDeclarationIR nameIR +;+``.
+        ......... Result in ``TC~1~`` and ``typedefDeclarationIR``.
+      ....... {empty}
+       ........ Let xref:Decl_ok[``+GLOBAL+ TC~0~ ⊢ derivedTypeDeclaration +:+ TC~1~ declarationIR``].
+       ........ Let!~type~ ``derivedTypeDeclarationIR`` be ``declarationIR``.
 
-     ...... Let ``set<tid>''`` be ``xref:dom_map[$dom_map<tid, typeDefIR>(TC~1~.+GLOBAL+.+TDENV+)]``.
-     ...... Let ``set<tid>'''`` be ``xref:dom_map[$dom_map<tid, typeDefIR>(TC~0~.+GLOBAL+.+TDENV+)]``.
-     ...... Let ``+{+tid'^{asterisk}^+}+`` be ``xref:diff_set[$diff_set<tid>(set<tid>'', set<tid>''')]``.
-     ...... Let!~type~ ``tid`` be ``tid'^{asterisk}^``.
+       ........ Let ``set<tid>''`` be ``xref:dom_map[$dom_map<tid, typeDefIR>(TC~1~.+GLOBAL+.+TDENV+)]``.
+       ........ Let ``set<tid>'''`` be ``xref:dom_map[$dom_map<tid, typeDefIR>(TC~0~.+GLOBAL+.+TDENV+)]``.
+       ........ Let ``+{+tid'^{asterisk}^+}+`` be ``xref:diff_set[$diff_set<tid>(set<tid>'', set<tid>''')]``.
+       ........ Let!~type~ ``tid`` be ``tid'^{asterisk}^``.
 
-     ...... Let ``typeDefIR`` be xref:option_get[*!*] ``xref:find_type[$find_type(+GLOBAL+, TC~1~, tid)]``.
-     ...... Let!~type~ ``typeIR +<+tid''^{asterisk}^ +,+ tid'''^{asterisk}^+>+`` be ``typeDefIR``.
+       ........ Let ``typeDefIR`` be xref:option_get[*!*] ``xref:find_type[$find_type(+GLOBAL+, TC~1~, tid)]``.
+       ........ Let!~type~ ``typeIR +<+tid''^{asterisk}^ +,+ tid'''^{asterisk}^+>+`` be ``typeDefIR``.
 
-     ...... Check that ``tid''^{asterisk}^`` is an empty list.
+       ........ Check that ``tid''^{asterisk}^`` is an empty list.
 
-     ...... Check that ``tid'''^{asterisk}^`` is an empty list.
+       ........ Check that ``tid'''^{asterisk}^`` is an empty list.
 
-     ...... Let ``nameIR`` be ``xref:name[$name(name)]``.
-     ...... Let ``typeIR~typedef~`` be ``+TYPEDEF+ nameIR typeIR +<+· +,+ ·+>+ +<+·+>+``.
-     ...... Let ``bound'''''''''''''''''`` be ``xref:bound[$bound(+GLOBAL+, TC~0~)]``.
-     ...... If xref:TypeDef_wf[``bound''''''''''''''''' ⊢ typeIR~typedef~``] holds:
-      ....... Let ``TC~2~`` be ``xref:add_type[$add_type(+GLOBAL+, TC~0~, nameIR, typeIR~typedef~)]``.
-      ....... Let ``typedefDeclarationIR`` be ``annotationList +TYPEDEF+ derivedTypeDeclarationIR nameIR +;+``.
-      ....... Result in ``TC~1~`` and ``typedefDeclarationIR``.
+       ........ Let ``nameIR`` be ``xref:name[$name(name)]``.
+       ........ Let ``typeIR~typedef~`` be ``+TYPEDEF+ nameIR typeIR +<+· +,+ ·+>+ +<+·+>+``.
+       ........ Let ``bound'''''''''''''''''`` be ``xref:bound[$bound(+GLOBAL+, TC~0~)]``.
+       ........ If xref:TypeDef_wf[``bound''''''''''''''''' ⊢ typeIR~typedef~``] holds:
+        ......... Let ``TC~2~`` be ``xref:add_type[$add_type(+GLOBAL+, TC~0~, nameIR, typeIR~typedef~)]``.
+        ......... Let ``typedefDeclarationIR`` be ``annotationList +TYPEDEF+ derivedTypeDeclarationIR nameIR +;+``.
+        ......... Result in ``TC~1~`` and ``typedefDeclarationIR``.
    .... Else:
     ..... Let xref:Type_ok[``+GLOBAL+ TC~0~ ⊢ type +:+ typeIR +#+ tid^{asterisk}^``].
     ..... Check that ``tid^{asterisk}^`` is an empty list.
@@ -7876,19 +7905,17 @@ xref:Call_convention_expr_ok[Call_convention_expr_ok: ``p TC actctxt ⊢ directi
 
 . Try:
  .. {empty}
-  ... If ``direction`` matches pattern ``+IN+``:
-   .... Let ``typedExpressionIR~arg_cast~`` be xref:option_get[*!*] ``xref:coerce_unary[$coerce_unary(typedExpressionIR~arg~, typeIR~param~)]``.
-   .... Result in ``typedExpressionIR~arg_cast~``.
-  ... Else if ``direction`` matches pattern ``+OUT+``:
-   .... Let ``++_++ +#+ +(+typeIR~arg~ ++_+++)+`` be ``typedExpressionIR~arg~``.
-   .... If xref:Type_alpha[``typeIR~param~ +~~+ typeIR~arg~``] holds:
-    ..... If xref:Expr_lvalue_ok[``p TC ⊢ typedExpressionIR~arg~``] holds:
-     ...... Result in ``typedExpressionIR~arg~``.
-  ... Else if ``direction`` matches pattern ``+INOUT+``:
-   .... Let ``++_++ +#+ +(+typeIR~arg~ ++_+++)+`` be ``typedExpressionIR~arg~``.
-   .... If xref:Type_alpha[``typeIR~param~ +~~+ typeIR~arg~``] holds:
-    ..... If xref:Expr_lvalue_ok[``p TC ⊢ typedExpressionIR~arg~``] holds:
-     ...... Result in ``typedExpressionIR~arg~``.
+  ... Check that ``direction`` matches pattern ``+IN+``.
+
+  ... Let ``typedExpressionIR~arg_cast~`` be xref:option_get[*!*] ``xref:coerce_unary[$coerce_unary(typedExpressionIR~arg~, typeIR~param~)]``.
+  ... Result in ``typedExpressionIR~arg_cast~``.
+ .. {empty}
+  ... Check that ``direction`` is equal to ``+OUT+`` or ``direction`` is equal to ``+INOUT+``.
+
+  ... Let ``++_++ +#+ +(+typeIR~arg~ ++_+++)+`` be ``typedExpressionIR~arg~``.
+  ... If xref:Type_alpha[``typeIR~param~ +~~+ typeIR~arg~``] holds:
+   .... If xref:Expr_lvalue_ok[``p TC ⊢ typedExpressionIR~arg~``] holds:
+    ..... Result in ``typedExpressionIR~arg~``.
  .. {empty}
   ... If ``actctxt`` matches pattern ``+ACTION+``:
    .... Check that ``direction`` matches pattern ````.
@@ -8005,42 +8032,43 @@ xref:RoutineType_ok[RoutineType_ok: ``p TC ⊢ routineTargetIR'' +<+typeArgument
    .... Result in ``functionTypeIR``, ``tid~impl~^{asterisk}^``, and ``id~default~^{asterisk}^``.
  .. {empty}
   ... If let ``typedExpressionIR~base~ +.+ nameIR`` be ``routineTargetIR''``:
-   .... Check that ``typeArgumentIR^{asterisk}^`` is an empty list.
-
-   .... If ``argumentIR''^{asterisk}^`` matches pattern ``[]``:
-    ..... If ``nameIR`` is in ``+[+ "minSizeInBits", "minSizeInBytes", "maxSizeInBits", "maxSizeInBytes" +]+``:
-     ...... Let ``methodTypeIR`` be ``+BUILTIN_METHOD+ +(+·+)+ +->+ +INT+``.
-     ...... Result in ``methodTypeIR``, ``·``, and ``·``.
-    ..... Else if ``nameIR`` is in ``"isValid"``:
-     ...... Let ``++_++ +#+ +(+typeIR~base~ ++_+++)+`` be ``typedExpressionIR~base~``.
-     ...... Let ``typeIR`` be ``xref:canon[$canon(typeIR~base~)]``.
-     ...... If let ``+HEADER+ ++_++ +{+++_++^{asterisk}^+}+`` be ``typeIR``:
-      ....... Let ``methodTypeIR`` be ``+BUILTIN_METHOD+ +(+·+)+ +->+ +BOOL+``.
-      ....... Result in ``methodTypeIR``, ``·``, and ``·``.
-     ...... Else if let ``+HEADER_UNION+ ++_++ +{+++_++^{asterisk}^+}+`` be ``typeIR``:
-      ....... Let ``methodTypeIR`` be ``+BUILTIN_METHOD+ +(+·+)+ +->+ +BOOL+``.
-      ....... Result in ``methodTypeIR``, ``·``, and ``·``.
-    ..... Else if ``nameIR`` is in ``+[+ "setValid", "setInvalid" +]+``:
-     ...... Let ``++_++ +#+ +(+typeIR~base~ ++_+++)+`` be ``typedExpressionIR~base~``.
-     ...... Let ``typeIR`` be ``xref:canon[$canon(typeIR~base~)]``.
-     ...... Let!~type~ ``+HEADER+ ++_++ +{+++_++^{asterisk}^+}+`` be ``typeIR``.
-
-     ...... Let ``methodTypeIR`` be ``+BUILTIN_METHOD+ +(+·+)+ +->+ +VOID+``.
-     ...... Result in ``methodTypeIR``, ``·``, and ``·``.
-   .... Else if let ``argumentIR`` be ``argumentIR''^{asterisk}^``:
-    ..... Check that ``nameIR`` is in ``+[+ "push_front", "pop_front" +]+``.
-
-    ..... Let ``++_++ +#+ +(+typeIR~base~ ++_+++)+`` be ``typedExpressionIR~base~``.
-    ..... Let ``typeIR'`` be ``xref:canon[$canon(typeIR~base~)]``.
-    ..... Let!~type~ ``typeIR +[+++_+++]+`` be ``typeIR'``.
-
-    ..... Let ``parameterTypeIR`` be ``+INT+ "count" ·``.
-    ..... Let ``methodTypeIR`` be ``+BUILTIN_METHOD+ +(+parameterTypeIR+)+ +->+ +INT+``.
-    ..... Result in ``methodTypeIR``, ``·``, and ``·``.
-   .... Let ``++_++ +#+ +(+typeIR~base~ ++_+++)+`` be ``typedExpressionIR~base~``.
-   .... Let ``typeIR`` be ``xref:canon[$canon(typeIR~base~)]``.
    .... Try:
     ..... {empty}
+     ...... Check that ``typeArgumentIR^{asterisk}^`` is an empty list.
+
+     ...... If ``argumentIR''^{asterisk}^`` matches pattern ``[]``:
+      ....... If ``nameIR`` is in ``+[+ "minSizeInBits", "minSizeInBytes", "maxSizeInBits", "maxSizeInBytes" +]+``:
+       ........ Let ``methodTypeIR`` be ``+BUILTIN_METHOD+ +(+·+)+ +->+ +INT+``.
+       ........ Result in ``methodTypeIR``, ``·``, and ``·``.
+      ....... Else if ``nameIR`` is in ``"isValid"``:
+       ........ Let ``++_++ +#+ +(+typeIR~base~ ++_+++)+`` be ``typedExpressionIR~base~``.
+       ........ Let ``typeIR`` be ``xref:canon[$canon(typeIR~base~)]``.
+       ........ If let ``+HEADER+ ++_++ +{+++_++^{asterisk}^+}+`` be ``typeIR``:
+        ......... Let ``methodTypeIR`` be ``+BUILTIN_METHOD+ +(+·+)+ +->+ +BOOL+``.
+        ......... Result in ``methodTypeIR``, ``·``, and ``·``.
+       ........ Else if let ``+HEADER_UNION+ ++_++ +{+++_++^{asterisk}^+}+`` be ``typeIR``:
+        ......... Let ``methodTypeIR`` be ``+BUILTIN_METHOD+ +(+·+)+ +->+ +BOOL+``.
+        ......... Result in ``methodTypeIR``, ``·``, and ``·``.
+      ....... Else if ``nameIR`` is in ``+[+ "setValid", "setInvalid" +]+``:
+       ........ Let ``++_++ +#+ +(+typeIR~base~ ++_+++)+`` be ``typedExpressionIR~base~``.
+       ........ Let ``typeIR`` be ``xref:canon[$canon(typeIR~base~)]``.
+       ........ Let!~type~ ``+HEADER+ ++_++ +{+++_++^{asterisk}^+}+`` be ``typeIR``.
+
+       ........ Let ``methodTypeIR`` be ``+BUILTIN_METHOD+ +(+·+)+ +->+ +VOID+``.
+       ........ Result in ``methodTypeIR``, ``·``, and ``·``.
+     ...... Else if let ``argumentIR`` be ``argumentIR''^{asterisk}^``:
+      ....... Check that ``nameIR`` is in ``+[+ "push_front", "pop_front" +]+``.
+
+      ....... Let ``++_++ +#+ +(+typeIR~base~ ++_+++)+`` be ``typedExpressionIR~base~``.
+      ....... Let ``typeIR'`` be ``xref:canon[$canon(typeIR~base~)]``.
+      ....... Let!~type~ ``typeIR +[+++_+++]+`` be ``typeIR'``.
+
+      ....... Let ``parameterTypeIR`` be ``+INT+ "count" ·``.
+      ....... Let ``methodTypeIR`` be ``+BUILTIN_METHOD+ +(+parameterTypeIR+)+ +->+ +INT+``.
+      ....... Result in ``methodTypeIR``, ``·``, and ``·``.
+    ..... {empty}
+     ...... Let ``++_++ +#+ +(+typeIR~base~ ++_+++)+`` be ``typedExpressionIR~base~``.
+     ...... Let ``typeIR`` be ``xref:canon[$canon(typeIR~base~)]``.
      ...... Let!~type~ ``+EXTERN+ ++_++ +{+( rid~f~ +:+ routineTypeDefIR~f~ )^{asterisk}^+}+`` be ``typeIR``.
 
      ...... Let ``id~arg~^?^^{asterisk}^`` be ``xref:ids_arguments[$ids_arguments(argumentIR''^{asterisk}^)]``.
@@ -8057,10 +8085,10 @@ xref:RoutineType_ok[RoutineType_ok: ``p TC ⊢ routineTargetIR'' +<+typeArgument
 
      ...... Check that ``typeArgumentIR^{asterisk}^`` is an empty list.
 
-     ...... Let ``++_++ +#+ +(+typeIR~base~ ++_+++)+`` be ``typedExpressionIR~base~``.
-     ...... Let ``typeIR`` be ``xref:canon[$canon(typeIR~base~)]``.
      ...... Try:
       ....... {empty}
+       ........ Let ``++_++ +#+ +(+typeIR~base~ ++_+++)+`` be ``typedExpressionIR~base~``.
+       ........ Let ``typeIR`` be ``xref:canon[$canon(typeIR~base~)]``.
        ........ If let ``+PARSER+ +(+parameterTypeIR^{asterisk}^+)+`` be ``typeIR``:
         ......... Let ``methodTypeIR`` be ``+PARSER_APPLY+ +(+parameterTypeIR^{asterisk}^+)+``.
         ......... Let ``++_++ ++_++ id~param~ value~param~^?^`` be ``parameterTypeIR``, for all ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``id~param~`` in ``id~param~^{asterisk}^``, ``parameterTypeIR`` in ``parameterTypeIR^{asterisk}^``, and ``value~param~^?^`` in ``value~param~^?^^{asterisk}^``.
@@ -8271,53 +8299,56 @@ xref:ConstructorType_ok[ConstructorType_ok: ``p TC ⊢ prefixedNameIR +<+typeArg
 
 xref:Inst_ok[Inst_ok: ``cursor' TC instctxt ⊢ constructorTypeIR +<+typeArgumentIR^{asterisk}^ +#+ tid~infer~^{asterisk}^+>+ +(+argumentIR^{asterisk}^ +#+ id~default~^{asterisk}^+)+ +:+ % +<+%+>+ +(+%+)+``]
 
-. Check that ``cursor'`` matches pattern ``+GLOBAL+``.
+. Try:
+ .. {empty}
+  ... Check that ``cursor'`` matches pattern ``+GLOBAL+``.
 
-. Let ``+CONSTRUCTOR+ +(+parameterTypeIR^{asterisk}^+)+ +->+ typeIR~object~`` be ``constructorTypeIR``.
-. Let ``typeIR`` be ``xref:canon[$canon(typeIR~object~)]``.
-. Let!~type~ ``+PACKAGE+ +<+++_++^{asterisk}^+>+`` be ``typeIR``.
+  ... Let ``+CONSTRUCTOR+ +(+parameterTypeIR^{asterisk}^+)+ +->+ typeIR~object~`` be ``constructorTypeIR``.
+  ... Let ``typeIR`` be ``xref:canon[$canon(typeIR~object~)]``.
+  ... Let!~type~ ``+PACKAGE+ +<+++_++^{asterisk}^+>+`` be ``typeIR``.
 
-. Let ``parameterTypeIR~non_default~^{asterisk}^`` be ``xref:filter_default_parameters[$filter_default_parameters(parameterTypeIR^{asterisk}^, id~default~^{asterisk}^)]``.
-. Check that the length of ``parameterTypeIR~non_default~^{asterisk}^`` is equal to the length of ``argumentIR^{asterisk}^``.
+  ... Let ``parameterTypeIR~non_default~^{asterisk}^`` be ``xref:filter_default_parameters[$filter_default_parameters(parameterTypeIR^{asterisk}^, id~default~^{asterisk}^)]``.
+  ... Check that the length of ``parameterTypeIR~non_default~^{asterisk}^`` is equal to the length of ``argumentIR^{asterisk}^``.
 
-. Let ``parameterTypeIR~aligned~^{asterisk}^`` be ``xref:align_parameters[$align_parameters(parameterTypeIR~non_default~^{asterisk}^, argumentIR^{asterisk}^)]``.
-. Let ``inference`` be ``xref:infer[$infer(tid~infer~^{asterisk}^, parameterTypeIR~aligned~^{asterisk}^, argumentIR^{asterisk}^)]``.
-. Let ``typeIR'^?^`` be ``xref:find_map[$find_map<tid, typeIR>(inference, tid~infer~)]``, for all ``tid~infer~`` in ``tid~infer~^{asterisk}^`` and ``typeIR'^?^`` in ``typeIR'^?^^{asterisk}^``.
-. Check that ``typeIR'^?^`` is defined, for all ``typeIR'^?^`` in ``typeIR'^?^^{asterisk}^``.
+  ... Let ``parameterTypeIR~aligned~^{asterisk}^`` be ``xref:align_parameters[$align_parameters(parameterTypeIR~non_default~^{asterisk}^, argumentIR^{asterisk}^)]``.
+  ... Let ``inference`` be ``xref:infer[$infer(tid~infer~^{asterisk}^, parameterTypeIR~aligned~^{asterisk}^, argumentIR^{asterisk}^)]``.
+  ... Let ``typeIR'^?^`` be ``xref:find_map[$find_map<tid, typeIR>(inference, tid~infer~)]``, for all ``tid~infer~`` in ``tid~infer~^{asterisk}^`` and ``typeIR'^?^`` in ``typeIR'^?^^{asterisk}^``.
+  ... Check that ``typeIR'^?^`` is defined, for all ``typeIR'^?^`` in ``typeIR'^?^^{asterisk}^``.
 
-. Let ``typeIR~inferred~`` be ``typeIR'^?^``, for all ``typeIR'^?^`` in ``typeIR'^?^^{asterisk}^`` and ``typeIR~inferred~`` in ``typeIR~inferred~^{asterisk}^``.
-. Let ``typeArgumentIR~inferred~^{asterisk}^`` be ``typeArgumentIR^{asterisk}^`` concatenated with ``typeIR~inferred~^{asterisk}^``.
-. Let ``parameterTypeIR~aligned_inferred~`` be ``xref:subst_parameterType[$subst_parameterType(inference, parameterTypeIR~aligned~)]``, for all ``parameterTypeIR~aligned~`` in ``parameterTypeIR~aligned~^{asterisk}^`` and ``parameterTypeIR~aligned_inferred~`` in ``parameterTypeIR~aligned_inferred~^{asterisk}^``.
-. Let ``typeIR~object_inferred~`` be ``xref:subst_type[$subst_type(inference, typeIR~object~)]``.
-. Let ``constructorTypeIR~inferred~`` be ``+CONSTRUCTOR+ +(+parameterTypeIR~aligned_inferred~^{asterisk}^+)+ +->+ typeIR~object_inferred~``.
-. Let ``bound`` be ``xref:bound[$bound(+GLOBAL+, TC)]``.
-. If xref:ConstructorType_wf[``bound ⊢ constructorTypeIR~inferred~``] holds:
- .. Check that ``xref:instantiable[$instantiable(+GLOBAL+, TC, instctxt, typeIR~object_inferred~)]``.
+  ... Let ``typeIR~inferred~`` be ``typeIR'^?^``, for all ``typeIR'^?^`` in ``typeIR'^?^^{asterisk}^`` and ``typeIR~inferred~`` in ``typeIR~inferred~^{asterisk}^``.
+  ... Let ``typeArgumentIR~inferred~^{asterisk}^`` be ``typeArgumentIR^{asterisk}^`` concatenated with ``typeIR~inferred~^{asterisk}^``.
+  ... Let ``parameterTypeIR~aligned_inferred~`` be ``xref:subst_parameterType[$subst_parameterType(inference, parameterTypeIR~aligned~)]``, for all ``parameterTypeIR~aligned~`` in ``parameterTypeIR~aligned~^{asterisk}^`` and ``parameterTypeIR~aligned_inferred~`` in ``parameterTypeIR~aligned_inferred~^{asterisk}^``.
+  ... Let ``typeIR~object_inferred~`` be ``xref:subst_type[$subst_type(inference, typeIR~object~)]``.
+  ... Let ``constructorTypeIR~inferred~`` be ``+CONSTRUCTOR+ +(+parameterTypeIR~aligned_inferred~^{asterisk}^+)+ +->+ typeIR~object_inferred~``.
+  ... Let ``bound`` be ``xref:bound[$bound(+GLOBAL+, TC)]``.
+  ... If xref:ConstructorType_wf[``bound ⊢ constructorTypeIR~inferred~``] holds:
+   .... Check that ``xref:instantiable[$instantiable(+GLOBAL+, TC, instctxt, typeIR~object_inferred~)]``.
 
- .. Let xref:Call_convention_ok[``+BLOCK+ TC +NOACTION+ ⊢ parameterTypeIR~aligned_inferred~^{asterisk}^ +@+ argumentIR^{asterisk}^ +:+ argumentIR~cast~^{asterisk}^``].
- .. Result in ``typeIR~object_inferred~``, ``typeArgumentIR~inferred~^{asterisk}^``, and ``argumentIR~cast~^{asterisk}^``.
-. Let ``+CONSTRUCTOR+ +(+parameterTypeIR^{asterisk}^+)+ +->+ typeIR~object~`` be ``constructorTypeIR``.
-. Check that ``~xref:is_package_object_typeIR[$is_package_object_typeIR($canon(typeIR~object~))]``.
+   .... Let xref:Call_convention_ok[``+BLOCK+ TC +NOACTION+ ⊢ parameterTypeIR~aligned_inferred~^{asterisk}^ +@+ argumentIR^{asterisk}^ +:+ argumentIR~cast~^{asterisk}^``].
+   .... Result in ``typeIR~object_inferred~``, ``typeArgumentIR~inferred~^{asterisk}^``, and ``argumentIR~cast~^{asterisk}^``.
+ .. {empty}
+  ... Let ``+CONSTRUCTOR+ +(+parameterTypeIR^{asterisk}^+)+ +->+ typeIR~object~`` be ``constructorTypeIR``.
+  ... Check that ``~xref:is_package_object_typeIR[$is_package_object_typeIR($canon(typeIR~object~))]``.
 
-. Let ``parameterTypeIR~non_default~^{asterisk}^`` be ``xref:filter_default_parameters[$filter_default_parameters(parameterTypeIR^{asterisk}^, id~default~^{asterisk}^)]``.
-. Check that the length of ``parameterTypeIR~non_default~^{asterisk}^`` is equal to the length of ``argumentIR^{asterisk}^``.
+  ... Let ``parameterTypeIR~non_default~^{asterisk}^`` be ``xref:filter_default_parameters[$filter_default_parameters(parameterTypeIR^{asterisk}^, id~default~^{asterisk}^)]``.
+  ... Check that the length of ``parameterTypeIR~non_default~^{asterisk}^`` is equal to the length of ``argumentIR^{asterisk}^``.
 
-. Let ``parameterTypeIR~aligned~^{asterisk}^`` be ``xref:align_parameters[$align_parameters(parameterTypeIR~non_default~^{asterisk}^, argumentIR^{asterisk}^)]``.
-. Let ``inference`` be ``xref:infer[$infer(tid~infer~^{asterisk}^, parameterTypeIR~aligned~^{asterisk}^, argumentIR^{asterisk}^)]``.
-. Let ``typeIR^?^`` be ``xref:find_map[$find_map<tid, typeIR>(inference, tid~infer~)]``, for all ``tid~infer~`` in ``tid~infer~^{asterisk}^`` and ``typeIR^?^`` in ``typeIR^?^^{asterisk}^``.
-. Check that ``typeIR^?^`` is defined, for all ``typeIR^?^`` in ``typeIR^?^^{asterisk}^``.
+  ... Let ``parameterTypeIR~aligned~^{asterisk}^`` be ``xref:align_parameters[$align_parameters(parameterTypeIR~non_default~^{asterisk}^, argumentIR^{asterisk}^)]``.
+  ... Let ``inference`` be ``xref:infer[$infer(tid~infer~^{asterisk}^, parameterTypeIR~aligned~^{asterisk}^, argumentIR^{asterisk}^)]``.
+  ... Let ``typeIR^?^`` be ``xref:find_map[$find_map<tid, typeIR>(inference, tid~infer~)]``, for all ``tid~infer~`` in ``tid~infer~^{asterisk}^`` and ``typeIR^?^`` in ``typeIR^?^^{asterisk}^``.
+  ... Check that ``typeIR^?^`` is defined, for all ``typeIR^?^`` in ``typeIR^?^^{asterisk}^``.
 
-. Let ``typeIR~inferred~`` be ``typeIR^?^``, for all ``typeIR^?^`` in ``typeIR^?^^{asterisk}^`` and ``typeIR~inferred~`` in ``typeIR~inferred~^{asterisk}^``.
-. Let ``typeArgumentIR~inferred~^{asterisk}^`` be ``typeArgumentIR^{asterisk}^`` concatenated with ``typeIR~inferred~^{asterisk}^``.
-. Let ``parameterTypeIR~aligned_inferred~`` be ``xref:subst_parameterType[$subst_parameterType(inference, parameterTypeIR~aligned~)]``, for all ``parameterTypeIR~aligned~`` in ``parameterTypeIR~aligned~^{asterisk}^`` and ``parameterTypeIR~aligned_inferred~`` in ``parameterTypeIR~aligned_inferred~^{asterisk}^``.
-. Let ``typeIR~object_inferred~`` be ``xref:subst_type[$subst_type(inference, typeIR~object~)]``.
-. Let ``constructorTypeIR~inferred~`` be ``+CONSTRUCTOR+ +(+parameterTypeIR~aligned_inferred~^{asterisk}^+)+ +->+ typeIR~object_inferred~``.
-. Let ``bound'`` be ``xref:bound[$bound(cursor', TC)]``.
-. If xref:ConstructorType_wf[``bound' ⊢ constructorTypeIR~inferred~``] holds:
- .. Check that ``xref:instantiable[$instantiable(cursor', TC, instctxt, typeIR~object_inferred~)]``.
+  ... Let ``typeIR~inferred~`` be ``typeIR^?^``, for all ``typeIR^?^`` in ``typeIR^?^^{asterisk}^`` and ``typeIR~inferred~`` in ``typeIR~inferred~^{asterisk}^``.
+  ... Let ``typeArgumentIR~inferred~^{asterisk}^`` be ``typeArgumentIR^{asterisk}^`` concatenated with ``typeIR~inferred~^{asterisk}^``.
+  ... Let ``parameterTypeIR~aligned_inferred~`` be ``xref:subst_parameterType[$subst_parameterType(inference, parameterTypeIR~aligned~)]``, for all ``parameterTypeIR~aligned~`` in ``parameterTypeIR~aligned~^{asterisk}^`` and ``parameterTypeIR~aligned_inferred~`` in ``parameterTypeIR~aligned_inferred~^{asterisk}^``.
+  ... Let ``typeIR~object_inferred~`` be ``xref:subst_type[$subst_type(inference, typeIR~object~)]``.
+  ... Let ``constructorTypeIR~inferred~`` be ``+CONSTRUCTOR+ +(+parameterTypeIR~aligned_inferred~^{asterisk}^+)+ +->+ typeIR~object_inferred~``.
+  ... Let ``bound'`` be ``xref:bound[$bound(cursor', TC)]``.
+  ... If xref:ConstructorType_wf[``bound' ⊢ constructorTypeIR~inferred~``] holds:
+   .... Check that ``xref:instantiable[$instantiable(cursor', TC, instctxt, typeIR~object_inferred~)]``.
 
- .. Let xref:Call_convention_ok[``cursor' TC +NOACTION+ ⊢ parameterTypeIR~aligned_inferred~^{asterisk}^ +@+ argumentIR^{asterisk}^ +:+ argumentIR~cast~^{asterisk}^``].
- .. Result in ``typeIR~object_inferred~``, ``typeArgumentIR~inferred~^{asterisk}^``, and ``argumentIR~cast~^{asterisk}^``.
+   .... Let xref:Call_convention_ok[``cursor' TC +NOACTION+ ⊢ parameterTypeIR~aligned_inferred~^{asterisk}^ +@+ argumentIR^{asterisk}^ +:+ argumentIR~cast~^{asterisk}^``].
+   .... Result in ``typeIR~object_inferred~``, ``typeArgumentIR~inferred~^{asterisk}^``, and ``argumentIR~cast~^{asterisk}^``.
 
 xref:reduce_serenum_unary[$reduce_serenum_unary(typedExpressionIR, $check)]
 
@@ -8990,24 +9021,27 @@ xref:Decls_object_ok[Decls_object_ok: ``p TC frame' rdenv' ⊢ objectDeclaration
 
 xref:subst_rdenv[$subst_rdenv(theta, rdenv~extern~, set<pair<rid, routineTypeDefIR>>')]
 
-. Check that ``set<pair<rid, routineTypeDefIR>>'`` is equal to ``+{+·+}+``.
+. Try:
+ .. {empty}
+  ... Check that ``set<pair<rid, routineTypeDefIR>>'`` is equal to ``+{+·+}+``.
 
-. Return ``rdenv~extern~``.
-. Let ``+{+pair<rid, routineTypeDefIR>^{asterisk}^+}+`` be ``set<pair<rid, routineTypeDefIR>>'``.
-. Let!~type~ ``rid~init_h~ +:+ routineTypeDefIR~init_h~ {two-colons} ( rid~init_t~ +:+ routineTypeDefIR~init_t~ )^{asterisk}^`` be ``pair<rid, routineTypeDefIR>^{asterisk}^``.
+  ... Return ``rdenv~extern~``.
+ .. {empty}
+  ... Let ``+{+pair<rid, routineTypeDefIR>^{asterisk}^+}+`` be ``set<pair<rid, routineTypeDefIR>>'``.
+  ... Let!~type~ ``rid~init_h~ +:+ routineTypeDefIR~init_h~ {two-colons} ( rid~init_t~ +:+ routineTypeDefIR~init_t~ )^{asterisk}^`` be ``pair<rid, routineTypeDefIR>^{asterisk}^``.
 
-. Let ``routineTypeDefIR'`` be xref:option_get[*!*] ``xref:find_map[$find_map<rid, routineTypeDefIR>(rdenv~extern~, rid~init_h~)]``.
-. Let!~type~ ``routineTypeIR +<+tid~expl~^{asterisk}^ +,+ tid~impl~^{asterisk}^+>+`` be ``routineTypeDefIR'``.
+  ... Let ``routineTypeDefIR'`` be xref:option_get[*!*] ``xref:find_map[$find_map<rid, routineTypeDefIR>(rdenv~extern~, rid~init_h~)]``.
+  ... Let!~type~ ``routineTypeIR +<+tid~expl~^{asterisk}^ +,+ tid~impl~^{asterisk}^+>+`` be ``routineTypeDefIR'``.
 
-. Let!~type~ ``methodTypeIR`` be ``routineTypeIR``.
+  ... Let!~type~ ``methodTypeIR`` be ``routineTypeIR``.
 
-. Let!~type~ ``+EXTERN_METHOD+ +ABSTRACT+ +(+parameterTypeIR^{asterisk}^+)+ +->+ typeIR~ret~`` be ``methodTypeIR``.
+  ... Let!~type~ ``+EXTERN_METHOD+ +ABSTRACT+ +(+parameterTypeIR^{asterisk}^+)+ +->+ typeIR~ret~`` be ``methodTypeIR``.
 
-. Let ``routineTypeDefIR`` be ``+EXTERN_METHOD+ +(+parameterTypeIR^{asterisk}^+)+ +->+ typeIR~ret~ +<+tid~expl~^{asterisk}^ +,+ tid~impl~^{asterisk}^+>+``.
-. Let ``routineTypeDefIR~subst~`` be ``xref:subst_routineTypeDef[$subst_routineTypeDef(theta, routineTypeDefIR)]``.
-. If xref:RoutineTypeDef_alpha[``routineTypeDefIR~subst~ +~~+ routineTypeDefIR~init_h~``] holds:
- .. Let ``rdenv~extern_subst~`` be ``xref:update_map[$update_map<rid, routineTypeDefIR>(rdenv~extern~, rid~init_h~, routineTypeDefIR~subst~)]``.
- .. Return ``xref:subst_rdenv[$subst_rdenv(theta, rdenv~extern_subst~, +{+( rid~init_t~ +:+ routineTypeDefIR~init_t~ )^{asterisk}^+}+)]``.
+  ... Let ``routineTypeDefIR`` be ``+EXTERN_METHOD+ +(+parameterTypeIR^{asterisk}^+)+ +->+ typeIR~ret~ +<+tid~expl~^{asterisk}^ +,+ tid~impl~^{asterisk}^+>+``.
+  ... Let ``routineTypeDefIR~subst~`` be ``xref:subst_routineTypeDef[$subst_routineTypeDef(theta, routineTypeDefIR)]``.
+  ... If xref:RoutineTypeDef_alpha[``routineTypeDefIR~subst~ +~~+ routineTypeDefIR~init_h~``] holds:
+   .... Let ``rdenv~extern_subst~`` be ``xref:update_map[$update_map<rid, routineTypeDefIR>(rdenv~extern~, rid~init_h~, routineTypeDefIR~subst~)]``.
+   .... Return ``xref:subst_rdenv[$subst_rdenv(theta, rdenv~extern_subst~, +{+( rid~init_t~ +:+ routineTypeDefIR~init_t~ )^{asterisk}^+}+)]``.
 
 xref:split_constructors[$split_constructors(methodPrototype^{asterisk}^)]
 
@@ -9300,20 +9334,16 @@ xref:compat'_table_lpm_ternary_range_key[$compat'_table_lpm_ternary_range_key(ty
 
 xref:compat_table_key[$compat_table_key(nameIR, typeIR)]
 
-. If ``nameIR`` is equal to ``"exact"``:
- .. Check that ``xref:compat_table_exact_optional_key[$compat_table_exact_optional_key(typeIR)]``.
+. Try:
+ .. {empty}
+  ... Check that ``nameIR`` is equal to ``"exact"`` or ``nameIR`` is equal to ``"optional"``.
+
+  ... Check that ``xref:compat_table_exact_optional_key[$compat_table_exact_optional_key(typeIR)]``.
  return ``true``.
-. Else if ``nameIR`` is equal to ``"optional"``:
- .. Check that ``xref:compat_table_exact_optional_key[$compat_table_exact_optional_key(typeIR)]``.
- return ``true``.
-. Else if ``nameIR`` is equal to ``"lpm"``:
- .. Check that ``xref:compat_table_lpm_ternary_range_key[$compat_table_lpm_ternary_range_key(typeIR)]``.
- return ``true``.
-. Else if ``nameIR`` is equal to ``"ternary"``:
- .. Check that ``xref:compat_table_lpm_ternary_range_key[$compat_table_lpm_ternary_range_key(typeIR)]``.
- return ``true``.
-. Else:
- .. Check that ``xref:compat_table_lpm_ternary_range_key[$compat_table_lpm_ternary_range_key(typeIR)]``.
+ .. {empty}
+  ... Check that ``nameIR`` is equal to ``"lpm"`` or ``nameIR`` is equal to ``"ternary"`` or ``nameIR`` is equal to ``"range"``.
+
+  ... Check that ``xref:compat_table_lpm_ternary_range_key[$compat_table_lpm_ternary_range_key(typeIR)]``.
  return ``true``.
 
 . Otherwise:
@@ -9497,12 +9527,13 @@ xref:align_parameters[$align_parameters(parameterTypeIR^{asterisk}^, argumentIR^
 
 xref:align_parameters'[$align_parameters'(++_++, parameterTypeIR', argumentIR)]
 
-. Let!~type~ ``typedExpressionIR`` be ``argumentIR``.
-
-. Return ``parameterTypeIR'``.
-. Let ``+{+( id~param~ +:+ parameterTypeIR )^{asterisk}^+}+`` be ``++_++``.
 . Try:
  .. {empty}
+  ... Let!~type~ ``typedExpressionIR`` be ``argumentIR``.
+
+  ... Return ``parameterTypeIR'``.
+ .. {empty}
+  ... Let ``+{+( id~param~ +:+ parameterTypeIR )^{asterisk}^+}+`` be ``++_++``.
   ... If let ``nameIR +=+ ++_++`` be ``argumentIR``:
    .... Return ``xref:find_map[$find_map<id, parameterTypeIR>(+{+( id~param~ +:+ parameterTypeIR )^{asterisk}^+}+, nameIR)]``.
   ... Else if let ``nameIR +=+ +_+`` be ``argumentIR``:
@@ -9526,9 +9557,9 @@ xref:Expr_lvalue_ok[Expr_lvalue_ok: ``p TC ⊢ expressionIR +#+ +(+++_++ ++_+++)
 
  .. If xref:Expr_lvalue_ok[``p TC ⊢ typedExpressionIR~base~``] holds:
   ... Let ``++_++ +#+ +(+typeIR~base~ ++_+++)+`` be ``typedExpressionIR~base~``.
-  ... Let ``typeIR'`` be ``xref:canon[$canon(typeIR~base~)]``.
   ... Try:
    .... {empty}
+    ..... Let ``typeIR'`` be ``xref:canon[$canon(typeIR~base~)]``.
     ..... Let!~type~ ``typeIR +[+++_+++]+`` be ``typeIR'``.
 
     ..... Check that ``nameIR`` is equal to ``"next"`` or ``nameIR`` is equal to ``"last"``.
@@ -9753,37 +9784,46 @@ xref:merge_constraint'[$merge_constraint'(constraint~pre~, constraint~post~, tid
 . If ``tid^{asterisk}^`` matches pattern ``[]``:
  .. Return ``constraint``.
 . Else:
- .. Check that ``+UNKNOWN+`` is equal to ``xref:find_map[$find_map<tid, infer>(constraint~pre~, tid~h~)]``.
-
- .. Check that ``+UNKNOWN+`` is equal to ``xref:find_map[$find_map<tid, infer>(constraint~post~, tid~h~)]``.
-
- .. Let ``constraint~updated~`` be ``xref:update_map[$update_map<tid, infer>(constraint, tid~h~, +UNKNOWN+)]``.
- .. Return ``xref:merge_constraint'[$merge_constraint'(constraint~pre~, constraint~post~, tid~t~^{asterisk}^, constraint~updated~)]``.
- .. Let ``infer`` be xref:option_get[*!*] ``xref:find_map[$find_map<tid, infer>(constraint~post~, tid~h~)]``.
- .. Let!~type~ ``+KNOWN+ +AS+ typeIR~post~`` be ``infer``.
-
- .. Let ``constraint~updated~`` be ``xref:update_map[$update_map<tid, infer>(constraint, tid~h~, +KNOWN+ +AS+ typeIR~post~)]``.
- .. Return ``xref:merge_constraint'[$merge_constraint'(constraint~pre~, constraint~post~, tid~t~^{asterisk}^, constraint~updated~)]``.
- .. Let ``infer`` be xref:option_get[*!*] ``xref:find_map[$find_map<tid, infer>(constraint~pre~, tid~h~)]``.
- .. Let!~type~ ``+KNOWN+ +AS+ typeIR~pre~`` be ``infer``.
-
- .. Check that ``+UNKNOWN+`` is equal to ``xref:find_map[$find_map<tid, infer>(constraint~post~, tid~h~)]``.
-
- .. Let ``constraint~updated~`` be ``xref:update_map[$update_map<tid, infer>(constraint, tid~h~, +KNOWN+ +AS+ typeIR~pre~)]``.
- .. Return ``xref:merge_constraint'[$merge_constraint'(constraint~pre~, constraint~post~, tid~t~^{asterisk}^, constraint~updated~)]``.
- .. Let ``infer''`` be xref:option_get[*!*] ``xref:find_map[$find_map<tid, infer>(constraint~post~, tid~h~)]``.
- .. Let!~type~ ``+KNOWN+ +AS+ typeIR~post~`` be ``infer''``.
-
  .. Try:
   ... {empty}
-   .... If xref:Cast_impl[``typeIR~pre~ → typeIR~post~``] holds:
-    ..... Let ``constraint~updated~`` be ``xref:update_map[$update_map<tid, infer>(constraint, tid~h~, +KNOWN+ +AS+ typeIR~post~)]``.
-    ..... Return ``xref:merge_constraint'[$merge_constraint'(constraint~pre~, constraint~post~, tid~t~^{asterisk}^, constraint~updated~)]``.
+   .... Check that ``+UNKNOWN+`` is equal to ``xref:find_map[$find_map<tid, infer>(constraint~pre~, tid~h~)]``.
+
+   .... Try:
+    ..... {empty}
+     ...... Check that ``+UNKNOWN+`` is equal to ``xref:find_map[$find_map<tid, infer>(constraint~post~, tid~h~)]``.
+
+     ...... Let ``constraint~updated~`` be ``xref:update_map[$update_map<tid, infer>(constraint, tid~h~, +UNKNOWN+)]``.
+     ...... Return ``xref:merge_constraint'[$merge_constraint'(constraint~pre~, constraint~post~, tid~t~^{asterisk}^, constraint~updated~)]``.
+    ..... {empty}
+     ...... Let ``infer`` be xref:option_get[*!*] ``xref:find_map[$find_map<tid, infer>(constraint~post~, tid~h~)]``.
+     ...... Let!~type~ ``+KNOWN+ +AS+ typeIR~post~`` be ``infer``.
+
+     ...... Let ``constraint~updated~`` be ``xref:update_map[$update_map<tid, infer>(constraint, tid~h~, +KNOWN+ +AS+ typeIR~post~)]``.
+     ...... Return ``xref:merge_constraint'[$merge_constraint'(constraint~pre~, constraint~post~, tid~t~^{asterisk}^, constraint~updated~)]``.
   ... {empty}
-   .... If xref:Cast_impl[``typeIR~pre~ → typeIR~post~``] does not hold:
-    ..... If xref:Cast_impl[``typeIR~post~ → typeIR~pre~``] holds:
+   .... Let ``infer`` be xref:option_get[*!*] ``xref:find_map[$find_map<tid, infer>(constraint~pre~, tid~h~)]``.
+   .... Let!~type~ ``+KNOWN+ +AS+ typeIR~pre~`` be ``infer``.
+
+   .... Try:
+    ..... {empty}
+     ...... Check that ``+UNKNOWN+`` is equal to ``xref:find_map[$find_map<tid, infer>(constraint~post~, tid~h~)]``.
+
      ...... Let ``constraint~updated~`` be ``xref:update_map[$update_map<tid, infer>(constraint, tid~h~, +KNOWN+ +AS+ typeIR~pre~)]``.
      ...... Return ``xref:merge_constraint'[$merge_constraint'(constraint~pre~, constraint~post~, tid~t~^{asterisk}^, constraint~updated~)]``.
+    ..... {empty}
+     ...... Let ``infer''`` be xref:option_get[*!*] ``xref:find_map[$find_map<tid, infer>(constraint~post~, tid~h~)]``.
+     ...... Let!~type~ ``+KNOWN+ +AS+ typeIR~post~`` be ``infer''``.
+
+     ...... Try:
+      ....... {empty}
+       ........ If xref:Cast_impl[``typeIR~pre~ → typeIR~post~``] holds:
+        ......... Let ``constraint~updated~`` be ``xref:update_map[$update_map<tid, infer>(constraint, tid~h~, +KNOWN+ +AS+ typeIR~post~)]``.
+        ......... Return ``xref:merge_constraint'[$merge_constraint'(constraint~pre~, constraint~post~, tid~t~^{asterisk}^, constraint~updated~)]``.
+      ....... {empty}
+       ........ If xref:Cast_impl[``typeIR~pre~ → typeIR~post~``] does not hold:
+        ......... If xref:Cast_impl[``typeIR~post~ → typeIR~pre~``] holds:
+         .......... Let ``constraint~updated~`` be ``xref:update_map[$update_map<tid, infer>(constraint, tid~h~, +KNOWN+ +AS+ typeIR~pre~)]``.
+         .......... Return ``xref:merge_constraint'[$merge_constraint'(constraint~pre~, constraint~post~, tid~t~^{asterisk}^, constraint~updated~)]``.
 
 xref:merge_constraints[$merge_constraints(constraint~pre'~, constraint^{asterisk}^)]
 
@@ -10160,11 +10200,9 @@ xref:find_value_inst[$find_value_inst(p', Ci, prefixedNameIR)]
   ... Else if ``p'`` matches pattern ``+BLOCK+``:
    .... Let!~type~ ``id`` be ``prefixedNameIR``.
 
-   .... Let ``value'^?^`` be ``xref:find_map[$find_map<id, value>(Ci.+BLOCK+.+VENV+, id)]``.
    .... Try:
     ..... {empty}
-     ...... Let!~type~ ``value`` be ``value'^?^``.
-
+     ...... Let ``value`` be xref:option_get[*!*] ``xref:find_map[$find_map<id, value>(Ci.+BLOCK+.+VENV+, id)]``.
      ...... Return ``value``.
     ..... {empty}
      ...... Check that ``xref:find_map[$find_map<id, value>(Ci.+BLOCK+.+VENV+, id)]`` is equal to ``·``.
@@ -10173,12 +10211,10 @@ xref:find_value_inst[$find_value_inst(p', Ci, prefixedNameIR)]
   ... Else:
    .... Let!~type~ ``id`` be ``prefixedNameIR``.
 
-   .... Let ``venv^{asterisk}^`` be ``Ci.+LOCAL+.+VENVS+``.
-   .... Let ``value'^?^`` be ``xref:find_maps[$find_maps<id, value>(venv^{asterisk}^, id)]``.
    .... Try:
     ..... {empty}
-     ...... Let!~type~ ``value`` be ``value'^?^``.
-
+     ...... Let ``venv^{asterisk}^`` be ``Ci.+LOCAL+.+VENVS+``.
+     ...... Let ``value`` be xref:option_get[*!*] ``xref:find_maps[$find_maps<id, value>(venv^{asterisk}^, id)]``.
      ...... Return ``value``.
     ..... {empty}
      ...... Check that ``xref:find_maps[$find_maps<id, value>(Ci.+LOCAL+.+VENVS+, id)]`` is equal to ``·``.
@@ -10506,31 +10542,35 @@ xref:Expr_inst[Expr_inst: ``p Ci sto' ⊢ expressionIR +#+ ++_++ ⟹ % %``]
     ..... Let ``value`` be ``+!+ oid``.
     ..... Result in ``sto~2~`` and ``value``.
    .... Else:
-    ..... If let ``typedExpressionIR +.+ nameIR`` be ``routineTargetIR``:
-     ...... Check that ``typeArgumentIR^{asterisk}^`` is an empty list.
+    ..... Try:
+     ...... {empty}
+      ....... Let ``routineTargetIR +<+typeArgumentIR^{asterisk}^+>+ +(+argumentIR^{asterisk}^+)+`` be ``callExpressionIR``.
+      ....... If let ``typedExpressionIR +.+ nameIR`` be ``routineTargetIR``:
+       ........ Check that ``typeArgumentIR^{asterisk}^`` is an empty list.
 
-     ...... Check that ``argumentIR^{asterisk}^`` is an empty list.
+       ........ Check that ``argumentIR^{asterisk}^`` is an empty list.
 
-     ...... Let ``++_++ +#+ +(+typeIR~base~ ++_+++)+`` be ``typedExpressionIR``.
-     ...... Check that ``nameIR`` is in ``+[+ "minSizeInBits", "minSizeInBytes", "maxSizeInBits", "maxSizeInBytes" +]+``.
+       ........ Let ``++_++ +#+ +(+typeIR~base~ ++_+++)+`` be ``typedExpressionIR``.
+       ........ Check that ``nameIR`` is in ``+[+ "minSizeInBits", "minSizeInBytes", "maxSizeInBits", "maxSizeInBytes" +]+``.
 
-     ...... Result in ``sto'`` and ``xref:sizeof[$sizeof(typeIR~base~, nameIR)]``.
-    ..... Else if let ``+TYPE+ prefixedNameIR +.+ nameIR`` be ``routineTargetIR``:
-     ...... Check that ``typeArgumentIR^{asterisk}^`` is an empty list.
+       ........ Result in ``sto'`` and ``xref:sizeof[$sizeof(typeIR~base~, nameIR)]``.
+      ....... Else if let ``+TYPE+ prefixedNameIR +.+ nameIR`` be ``routineTargetIR``:
+       ........ Check that ``typeArgumentIR^{asterisk}^`` is an empty list.
 
-     ...... Check that ``argumentIR^{asterisk}^`` is an empty list.
+       ........ Check that ``argumentIR^{asterisk}^`` is an empty list.
 
-     ...... Check that ``nameIR`` is in ``+[+ "minSizeInBits", "minSizeInBytes", "maxSizeInBits", "maxSizeInBytes" +]+``.
+       ........ Check that ``nameIR`` is in ``+[+ "minSizeInBits", "minSizeInBytes", "maxSizeInBits", "maxSizeInBytes" +]+``.
 
-     ...... Let ``typeDefIR`` be xref:option_get[*!*] ``xref:find_typedef_inst[$find_typedef_inst(p, Ci, prefixedNameIR)]``.
-     ...... Let!~type~ ``typeIR~base~`` be ``typeDefIR``.
+       ........ Let ``typeDefIR`` be xref:option_get[*!*] ``xref:find_typedef_inst[$find_typedef_inst(p, Ci, prefixedNameIR)]``.
+       ........ Let!~type~ ``typeIR~base~`` be ``typeDefIR``.
 
-     ...... Result in ``sto'`` and ``xref:sizeof[$sizeof(typeIR~base~, nameIR)]``.
-    ..... Let ``routineTargetIR' +<+typeArgumentListIR+>+ +(+argumentListIR+)+`` be ``callExpressionIR``.
-    ..... Let!~type~ ``+(+routineTargetIR+)+`` be ``routineTargetIR'``.
+       ........ Result in ``sto'`` and ``xref:sizeof[$sizeof(typeIR~base~, nameIR)]``.
+     ...... {empty}
+      ....... Let ``routineTargetIR' +<+typeArgumentListIR+>+ +(+argumentListIR+)+`` be ``callExpressionIR``.
+      ....... Let!~type~ ``+(+routineTargetIR+)+`` be ``routineTargetIR'``.
 
-    ..... Let xref:Expr_inst[``p Ci sto' ⊢ routineTargetIR +<+typeArgumentListIR+>+ +(+argumentListIR+)+ +#+ ++_++ ⟹ sto~1~ value``].
-    ..... Result in ``sto~1~`` and ``value``.
+      ....... Let xref:Expr_inst[``p Ci sto' ⊢ routineTargetIR +<+typeArgumentListIR+>+ +(+argumentListIR+)+ +#+ ++_++ ⟹ sto~1~ value``].
+      ....... Result in ``sto~1~`` and ``value``.
   ... Else:
    .... Let xref:Expr_inst[``p Ci sto' ⊢ typedExpressionIR ⟹ sto~1~ value``].
    .... Result in ``sto~1~`` and ``value``.
@@ -10894,14 +10934,17 @@ xref:ControlLocalDecl_inst[ControlLocalDecl_inst: ``Ci~0'~ sto~0'~ ⊢ controlLo
 . Else if let ``variableDeclarationIR`` be ``controlLocalDeclarationIR``:
  .. Result in ``Ci~0'~``, ``sto~0'~``, and ``variableDeclarationIR``.
 . Else if let ``actionDeclarationIR`` be ``controlLocalDeclarationIR``:
- .. Let xref:Decl_inst[``+BLOCK+ Ci~0'~ sto~0'~ ⊢ actionDeclarationIR ⟹ Ci~1~ sto~1~ declarationIR^?^``].
- .. Let!~type~ ``actionDeclarationIR~inst~^?^`` be ``declarationIR^?^``.
+ .. Try:
+  ... {empty}
+   .... Let xref:Decl_inst[``+BLOCK+ Ci~0'~ sto~0'~ ⊢ actionDeclarationIR ⟹ Ci~1~ sto~1~ declarationIR^?^``].
+   .... Let!~type~ ``actionDeclarationIR~inst~^?^`` be ``declarationIR^?^``.
 
- .. Result in ``Ci~1~``, ``sto~1~``, and ``actionDeclarationIR~inst~^?^``.
- .. Let xref:Decl_inst[``+BLOCK+ Ci~0'~ sto~0'~ ⊢ actionDeclarationIR ⟹ Ci~1~ sto~1~ declarationIR^?^``].
- .. Let!~type~ ``actionDeclarationIR~inst~^?^`` be ``declarationIR^?^``.
+   .... Result in ``Ci~1~``, ``sto~1~``, and ``actionDeclarationIR~inst~^?^``.
+  ... {empty}
+   .... Let xref:Decl_inst[``+BLOCK+ Ci~0'~ sto~0'~ ⊢ actionDeclarationIR ⟹ Ci~1~ sto~1~ declarationIR^?^``].
+   .... Let!~type~ ``actionDeclarationIR~inst~^?^`` be ``declarationIR^?^``.
 
- .. Result in ``Ci~1~``, ``sto~1~``, and ``actionDeclarationIR~inst~^?^``.
+   .... Result in ``Ci~1~``, ``sto~1~``, and ``actionDeclarationIR~inst~^?^``.
 . Else:
  .. Let ``Ci~inner~`` be ``xref:enter_path[$enter_path(Ci~0'~, nameIR)]``.
  .. Let xref:Constructor_inst[``+BLOCK+ Ci~0'~ sto~0'~ ⊢ +TABLE+ nameIR +{+tablePropertyListIR+}+ +<+·+>+ +(+· +#+ ·+)+ ⟹ sto~1~ objDyn``].
@@ -10989,22 +11032,25 @@ xref:Decl_inst[Decl_inst: ``p' Ci~0~ sto' ⊢ declarationIR ⟹ % % %``]
    .... Result in ``Ci~1~``, ``sto'``, and ``·``.
   ... Else if let ``annotationList +EXTERN+ nameIR +<+typeParameterListIR +,+ typeParameterListIR~inferred~+>+ +{+methodPrototypeIR^{asterisk}^+}+`` be ``declarationIR``:
    .... Let ``( methodPrototypeIR'^{asterisk}^, methodPrototypeIR~method~^{asterisk}^ )`` be ``xref:split_constructors_IR[$split_constructors_IR(methodPrototypeIR^{asterisk}^)]``.
-   .... Check that ``methodPrototypeIR'^{asterisk}^`` is an empty list.
+   .... Try:
+    ..... {empty}
+     ...... Check that ``methodPrototypeIR'^{asterisk}^`` is an empty list.
 
-   .... Let <<Bind_methods,``xref:empty_rdenv[$empty_rdenv] ⊢ methodPrototypeIR~method~^{asterisk}^ ⟹ rdenv``>>.
-   .... Let ``externObjectTypeIR`` be ``+EXTERN+ nameIR rdenv``.
-   .... Let ``polyTypeDefIR`` be ``externObjectTypeIR +<+typeParameterListIR +,+ ·+>+``.
-   .... Let ``Ci~1~`` be ``xref:add_typedef_inst[$add_typedef_inst(p', Ci~0~, nameIR, polyTypeDefIR)]``.
-   .... Let ``cid`` be ``xref:cid_IR[$cid_IR(nameIR, ·)]``.
-   .... Let ``consDyn`` be ``+EXTERN+ nameIR +<+typeParameterListIR+>+ +(+·+)+ +{+methodPrototypeIR~method~^{asterisk}^+}+``.
-   .... Let ``Ci~2~`` be ``xref:add_constructor_inst[$add_constructor_inst(p', Ci~1~, cid, consDyn)]``.
-   .... Result in ``Ci~2~``, ``sto'``, and ``·``.
-   .... Let <<Bind_methods,``xref:empty_rdenv[$empty_rdenv] ⊢ methodPrototypeIR~method~^{asterisk}^ ⟹ rdenv``>>.
-   .... Let ``externObjectTypeIR`` be ``+EXTERN+ nameIR rdenv``.
-   .... Let ``polyTypeDefIR`` be ``externObjectTypeIR +<+typeParameterListIR +,+ ·+>+``.
-   .... Let ``Ci~1~`` be ``xref:add_typedef_inst[$add_typedef_inst(p', Ci~0~, nameIR, polyTypeDefIR)]``.
-   .... Let xref:Bind_constructors[``p' Ci~1~ typeParameterListIR methodPrototypeIR~method~^{asterisk}^ ⊢ methodPrototypeIR'^{asterisk}^ ⟹ Ci~2~``].
-   .... Result in ``Ci~2~``, ``sto'``, and ``·``.
+     ...... Let <<Bind_methods,``xref:empty_rdenv[$empty_rdenv] ⊢ methodPrototypeIR~method~^{asterisk}^ ⟹ rdenv``>>.
+     ...... Let ``externObjectTypeIR`` be ``+EXTERN+ nameIR rdenv``.
+     ...... Let ``polyTypeDefIR`` be ``externObjectTypeIR +<+typeParameterListIR +,+ ·+>+``.
+     ...... Let ``Ci~1~`` be ``xref:add_typedef_inst[$add_typedef_inst(p', Ci~0~, nameIR, polyTypeDefIR)]``.
+     ...... Let ``cid`` be ``xref:cid_IR[$cid_IR(nameIR, ·)]``.
+     ...... Let ``consDyn`` be ``+EXTERN+ nameIR +<+typeParameterListIR+>+ +(+·+)+ +{+methodPrototypeIR~method~^{asterisk}^+}+``.
+     ...... Let ``Ci~2~`` be ``xref:add_constructor_inst[$add_constructor_inst(p', Ci~1~, cid, consDyn)]``.
+     ...... Result in ``Ci~2~``, ``sto'``, and ``·``.
+    ..... {empty}
+     ...... Let <<Bind_methods,``xref:empty_rdenv[$empty_rdenv] ⊢ methodPrototypeIR~method~^{asterisk}^ ⟹ rdenv``>>.
+     ...... Let ``externObjectTypeIR`` be ``+EXTERN+ nameIR rdenv``.
+     ...... Let ``polyTypeDefIR`` be ``externObjectTypeIR +<+typeParameterListIR +,+ ·+>+``.
+     ...... Let ``Ci~1~`` be ``xref:add_typedef_inst[$add_typedef_inst(p', Ci~0~, nameIR, polyTypeDefIR)]``.
+     ...... Let xref:Bind_constructors[``p' Ci~1~ typeParameterListIR methodPrototypeIR~method~^{asterisk}^ ⊢ methodPrototypeIR'^{asterisk}^ ⟹ Ci~2~``].
+     ...... Result in ``Ci~2~``, ``sto'``, and ``·``.
   ... Else if let ``++_++ +PARSER+ nameIR +<+typeParameterListIR+>+ +(+parameterListIR+)+ +(+constructorParameterListIR+)+ +{+parserLocalDeclarationListIR parserStateListIR+}+`` be ``declarationIR``:
    .... Let ``cid`` be ``xref:cid_IR[$cid_IR(nameIR, constructorParameterListIR)]``.
    .... Let ``consDyn`` be ``+PARSER+ +<+typeParameterListIR+>+ +(+parameterListIR+)+ +(+constructorParameterListIR+)+ +{+parserLocalDeclarationListIR parserStateListIR+}+``.
@@ -11068,30 +11114,33 @@ xref:Decl_inst[Decl_inst: ``p' Ci~0~ sto' ⊢ declarationIR ⟹ % % %``]
      ...... Let ``Ci~1~`` be ``xref:add_typedef_inst[$add_typedef_inst(+GLOBAL+, Ci~0~, nameIR, typeIR~typedef~)]``.
      ...... Result in ``Ci~1~``, ``sto'``, and ``·``.
     ..... Else:
-     ...... Let <<Decl_inst,``+GLOBAL+ Ci~0~ xref:empty_sto[$empty_sto] ⊢ derivedTypeDeclarationIR ⟹ Ci~local~ ++_++ ++_++^?^``>>.
-     ...... Let ``set<tid>`` be ``xref:dom_map[$dom_map<tid, typeDefIR>(Ci~local~.+GLOBAL+.+TDENV+)]``.
-     ...... Let ``set<tid>'`` be ``xref:dom_map[$dom_map<tid, typeDefIR>(Ci~0~.+GLOBAL+.+TDENV+)]``.
-     ...... Let ``+{+tid^{asterisk}^+}+`` be ``xref:diff_set[$diff_set<tid>(set<tid>, set<tid>')]``.
-     ...... Let!~type~ ``tid~newtype~`` be ``tid^{asterisk}^``.
+     ...... Try:
+      ....... {empty}
+       ........ Let <<Decl_inst,``+GLOBAL+ Ci~0~ xref:empty_sto[$empty_sto] ⊢ derivedTypeDeclarationIR ⟹ Ci~local~ ++_++ ++_++^?^``>>.
+       ........ Let ``set<tid>`` be ``xref:dom_map[$dom_map<tid, typeDefIR>(Ci~local~.+GLOBAL+.+TDENV+)]``.
+       ........ Let ``set<tid>'`` be ``xref:dom_map[$dom_map<tid, typeDefIR>(Ci~0~.+GLOBAL+.+TDENV+)]``.
+       ........ Let ``+{+tid^{asterisk}^+}+`` be ``xref:diff_set[$diff_set<tid>(set<tid>, set<tid>')]``.
+       ........ Let!~type~ ``tid~newtype~`` be ``tid^{asterisk}^``.
 
-     ...... Let ``typeDefIR`` be xref:option_get[*!*] ``xref:find_typedef_inst[$find_typedef_inst(+GLOBAL+, Ci~local~, +.+ tid~newtype~)]``.
-     ...... Let!~type~ ``monoTypeDefIR`` be ``typeDefIR``.
+       ........ Let ``typeDefIR`` be xref:option_get[*!*] ``xref:find_typedef_inst[$find_typedef_inst(+GLOBAL+, Ci~local~, +.+ tid~newtype~)]``.
+       ........ Let!~type~ ``monoTypeDefIR`` be ``typeDefIR``.
 
-     ...... Let ``typeIR~typedef~`` be ``+TYPEDEF+ nameIR monoTypeDefIR``.
-     ...... Let ``Ci~1~`` be ``xref:add_typedef_inst[$add_typedef_inst(+GLOBAL+, Ci~0~, nameIR, typeIR~typedef~)]``.
-     ...... Result in ``Ci~1~``, ``sto'``, and ``·``.
-     ...... Let <<Decl_inst,``+GLOBAL+ Ci~0~ xref:empty_sto[$empty_sto] ⊢ derivedTypeDeclarationIR ⟹ Ci~local~ ++_++ ++_++^?^``>>.
-     ...... Let ``set<tid>''`` be ``xref:dom_map[$dom_map<tid, typeDefIR>(Ci~local~.+GLOBAL+.+TDENV+)]``.
-     ...... Let ``set<tid>'''`` be ``xref:dom_map[$dom_map<tid, typeDefIR>(Ci~0~.+GLOBAL+.+TDENV+)]``.
-     ...... Let ``+{+tid^{asterisk}^+}+`` be ``xref:diff_set[$diff_set<tid>(set<tid>'', set<tid>''')]``.
-     ...... Let!~type~ ``tid~newtype~`` be ``tid^{asterisk}^``.
+       ........ Let ``typeIR~typedef~`` be ``+TYPEDEF+ nameIR monoTypeDefIR``.
+       ........ Let ``Ci~1~`` be ``xref:add_typedef_inst[$add_typedef_inst(+GLOBAL+, Ci~0~, nameIR, typeIR~typedef~)]``.
+       ........ Result in ``Ci~1~``, ``sto'``, and ``·``.
+      ....... {empty}
+       ........ Let <<Decl_inst,``+GLOBAL+ Ci~0~ xref:empty_sto[$empty_sto] ⊢ derivedTypeDeclarationIR ⟹ Ci~local~ ++_++ ++_++^?^``>>.
+       ........ Let ``set<tid>''`` be ``xref:dom_map[$dom_map<tid, typeDefIR>(Ci~local~.+GLOBAL+.+TDENV+)]``.
+       ........ Let ``set<tid>'''`` be ``xref:dom_map[$dom_map<tid, typeDefIR>(Ci~0~.+GLOBAL+.+TDENV+)]``.
+       ........ Let ``+{+tid^{asterisk}^+}+`` be ``xref:diff_set[$diff_set<tid>(set<tid>'', set<tid>''')]``.
+       ........ Let!~type~ ``tid~newtype~`` be ``tid^{asterisk}^``.
 
-     ...... Let ``typeDefIR`` be xref:option_get[*!*] ``xref:find_typedef_inst[$find_typedef_inst(+GLOBAL+, Ci~local~, +.+ tid~newtype~)]``.
-     ...... Let!~type~ ``polyTypeDefIR`` be ``typeDefIR``.
+       ........ Let ``typeDefIR`` be xref:option_get[*!*] ``xref:find_typedef_inst[$find_typedef_inst(+GLOBAL+, Ci~local~, +.+ tid~newtype~)]``.
+       ........ Let!~type~ ``polyTypeDefIR`` be ``typeDefIR``.
 
-     ...... Let ``typeIR~typedef~`` be ``+TYPEDEF+ nameIR polyTypeDefIR +<+·+>+``.
-     ...... Let ``Ci~1~`` be ``xref:add_typedef_inst[$add_typedef_inst(+GLOBAL+, Ci~0~, nameIR, typeIR~typedef~)]``.
-     ...... Result in ``Ci~1~``, ``sto'``, and ``·``.
+       ........ Let ``typeIR~typedef~`` be ``+TYPEDEF+ nameIR polyTypeDefIR +<+·+>+``.
+       ........ Let ``Ci~1~`` be ``xref:add_typedef_inst[$add_typedef_inst(+GLOBAL+, Ci~0~, nameIR, typeIR~typedef~)]``.
+       ........ Result in ``Ci~1~``, ``sto'``, and ``·``.
    .... Else:
     ..... Let ``typeIR~newtype~`` be ``+TYPE+ nameIR typeIR``.
     ..... Let ``Ci~1~`` be ``xref:add_typedef_inst[$add_typedef_inst(+GLOBAL+, Ci~0~, nameIR, typeIR~newtype~)]``.
@@ -11171,16 +11220,19 @@ xref:init_table[$init_table(tablePropertyListIR)]
 
 xref:wrap_decl[$wrap_decl(cursor', declarationIR)]
 
-. Check that ``cursor'`` matches pattern ``+GLOBAL+``.
+. Try:
+ .. {empty}
+  ... Check that ``cursor'`` matches pattern ``+GLOBAL+``.
 
-. Return ``·``.
-. Return ``declarationIR``.
+  ... Return ``·``.
+ .. {empty}
+  ... Return ``declarationIR``.
 
 xref:get_init_decls[$get_init_decls(objectInitializerOptIR')]
 
-. Let ``objectInitializerIR^?^`` be ``objectInitializerOptIR'``.
 . Try:
  .. {empty}
+  ... Let ``objectInitializerIR^?^`` be ``objectInitializerOptIR'``.
   ... Check that ``objectInitializerIR^?^`` is none.
 
   ... Return ``·``.
@@ -11195,25 +11247,30 @@ xref:merge_venvs[$merge_venvs(venv, +{+( id +:+ value )^{asterisk}^+}+)]
 
 xref:merge_renv_with_extern[$merge_renv_with_extern(renv, set<pair<rid, routineDyn>>')]
 
-. Check that ``set<pair<rid, routineDyn>>'`` is equal to ``+{+·+}+``.
+. Try:
+ .. {empty}
+  ... Check that ``set<pair<rid, routineDyn>>'`` is equal to ``+{+·+}+``.
 
-. Return ``renv``.
-. Let ``+{+pair<rid, routineDyn>^{asterisk}^+}+`` be ``set<pair<rid, routineDyn>>'``.
-. Let!~type~ ``rid~h~ +:+ routineDyn~h~ {two-colons} ( rid~t~ +:+ routineDyn~t~ )^{asterisk}^`` be ``pair<rid, routineDyn>^{asterisk}^``.
+  ... Return ``renv``.
+ .. {empty}
+  ... Let ``+{+pair<rid, routineDyn>^{asterisk}^+}+`` be ``set<pair<rid, routineDyn>>'``.
+  ... Let!~type~ ``rid~h~ +:+ routineDyn~h~ {two-colons} ( rid~t~ +:+ routineDyn~t~ )^{asterisk}^`` be ``pair<rid, routineDyn>^{asterisk}^``.
 
-. Let!~type~ ``funcDyn`` be ``routineDyn~h~``.
+  ... Let!~type~ ``funcDyn`` be ``routineDyn~h~``.
 
-. Let!~type~ ``+FUNCTION+ +<+typeParameterListIR+>+ +(+parameterListIR+)+ blockStatementIR`` be ``funcDyn``.
+  ... Let!~type~ ``+FUNCTION+ +<+typeParameterListIR+>+ +(+parameterListIR+)+ blockStatementIR`` be ``funcDyn``.
 
-. Let ``routineDyn~h_post~`` be ``+EXTERN_METHOD+ +<+typeParameterListIR+>+ +(+parameterListIR+)+ blockStatementIR``.
-. Let ``renv~post~`` be ``xref:update_map[$update_map<rid, routineDyn>(renv, rid~h~, routineDyn~h_post~)]``.
-. Return ``xref:merge_renv_with_extern[$merge_renv_with_extern(renv~post~, +{+( rid~t~ +:+ routineDyn~t~ )^{asterisk}^+}+)]``.
+  ... Let ``routineDyn~h_post~`` be ``+EXTERN_METHOD+ +<+typeParameterListIR+>+ +(+parameterListIR+)+ blockStatementIR``.
+  ... Let ``renv~post~`` be ``xref:update_map[$update_map<rid, routineDyn>(renv, rid~h~, routineDyn~h_post~)]``.
+  ... Return ``xref:merge_renv_with_extern[$merge_renv_with_extern(renv~post~, +{+( rid~t~ +:+ routineDyn~t~ )^{asterisk}^+}+)]``.
 
 xref:is_extern_object[$is_extern_object(objDyn')]
 
-. Let!~type~ ``+EXTERN+ +{+++_++ ++_++ ++_++ ++_+++}+`` be ``objDyn'``.
+. Try:
+ .. {empty}
+  ... Let!~type~ ``+EXTERN+ +{+++_++ ++_++ ++_++ ++_+++}+`` be ``objDyn'``.
  return ``true``.
-. Return ``false``.
+ .. {empty} return ``false``.
 
 xref:rid_IR[$rid_IR(nameIR, parameterIR^{asterisk}^)]
 
@@ -11222,9 +11279,9 @@ xref:rid_IR[$rid_IR(nameIR, parameterIR^{asterisk}^)]
 
 xref:pid_IR[$pid_IR(++_++ ++_++ ++_++ nameIR constantInitializerOptIR')]
 
-. Let ``constantInitializerIR^?^`` be ``constantInitializerOptIR'``.
 . Try:
  .. {empty}
+  ... Let ``constantInitializerIR^?^`` be ``constantInitializerOptIR'``.
   ... Check that ``constantInitializerIR^?^`` is none.
 
   ... Return ``nameIR +#+ false``.

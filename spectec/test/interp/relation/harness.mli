@@ -21,10 +21,13 @@ val fails_with : string -> expectation
 (** [check spec ~name ~relation ~args expectation] evaluates [relation] in every
     mode in [modes], which contains all three modes by default. [check] creates
     fresh target state for each mode and runs [args], evaluation, and any
-    expected-value callback within that state. *)
+    expected-value callback within that state. With [check_determinism=true],
+    the interpreter rejects multiple successful alternatives, even when their
+    outputs agree. [check_determinism] defaults to [false]. *)
 val check :
   compiled_spec ->
   ?modes:mode list ->
+  ?check_determinism:bool ->
   name:string ->
   relation:string ->
   args:(unit -> Lang.Il.Value.t list) ->

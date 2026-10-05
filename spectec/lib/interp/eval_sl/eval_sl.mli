@@ -8,7 +8,10 @@ type error = region * string
 
 val error_to_diagnostic : error -> Diag.t
 
+(** With [check_determinism=true], [run] reports a block in which more than one
+    alternative applies as an error. [check_determinism] defaults to [false]. *)
 val run :
+  ?check_determinism:bool ->
   (module Target.S) ->
   Lang.Sl.spec ->
   string ->

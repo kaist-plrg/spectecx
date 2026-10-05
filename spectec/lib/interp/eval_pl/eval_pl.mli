@@ -8,7 +8,10 @@ type error = region * string
 
 val error_to_diagnostic : error -> Diag.t
 
+(** With [check_determinism=true], [run] reports an error when multiple arms of
+    a try instruction apply. [check_determinism] defaults to [false]. *)
 val run :
+  ?check_determinism:bool ->
   (module Target.S) ->
   Lang.Pl.spec ->
   string ->

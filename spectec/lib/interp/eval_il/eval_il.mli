@@ -10,7 +10,11 @@ type error =
 
 val error_to_diagnostic : error -> Diag.t
 
+(** With [check_determinism=true], [run] reports a relation or function that
+    applies through more than one rule or clause as an error.
+    [check_determinism] defaults to [false]. *)
 val run :
+  ?check_determinism:bool ->
   (module Target.S) ->
   Lang.Il.spec ->
   string ->
