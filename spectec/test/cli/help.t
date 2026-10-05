@@ -37,6 +37,8 @@ eval shares this exact set:
                                . output destination file
     [--color WHEN]             . colorize diagnostics: auto|always|never (default:
                                  auto)
+    [--det]                    . reject multiple successful alternatives for the
+                                 current input
     [--instruction-coverage.level LEVEL]
                                . verbosity level (e.g., summary|full)
     [--instruction-coverage.output FILE]
@@ -95,6 +97,8 @@ batch drops -p and adds the checkpoint-persistence flags:
     [--checkpoint FILE]        . save checkpoint to file (enables resume)
     [--color WHEN]             . colorize diagnostics: auto|always|never (default:
                                  auto)
+    [--det]                    . reject multiple successful alternatives for the
+                                 current input
     [--instruction-coverage.level LEVEL]
                                . verbosity level (e.g., summary|full)
     [--instruction-coverage.output FILE]

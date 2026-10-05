@@ -19,6 +19,7 @@ module Checkpoint : sig
     completed_inputs : string list;
     coverage : coverage;
     timestamp : float;
+    check_determinism : bool;
   }
 
   val load_from_file : file:string -> (t, Spectec.Error.t) result
@@ -30,12 +31,19 @@ module Checkpoint : sig
     verbose:bool ->
     (t, Spectec.Error.t) result
 
+  (** [verify_determinism checkpoint ~check_determinism] rejects a checkpoint
+      whose [check_determinism] setting does not match the one requested for
+      this run. *)
+  val verify_determinism :
+    t -> check_determinism:bool -> (unit, Spectec.Error.t) result
+
   val filter_remaining : t -> 'a list -> get_id:('a -> string) -> 'a list
   val restore_coverage : t -> unit
 
   val save :
     spec_files:string list ->
     completed_inputs:string list ->
+    check_determinism:bool ->
     output_file:string option ->
     unit
 
@@ -54,20 +62,25 @@ type 'i test_result = {
 }
 
 (** Run a single input and compute outcome. Includes full instrumentation
-    lifecycle. *)
+    lifecycle. With [check_determinism=true], the interpreter rejects multiple
+    successful alternatives, even when their outputs agree. [check_determinism]
+    defaults to [false]. *)
 val run_with_outcome_with_instrumentation :
   (module Spectec.Task.S with type input = 'i) ->
   ?config:Instrumentation.Config.t ->
+  ?check_determinism:bool ->
   mode:Spectec.Interp_mode.t ->
   spec_il:Lang.Il.spec ->
   'i ->
   Spectec.Task.test_outcome
 
 (** Run a batch of inputs and return individual outcomes. Instrumentation
-    lifecycle wraps the entire batch. *)
+    lifecycle wraps the entire batch. See
+    {!run_with_outcome_with_instrumentation} for [check_determinism]. *)
 val run_batch_with_outcomes :
   (module Spectec.Task.S with type input = 'i) ->
   ?config:Instrumentation.Config.t ->
+  ?check_determinism:bool ->
   ansi:Spectec.Diagnostic.Ansi.t ->
   mode:Spectec.Interp_mode.t ->
   spec_il:Lang.Il.spec ->
@@ -105,6 +118,7 @@ val print_summary : batch_summary -> unit
 val run_and_print_single :
   (module Spectec.Task.S with type input = 'i) ->
   ?config:Instrumentation.Config.t ->
+  ?check_determinism:bool ->
   mode:Spectec.Interp_mode.t ->
   spec_il:Lang.Il.spec ->
   'i ->
@@ -113,6 +127,7 @@ val run_and_print_single :
 val run_and_print_batch :
   (module Spectec.Task.S with type input = 'i) ->
   ?config:Instrumentation.Config.t ->
+  ?check_determinism:bool ->
   ansi:Spectec.Diagnostic.Ansi.t ->
   mode:Spectec.Interp_mode.t ->
   spec_il:Lang.Il.spec ->
@@ -134,9 +149,12 @@ type task_result = {
 }
 
 (** The empty-input check runs before checkpoint filtering, so resuming a
-    completed run is not mistaken for an empty collection. *)
+    completed run is not mistaken for an empty collection. Resuming from a
+    checkpoint whose [check_determinism] setting does not match the one
+    requested here is rejected. See {!Checkpoint.verify_determinism}. *)
 val run_target :
   ?config:Instrumentation.Config.t ->
+  ?check_determinism:bool ->
   ?test_dir:string ->
   ansi:Spectec.Diagnostic.Ansi.t ->
   checkpoint_config:Checkpoint.config ->

@@ -96,6 +96,11 @@ module Interpreter = struct
     | false, true -> `PL
     | true, true -> failwith "--sl and --pl are mutually exclusive"
 
+  let det_flag : bool Core.Command.Param.t =
+    let open Core.Command.Param in
+    flag "--det" no_arg
+      ~doc:" reject multiple successful alternatives for the current input"
+
   (* One Param.t for one typed handler spec — maps each declared param to a
      --name.param_name flag, then calls D.parse. *)
   let handler_param (module D : Handler.Spec.S) :

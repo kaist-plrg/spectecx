@@ -24,6 +24,7 @@ let make_task (module Tgt : Spectec.Target.S) ~name ~summary
     let open Core.Command.Param in
     let%map cli_source = Cli_args.Spec.source_flag
     and mode = Cli_args.Interpreter.mode_flag
+    and check_determinism = Cli_args.Interpreter.det_flag
     and verbose = flag "-v" no_arg ~doc:" verbose output"
     and batch_mode = Cli_args.Batch.mode_flag
     and batch_dir = Cli_args.Batch.dir_flag
@@ -48,15 +49,17 @@ let make_task (module Tgt : Spectec.Target.S) ~name ~summary
       | false, None ->
           Batch.run_and_print_single
             (module TC.Task)
-            ~config ~mode ~spec_il input
+            ~config ~check_determinism ~mode ~spec_il input
       | true, None ->
           Batch.run_and_print_batch
             (module TC.Task)
-            ~config ~ansi ~mode ~spec_il ~verbose (TC.Task.collect ())
+            ~config ~check_determinism ~ansi ~mode ~spec_il ~verbose
+            (TC.Task.collect ())
       | _, Some dir ->
           Batch.run_and_print_batch
             (module TC.Task)
-            ~config ~ansi ~mode ~spec_il ~verbose (TC.Task.collect ~dir ())
+            ~config ~check_determinism ~ansi ~mode ~spec_il ~verbose
+            (TC.Task.collect ~dir ())
   in
   (name, cmd)
 
@@ -111,6 +114,7 @@ let make_batch (module Tgt : Spectec.Target.S) ~name
     let open Core.Command.Let_syntax in
     let open Core.Command.Param in
     let%map mode = Cli_args.Interpreter.mode_flag
+    and check_determinism = Cli_args.Interpreter.det_flag
     and verbose = flag "-v" no_arg ~doc:" verbose: print progress for each test"
     and batch_dir = Cli_args.Batch.dir_flag
     and cli_source = Cli_args.Spec.source_flag
@@ -140,8 +144,8 @@ let make_batch (module Tgt : Spectec.Target.S) ~name
         }
       in
       let* results =
-        Batch.run_target ~config ?test_dir:batch_dir ~ansi ~checkpoint_config
-          ~verbose ~mode ~spec_files spec_il packed_tasks
+        Batch.run_target ~config ~check_determinism ?test_dir:batch_dir ~ansi
+          ~checkpoint_config ~verbose ~mode ~spec_files spec_il packed_tasks
       in
       List.iter
         (fun Batch.{ task_name; summary; failures } ->
