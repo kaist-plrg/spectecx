@@ -39,6 +39,14 @@ let run () =
       "applies through both rule Same_guard_equal/a and rule Same_guard_equal/b";
   checked ~modes:[ H.Il ] ~name:"unnamed rules" ~relation:"Unnamed" 5
     (H.fails_with "applies through both the rule at determinism.spectec:");
+  first_match ~name:"ordinary rule over a preceding fallback"
+    ~relation:"Fallback_first" 5 (returns 1);
+  checked ~name:"ordinary rule over a preceding fallback"
+    ~relation:"Fallback_first" 5 (returns 1);
+  first_match ~name:"preceding fallback after no ordinary rule"
+    ~relation:"Fallback_first" 50 (returns 99);
+  checked ~name:"preceding fallback after no ordinary rule"
+    ~relation:"Fallback_first" 50 (returns 99);
   overlapping ~name:"overlap beside a fallback" ~relation:"Fallback_overlap" 5
     ~il:
       "applies through both rule Fallback_overlap/low and rule \
@@ -82,5 +90,13 @@ let run () =
   overlapping ~name:"clauses behind the same premise, equal outputs"
     ~relation:"Call_pick_same_guard_equal" 5
     ~il:"applies through both clause 0 and clause 1";
+  first_match ~name:"ordinary clause over a preceding fallback"
+    ~relation:"Call_pick_fallback_first" 5 (returns 1);
+  checked ~name:"ordinary clause over a preceding fallback"
+    ~relation:"Call_pick_fallback_first" 5 (returns 1);
+  first_match ~name:"preceding fallback after no ordinary clause"
+    ~relation:"Call_pick_fallback_first" 50 (returns 99);
+  checked ~name:"preceding fallback after no ordinary clause"
+    ~relation:"Call_pick_fallback_first" 50 (returns 99);
   checked ~name:"repeated call without overlap"
     ~relation:"Call_pick_disjoint_twice" 5 (returns 2)

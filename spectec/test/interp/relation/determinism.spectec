@@ -37,6 +37,18 @@ rule Partial/low:
   x |- 1
   -- if $(x < 10)
 
+relation Fallback_first:
+  nat |- nat
+  hint(input %0)
+
+rule Fallback_first/rest:
+  x |- 99
+  -- otherwise
+
+rule Fallback_first/low:
+  x |- 1
+  -- if $(x < 10)
+
 relation Fallback_overlap:
   nat |- nat
   hint(input %0)
@@ -189,6 +201,12 @@ def $pick_disjoint(x) = 1
 def $pick_disjoint(x) = 2
   -- if $(x >= 10)
 
+dec $pick_fallback_first(nat) : nat
+def $pick_fallback_first(x) = 99
+  -- otherwise
+def $pick_fallback_first(x) = 1
+  -- if $(x < 10)
+
 dec $pick_always(nat) : nat
 def $pick_always(x) = 1
 def $pick_always(x) = 2
@@ -226,6 +244,13 @@ relation Call_pick_same_guard_equal:
 
 rule Call_pick_same_guard_equal:
   x |- $pick_same_guard_equal(x)
+
+relation Call_pick_fallback_first:
+  nat |- nat
+  hint(input %0)
+
+rule Call_pick_fallback_first:
+  x |- $pick_fallback_first(x)
 
 relation Call_pick_disjoint_twice:
   nat |- nat

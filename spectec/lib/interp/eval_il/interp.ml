@@ -1219,20 +1219,25 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
   let invoke_rel' () =
     check_warnf (rules <> []) id.at "relation has no rules";
     let attempt_rules () =
-      if ctx.check_determinism then
-        let rules_fallback, rules_ordinary =
-          List.partition is_fallback_rule rules
-        in
-        let labelled rule = (rule, attempt_of_rule rule) in
-        match choice_unique (List.map labelled rules_ordinary) with
-        | Unique (_, result) -> Ok result
-        | Overlapping (rule_l, rule_r) ->
-            error id.at
-              (F.asprintf "relation %s applies through both %s and %s" id.it
-                 (describe_rule id rule_l) (describe_rule id rule_r))
-        | Unmatched failtraces ->
-            choice_fallback failtraces (List.map attempt_of_rule rules_fallback)
-      else choice (List.map attempt_of_rule rules)
+      let rules_fallback, rules_ordinary =
+        List.partition is_fallback_rule rules
+      in
+      let attempt_ordinary () =
+        if ctx.check_determinism then
+          let labelled rule = (rule, attempt_of_rule rule) in
+          match choice_unique (List.map labelled rules_ordinary) with
+          | Unique (_, result) -> Ok result
+          | Overlapping (rule_l, rule_r) ->
+              error id.at
+                (F.asprintf "relation %s applies through both %s and %s" id.it
+                   (describe_rule id rule_l) (describe_rule id rule_r))
+          | Unmatched failtraces -> Error failtraces
+        else choice (List.map attempt_of_rule rules_ordinary)
+      in
+      match attempt_ordinary () with
+      | Ok result -> Ok result
+      | Error failtraces ->
+          choice_fallback failtraces (List.map attempt_of_rule rules_fallback)
     in
     let invoke () =
       let* _, values_output = attempt_rules () in
@@ -1352,28 +1357,33 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
       attempt_clause
     in
     let attempt_clauses () =
-      if ctx.check_determinism then
-        let clauses_fallback, clauses_ordinary =
-          List.mapi (fun idx_clause clause -> (idx_clause, clause)) clauses
-          |> List.partition (fun (_, clause) -> is_fallback_clause clause)
-        in
-        let labelled (idx_clause, clause) =
-          (idx_clause, attempt_of_clause idx_clause clause)
-        in
-        match choice_unique (List.map labelled clauses_ordinary) with
-        | Unique (_, result) -> Ok result
-        | Overlapping (idx_clause_l, idx_clause_r) ->
-            error id.at
-              (F.asprintf
-                 "function %s applies through both clause %d and clause %d"
-                 id.it idx_clause_l idx_clause_r)
-        | Unmatched failtraces ->
-            choice_fallback failtraces
-              (List.map
-                 (fun (idx_clause, clause) ->
-                   attempt_of_clause idx_clause clause)
-                 clauses_fallback)
-      else choice (List.mapi attempt_of_clause clauses)
+      let clauses_fallback, clauses_ordinary =
+        List.mapi (fun idx_clause clause -> (idx_clause, clause)) clauses
+        |> List.partition (fun (_, clause) -> is_fallback_clause clause)
+      in
+      let attempt_of_indexed (idx_clause, clause) =
+        attempt_of_clause idx_clause clause
+      in
+      let attempt_ordinary () =
+        if ctx.check_determinism then
+          let labelled (idx_clause, clause) =
+            (idx_clause, attempt_of_clause idx_clause clause)
+          in
+          match choice_unique (List.map labelled clauses_ordinary) with
+          | Unique (_, result) -> Ok result
+          | Overlapping (idx_clause_l, idx_clause_r) ->
+              error id.at
+                (F.asprintf
+                   "function %s applies through both clause %d and clause %d"
+                   id.it idx_clause_l idx_clause_r)
+          | Unmatched failtraces -> Error failtraces
+        else choice (List.map attempt_of_indexed clauses_ordinary)
+      in
+      match attempt_ordinary () with
+      | Ok result -> Ok result
+      | Error failtraces ->
+          choice_fallback failtraces
+            (List.map attempt_of_indexed clauses_fallback)
     in
     let* _, value_output = attempt_clauses () in
     Ok (ctx, value_output)
