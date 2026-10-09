@@ -63,8 +63,10 @@ type code =
   | Ctx_metavar_redefined
   | Ctx_type_redefined
   | Ctx_relation_redefined
+  | Ctx_relation_fallback_redefined
   | Ctx_builtin_dec_redefined
   | Ctx_dec_redefined
+  | Ctx_dec_fallback_redefined
   (* dataflow *)
   | Dataflow_free_variable_in_output
   | Dataflow_bind_both_sides_of_equality
@@ -122,8 +124,10 @@ let string_of_code = function
   | Ctx_metavar_redefined -> "ctx-metavar-redefined"
   | Ctx_type_redefined -> "ctx-type-redefined"
   | Ctx_relation_redefined -> "ctx-relation-redefined"
+  | Ctx_relation_fallback_redefined -> "ctx-relation-fallback-redefined"
   | Ctx_builtin_dec_redefined -> "ctx-builtin-dec-redefined"
   | Ctx_dec_redefined -> "ctx-dec-redefined"
+  | Ctx_dec_fallback_redefined -> "ctx-dec-fallback-redefined"
   | Dataflow_free_variable_in_output -> "dataflow-free-variable-in-output"
   | Dataflow_bind_both_sides_of_equality ->
       "dataflow-bind-both-sides-of-equality"
