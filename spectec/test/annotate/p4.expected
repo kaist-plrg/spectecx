@@ -33,15 +33,19 @@ xref:concat_text[The concatenation of ``text^{asterisk}^``]
 
 xref:join_text[The result of joining ``text''^{asterisk}^`` with separator ``t~sep~``]
 
-. If ``text''^{asterisk}^`` matches pattern ``[]``:
- .. Return ``""``.
-. Else if let ``t~h~`` be ``text''^{asterisk}^``:
- .. Return ``t~h~``.
-. Else if let ``t~h1~ {two-colons} text^{asterisk}^`` be ``text''^{asterisk}^``:
- .. Let!~type~ ``t~h2~ {two-colons} t~t~^{asterisk}^`` be ``text^{asterisk}^``.
+. Try:
+ .. {empty}
+  ... If ``text''^{asterisk}^`` matches pattern ``[]``:
+   .... Return ``""``.
+  ... Else if let ``t~h~`` be ``text''^{asterisk}^``:
+   .... Return ``t~h~``.
+ .. {empty}
+  ... Let!~type~ ``t~h1~ {two-colons} text^{asterisk}^`` be ``text''^{asterisk}^``.
 
- .. Let ``text'`` be xref:join_text[the result of joining ``t~h2~ {two-colons} t~t~^{asterisk}^`` with separator ``t~sep~``].
- .. Return ``t~h1~`` concatenated with ``t~sep~`` concatenated with ``text'``.
+  ... Let!~type~ ``t~h2~ {two-colons} t~t~^{asterisk}^`` be ``text^{asterisk}^``.
+
+  ... Let ``text'`` be xref:join_text[the result of joining ``t~h2~ {two-colons} t~t~^{asterisk}^`` with separator ``t~sep~``].
+  ... Return ``t~h1~`` concatenated with ``t~sep~`` concatenated with ``text'``.
 
 xref:replace_text[The text ``t`` with all occurrences of ``t~old~`` replaced by ``t~new~``]
 
@@ -2203,18 +2207,27 @@ xref:join_ctk[The join of ``ctk''`` and ``ctk'''``]
 
 xref:joins_ctk[The join of ``ctk''^{asterisk}^``]
 
-. If ``ctk''^{asterisk}^`` matches pattern ``[]``:
- .. Return ``+LCTK+``.
-. Else if let ``ctk`` be ``ctk''^{asterisk}^``:
- .. Return ``ctk``.
-. Else if let ``ctk~a~ {two-colons} ctk^{asterisk}^`` be ``ctk''^{asterisk}^``:
- .. If let ``ctk~b~`` be ``ctk^{asterisk}^``:
-  ... Return xref:join_ctk[the join of ``ctk~a~`` and ``ctk~b~``].
- .. Else if let ``ctk~b~ {two-colons} ctk~c~^{asterisk}^`` be ``ctk^{asterisk}^``:
-  ... Check that ``ctk~c~^{asterisk}^`` is not equal to ``·``.
+. Try:
+ .. {empty}
+  ... If ``ctk''^{asterisk}^`` matches pattern ``[]``:
+   .... Return ``+LCTK+``.
+  ... Else if let ``ctk`` be ``ctk''^{asterisk}^``:
+   .... Return ``ctk``.
+ .. {empty}
+  ... Let!~type~ ``ctk~a~ {two-colons} ctk^{asterisk}^`` be ``ctk''^{asterisk}^``.
 
-  ... Let ``ctk~d~`` be xref:join_ctk[the join of ``ctk~a~`` and ``ctk~b~``].
-  ... Return xref:joins_ctk[the join of ``ctk~d~ {two-colons} ctk~c~^{asterisk}^``].
+  ... Try:
+   .... {empty}
+    ..... Let!~type~ ``ctk~b~`` be ``ctk^{asterisk}^``.
+
+    ..... Return xref:join_ctk[the join of ``ctk~a~`` and ``ctk~b~``].
+   .... {empty}
+    ..... Let!~type~ ``ctk~b~ {two-colons} ctk~c~^{asterisk}^`` be ``ctk^{asterisk}^``.
+
+    ..... Check that ``ctk~c~^{asterisk}^`` is not equal to ``·``.
+
+    ..... Let ``ctk~d~`` be xref:join_ctk[the join of ``ctk~a~`` and ``ctk~b~``].
+    ..... Return xref:joins_ctk[the join of ``ctk~d~ {two-colons} ctk~c~^{asterisk}^``].
 
 xref:pow2[2 to the power of ``nat``]
 

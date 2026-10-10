@@ -1751,16 +1751,25 @@ xref:join_ctk[$join_ctk(ctk'', ctk''')]
 
 xref:joins_ctk[$joins_ctk(ctk''^{asterisk}^)]
 
-. If ``ctk''^{asterisk}^`` matches pattern ``[]``:
- .. Return ``+DYN+``.
-. Else if let ``ctk`` be ``ctk''^{asterisk}^``:
- .. Return ``ctk``.
-. Else if let ``ctk~a~ {two-colons} ctk^{asterisk}^`` be ``ctk''^{asterisk}^``:
- .. If let ``ctk~b~`` be ``ctk^{asterisk}^``:
-  ... Return ``xref:join_ctk[$join_ctk(ctk~a~, ctk~b~)]``.
- .. Else if let ``ctk~b~ {two-colons} ctk~c~^{asterisk}^`` be ``ctk^{asterisk}^``:
-  ... Let ``ctk~d~`` be ``xref:join_ctk[$join_ctk(ctk~a~, ctk~b~)]``.
-  ... Return ``xref:joins_ctk[$joins_ctk(ctk~d~ {two-colons} ctk~c~^{asterisk}^)]``.
+. Try:
+ .. {empty}
+  ... If ``ctk''^{asterisk}^`` matches pattern ``[]``:
+   .... Return ``+DYN+``.
+  ... Else if let ``ctk`` be ``ctk''^{asterisk}^``:
+   .... Return ``ctk``.
+ .. {empty}
+  ... Let!~type~ ``ctk~a~ {two-colons} ctk^{asterisk}^`` be ``ctk''^{asterisk}^``.
+
+  ... Try:
+   .... {empty}
+    ..... Let!~type~ ``ctk~b~`` be ``ctk^{asterisk}^``.
+
+    ..... Return ``xref:join_ctk[$join_ctk(ctk~a~, ctk~b~)]``.
+   .... {empty}
+    ..... Let!~type~ ``ctk~b~ {two-colons} ctk~c~^{asterisk}^`` be ``ctk^{asterisk}^``.
+
+    ..... Let ``ctk~d~`` be ``xref:join_ctk[$join_ctk(ctk~a~, ctk~b~)]``.
+    ..... Return ``xref:joins_ctk[$joins_ctk(ctk~d~ {two-colons} ctk~c~^{asterisk}^)]``.
 
 xref:pow2[$pow2(nat)]
 

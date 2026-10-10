@@ -645,8 +645,7 @@ and overlap_pattern (exp : exp) (pattern_a : pattern) (pattern_b : pattern) :
     match (pattern_a, pattern_b) with
     | CaseP _, CaseP _ -> Disjoint (exp, guard_a, guard_b)
     | ListP `Cons, ListP (`Fixed n) | ListP (`Fixed n), ListP `Cons ->
-        if n = 0 then Partition (exp, guard_a, guard_b)
-        else Disjoint (exp, guard_a, guard_b)
+        if n = 0 then Partition (exp, guard_a, guard_b) else Fuzzy
     | ListP `Cons, ListP `Nil | ListP `Nil, ListP `Cons ->
         Partition (exp, guard_a, guard_b)
     | ListP (`Fixed _), ListP (`Fixed _) -> Disjoint (exp, guard_a, guard_b)

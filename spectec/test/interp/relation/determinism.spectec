@@ -1,6 +1,8 @@
 var x : nat
 var y : nat
 var z : nat
+var n : nat
+var m : nat
 
 ;; Calling $boom must fail fatally.
 builtin dec $boom(nat) : nat
@@ -261,3 +263,47 @@ rule Call_pick_disjoint_twice:
   -- if y = $pick_disjoint(x)
   -- if z = $pick_disjoint(x)
 
+dec $overlap_cons_first(nat*) : nat
+def $overlap_cons_first(n :: m*) = 10
+def $overlap_cons_first(n) = 20
+
+dec $overlap_singleton_first(nat*) : nat
+def $overlap_singleton_first(n) = 20
+def $overlap_singleton_first(n :: m*) = 10
+
+relation Call_overlap_cons_first:
+  nat* |- nat
+  hint(input %0)
+
+rule Call_overlap_cons_first:
+  m* |- $overlap_cons_first(m*)
+
+relation Call_overlap_singleton_first:
+  nat* |- nat
+  hint(input %0)
+
+rule Call_overlap_singleton_first:
+  m* |- $overlap_singleton_first(m*)
+
+dec $cons_or_nil(nat*) : nat
+def $cons_or_nil(n :: m*) = 1
+def $cons_or_nil(eps) = 2
+
+relation Call_cons_or_nil:
+  nat* |- nat
+  hint(input %0)
+
+rule Call_cons_or_nil:
+  m* |- $cons_or_nil(m*)
+
+dec $overlap_first_fails(nat*) : nat
+def $overlap_first_fails(n :: m*) = 10
+  -- if $(n > 5)
+def $overlap_first_fails(n) = 20
+
+relation Call_overlap_first_fails:
+  nat* |- nat
+  hint(input %0)
+
+rule Call_overlap_first_fails:
+  m* |- $overlap_first_fails(m*)

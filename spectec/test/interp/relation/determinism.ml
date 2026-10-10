@@ -1,7 +1,11 @@
 module H = Harness
 module V = Lang.Il.Value
+module Typ = Lang.Il.Typ
 
+let ( $ ) = Common.Source.( $ )
+let no_region = Common.Source.no_region
 let nat n = V.nat (Bigint.of_int n)
+let nats ns = V.list (Typ.nat $ no_region) (List.map nat ns)
 let spec = H.compile_file "determinism.spectec"
 
 let first_match ?modes ~name ~relation n expectation =
@@ -14,12 +18,25 @@ let checked ?modes ~name ~relation n expectation =
 
 let returns n = H.returns (fun () -> [ nat n ])
 
+let first_match_list ?modes ~name ~relation ns expectation =
+  H.check spec ?modes ~name ~relation ~args:(fun () -> [ nats ns ]) expectation
+
+let checked_list ?modes ~name ~relation ns expectation =
+  H.check spec ?modes ~check_determinism:true ~name ~relation
+    ~args:(fun () -> [ nats ns ])
+    expectation
+
 (* The IL diagnostic names the rules or the clauses that overlap, while the SL
    and PL diagnostics point at the source regions the alternatives start at. *)
 
 let overlapping ~name ~relation n ~il =
   checked ~modes:[ H.Il ] ~name ~relation n (H.fails_with il);
   checked ~modes:[ H.Sl; H.Pl ] ~name ~relation n
+    (H.fails_with "and so does the")
+
+let overlapping_list ~name ~relation ns ~il =
+  checked_list ~modes:[ H.Il ] ~name ~relation ns (H.fails_with il);
+  checked_list ~modes:[ H.Sl; H.Pl ] ~name ~relation ns
     (H.fails_with "and so does the")
 
 let run () =
@@ -99,4 +116,24 @@ let run () =
   checked ~name:"preceding fallback after no ordinary clause"
     ~relation:"Call_pick_fallback_first" 50 (returns 99);
   checked ~name:"repeated call without overlap"
-    ~relation:"Call_pick_disjoint_twice" 5 (returns 2)
+    ~relation:"Call_pick_disjoint_twice" 5 (returns 2);
+  first_match_list ~name:"cons clause over a fixed-length-one clause"
+    ~relation:"Call_overlap_cons_first" [ 1 ] (returns 10);
+  overlapping_list ~name:"cons clause over a fixed-length-one clause"
+    ~relation:"Call_overlap_cons_first" [ 1 ]
+    ~il:"applies through both clause 0 and clause 1";
+  first_match_list ~name:"fixed-length-one clause over a cons clause"
+    ~relation:"Call_overlap_singleton_first" [ 1 ] (returns 20);
+  overlapping_list ~name:"fixed-length-one clause over a cons clause"
+    ~relation:"Call_overlap_singleton_first" [ 1 ]
+    ~il:"applies through both clause 0 and clause 1";
+  checked_list ~name:"cons pattern beside the empty pattern, nonempty"
+    ~relation:"Call_cons_or_nil" [ 1 ] (returns 1);
+  checked_list ~name:"cons pattern beside the empty pattern, empty"
+    ~relation:"Call_cons_or_nil" [] (returns 2);
+  first_match_list ~name:"cons clause whose premise fails falls through"
+    ~relation:"Call_overlap_first_fails" [ 1 ] (returns 20);
+  checked_list ~name:"cons clause whose premise fails falls through"
+    ~relation:"Call_overlap_first_fails" [ 1 ] (returns 20);
+  checked_list ~name:"cons clause over a two-element list, reversed order"
+    ~relation:"Call_overlap_singleton_first" [ 1; 2 ] (returns 10)
