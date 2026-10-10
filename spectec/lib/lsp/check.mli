@@ -1,6 +1,10 @@
-(** [run ~path text] returns LSP diagnostics for the document at [path], with
-    [text] as its current contents. The document is checked as part of its whole
-    spec (the other [.spectec] files in its [*.spec]-marked directory, read from
-    disk), so cross-file references resolve. *)
+(** Return parse and elaboration diagnostics for the supplied sources. *)
+val analyze : Sources.t -> Spectec.Diagnostic.t list
 
-val run : path:string -> string -> Linol_eio.Diagnostic.t list
+(** Return diagnostics grouped by source file path. Files without diagnostics
+    are omitted. *)
+val diagnostics :
+  encoding:Convert.encoding ->
+  sources:Sources.t ->
+  Spectec.Diagnostic.t list ->
+  (string * Linol_eio.Diagnostic.t list) list

@@ -35,14 +35,24 @@ let compare_natural a b =
   | 0 -> String.compare a b
   | c -> c
 
-let collect root =
+let compare_paths a b =
+  List.compare compare_natural
+    (String.split_on_char '/' a)
+    (String.split_on_char '/' b)
+
+let collect ?(recursive = true) root =
   let rec gather dir =
     let entries = Sys.readdir dir in
     Array.sort compare_natural entries;
     entries |> Array.to_list
     |> List.concat_map (fun entry ->
            let path = Filename.concat dir entry in
-           if Sys.is_directory path then gather path
+           if
+             (not recursive)
+             && not (Filename.check_suffix entry spec_file_suffix)
+           then []
+           else if Sys.is_directory path then
+             if recursive then gather path else []
            else if Filename.check_suffix entry spec_file_suffix then [ path ]
            else [])
   in

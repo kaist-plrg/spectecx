@@ -1,9 +1,11 @@
 {
   "name": "spectecx-syntax",
-  "displayName": "SpecTecX Syntax Highlighting",
-  "description": "Syntax highlighting for SpecTecX specification files (.spectec).",
-  "categories": ["Programming Languages"],
-  "version": "0.1.0",
+  "displayName": "SpecTecX",
+  "description": "Syntax highlighting and diagnostics for SpecTecX specification files (.spectec).",
+  "categories": [
+    "Programming Languages"
+  ],
+  "version": "0.2.0",
   "publisher": "kaist-plrg",
   "license": "Apache-2.0",
   "repository": {
@@ -12,8 +14,9 @@
     "directory": "editors/vscode"
   },
   "engines": {
-    "vscode": "^1.75.0"
+    "vscode": "^1.82.0"
   },
+  "main": "./extension.js",
   "contributes": {
     "languages": [
       {
@@ -33,6 +36,69 @@
         "scopeName": "source.spectec",
         "path": "./syntaxes/spectec.tmLanguage.json"
       }
+    ],
+    "configuration": {
+      "title": "SpecTecX",
+      "properties": {
+        "spectec.languageServer.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Run the SpecTecX language server. Turn off to keep syntax highlighting only."
+        },
+        "spectec.languageServer.path": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Path to the `spectecx-lsp` binary. Leave empty to look for it at the root of an open workspace folder (where `make lsp` puts it), then on `PATH`. Supports `~` and `${workspaceFolder}`."
+        },
+        "spectec.languageServer.arguments": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Extra command-line arguments passed to spectecx-lsp."
+        },
+        "spectec.trace.server": {
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "description": "Log the traffic between VS Code and spectecx-lsp in the SpecTecX output channel."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "spectec.restartLanguageServer",
+        "title": "Restart Language Server",
+        "category": "SpecTecX"
+      }
     ]
+  },
+  "dependencies": {
+    "vscode-languageclient": "9.0.1"
+  },
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "The language server is a locally configured executable."
+    }
+  },
+  "scripts": {
+    "format": "prettier --write \"*.js\" \"test/*.js\" package.json .prettierrc.json",
+    "format:check": "prettier --check \"*.js\" \"test/*.js\" package.json .prettierrc.json",
+    "lint": "eslint . --max-warnings=0",
+    "test": "node --test test/*.test.js",
+    "test:host": "node test/run-host.js",
+    "package": "vsce package -o spectecx.vsix"
+  },
+  "devDependencies": {
+    "@vscode/vsce": "4.0.0",
+    "@eslint/js": "10.0.1",
+    "eslint": "10.11.0",
+    "prettier": "3.9.9"
   }
 }

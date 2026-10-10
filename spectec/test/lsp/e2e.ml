@@ -1,7 +1,3 @@
-(* End-to-end smoke test for the server wiring: drive a spawned `spectecx-lsp`
-   over LSP and confirm it serves a diagnostic of the right kind. main.ml
-   checks the exact contents. *)
-
 module Json = Yojson.Safe.Util
 
 let request id method_ params =
@@ -37,6 +33,19 @@ let did_open uri text =
                ("text", `String text);
              ] );
        ])
+
+let did_change uri text version =
+  notification "textDocument/didChange"
+    (`Assoc
+       [
+         ( "textDocument",
+           `Assoc [ ("uri", `String uri); ("version", `Int version) ] );
+         ("contentChanges", `List [ `Assoc [ ("text", `String text) ] ]);
+       ])
+
+let did_close uri =
+  notification "textDocument/didClose"
+    (`Assoc [ ("textDocument", `Assoc [ ("uri", `String uri) ]) ])
 
 let send channel message =
   let body = Yojson.Safe.to_string message in
@@ -79,8 +88,150 @@ let roundtrip server_bin messages =
   in
   let replies = collect [] in
   close_in from_server;
-  ignore (Unix.waitpid [] pid);
+  let _, status = Unix.waitpid [] pid in
+  assert (status = Unix.WEXITED 0);
   replies
+
+let overlapping server_bin =
+  let uri file =
+    Linol_eio.DocumentUri.(
+      to_string (of_path (Filename.concat (Sys.getcwd ()) file)))
+  in
+  let outer = uri "overlapping/1-outer.spectec"
+  and inner = uri "overlapping/inner/2-inner.spectec" in
+  let replies =
+    roundtrip server_bin
+      [
+        initialize;
+        initialized;
+        did_open outer "syntax outer = nat\n";
+        did_open inner "syntax inner = outer\n";
+        did_change outer "syntax outer = text\n" 2;
+        did_close outer;
+        did_change inner "syntax inner = nat\n" 2;
+        did_close inner;
+        shutdown;
+        exit_;
+      ]
+  in
+  let counts =
+    List.filter_map
+      (fun reply ->
+        if
+          Json.member "method" reply
+          <> `String "textDocument/publishDiagnostics"
+        then None
+        else
+          let params = Json.member "params" reply in
+          if Json.member "uri" params <> `String inner then None
+          else
+            Some (List.length (Json.to_list (Json.member "diagnostics" params))))
+      replies
+  in
+  assert (counts = [ 0; 1; 1; 1; 0; 0 ]);
+  print_endline "overlapping spec diagnostics: ok"
+
+let encoded_diagnostics server_bin encoding =
+  let uri =
+    Linol_eio.DocumentUri.(
+      to_string
+        (of_path
+           (Filename.concat (Sys.getcwd ())
+              "unmarked/../unmarked/5-unicode.spectec")))
+  in
+  let start = if encoding = "utf-8" then 29 else 26 in
+  let position character =
+    `Assoc [ ("line", `Int 3); ("character", `Int character) ]
+  in
+  let range =
+    `Assoc [ ("start", position start); ("end", position (start + 7)) ]
+  in
+  let replies =
+    roundtrip server_bin
+      [
+        request 1 "initialize"
+          (`Assoc
+             [
+               ( "capabilities",
+                 `Assoc
+                   [
+                     ( "general",
+                       `Assoc
+                         [ ("positionEncodings", `List [ `String encoding ]) ]
+                     );
+                   ] );
+             ]);
+        initialized;
+        did_open uri
+          "dec $take(text, nat): nat\n\
+           def $take(text, nat) = nat\n\
+           dec $run(): nat\n\
+           def $run() = $take(\"é😀\", missing)\n";
+        notification "textDocument/didChange"
+          (`Assoc
+             [
+               ( "textDocument",
+                 `Assoc [ ("uri", `String uri); ("version", `Int 2) ] );
+               ( "contentChanges",
+                 `List [ `Assoc [ ("range", range); ("text", `String "0") ] ] );
+             ]);
+        notification "textDocument/didSave"
+          (`Assoc [ ("textDocument", `Assoc [ ("uri", `String uri) ]) ]);
+        did_close uri;
+        shutdown;
+        exit_;
+      ]
+  in
+  let response =
+    List.find (fun reply -> Json.member "id" reply = `Int 1) replies
+  in
+  let capabilities =
+    response |> Json.member "result" |> Json.member "capabilities"
+  in
+  assert (Json.member "positionEncoding" capabilities = `String encoding);
+  List.iter
+    (fun capability -> assert (Json.member capability capabilities = `Null))
+    [
+      "hoverProvider";
+      "definitionProvider";
+      "referencesProvider";
+      "documentSymbolProvider";
+      "completionProvider";
+      "signatureHelpProvider";
+      "renameProvider";
+    ];
+  let diagnostics =
+    List.filter_map
+      (fun reply ->
+        if
+          Json.member "method" reply
+          <> `String "textDocument/publishDiagnostics"
+        then None
+        else
+          let params = Json.member "params" reply in
+          if Json.member "uri" params <> `String uri then None
+          else Some (Json.to_list (Json.member "diagnostics" params)))
+      replies
+  in
+  match diagnostics with
+  | [ errors; []; []; [] ] ->
+      let diagnostic =
+        List.find (fun d -> Json.member "severity" d = `Int 1) errors
+      in
+      let actual = Json.member "range" diagnostic in
+      List.iter
+        (fun endpoint ->
+          let actual = Json.member endpoint actual in
+          let expected = Json.member endpoint range in
+          assert (Json.member "line" actual = Json.member "line" expected);
+          assert (
+            Json.member "character" actual = Json.member "character" expected))
+        [ "start"; "end" ]
+  | _ ->
+      failwith
+        ("unexpected diagnostic updates for " ^ encoding ^ ": "
+        ^ Yojson.Safe.to_string
+            (`List (List.map (fun ds -> `List ds) diagnostics)))
 
 let () =
   Sys.set_signal Sys.sigalrm
@@ -90,12 +241,25 @@ let () =
          exit 2));
   ignore (Unix.alarm 10);
   let uri = "file:///e2e.spectec" in
+  let file_uri path =
+    Linol_eio.DocumentUri.of_path (Filename.concat (Sys.getcwd ()) path)
+    |> Linol_eio.DocumentUri.to_string
+  in
+  let definition_uri = file_uri "multifile/1-def.spectec" in
+  let use_uri = file_uri "multifile/2-use.spectec" in
   let replies =
     roundtrip Sys.argv.(1)
       [
         initialize;
         initialized;
         did_open uri "syntax t = foo\n";
+        did_open definition_uri "syntax foo = nat\n";
+        did_open use_uri "syntax t = fresh\n";
+        did_change definition_uri "syntax foo = nat\nsyntax fresh = text\n" 2;
+        did_change definition_uri "syntax foo =\n" 3;
+        did_change definition_uri "syntax foo = nat\nsyntax fresh = text\n" 4;
+        did_close definition_uri;
+        did_close use_uri;
         shutdown;
         exit_;
       ]
@@ -115,6 +279,11 @@ let () =
       then
         let params = Json.member "params" reply in
         let uri = Json.to_string (Json.member "uri" params) in
+        let uri =
+          if uri = definition_uri then "definitions"
+          else if uri = use_uri then "uses"
+          else uri
+        in
         let diagnostics = Json.to_list (Json.member "diagnostics" params) in
         let code diagnostic =
           match Json.member "code" diagnostic with `String s -> s | _ -> "?"
@@ -122,4 +291,6 @@ let () =
         let codes = String.concat ", " (List.map code diagnostics) in
         Printf.printf "publishDiagnostics %s: %d diagnostic(s) [%s]\n" uri
           (List.length diagnostics) codes)
-    replies
+    replies;
+  overlapping Sys.argv.(1);
+  List.iter (encoded_diagnostics Sys.argv.(1)) [ "utf-8"; "utf-16" ]

@@ -9,6 +9,34 @@ permissions:
   contents: read
 
 jobs:
+  vscode:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: editors/vscode
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: editors/vscode/package-lock.json
+
+      - name: Install extension dependencies
+        run: npm ci --include=dev --ignore-scripts
+
+      - name: Check JavaScript
+        run: npm run format:check && npm run lint
+
+      - name: Test extension
+        run: npm test
+
+      - name: Package extension
+        run: npm run package
+
   ci:
     strategy:
       fail-fast: false

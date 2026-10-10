@@ -1,17 +1,18 @@
 (executable
  (name main)
  (modules main)
- (libraries spectec.lsp linol-eio yojson))
+ (libraries spectec.lsp spectec linol-eio yojson))
 
 (executable
  (name e2e)
  (modules e2e)
- (libraries yojson unix))
+ (libraries linol-eio yojson unix))
 
 (rule
  (target main.actual)
  (deps
-  (source_tree multifile))
+  (source_tree multifile)
+  (source_tree ../../specs/impty/base))
  (action
   (with-stdout-to
    %{target}
@@ -24,7 +25,11 @@
 
 (rule
  (target e2e.actual)
- (deps %{exe:../../bin/lsp_main.exe})
+ (deps
+  %{exe:../../bin/lsp_main.exe}
+  (source_tree multifile)
+  (source_tree unmarked)
+  (source_tree overlapping))
  (action
   (with-stdout-to
    %{target}
@@ -34,3 +39,23 @@
  (alias runtest)
  (action
   (diff e2e.expected e2e.actual)))
+
+(test
+ (name workspace)
+ (modules workspace)
+ (libraries spectec.lsp spectec)
+ (deps
+  (source_tree unmarked)
+  (source_tree overlapping)))
+
+(test
+ (name convert)
+ (modules convert)
+ (libraries spectec.lsp spectec.common linol-eio))
+
+(test
+ (name publication)
+ (modules publication)
+ (libraries spectec.lsp)
+ (deps
+  (source_tree overlapping)))

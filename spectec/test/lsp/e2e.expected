@@ -1,3 +1,18 @@
 ## end-to-end (spectecx-lsp over stdio)
 initialize: ok
 publishDiagnostics file:///e2e.spectec: 1 diagnostic(s) [elab/ctx-type-undefined]
+publishDiagnostics definitions: 0 diagnostic(s) []
+publishDiagnostics uses: 0 diagnostic(s) []
+publishDiagnostics definitions: 0 diagnostic(s) []
+publishDiagnostics uses: 1 diagnostic(s) [elab/ctx-type-undefined]
+publishDiagnostics definitions: 0 diagnostic(s) []
+publishDiagnostics uses: 0 diagnostic(s) []
+publishDiagnostics definitions: 1 diagnostic(s) [parse/syntax-empty-body]
+publishDiagnostics uses: 0 diagnostic(s) []
+publishDiagnostics definitions: 0 diagnostic(s) []
+publishDiagnostics uses: 0 diagnostic(s) []
+publishDiagnostics definitions: 0 diagnostic(s) []
+publishDiagnostics uses: 1 diagnostic(s) [elab/ctx-type-undefined]
+publishDiagnostics definitions: 0 diagnostic(s) []
+publishDiagnostics uses: 0 diagnostic(s) []
+overlapping spec diagnostics: ok

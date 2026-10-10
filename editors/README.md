@@ -1,29 +1,25 @@
 # Editor support for SpecTecX
 
-Integrations for `.spectec` files: syntax highlighting, and diagnostics from a
-language server.
+Integrations for `.spectec` files: syntax highlighting and language services.
 
 ## Syntax highlighting
 
-Each subdirectory is a standalone highlighter; see its README to install.
+Each subdirectory provides a highlighter. See its README to install.
 
 - `vscode/` — a VS Code extension (TextMate grammar).
 - `emacs/` — a tree-sitter major mode (`spectec-ts-mode`).
 - `vim/` — a Vim/Neovim syntax file with filetype detection.
 
-## Diagnostics (language server)
+## Language server
 
-`spectecx-lsp` re-runs parsing and elaboration on each edit and reports the
-errors and warnings inline, the same set the CLI prints. Build it from the
-repository root and put it on your `PATH`:
+`spectecx-lsp` checks open specs on each edit and reports parse and elaboration diagnostics. Build it from the repository root and put it on your `PATH`:
 
 ```bash
 make lsp                                               # produces ./spectecx-lsp
 ln -sf "$PWD/spectecx-lsp" ~/.local/bin/spectecx-lsp   # if ~/.local/bin is on PATH
 ```
 
-The plugins below already launch `spectecx-lsp` from `PATH`, so that is the only
-machine-specific step.
+The plugins below launch `spectecx-lsp` from `PATH`. VS Code also checks workspace roots and supports an explicit executable path.
 
 ### Neovim (0.11+)
 
@@ -52,9 +48,7 @@ Open a `.spectec` file and run `M-x eglot`.
 
 ### VS Code
 
-The bundled extension is syntax highlighting only. Surfacing diagnostics needs a
-small language-client extension that launches `spectecx-lsp`; that is not yet
-provided.
+Run `make vsix` to package the extension, then install `editors/vscode/spectecx.vsix`. The extension starts the language server in trusted workspaces. See [the VS Code README](vscode/README.md) for configuration and tests.
 
 ## Trying it without changing your config
 

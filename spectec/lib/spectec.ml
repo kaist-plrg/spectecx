@@ -34,6 +34,8 @@ let with_diagnostics f =
 
 let spec_root_of_file file = Spec_files.root_of_file file
 let collect_spec_files dir = Spec_files.collect dir
+let collect_spec_siblings dir = Spec_files.collect ~recursive:false dir
+let compare_spec_files = Spec_files.compare_paths
 
 (* --- Pipeline transformations --- *)
 

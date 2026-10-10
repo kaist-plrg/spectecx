@@ -45,6 +45,13 @@ val spec_root_of_file : string -> string option
     so section numbers order without zero-padding. *)
 val collect_spec_files : string -> string list
 
+(** Collect only the [.spectec] files directly inside [dir], in the same natural
+    order as {!collect_spec_files}. *)
+val collect_spec_siblings : string -> string list
+
+(** Compare file paths in natural order, component by component. *)
+val compare_spec_files : string -> string -> int
+
 (** {1 Pipeline transformations} *)
 
 (** Spec source [contents] paired with the [filename] its diagnostics are
