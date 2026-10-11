@@ -1,0 +1,1 @@
+def sum(x) = if0 x then 0 else x + sum (x - 1) in sum 10

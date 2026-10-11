@@ -1,0 +1,7 @@
+(install
+ (package spectec-target-itpl)
+ (section
+  (site
+   (spectec-target-itpl specs)))
+ (files
+  (spec.spectec as fae/spec.spectec)))

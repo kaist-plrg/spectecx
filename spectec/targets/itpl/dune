@@ -1,0 +1,167 @@
+(ocamllex
+ (modules lexer))
+
+(menhir
+ (flags --fixed-exception)
+ (modules parse))
+
+(library
+ (name targets_itpl)
+ (public_name spectec-target-itpl.target)
+ (modules
+  (:standard
+   \
+   register_ae
+   register_vae
+   register_f1vae
+   register_fvae
+   register_fae
+   register_rfae
+   register_bfae
+   register_mfae
+   register_lfae
+   register_kfae))
+ (libraries
+  spectec
+  spectec.cli
+  spectec.common
+  spectec.interface
+  spectec.lang
+  core
+  dune-site)
+ (preprocess
+  (pps ppx_let)))
+
+(generate_sites_module
+ (module itpl_sites)
+ (sites spectec-target-itpl))
+
+(library
+ (name register_ae)
+ (public_name spectec-target-itpl.ae_plugin)
+ (modules register_ae)
+ (libraries spectec.cli spectec-target-itpl.target))
+
+(library
+ (name register_vae)
+ (public_name spectec-target-itpl.vae_plugin)
+ (modules register_vae)
+ (libraries spectec.cli spectec-target-itpl.target))
+
+(plugin
+ (name ae)
+ (package spectec-target-itpl)
+ (libraries spectec-target-itpl.ae_plugin)
+ (site
+  (spectec target_plugins)))
+
+(plugin
+ (name vae)
+ (package spectec-target-itpl)
+ (libraries spectec-target-itpl.vae_plugin)
+ (site
+  (spectec target_plugins)))
+
+(library
+ (name register_f1vae)
+ (public_name spectec-target-itpl.f1vae_plugin)
+ (modules register_f1vae)
+ (libraries spectec.cli spectec-target-itpl.target))
+
+(library
+ (name register_fvae)
+ (public_name spectec-target-itpl.fvae_plugin)
+ (modules register_fvae)
+ (libraries spectec.cli spectec-target-itpl.target))
+
+(plugin
+ (name f1vae)
+ (package spectec-target-itpl)
+ (libraries spectec-target-itpl.f1vae_plugin)
+ (site
+  (spectec target_plugins)))
+
+(plugin
+ (name fvae)
+ (package spectec-target-itpl)
+ (libraries spectec-target-itpl.fvae_plugin)
+ (site
+  (spectec target_plugins)))
+
+(library
+ (name register_fae)
+ (public_name spectec-target-itpl.fae_plugin)
+ (modules register_fae)
+ (libraries spectec.cli spectec-target-itpl.target))
+
+(library
+ (name register_rfae)
+ (public_name spectec-target-itpl.rfae_plugin)
+ (modules register_rfae)
+ (libraries spectec.cli spectec-target-itpl.target))
+
+(plugin
+ (name fae)
+ (package spectec-target-itpl)
+ (libraries spectec-target-itpl.fae_plugin)
+ (site
+  (spectec target_plugins)))
+
+(plugin
+ (name rfae)
+ (package spectec-target-itpl)
+ (libraries spectec-target-itpl.rfae_plugin)
+ (site
+  (spectec target_plugins)))
+
+(library
+ (name register_bfae)
+ (public_name spectec-target-itpl.bfae_plugin)
+ (modules register_bfae)
+ (libraries spectec.cli spectec-target-itpl.target))
+
+(plugin
+ (name bfae)
+ (package spectec-target-itpl)
+ (libraries spectec-target-itpl.bfae_plugin)
+ (site
+  (spectec target_plugins)))
+
+(library
+ (name register_mfae)
+ (public_name spectec-target-itpl.mfae_plugin)
+ (modules register_mfae)
+ (libraries spectec.cli spectec-target-itpl.target))
+
+(plugin
+ (name mfae)
+ (package spectec-target-itpl)
+ (libraries spectec-target-itpl.mfae_plugin)
+ (site
+  (spectec target_plugins)))
+
+(library
+ (name register_lfae)
+ (public_name spectec-target-itpl.lfae_plugin)
+ (modules register_lfae)
+ (libraries spectec.cli spectec-target-itpl.target))
+
+(plugin
+ (name lfae)
+ (package spectec-target-itpl)
+ (libraries spectec-target-itpl.lfae_plugin)
+ (site
+  (spectec target_plugins)))
+
+(library
+ (name register_kfae)
+ (public_name spectec-target-itpl.kfae_plugin)
+ (modules register_kfae)
+ (libraries spectec.cli spectec-target-itpl.target))
+
+(plugin
+ (name kfae)
+ (package spectec-target-itpl)
+ (libraries spectec-target-itpl.kfae_plugin)
+ (site
+  (spectec target_plugins)))

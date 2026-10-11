@@ -28,6 +28,19 @@
     eio_main))
 
 (package
+  (name spectec-target-itpl)
+  (synopsis "ITPL language targets for SpecTecX")
+  (sites
+    (share specs))
+  (depends
+    (ocaml (>= 5.1.0))
+    (menhir (and :build (>= 20240715)))
+    (spectec (= :version))
+    (core (>= 0.17.1))
+    dune-site
+    ppx_let))
+
+(package
   (name spectec-target-impty)
   (synopsis "Impty target for SpecTecX")
   (sites

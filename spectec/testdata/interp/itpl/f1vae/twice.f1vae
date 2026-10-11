@@ -1,0 +1,2 @@
+def twice(x) = x + x;
+twice(3) + twice(5)

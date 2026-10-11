@@ -1,0 +1,81 @@
+syntax id = _ID text
+syntax literal = _NUM int
+
+syntax expr =
+  | literal
+  | expr '+' expr
+  | expr '-' expr
+  | id
+  | LAMBDA id '.' expr
+  | expr expr
+
+syntax value, binding, env
+
+syntax value =
+  | literal
+  | `< LAMBDA id '.' expr ',' env `>
+
+syntax binding = id -> value
+syntax env = binding*
+
+var x : id
+var e : expr
+var n : int
+var v : value
+
+;; Lookup is defined only for identifiers in $domain(env).
+dec $lookup(env, id) : value
+dec $domain(env) : id*
+dec $update(env, id, value) : env
+
+relation Eval_expr:
+  env |- expr ==> value
+  hint(input %0 %1)
+
+rule Eval_expr/num:
+  env |- (_NUM n) ==> (_NUM n)
+
+rule Eval_expr/add:
+  env |- e_1 '+' e_2 ==> (_NUM $(n_1 + n_2))
+  -- Eval_expr: env |- e_1 ==> (_NUM n_1)
+  -- Eval_expr: env |- e_2 ==> (_NUM n_2)
+
+rule Eval_expr/sub:
+  env |- e_1 '-' e_2 ==> (_NUM $(n_1 - n_2))
+  -- Eval_expr: env |- e_1 ==> (_NUM n_1)
+  -- Eval_expr: env |- e_2 ==> (_NUM n_2)
+
+rule Eval_expr/id:
+  env |- x ==> $lookup(env, x)
+  -- if x <- $domain(env)
+
+rule Eval_expr/fun:
+  env |- (LAMBDA x '.' e) ==> (`< LAMBDA x '.' e ',' env `>)
+
+rule Eval_expr/app:
+  env |- (e_1 e_2) ==> v
+  -- Eval_expr: env |- e_1 ==> (`< LAMBDA x '.' e_body ',' env_clo `>)
+  -- Eval_expr: env |- e_2 ==> v_arg
+  -- Eval_expr: $update(env_clo, x, v_arg) |- e_body ==> v
+
+relation Eval_prog:
+  expr ==> value
+  hint(input %0)
+
+rule Eval_prog:
+  e ==> v
+  -- Eval_expr: eps |- e ==> v
+
+def $lookup((x_1 -> v)::env, x) = v
+  -- if x = x_1
+def $lookup((x_1 -> v)::env, x) = $lookup(env, x)
+  -- otherwise
+
+def $domain(eps) = eps
+def $domain((x -> v)::env) = x::$domain(env)
+
+def $update(eps, x, v) = (x -> v)::eps
+def $update((x_1 -> v_1)::env, x, v) = (x -> v)::env
+  -- if x = x_1
+def $update((x_1 -> v_1)::env, x, v) = (x_1 -> v_1)::$update(env, x, v)
+  -- otherwise
