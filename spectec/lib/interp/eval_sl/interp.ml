@@ -931,12 +931,38 @@ and eval_instr (ctx : Ctx.t) (instr : instr) : Ctx.t * Sign.t =
       let ctx = eval_debug_instr ctx exp in
       eval_instr ctx instr_body
 
+(* Each SL instruction contains one alternative's continuation. *)
 and eval_instrs (ctx : Ctx.t) (sign : Sign.t) (instrs : instr list) :
     Ctx.t * Sign.t =
-  List.fold_left
-    (fun (ctx, sign) instr ->
-      match sign with Sign.Cont -> eval_instr ctx instr | _ -> (ctx, sign))
-    (ctx, sign) instrs
+  if ctx.check_determinism then eval_instrs_unique ctx sign instrs
+  else
+    List.fold_left
+      (fun (ctx, sign) instr ->
+        match sign with Sign.Cont -> eval_instr ctx instr | _ -> (ctx, sign))
+      (ctx, sign) instrs
+
+and eval_instrs_unique (ctx : Ctx.t) (sign : Sign.t) (instrs : instr list) :
+    Ctx.t * Sign.t =
+  match sign with
+  | Sign.Res _ | Sign.Ret _ -> (ctx, sign)
+  | Sign.Cont -> (
+      let ctx_unmatched, applied =
+        List.fold_left
+          (fun (ctx_unmatched, applied) instr ->
+            match (eval_instr ctx_unmatched instr, applied) with
+            | (ctx_post, Sign.Cont), _ -> (ctx_post, applied)
+            | result, None -> (ctx_unmatched, Some (result, instr.at))
+            | _, Some (_, at_applied) ->
+                error instr.at
+                  (F.asprintf
+                     "this alternative applies, and so does the alternative at \
+                      %s"
+                     (string_of_region at_applied)))
+          (ctx, None) instrs
+      in
+      match applied with
+      | Some (result, _) -> result
+      | None -> (ctx_unmatched, Sign.Cont))
 
 (* If instruction evaluation *)
 

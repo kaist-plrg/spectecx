@@ -26,9 +26,10 @@ module Checkpoint = struct
     completed_inputs : string list;
     coverage : coverage;
     timestamp : float;
+    check_determinism : bool;
   }
 
-  let current_version = 2
+  let current_version = 3
 
   let compute_spec_hash spec_files =
     let contents =
@@ -43,13 +44,14 @@ module Checkpoint = struct
     in
     Digest.string contents |> Digest.to_hex
 
-  let create ~spec_files ~completed_inputs ~coverage =
+  let create ~spec_files ~completed_inputs ~coverage ~check_determinism =
     {
       version = current_version;
       spec_hash = compute_spec_hash spec_files;
       completed_inputs;
       coverage;
       timestamp = Unix.gettimeofday ();
+      check_determinism;
     }
 
   let format_summary checkpoint =
@@ -95,6 +97,19 @@ module Checkpoint = struct
     let current_hash = compute_spec_hash spec_files in
     if checkpoint.spec_hash = current_hash then Ok ()
     else Error (Error.SpecMismatchError (checkpoint.spec_hash, current_hash))
+
+  let determinism_label checked = if checked then "enabled" else "disabled"
+
+  let verify_determinism checkpoint ~check_determinism =
+    if checkpoint.check_determinism = check_determinism then Ok ()
+    else
+      Error
+        (Error.ConfigError
+           ( Common.Source.no_region,
+             Printf.sprintf
+               "Checkpoint determinism checking is %s. Resume with the same \
+                setting."
+               (determinism_label checkpoint.check_determinism) ))
 
   let snapshot_coverage () =
     List.filter_map
@@ -151,6 +166,11 @@ module Checkpoint = struct
     if checkpoint1.spec_hash <> checkpoint2.spec_hash then
       Error
         (Error.SpecMismatchError (checkpoint1.spec_hash, checkpoint2.spec_hash))
+    else if checkpoint1.check_determinism <> checkpoint2.check_determinism then
+      Error
+        (Error.ConfigError
+           ( Common.Source.no_region,
+             "Cannot merge checkpoints with different determinism settings" ))
     else
       let completed_inputs =
         let seen = Hashtbl.create 256 in
@@ -170,6 +190,7 @@ module Checkpoint = struct
           completed_inputs;
           coverage;
           timestamp = Unix.gettimeofday ();
+          check_determinism = checkpoint1.check_determinism;
         }
 
   let verify_and_load ~file ~spec_files ~verbose =
@@ -188,11 +209,12 @@ module Checkpoint = struct
       (fun input -> not (List.mem (get_id input) checkpoint.completed_inputs))
       inputs
 
-  let save ~spec_files ~completed_inputs ~output_file =
+  let save ~spec_files ~completed_inputs ~check_determinism ~output_file =
     match output_file with
     | Some file ->
         let checkpoint =
           create ~spec_files ~completed_inputs ~coverage:(snapshot_coverage ())
+            ~check_determinism
         in
         save_to_file ~file checkpoint
     | None -> ()
@@ -234,20 +256,21 @@ type 'i test_result = {
 
 let run_with_outcome_with_instrumentation (type i)
     (module T : Task.S with type input = i)
-    ?(config = Instrumentation.Config.default) ~mode ~spec_il (input : i) =
+    ?(config = Instrumentation.Config.default) ?(check_determinism = false)
+    ~mode ~spec_il (input : i) =
   let result =
     Spectec.eval_task_with_instrumentation
       (module T)
-      ~config ~mode ~spec_il input
+      ~config ~check_determinism ~mode ~spec_il input
   in
   Task.compute_outcome (T.expectation input) result
 
-let run_with_outcome (type i) (module T : Task.S with type input = i) ~mode
-    ~spec_il (input : i) =
+let run_with_outcome (type i) (module T : Task.S with type input = i)
+    ?(check_determinism = false) ~mode ~spec_il (input : i) =
   let test_case_id = T.source input in
   Instrumentation.Dispatcher.emit (Events.Test_start { test_case_id });
   let result =
-    try Spectec.eval_task (module T) ~mode ~spec_il input
+    try Spectec.eval_task (module T) ~check_determinism ~mode ~spec_il input
     with e ->
       Instrumentation.Dispatcher.emit (Events.Test_end { test_case_id });
       raise e
@@ -272,11 +295,11 @@ let print_outcome_tag ansi outcome =
        [ outcome_color outcome ]
        (outcome_label outcome))
 
-let run_one_input (type i) (module T : Task.S with type input = i) ~ansi ~mode
-    ~spec_il ~verbose (input : i) =
+let run_one_input (type i) (module T : Task.S with type input = i)
+    ?(check_determinism = false) ~ansi ~mode ~spec_il ~verbose (input : i) =
   let source = T.source input in
   let outcome =
-    try run_with_outcome (module T) ~mode ~spec_il input
+    try run_with_outcome (module T) ~check_determinism ~mode ~spec_il input
     with exn ->
       let error = UnhandledException (Printexc.to_string exn) in
       Task.compute_outcome (T.expectation input) (Error error)
@@ -354,8 +377,8 @@ let print_summary summary =
 (* --- Batch runner --- *)
 
 let run_batch_with_outcomes (type i) (module T : Task.S with type input = i)
-    ?(config = Instrumentation.Config.default) ~ansi ~mode ~spec_il
-    ?(verbose = false) (inputs : i list) =
+    ?(config = Instrumentation.Config.default) ?(check_determinism = false)
+    ~ansi ~mode ~spec_il ?(verbose = false) (inputs : i list) =
   let total = List.length inputs in
   Instrumentation.with_instrumentation config
     (Instrumentation.Static.IlSpec spec_il)
@@ -364,17 +387,19 @@ let run_batch_with_outcomes (type i) (module T : Task.S with type input = i)
     (fun idx input ->
       if verbose then
         Format.printf "[%d/%d] %s... %!" (idx + 1) total (T.source input);
-      run_one_input (module T) ~ansi ~mode ~spec_il ~verbose input)
+      run_one_input
+        (module T)
+        ~check_determinism ~ansi ~mode ~spec_il ~verbose input)
     inputs
 
 (* --- Composed run + print --- *)
 
 let run_and_print_single (type i) (module T : Task.S with type input = i)
-    ?config ~mode ~spec_il (input : i) =
+    ?config ?check_determinism ~mode ~spec_il (input : i) =
   let outcome =
     run_with_outcome_with_instrumentation
       (module T)
-      ?config ~mode ~spec_il input
+      ?config ?check_determinism ~mode ~spec_il input
   in
   match outcome with
   | Task.Pass values | Task.UnexpectedPass values ->
@@ -390,14 +415,14 @@ let empty_inputs_error ?dir () =
        (match dir with Some dir -> " under " ^ dir | None -> ""))
 
 let run_and_print_batch (type i) (module T : Task.S with type input = i) ?config
-    ~ansi ~mode ~spec_il ~verbose (inputs : i list) =
+    ?check_determinism ~ansi ~mode ~spec_il ~verbose (inputs : i list) =
   match inputs with
   | [] -> Error (empty_inputs_error ())
   | _ ->
       let results =
         run_batch_with_outcomes
           (module T)
-          ?config ~ansi ~mode ~spec_il ~verbose inputs
+          ?config ?check_determinism ~ansi ~mode ~spec_il ~verbose inputs
       in
       if not verbose then
         List.iter
@@ -416,7 +441,8 @@ type task_result = {
   failures : failure list;
 }
 
-let run_target ?(config = Instrumentation.Config.default) ?test_dir ~ansi
+let run_target ?(config = Instrumentation.Config.default)
+    ?(check_determinism = false) ?test_dir ~ansi
     ~(checkpoint_config : Checkpoint.config) ~verbose ~mode ~spec_files spec_il
     tasks =
   Instrumentation.with_instrumentation config
@@ -426,8 +452,11 @@ let run_target ?(config = Instrumentation.Config.default) ?test_dir ~ansi
   let* loaded_checkpoint =
     match checkpoint_config.resume_from with
     | Some file ->
-        Checkpoint.verify_and_load ~file ~spec_files ~verbose
-        |> Result.map Option.some
+        let* checkpoint =
+          Checkpoint.verify_and_load ~file ~spec_files ~verbose
+        in
+        let* () = Checkpoint.verify_determinism checkpoint ~check_determinism in
+        Ok (Some checkpoint)
     | None -> Ok None
   in
   let all_completed_inputs = ref [] in
@@ -438,7 +467,7 @@ let run_target ?(config = Instrumentation.Config.default) ?test_dir ~ansi
   | None -> ());
   let save_current_checkpoint () =
     Checkpoint.save ~spec_files ~completed_inputs:!all_completed_inputs
-      ~output_file:checkpoint_config.output_file
+      ~check_determinism ~output_file:checkpoint_config.output_file
   in
   let run_one_task (Task.Pack (module T)) =
     let all_inputs =
@@ -466,7 +495,9 @@ let run_target ?(config = Instrumentation.Config.default) ?test_dir ~ansi
                   (completed_count + index + 1)
                   total_all (T.source input);
               let result =
-                run_one_input (module T) ~ansi ~mode ~spec_il ~verbose input
+                run_one_input
+                  (module T)
+                  ~check_determinism ~ansi ~mode ~spec_il ~verbose input
               in
               all_completed_inputs := result.source :: !all_completed_inputs;
               if (index + 1) mod checkpoint_config.save_interval = 0 then

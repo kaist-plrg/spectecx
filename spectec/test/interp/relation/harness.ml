@@ -75,52 +75,59 @@ let render_error error =
   error |> Interp.error_to_diagnostic |> Diagnostic.Bag.singleton
   |> render_diagnostics
 
-let eval target_state spec mode relation args =
+let eval ~check_determinism target_state spec mode relation args =
   match mode with
   | Il ->
-      Interp.eval_il target_state spec.spec_il relation args spec.filename
+      Interp.eval_il ~check_determinism target_state spec.spec_il relation args
+        spec.filename
       |> Result.map ~f:snd
   | Sl ->
-      Interp.eval_sl target_state spec.spec_sl relation args spec.filename
+      Interp.eval_sl ~check_determinism target_state spec.spec_sl relation args
+        spec.filename
       |> Result.map ~f:snd
   | Pl ->
-      Interp.eval_pl target_state spec.spec_pl relation args spec.filename
+      Interp.eval_pl ~check_determinism target_state spec.spec_pl relation args
+        spec.filename
       |> Result.map ~f:snd
 
-let fail_check ~name ~mode message =
-  failwithf "%s (%s): %s" name (string_of_mode mode) message ()
+let fail_check ~name ~mode ~check_determinism message =
+  failwithf "%s (%s, %s): %s" name (string_of_mode mode)
+    (if check_determinism then "determinism checked" else "first match")
+    message ()
 
-let check_result ~name ~mode expectation result =
+let check_result ~name ~mode ~check_determinism expectation result =
+  let fail_check = fail_check ~name ~mode ~check_determinism in
   match (expectation, result) with
   | Returns expected, Ok actual ->
       let expected = expected () in
       if not (List.equal Value.eq expected actual) then
-        fail_check ~name ~mode
+        fail_check
           (sprintf "expected %s but returned %s"
              (string_of_values expected)
              (string_of_values actual))
   | Returns _, Error error ->
-      fail_check ~name ~mode ("evaluation failed:\n" ^ render_error error)
+      fail_check ("evaluation failed:\n" ^ render_error error)
   | Fails, Error _ -> ()
   | Fails_with expected, Error error ->
       let actual = render_error error in
       if not (String.is_substring actual ~substring:expected) then
-        fail_check ~name ~mode
+        fail_check
           (sprintf "expected an error containing %S but got:\n%s" expected
              actual)
   | Fails, Ok actual ->
-      fail_check ~name ~mode
+      fail_check
         (sprintf "expected an error but returned %s" (string_of_values actual))
   | Fails_with expected, Ok actual ->
-      fail_check ~name ~mode
+      fail_check
         (sprintf "expected an error containing %S but returned %s" expected
            (string_of_values actual))
 
-let check spec ?(modes = [ Il; Sl; Pl ]) ~name ~relation ~args expectation =
+let check spec ?(modes = [ Il; Sl; Pl ]) ?(check_determinism = false) ~name
+    ~relation ~args expectation =
   List.iter modes ~f:(fun mode ->
       Interp.with_target_state
         (module Pure_target)
         (fun target_state ->
           let args = args () in
-          eval target_state spec mode relation args
-          |> check_result ~name ~mode expectation))
+          eval ~check_determinism target_state spec mode relation args
+          |> check_result ~name ~mode ~check_determinism expectation))

@@ -84,8 +84,10 @@ type code =
   | Ctx_metavar_redefined
   | Ctx_type_redefined
   | Ctx_relation_redefined
+  | Ctx_relation_fallback_redefined
   | Ctx_builtin_dec_redefined
   | Ctx_dec_redefined
+  | Ctx_dec_fallback_redefined
   (* dataflow *)
   | Dataflow_free_variable_in_output
   | Dataflow_bind_both_sides_of_equality

@@ -950,19 +950,37 @@ and eval_instrs (ctx : Ctx.t) (sign : Sign.t) (instrs : instr list) :
       match sign with Sign.Cont -> eval_instr ctx instr | _ -> (ctx, sign))
     (ctx, sign) instrs
 
-(* Try instruction evaluation: the arms are mutually-exclusive branches
-   produced by linearization. Each is evaluated from the entry context; the
-   first arm to yield a result wins, and a [Cont] arm (its branch did not
-   match) falls through to the next. All arms failing yields [Cont]. *)
+(* Each arm runs sequentially from the entry context. *)
 and eval_try_instr (ctx : Ctx.t) (arms : instr list list) : Ctx.t * Sign.t =
-  let rec attempt = function
-    | [] -> (ctx, Sign.Cont)
-    | arm :: arms_rest -> (
-        match eval_instrs ctx Sign.Cont arm with
-        | _, Sign.Cont -> attempt arms_rest
-        | ctx', sign -> (ctx', sign))
+  if ctx.check_determinism then eval_try_instr_unique ctx arms
+  else
+    let rec attempt = function
+      | [] -> (ctx, Sign.Cont)
+      | arm :: arms_rest -> (
+          match eval_instrs ctx Sign.Cont arm with
+          | _, Sign.Cont -> attempt arms_rest
+          | ctx', sign -> (ctx', sign))
+    in
+    attempt arms
+
+and eval_try_instr_unique (ctx : Ctx.t) (arms : instr list list) :
+    Ctx.t * Sign.t =
+  let at_of_arm arm =
+    match arm with instr :: _ -> instr.node.at | [] -> no_region
   in
-  attempt arms
+  let applied =
+    List.fold_left
+      (fun applied arm ->
+        match (eval_instrs ctx Sign.Cont arm, applied) with
+        | (_, Sign.Cont), _ -> applied
+        | result, None -> Some (result, at_of_arm arm)
+        | _, Some (_, at_applied) ->
+            error (at_of_arm arm)
+              (F.asprintf "this arm applies, and so does the arm at %s"
+                 (string_of_region at_applied)))
+      None arms
+  in
+  match applied with Some (result, _) -> result | None -> (ctx, Sign.Cont)
 
 (* Check-let instruction evaluation *)
 

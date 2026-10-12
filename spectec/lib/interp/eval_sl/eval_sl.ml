@@ -12,23 +12,27 @@ let run_relation (ctx : Ctx.t) (spec : spec) (rid : id') (values : value list) :
 
 (* Entry point : Run typing rule *)
 
-let run_relation_fresh (filename : string) (builtins : Builtins.t)
-    (cache : Cache.t) (spec : spec) (rid : id') (values : value list) :
-    Ctx.t * value list =
+let run_relation_fresh ~(check_determinism : bool) (filename : string)
+    (builtins : Builtins.t) (cache : Cache.t) (spec : spec) (rid : id')
+    (values : value list) : Ctx.t * value list =
   Cache.clear cache;
-  let ctx = Ctx.empty filename builtins cache in
+  let ctx = Ctx.empty ~check_determinism filename builtins cache in
   run_relation ctx spec rid values
 
 type error = region * string
 
-let run (module T : Target.S) (spec : spec) (rid : string) (values : value list)
-    (filename : string) : (Ctx.t * value list, error) result =
+let run ?(check_determinism = false) (module T : Target.S) (spec : spec)
+    (rid : string) (values : value list) (filename : string) :
+    (Ctx.t * value list, error) result =
   let builtins = Builtins.make T.builtins in
   let cache =
     Cache.make ~is_impure_func:T.is_impure_func ~is_impure_rel:T.is_impure_rel
       ~state_version:T.state_version
   in
-  try run_relation_fresh filename builtins cache spec rid values |> Result.ok
+  try
+    run_relation_fresh ~check_determinism filename builtins cache spec rid
+      values
+    |> Result.ok
   with InterpError (at, msg) -> Error (at, msg)
 
 let error_to_diagnostic ((at, msg) : error) : Diag.t =

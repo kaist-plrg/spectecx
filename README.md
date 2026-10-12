@@ -89,6 +89,9 @@ The target-specific examples require the corresponding target package.
 ./spectecx p4 typecheck -i spectec/testdata/interp/p4-tests/includes -p target/file.p4
 ./spectecx p4 typecheck -i spectec/testdata/interp/p4-tests/includes -p target/file.p4 --sl
 
+# reject multiple successful alternatives for the current input
+./spectecx p4 typecheck -i spectec/testdata/interp/p4-tests/includes -p target/file.p4 --det
+
 ## ITPL commands
 
 ./spectecx ae eval -p spectec/testdata/interp/itpl/ae/arithmetic.ae
@@ -104,6 +107,8 @@ The target-specific examples require the corresponding target package.
 ```
 
 The [ITPL specifications](spectec/specs/itpl/README.md) follow the languages in chapters 6 through 17 of *Introduction to Programming Languages* by Jaemin Hong and Sukyoung Ryu, the textbook for KAIST CS320.
+
+`--det` is opt-in and works with IL, SL, and PL alike. It rejects an input as soon as more than one alternative succeeds for it, even when the alternatives agree on their output, and it only checks inputs actually supplied to a run, not every input the spec could ever see. Evaluating the extra alternatives can invoke host operations (e.g. a builtin with a side effect) that are not rolled back. A resumed checkpoint must have been saved with the same `--det` setting as the run resuming it.
 
 ### Editor support
 

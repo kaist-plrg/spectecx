@@ -86,6 +86,7 @@ type t = {
   builtins : Builtins.t;
   (* Cache *)
   cache : Cache.t;
+  check_determinism : bool;
   (* Global layer *)
   global : global;
   (* Local layer *)
@@ -255,8 +256,15 @@ let freeze (l : global_loader) : global =
     fenv = Global.FEnv.freeze l.fenv;
   }
 
-let create ~filename builtins cache (global : global) : t =
-  { filename; builtins; cache; global; local = empty_local () }
+let create ~filename ~check_determinism builtins cache (global : global) : t =
+  {
+    filename;
+    builtins;
+    cache;
+    check_determinism;
+    global;
+    local = empty_local ();
+  }
 
 (* Constructing a local context *)
 let localize (ctx : t) : t = { ctx with local = empty_local () }

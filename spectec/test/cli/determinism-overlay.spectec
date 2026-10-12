@@ -1,0 +1,8 @@
+;; A second alternative for an existing Check_command case, appended on top of
+;; the impty base spec via --spec. It always applies exactly when the first
+;; alternative does and reaches the same conclusion, so --det is the only way
+;; the overlap is visible: first-match execution is unaffected.
+
+rule Check_command/decl-dup:
+  tenv |- (t x '=' e) -| (x -> t)::tenv
+  -- Check_expr: tenv |- e : t

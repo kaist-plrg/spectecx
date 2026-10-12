@@ -1,0 +1,12 @@
+var x : nat
+
+dec $f(nat) : nat
+
+def $f(x) = 1
+  -- if $(x < 10)
+
+def $f(x) = 2
+  -- otherwise
+
+def $f(x) = 3
+  -- otherwise

@@ -39,8 +39,12 @@ let rec linearize_instr (instr : Sl.instr) : Ll.block =
       let instr_debug = Ll.DebugI exp $ at in
       instr_debug :: linearize_instr body
 
+(* Each SL alternative remains one arm when its instructions are linearized. *)
 and linearize_block (block : Sl.block) : Ll.block =
-  block |> List.concat_map linearize_instr |> wrap_try_arms
+  match List.map linearize_instr block with
+  | [] -> []
+  | [ arm ] -> arm
+  | arms -> [ Ll.TryI arms $ no_region ]
 
 and linearize_guard (g : Sl.guard) : Ll.guard =
   match g with
@@ -49,28 +53,6 @@ and linearize_guard (g : Sl.guard) : Ll.guard =
   | Sl.SubG typ -> Ll.SubG typ
   | Sl.MatchG pat -> Ll.MatchG pat
   | Sl.MemG e -> Ll.MemG e
-
-and is_branching (instr : Ll.instr) : bool =
-  match instr.it with
-  | Ll.IfI _ | Ll.RelAssertI _ | Ll.CaseI _ -> true
-  | _ -> false
-
-and split_leading_branches (instrs : Ll.block) : Ll.instr list * Ll.block =
-  match instrs with
-  | instr :: rest when is_branching instr ->
-      let branches, remainder = split_leading_branches rest in
-      (instr :: branches, remainder)
-  | _ -> ([], instrs)
-
-and wrap_try_arms (instrs : Ll.block) : Ll.block =
-  match split_leading_branches instrs with
-  | [], [] -> []
-  | [], head :: rest -> head :: wrap_try_arms rest
-  | [ single ], remainder -> single :: wrap_try_arms remainder
-  | branches, remainder ->
-      let arms = List.map (fun i -> [ i ]) branches in
-      let wrapped = Ll.TryI arms $ no_region in
-      wrapped :: wrap_try_arms remainder
 
 let linearize_elseblock (elseblock : Sl.elseblock) : Ll.block =
   let block_ll = linearize_block elseblock in

@@ -1,0 +1,309 @@
+var x : nat
+var y : nat
+var z : nat
+var n : nat
+var m : nat
+
+;; Calling $boom must fail fatally.
+builtin dec $boom(nat) : nat
+
+relation Disagree:
+  nat |- nat
+  hint(input %0)
+
+rule Disagree/low:
+  x |- 1
+  -- if $(x < 10)
+
+rule Disagree/small:
+  x |- 2
+  -- if $(x < 20)
+
+relation Disjoint:
+  nat |- nat
+  hint(input %0)
+
+rule Disjoint/low:
+  x |- 1
+  -- if $(x < 10)
+
+rule Disjoint/high:
+  x |- 2
+  -- if $(x >= 10)
+
+relation Partial:
+  nat |- nat
+  hint(input %0)
+
+rule Partial/low:
+  x |- 1
+  -- if $(x < 10)
+
+relation Fallback_first:
+  nat |- nat
+  hint(input %0)
+
+rule Fallback_first/rest:
+  x |- 99
+  -- otherwise
+
+rule Fallback_first/low:
+  x |- 1
+  -- if $(x < 10)
+
+relation Fallback_overlap:
+  nat |- nat
+  hint(input %0)
+
+rule Fallback_overlap/low:
+  x |- 1
+  -- if $(x < 10)
+
+rule Fallback_overlap/small:
+  x |- 2
+  -- if $(x < 20)
+
+rule Fallback_overlap/rest:
+  x |- 99
+  -- otherwise
+
+;; Structuring merges the premise the two rules share, leaving the outputs as
+;; alternatives underneath.
+relation Shared_premise:
+  nat |- nat
+  hint(input %0)
+
+rule Shared_premise/a:
+  x |- 1
+  -- if $(x < 10)
+  -- if $(x > 1)
+
+rule Shared_premise/b:
+  x |- 2
+  -- if $(x < 10)
+  -- if $(x > 2)
+
+;; The first rule binds y and then fails, so the second rule must start from the
+;; input alone.
+relation Rebind:
+  nat |- nat
+  hint(input %0)
+
+rule Rebind/first:
+  x |- y
+  -- if $(x < 10)
+  -- if y = $(x + 1)
+  -- if $(y > 100)
+
+rule Rebind/second:
+  x |- y
+  -- if $(x < 20)
+  -- if y = $(x + 2)
+
+relation Bind_overlap:
+  nat |- nat
+  hint(input %0)
+
+rule Bind_overlap/a:
+  x |- y
+  -- if y = $(x + 1)
+
+rule Bind_overlap/b:
+  x |- y
+  -- if y = $(x + 2)
+
+relation Always:
+  nat |- nat
+  hint(input %0)
+
+rule Always/a:
+  x |- 1
+
+rule Always/b:
+  x |- 2
+
+relation Same_guard_equal:
+  nat |- nat
+  hint(input %0)
+
+rule Same_guard_equal/a:
+  x |- 7
+  -- if $(x < 10)
+
+rule Same_guard_equal/b:
+  x |- 7
+  -- if $(x < 10)
+
+;; Diagnostics identify unnamed rules by their source regions.
+relation Unnamed:
+  nat |- nat
+  hint(input %0)
+
+rule Unnamed:
+  x |- 1
+
+rule Unnamed:
+  x |- 2
+
+;; IL retains both ordinary and fallback failure traces.
+relation Fallback_fails:
+  nat |- nat
+  hint(input %0)
+
+rule Fallback_fails/low:
+  x |- y
+  -- if $(x < 10)
+  -- if y = $(x + 1)
+  -- if $(y > 100)
+
+rule Fallback_fails/rest:
+  x |- y
+  -- if y = $(x + 2)
+  -- if $(y > 200)
+  -- otherwise
+
+relation Disjunction:
+  nat |- nat
+  hint(input %0)
+
+rule Disjunction:
+  x |- 1
+  -- if $(x < 10 \/ x < 20)
+
+relation Nested:
+  nat |- nat
+  hint(input %0)
+
+rule Nested:
+  x |- y
+  -- Disagree: x |- y
+
+;; A fatal error must propagate after an earlier alternative succeeds.
+relation Fatal_after_match:
+  nat |- nat
+  hint(input %0)
+
+rule Fatal_after_match/low:
+  x |- 1
+  -- if $(x < 10)
+
+rule Fatal_after_match/boom:
+  x |- $boom(x)
+  -- if $(x < 20)
+
+dec $pick(nat) : nat
+def $pick(x) = 1
+  -- if $(x < 10)
+def $pick(x) = 2
+  -- if $(x < 20)
+
+dec $pick_disjoint(nat) : nat
+def $pick_disjoint(x) = 1
+  -- if $(x < 10)
+def $pick_disjoint(x) = 2
+  -- if $(x >= 10)
+
+dec $pick_fallback_first(nat) : nat
+def $pick_fallback_first(x) = 99
+  -- otherwise
+def $pick_fallback_first(x) = 1
+  -- if $(x < 10)
+
+dec $pick_always(nat) : nat
+def $pick_always(x) = 1
+def $pick_always(x) = 2
+
+dec $pick_same_guard_equal(nat) : nat
+def $pick_same_guard_equal(x) = 7
+  -- if $(x < 10)
+def $pick_same_guard_equal(x) = 7
+  -- if $(x < 10)
+
+relation Call_pick:
+  nat |- nat
+  hint(input %0)
+
+rule Call_pick:
+  x |- $pick(x)
+
+relation Call_pick_disjoint:
+  nat |- nat
+  hint(input %0)
+
+rule Call_pick_disjoint:
+  x |- $pick_disjoint(x)
+
+relation Call_pick_always:
+  nat |- nat
+  hint(input %0)
+
+rule Call_pick_always:
+  x |- $pick_always(x)
+
+relation Call_pick_same_guard_equal:
+  nat |- nat
+  hint(input %0)
+
+rule Call_pick_same_guard_equal:
+  x |- $pick_same_guard_equal(x)
+
+relation Call_pick_fallback_first:
+  nat |- nat
+  hint(input %0)
+
+rule Call_pick_fallback_first:
+  x |- $pick_fallback_first(x)
+
+relation Call_pick_disjoint_twice:
+  nat |- nat
+  hint(input %0)
+
+rule Call_pick_disjoint_twice:
+  x |- $(y + z)
+  -- if y = $pick_disjoint(x)
+  -- if z = $pick_disjoint(x)
+
+dec $overlap_cons_first(nat*) : nat
+def $overlap_cons_first(n :: m*) = 10
+def $overlap_cons_first(n) = 20
+
+dec $overlap_singleton_first(nat*) : nat
+def $overlap_singleton_first(n) = 20
+def $overlap_singleton_first(n :: m*) = 10
+
+relation Call_overlap_cons_first:
+  nat* |- nat
+  hint(input %0)
+
+rule Call_overlap_cons_first:
+  m* |- $overlap_cons_first(m*)
+
+relation Call_overlap_singleton_first:
+  nat* |- nat
+  hint(input %0)
+
+rule Call_overlap_singleton_first:
+  m* |- $overlap_singleton_first(m*)
+
+dec $cons_or_nil(nat*) : nat
+def $cons_or_nil(n :: m*) = 1
+def $cons_or_nil(eps) = 2
+
+relation Call_cons_or_nil:
+  nat* |- nat
+  hint(input %0)
+
+rule Call_cons_or_nil:
+  m* |- $cons_or_nil(m*)
+
+dec $overlap_first_fails(nat*) : nat
+def $overlap_first_fails(n :: m*) = 10
+  -- if $(n > 5)
+def $overlap_first_fails(n) = 20
+
+relation Call_overlap_first_fails:
+  nat* |- nat
+  hint(input %0)
+
+rule Call_overlap_first_fails:
+  m* |- $overlap_first_fails(m*)

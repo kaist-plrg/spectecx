@@ -65,57 +65,7 @@ let rec remove_let_alias (instrs : instr list) : instr list =
       let instrs_t = remove_let_alias instrs_t in
       instr_h :: instrs_t
 
-(* [2] Parallelize if conditions in logical or *)
-
-let rec parallelize_exp_disjunction (iterexps : iterexp list) (exp : exp) :
-    exp list option =
-  match iterexps with [] -> parallelize_exp_disjunction' exp | _ -> None
-
-and parallelize_exp_disjunction' (exp : exp) : exp list option =
-  match exp.it with
-  | BinE (`OrOp, _, exp_l, exp_r) -> (
-      let exps_l = parallelize_exp_disjunction' exp_l in
-      let exps_r = parallelize_exp_disjunction' exp_r in
-      match (exps_l, exps_r) with
-      | Some exps_l, Some exps_r -> Some (exps_l @ exps_r)
-      | Some exps_l, None -> Some (exps_l @ [ exp_r ])
-      | None, Some exps_r -> Some (exps_r @ [ exp_l ])
-      | None, None -> Some [ exp_l; exp_r ])
-  | _ -> None
-
-let rec parallelize_if_disjunction (instr : instr) : instr list =
-  let at = instr.at in
-  match instr.it with
-  | IfI (exp_cond, iterexps, instrs_then) -> (
-      let instrs_then = parallelize_if_disjunctions instrs_then in
-      match parallelize_exp_disjunction iterexps exp_cond with
-      | Some exps_cond ->
-          List.map
-            (fun exp_cond -> IfI (exp_cond, iterexps, instrs_then) $ at)
-            exps_cond
-      | None -> [ instr ])
-  | RelAssertI { call; expect; iterexps; block = instrs_then } ->
-      let instrs_then = parallelize_if_disjunctions instrs_then in
-      [ RelAssertI { call; expect; iterexps; block = instrs_then } $ at ]
-  | CaseI (exp, cases, total) ->
-      let cases =
-        let guards, blocks = List.split cases in
-        let blocks = List.map parallelize_if_disjunctions blocks in
-        List.combine guards blocks
-      in
-      [ CaseI (exp, cases, total) $ at ]
-  | LetI (exp_l, exp_r, iterexps, block) ->
-      let block = parallelize_if_disjunctions block in
-      [ LetI (exp_l, exp_r, iterexps, block) $ at ]
-  | RelI { call; iterexps; block } ->
-      let block = parallelize_if_disjunctions block in
-      [ RelI { call; iterexps; block } $ at ]
-  | _ -> [ instr ]
-
-and parallelize_if_disjunctions (instrs : instr list) : instr list =
-  List.concat_map parallelize_if_disjunction instrs
-
-(* [3] Matchify equals terminal *)
+(* [2] Matchify equals terminal *)
 
 let matchify_exp_eq_terminal (exp : exp) : exp =
   let at, note = (exp.at, exp.note) in
@@ -159,7 +109,7 @@ let rec matchify_if_eq_terminal (instr : instr) : instr =
 and matchify_if_eq_terminals (instrs : instr list) : instr list =
   List.map matchify_if_eq_terminal instrs
 
-(* [4] Remove redundant let and relation bindings from the code,
+(* [3] Remove redundant let and relation bindings from the code,
    which appears due to the concatenation of multiple rules and clauses
    This operation is safe because IL is already in SSA form *)
 
@@ -435,7 +385,7 @@ let rec remove_redundant_bindings (rtenv : RTEnv.t) (instrs : instr list) :
       let instrs_t = instrs_t |> remove_redundant_bindings rtenv in
       instr_h :: instrs_t
 
-(* [5] Condition analysis and case analysis insertion *)
+(* [4] Condition analysis and case analysis insertion *)
 
 let rec merge_block (instrs_a : instr list) (instrs_b : instr list) : instr list
     =
@@ -695,8 +645,7 @@ and overlap_pattern (exp : exp) (pattern_a : pattern) (pattern_b : pattern) :
     match (pattern_a, pattern_b) with
     | CaseP _, CaseP _ -> Disjoint (exp, guard_a, guard_b)
     | ListP `Cons, ListP (`Fixed n) | ListP (`Fixed n), ListP `Cons ->
-        if n = 0 then Partition (exp, guard_a, guard_b)
-        else Disjoint (exp, guard_a, guard_b)
+        if n = 0 then Partition (exp, guard_a, guard_b) else Fuzzy
     | ListP `Cons, ListP `Nil | ListP `Nil, ListP `Cons ->
         Partition (exp, guard_a, guard_b)
     | ListP (`Fixed _), ListP (`Fixed _) -> Disjoint (exp, guard_a, guard_b)
@@ -715,7 +664,7 @@ let overlap_guard (tdenv : TDEnv.t) (exp : exp) (guard_a : guard)
   let exp_b = guard_as_exp exp guard_b in
   overlap_exp tdenv exp_a exp_b
 
-(* [5-1] Merge consecutive if statements with the same condition
+(* [4-1] Merge consecutive if statements with the same condition
 
    This handles if statements that are not categorized as case analysis,
    either because the condition itself is complex or because it is iterated *)
@@ -796,7 +745,7 @@ let rec merge_if (tdenv : TDEnv.t) (instrs : instr list) : instr list =
       let instrs_t = merge_if tdenv instrs_t in
       instr_h :: instrs_t
 
-(* [5-2] Merge consecutive relation assertions with the same call *)
+(* [4-2] Merge consecutive relation assertions with the same call *)
 
 let rec merge_identical_rel_assert (at : region) (call_target : relcall)
     (iterexps_target : iterexp list) (instrs_then_target : instr list)
@@ -900,7 +849,7 @@ let rec merge_rel_assert (instrs : instr list) : instr list =
       let instrs_t = merge_rel_assert instrs_t in
       instr_h :: instrs_t
 
-(* [5-2-a] if-and-if to case analysis *)
+(* [4-2-a] if-and-if to case analysis *)
 
 let casify_if_if (tdenv : TDEnv.t) (at : region) (exp_cond_target : exp)
     (instrs_then_target : instr list) (exp_cond : exp)
@@ -921,7 +870,7 @@ let casify_if_if (tdenv : TDEnv.t) (at : region) (exp_cond_target : exp)
       Some instr
   | _ -> None
 
-(* [5-2-b] if-and-case to case analysis *)
+(* [4-2-b] if-and-case to case analysis *)
 
 let rec merge_if_case (tdenv : TDEnv.t) (exp_cond_target : exp)
     (instrs_then_target : instr list) (exp : exp) (cases : case list)
@@ -965,7 +914,7 @@ let casify_if_case (tdenv : TDEnv.t) (at : region) (exp_cond_target : exp)
       Some instr
   | None -> None
 
-(* [5-2-c] case-and-if to case analysis *)
+(* [4-2-c] case-and-if to case analysis *)
 
 let rec merge_case_if (tdenv : TDEnv.t) (exp_target : exp)
     (cases_target : case list) (total_target : bool) (exp_cond : exp)
@@ -1013,7 +962,7 @@ let casify_case_if (tdenv : TDEnv.t) (at : region) (exp_target : exp)
       Some instr
   | None -> None
 
-(* [5-2-d] case-and-case to case analysis *)
+(* [4-2-d] case-and-case to case analysis *)
 
 let merge_case_case (tdenv : TDEnv.t) (exp_target : exp)
     (cases_target : case list) (total_target : bool) (exp : exp)
@@ -1041,7 +990,7 @@ let casify_case_case (tdenv : TDEnv.t) (at : region) (exp_target : exp)
       Some instr
   | None -> None
 
-(* [5-2-a/b] Casifying from an if statement *)
+(* [4-2-a/b] Casifying from an if statement *)
 
 let rec casify_from_if (tdenv : TDEnv.t) (at : region) (exp_cond_target : exp)
     (iterexps_target : iterexp list) (instrs_then_target : instr list)
@@ -1078,7 +1027,7 @@ and casify_from_if' (tdenv : TDEnv.t) (at : region) (exp_cond_target : exp)
             instrs_leftover instrs_t)
   | _ -> None
 
-(* [5-2-c] Casifying from a case statement *)
+(* [4-2-c] Casifying from a case statement *)
 
 let rec casify_from_case (tdenv : TDEnv.t) (at : region) (exp_target : exp)
     (cases_target : case list) (total_target : bool) (instrs : instr list) :
@@ -1159,7 +1108,7 @@ let rec casify (tdenv : TDEnv.t) (instrs : instr list) : instr list =
       let instrs_t = casify tdenv instrs_t in
       instr_h :: instrs_t
 
-(* [5-3] Totalize case analysis of variant matches *)
+(* [4-3] Totalize case analysis of variant matches *)
 
 let find_variant_case_analysis (tdenv : TDEnv.t) (cases : case list) :
     mixop list option =
@@ -1228,8 +1177,7 @@ and totalize_case_analysis' (tdenv : TDEnv.t) (instr : instr) : instr =
 (* Apply optimizations until it reaches a fixed point *)
 
 let optimize_pre (instrs : instr list) : instr list =
-  instrs |> remove_let_alias |> parallelize_if_disjunctions
-  |> matchify_if_eq_terminals
+  instrs |> remove_let_alias |> matchify_if_eq_terminals
 
 let rec optimize_loop (rtenv : RTEnv.t) (tdenv : TDEnv.t) (instrs : instr list)
     : instr list =

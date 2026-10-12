@@ -3,29 +3,33 @@ module F = Format
 open Attempt
 open Common.Source
 
-let run_relation (filename : string) (builtins : Builtins.t) (cache : Cache.t)
-    (spec : spec) (rid : id') (values : value list) : Ctx.t * value list =
-  let ctx = Interp.load_spec filename builtins cache spec in
+let run_relation ~(check_determinism : bool) (filename : string)
+    (builtins : Builtins.t) (cache : Cache.t) (spec : spec) (rid : id')
+    (values : value list) : Ctx.t * value list =
+  let ctx = Interp.load_spec ~check_determinism filename builtins cache spec in
   let+ ctx, values = Interp.invoke_rel ctx (rid $ no_region) values in
   (ctx, values)
 
-let run_relation_fresh (filename : string) (builtins : Builtins.t)
-    (cache : Cache.t) (spec : spec) (rid : id') (values : value list) :
-    Ctx.t * value list =
+let run_relation_fresh ~(check_determinism : bool) (filename : string)
+    (builtins : Builtins.t) (cache : Cache.t) (spec : spec) (rid : id')
+    (values : value list) : Ctx.t * value list =
   Cache.clear cache;
-  run_relation filename builtins cache spec rid values
+  run_relation ~check_determinism filename builtins cache spec rid values
 
 type error = Plain of region * string | Backtrack of failtrace list
 
-let run (module T : Target.S) (spec : spec) (rid : string) (values : value list)
-    (filename : string) : (Ctx.t * value list, error) result =
+let run ?(check_determinism = false) (module T : Target.S) (spec : spec)
+    (rid : string) (values : value list) (filename : string) :
+    (Ctx.t * value list, error) result =
   let builtins = Builtins.make T.builtins in
   let cache =
     Cache.make ~is_impure_func:T.is_impure_func ~is_impure_rel:T.is_impure_rel
       ~state_version:T.state_version
   in
   try
-    run_relation_fresh filename builtins cache spec rid values |> Result.ok
+    run_relation_fresh ~check_determinism filename builtins cache spec rid
+      values
+    |> Result.ok
   with
   | Error.InterpError (at, msg) -> Error (Plain (at, msg))
   | Error.BacktrackError failtraces -> Error (Backtrack failtraces)

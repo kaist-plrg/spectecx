@@ -8,6 +8,24 @@ open Attempt
 module Events = Instrumentation.Event
 module F = Format
 
+(* Structuring also identifies fallback paths by a trailing ElsePr. *)
+
+let is_fallback_prems (prems : prem list) : bool =
+  match List.rev prems with { it = ElsePr; _ } :: _ -> true | _ -> false
+
+let is_fallback_rule (rule : rule) : bool =
+  let ({ prems; _ } : rule') = rule.it in
+  is_fallback_prems prems
+
+let is_fallback_clause (clause : clause) : bool =
+  let ({ prems; _ } : clause') = clause.it in
+  is_fallback_prems prems
+
+let describe_rule (id_rel : id) (rule : rule) : string =
+  let ({ ruleid = id_rule; _ } : rule') = rule.it in
+  if id_rule.it = "" then F.asprintf "the rule at %s" (string_of_region rule.at)
+  else F.asprintf "rule %s/%s" id_rel.it id_rule.it
+
 (* Assignments *)
 
 (* Assigning a value to an expression *)
@@ -1162,52 +1180,64 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
     (ctx, prems, exps_output)
   in
   let reltyp, rules = Ctx.find_rel ctx id in
+  let attempt_of_rule rule =
+    let { ruleid = id_rule; _ } = rule.it in
+    let attempt_rule' (ctx_local : Ctx.t) (prems : prem list)
+        (exps_output : exp list) : (Ctx.t * value list) attempt =
+      let* ctx_local = eval_prems ctx_local prems in
+      let _, values_output = eval_exps ctx_local exps_output in
+      Ok (ctx, values_output)
+    in
+    let attempt_rule () : (Ctx.t * value list) attempt =
+      Instrumentation.Dispatcher.emit
+        (Events.Rule_enter { id = id.it; rule_id = id_rule.it; at = id.at });
+      (* Create a subtrace for the rule *)
+      let ctx_local = Ctx.localize ctx in
+      (* Try to match the rule *)
+      let ctx_local, prems, exps_output =
+        match_rule ctx_local reltyp rule values_input
+      in
+      (* Try evaluating the rule *)
+      let result =
+        attempt_rule' ctx_local prems exps_output
+        |> nest id.at
+             (F.asprintf "application of rule %s/%s failed" id.it id_rule.it)
+      in
+      Instrumentation.Dispatcher.emit
+        (Events.Rule_exit
+           {
+             id = id.it;
+             rule_id = id_rule.it;
+             at = id.at;
+             success = Result.is_ok result;
+           });
+      result
+    in
+    attempt_rule
+  in
   (* Main invocation logic *)
   let invoke_rel' () =
     check_warnf (rules <> []) id.at "relation has no rules";
-    (* Apply the first matching rule *)
     let attempt_rules () =
-      let attempt_rules' =
-        List.map
-          (fun rule ->
-            let { ruleid = id_rule; _ } = rule.it in
-            let attempt_rule' (ctx_local : Ctx.t) (prems : prem list)
-                (exps_output : exp list) : (Ctx.t * value list) attempt =
-              let* ctx_local = eval_prems ctx_local prems in
-              let _, values_output = eval_exps ctx_local exps_output in
-              Ok (ctx, values_output)
-            in
-            let attempt_rule () : (Ctx.t * value list) attempt =
-              Instrumentation.Dispatcher.emit
-                (Events.Rule_enter
-                   { id = id.it; rule_id = id_rule.it; at = id.at });
-              (* Create a subtrace for the rule *)
-              let ctx_local = Ctx.localize ctx in
-              (* Try to match the rule *)
-              let ctx_local, prems, exps_output =
-                match_rule ctx_local reltyp rule values_input
-              in
-              (* Try evaluating the rule *)
-              let result =
-                attempt_rule' ctx_local prems exps_output
-                |> nest id.at
-                     (F.asprintf "application of rule %s/%s failed" id.it
-                        id_rule.it)
-              in
-              Instrumentation.Dispatcher.emit
-                (Events.Rule_exit
-                   {
-                     id = id.it;
-                     rule_id = id_rule.it;
-                     at = id.at;
-                     success = Result.is_ok result;
-                   });
-              result
-            in
-            attempt_rule)
-          rules
+      let rules_fallback, rules_ordinary =
+        List.partition is_fallback_rule rules
       in
-      choice attempt_rules'
+      let attempt_ordinary () =
+        if ctx.check_determinism then
+          let labelled rule = (rule, attempt_of_rule rule) in
+          match choice_unique (List.map labelled rules_ordinary) with
+          | Unique (_, result) -> Ok result
+          | Overlapping (rule_l, rule_r) ->
+              error id.at
+                (F.asprintf "relation %s applies through both %s and %s" id.it
+                   (describe_rule id rule_l) (describe_rule id rule_r))
+          | Unmatched failtraces -> Error failtraces
+        else choice (List.map attempt_of_rule rules_ordinary)
+      in
+      match attempt_ordinary () with
+      | Ok result -> Ok result
+      | Error failtraces ->
+          choice_fallback failtraces (List.map attempt_of_rule rules_fallback)
     in
     let invoke () =
       let* _, values_output = attempt_rules () in
@@ -1280,58 +1310,80 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
           in
           List.map (Typ.subst_typ theta) targs
     in
-    (* Apply the first matching clause *)
-    let attempt_clauses () =
-      let attempt_clauses' =
-        List.mapi
-          (fun idx_clause clause ->
-            let attempt_clause' (ctx_local : Ctx.t) (prems : prem list)
-                (exp_output : exp) : (Ctx.t * value) attempt =
-              let* ctx_local = eval_prems ctx_local prems in
-              let _, value_output = eval_exp ctx_local exp_output in
-              Ok (ctx, value_output)
-            in
-            let attempt_clause () : (Ctx.t * value) attempt =
-              Instrumentation.Dispatcher.emit
-                (Events.Clause_enter
-                   { id = id.it; clause_idx = idx_clause; at = id.at });
-              (* Create a subtrace for the clause *)
-              let ctx_local = Ctx.localize ctx in
-              (* Add type arguments to the context *)
-              checkf
-                (List.length targs = List.length tparams)
-                id.at "arity mismatch in type arguments";
-              let typdef_bindings =
-                List.map2
-                  (fun tparam targ -> (tparam, ([], PlainT targ $ targ.at)))
-                  tparams targs
-              in
-              let ctx_local = Ctx.add_typdefs ctx_local typdef_bindings in
-              (* Try to match the clause *)
-              let ctx_local, args_input, prems, exp_output =
-                match_clause ctx ctx_local clause values_input
-              in
-              (* Try evaluating the clause *)
-              let result =
-                attempt_clause' ctx_local prems exp_output
-                |> nest id.at
-                     (F.asprintf "application of clause %s%s failed" id.it
-                        (Print.string_of_args args_input))
-              in
-              Instrumentation.Dispatcher.emit
-                (Events.Clause_exit
-                   {
-                     id = id.it;
-                     clause_idx = idx_clause;
-                     at = id.at;
-                     success = Result.is_ok result;
-                   });
-              result
-            in
-            attempt_clause)
-          clauses
+    let attempt_of_clause idx_clause clause =
+      let attempt_clause' (ctx_local : Ctx.t) (prems : prem list)
+          (exp_output : exp) : (Ctx.t * value) attempt =
+        let* ctx_local = eval_prems ctx_local prems in
+        let _, value_output = eval_exp ctx_local exp_output in
+        Ok (ctx, value_output)
       in
-      choice attempt_clauses'
+      let attempt_clause () : (Ctx.t * value) attempt =
+        Instrumentation.Dispatcher.emit
+          (Events.Clause_enter
+             { id = id.it; clause_idx = idx_clause; at = id.at });
+        (* Create a subtrace for the clause *)
+        let ctx_local = Ctx.localize ctx in
+        (* Add type arguments to the context *)
+        checkf
+          (List.length targs = List.length tparams)
+          id.at "arity mismatch in type arguments";
+        let typdef_bindings =
+          List.map2
+            (fun tparam targ -> (tparam, ([], PlainT targ $ targ.at)))
+            tparams targs
+        in
+        let ctx_local = Ctx.add_typdefs ctx_local typdef_bindings in
+        (* Try to match the clause *)
+        let ctx_local, args_input, prems, exp_output =
+          match_clause ctx ctx_local clause values_input
+        in
+        (* Try evaluating the clause *)
+        let result =
+          attempt_clause' ctx_local prems exp_output
+          |> nest id.at
+               (F.asprintf "application of clause %s%s failed" id.it
+                  (Print.string_of_args args_input))
+        in
+        Instrumentation.Dispatcher.emit
+          (Events.Clause_exit
+             {
+               id = id.it;
+               clause_idx = idx_clause;
+               at = id.at;
+               success = Result.is_ok result;
+             });
+        result
+      in
+      attempt_clause
+    in
+    let attempt_clauses () =
+      let clauses_fallback, clauses_ordinary =
+        List.mapi (fun idx_clause clause -> (idx_clause, clause)) clauses
+        |> List.partition (fun (_, clause) -> is_fallback_clause clause)
+      in
+      let attempt_of_indexed (idx_clause, clause) =
+        attempt_of_clause idx_clause clause
+      in
+      let attempt_ordinary () =
+        if ctx.check_determinism then
+          let labelled (idx_clause, clause) =
+            (idx_clause, attempt_of_clause idx_clause clause)
+          in
+          match choice_unique (List.map labelled clauses_ordinary) with
+          | Unique (_, result) -> Ok result
+          | Overlapping (idx_clause_l, idx_clause_r) ->
+              error id.at
+                (F.asprintf
+                   "function %s applies through both clause %d and clause %d"
+                   id.it idx_clause_l idx_clause_r)
+          | Unmatched failtraces -> Error failtraces
+        else choice (List.map attempt_of_indexed clauses_ordinary)
+      in
+      match attempt_ordinary () with
+      | Ok result -> Ok result
+      | Error failtraces ->
+          choice_fallback failtraces
+            (List.map attempt_of_indexed clauses_fallback)
     in
     let* _, value_output = attempt_clauses () in
     Ok (ctx, value_output)
@@ -1404,9 +1456,9 @@ let load_def (l : Ctx.global_loader) (def : def) : unit =
       let func = Ctx.Func.Defined (tparams, clauses) in
       Ctx.load_func l id func
 
-let load_spec (filename : string) (builtins : Builtins.t) (cache : Cache.t)
-    (spec : spec) : Ctx.t =
+let load_spec ~(check_determinism : bool) (filename : string)
+    (builtins : Builtins.t) (cache : Cache.t) (spec : spec) : Ctx.t =
   let l = Ctx.create_loader () in
   List.iter (load_def l) spec;
   let global_layer = Ctx.freeze l in
-  Ctx.create ~filename builtins cache global_layer
+  Ctx.create ~filename ~check_determinism builtins cache global_layer

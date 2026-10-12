@@ -13,7 +13,12 @@ val error_to_diagnostic : error -> Diag.t
     [target_state] is valid only while [f] runs. *)
 val with_target_state : (module Target.S) -> (target_state -> 'a) -> 'a
 
+(** With [check_determinism=true], the interpreter rejects multiple successful
+    alternatives, even when their outputs agree. By default, the interpreter
+    returns the first successful alternative. *)
+
 val eval_il :
+  ?check_determinism:bool ->
   target_state ->
   Lang.Il.spec ->
   string ->
@@ -22,6 +27,7 @@ val eval_il :
   (ctx_il * Lang.Il.Value.t list, error) result
 
 val eval_sl :
+  ?check_determinism:bool ->
   target_state ->
   Lang.Sl.spec ->
   string ->
@@ -30,6 +36,7 @@ val eval_sl :
   (ctx_sl * Lang.Il.Value.t list, error) result
 
 val eval_pl :
+  ?check_determinism:bool ->
   target_state ->
   Lang.Pl.spec ->
   string ->
