@@ -1,0 +1,53 @@
+var x : nat
+var n : nat
+var t : text
+var b : bool
+
+builtin dec $first() : nat
+builtin dec $second() : nat
+builtin dec $boom() : bool
+
+relation Eager:
+  bool |- bool
+  hint(input %0)
+
+rule Eager:
+  b |- $(b \/ $boom())
+
+relation Ordered:
+  nat |- nat
+  hint(input %0)
+
+rule Ordered:
+  x |- $($first() + $second())
+
+dec $replace(nat*, nat, nat) : nat*
+def $replace(x_1*, n, x_2) = x_1*[[n] = x_2]
+
+relation Replace:
+  nat*; nat; nat |- nat*
+  hint(input %0 %1 %2)
+
+rule Replace:
+  x_1*; n; x_2 |- $replace(x_1*, n, x_2)
+
+relation Slice:
+  text; nat; nat |- text
+  hint(input %0 %1 %2)
+
+rule Slice:
+  t; n_1; n_2 |- t[n_1 : n_2]
+
+relation Replace_slice:
+  text; nat; nat; text |- text
+  hint(input %0 %1 %2 %3)
+
+rule Replace_slice:
+  t_1; n_1; n_2; t_2 |- t_1[[n_1 : n_2] = t_2]
+
+relation Size:
+  nat* |- nat
+  hint(input %0)
+
+rule Size:
+  x* |- |x*|
