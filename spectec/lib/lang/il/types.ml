@@ -65,6 +65,7 @@ and reltyp' = (typ, typ) Mode.t
 
 and deftyp = deftyp' phrase
 and deftyp' =
+  | OpaqueT
   | PlainT of typ
   | StructT of typfield list
   | VariantT of typcase list
@@ -90,6 +91,7 @@ and value' =
   | OptV of value option
   | ListV of value list
   | FuncV of id
+  | OpaqueV of Opaque.value
 
 and valuefield = atom * value
 and valuecase = value Mixfix.t

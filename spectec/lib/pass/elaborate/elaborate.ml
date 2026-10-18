@@ -309,6 +309,9 @@ and elab_nottyp (ctx : Ctx.t) (typ : typ) : Il.nottyp =
 and elab_deftyp (ctx : Ctx.t) (id : id) (tparams : tparam list)
     (deftyp : deftyp) : Typdef.t * Il.deftyp =
   match deftyp.it with
+  | OpaqueTD ->
+      let deftyp_il = Il.OpaqueT $ deftyp.at in
+      (Typdef.Defined ([], deftyp_il), deftyp_il)
   | PlainTD plaintyp -> elab_deftyp_plain ctx tparams plaintyp
   | StructTD typfields -> elab_deftyp_struct ctx deftyp.at tparams typfields
   | VariantTD typcases -> elab_deftyp_variant ctx deftyp.at id tparams typcases
@@ -1036,6 +1039,7 @@ and elab_exp_normal (ctx : Ctx.t) (typ_il_expect : Il.typ) (exp : exp) :
               | Defined (tparams, deftyp_il) -> (
                   let theta = List.combine tparams targs_il |> TIdMap.of_list in
                   match deftyp_il.it with
+                  | OpaqueT -> elab_exp_plain ctx typ_il_expect exp
                   | PlainT typ_il ->
                       let typ_il = Envs.Il.Typ.subst_typ theta typ_il in
                       elab_exp_normal ctx typ_il exp
@@ -2083,6 +2087,7 @@ let validate_hints_typcase (typcase : typcase) : unit =
 
 let validate_hints_deftyp (deftyp : deftyp) : unit =
   match deftyp.it with
+  | OpaqueTD -> ()
   | PlainTD _ -> ()
   | StructTD typfields -> List.iter validate_hints_typfield typfields
   | VariantTD typcases -> List.iter validate_hints_typcase typcases

@@ -18,6 +18,7 @@ module Make (Language : Language) = struct
       Filename.concat root name
 
     let builtins = []
+    let opaque_types = []
     let is_impure_func _ = false
     let is_impure_rel _ = false
     let state_version = ref 0

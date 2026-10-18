@@ -1,0 +1,4 @@
+opaque syntax state
+dec $invalid(state) : nat
+def $invalid(state) = 0
+def $invalid(state) = state.COUNT

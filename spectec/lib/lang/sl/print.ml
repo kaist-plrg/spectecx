@@ -353,6 +353,8 @@ let rec string_of_def def =
   ";; " ^ string_of_region def.at ^ "\n"
   ^
   match def.it with
+  | TypD (id, _, { it = Il.OpaqueT; _ }) ->
+      "opaque syntax " ^ string_of_typid id
   | TypD (typid, tparams, deftyp) ->
       "syntax " ^ string_of_typid typid ^ string_of_tparams tparams ^ " = "
       ^ string_of_deftyp deftyp
@@ -361,7 +363,7 @@ let rec string_of_def def =
       ^ Il.Mode.render_inputs ~sep:", " ~string_of_arg:string_of_exp mode
       ^ "\n\n" ^ string_of_block block
       ^ string_of_elseblock_opt ~index:(List.length block) elseblock_opt
-  | BuiltinDecD (defid, tparams, args_input) ->
+  | BuiltinDecD (defid, tparams, args_input, _) ->
       "builtin dec " ^ string_of_defid defid ^ string_of_tparams tparams
       ^ string_of_args args_input
   | DecD (defid, tparams, args_input, block, elseblock_opt) ->

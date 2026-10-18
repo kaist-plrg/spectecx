@@ -1,0 +1,42 @@
+syntax number = nat
+syntax box = { CURRENT number, HISTORY number*, SAVED number? }
+syntax pair = { LEFT number, RIGHT number }
+
+builtin dec $identity<X>(X) : X
+builtin dec $wrong_identity<X>(X) : X
+builtin dec $wrong_box : box
+builtin dec $reversed_pair : pair
+builtin dec $negative_nat : nat
+
+relation Read_box : box ~> number
+  hint(input %0)
+rule Read_box : box ~> box.CURRENT
+
+relation Builtin_identity : box ~> box
+  hint(input %0)
+rule Builtin_identity : box ~> $identity<box>(box)
+
+relation Wrong_result : nat ~> box
+  hint(input %0)
+rule Wrong_result : nat ~> $wrong_box
+
+relation Wrong_polymorphic_result : number ~> number
+  hint(input %0)
+rule Wrong_polymorphic_result : number ~> $wrong_identity<number>(number)
+
+relation Read_pair : pair ~> number
+  hint(input %0)
+rule Read_pair : pair ~> number
+  -- if { LEFT number, RIGHT _ } = pair
+
+relation Reversed_result : nat ~> pair
+  hint(input %0)
+rule Reversed_result : nat ~> $reversed_pair
+
+relation Natural_identity : number ~> number
+  hint(input %0)
+rule Natural_identity : number ~> number
+
+relation Negative_result : nat ~> number
+  hint(input %0)
+rule Negative_result : nat ~> $negative_nat

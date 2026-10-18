@@ -9,5 +9,7 @@
   spectec.lang
   spectec.instrumentation
   builtins
+  opaque_types
+  value_typecheck
   cache
   target))

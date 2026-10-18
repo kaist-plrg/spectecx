@@ -34,6 +34,7 @@ module Target : Spectec.Target.S = struct
   (* The impty spec is fully self-contained: arithmetic, comparison, boolean,
      and list/map operations are SpecTec primitives or defined in the spec. *)
   let builtins : (string * Builtins.Define.t) list = []
+  let opaque_types = []
 
   let with_state f =
     let vid_counter = ref 0 in

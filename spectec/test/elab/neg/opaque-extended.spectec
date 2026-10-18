@@ -1,0 +1,4 @@
+opaque syntax state
+syntax wrapper =
+  | state
+  | STOP

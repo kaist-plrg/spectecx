@@ -3,4 +3,10 @@
 (library
  (name builtins)
  (public_name spectec.interp.builtins)
- (libraries spectec.common spectec.diagnostic spectec.lang))
+ (libraries
+  spectec.common
+  spectec.diagnostic
+  spectec.lang
+  spectec.envs.il
+  spectec.envs.make
+  value_typecheck))

@@ -229,6 +229,7 @@ and token = parse
   | "int" { INT }
   | "text" { TEXT }
   | "syntax" { SYNTAX }
+  | "opaque" { OPAQUE }
   | "relation" { RELATION }
   | "rule" { RULE }
   | "var" { VAR }

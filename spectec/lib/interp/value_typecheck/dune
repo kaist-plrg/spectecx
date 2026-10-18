@@ -1,0 +1,9 @@
+(library
+ (name value_typecheck)
+ (public_name spectec.interp.value_typecheck)
+ (libraries
+  spectec.common
+  spectec.lang
+  spectec.envs.il
+  spectec.envs.make
+  opaque_types))

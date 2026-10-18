@@ -273,8 +273,8 @@ let annotate_def (ctx : Ctx.t) (def : Ll.def) : Pl.def =
               annotate_block ctx_rel block,
               annotate_elseblock_opt ctx_rel elseblock_opt ),
           hints_of_rel_def ctx id inputs )
-    | Ll.BuiltinDecD (id, tparams, args) ->
-        ( Pl.BuiltinDecD (id, tparams, List.map (annotate_arg ctx) args),
+    | Ll.BuiltinDecD (id, tparams, args, typ) ->
+        ( Pl.BuiltinDecD (id, tparams, List.map (annotate_arg ctx) args, typ),
           hints_of_func_def ctx id )
     | Ll.DecD (id, tparams, args, block, elseblock_opt) ->
         let ctx_func = Ctx.enter_func ctx id.it in

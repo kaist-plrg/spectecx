@@ -125,8 +125,8 @@ let rec struct_def (rtenv : RTEnv.t) (tdenv : TDEnv.t) (def : def) : Sl.def =
   | TypD { synid = id; tparams; deftyp } -> Sl.TypD (id, tparams, deftyp) $ at
   | RelD { relid = id; reltyp; rules } ->
       struct_rel_def rtenv tdenv at id reltyp rules
-  | BuiltinDecD { defid = id; tparams; params; _ } ->
-      struct_builtin_dec_def at id tparams params
+  | BuiltinDecD { defid = id; tparams; params; typ; _ } ->
+      struct_builtin_dec_def at id tparams params typ
   | DecD { defid = id; tparams; params; clauses; _ } ->
       struct_dec_def rtenv tdenv at id tparams params clauses
 
@@ -170,8 +170,8 @@ and struct_rel_def (rtenv : RTEnv.t) (tdenv : TDEnv.t) (at : region)
 (* Structuring builtin declaration definitions *)
 
 and struct_builtin_dec_def (at : region) (id_dec : id) (tparams : tparam list)
-    (params : param list) : Sl.def =
-  Sl.BuiltinDecD (id_dec, tparams, args_input_of_params params) $ at
+    (params : param list) (typ : typ) : Sl.def =
+  Sl.BuiltinDecD (id_dec, tparams, args_input_of_params params, typ) $ at
 
 (* Structuring declaration definitions *)
 

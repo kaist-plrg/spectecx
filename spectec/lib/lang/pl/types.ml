@@ -156,7 +156,7 @@ type def = (def' phrase) Annot.t
 and def' =
   | TypD of id * tparam list * deftyp
   | RelD of id * (mixop * int list) * exp list * block * elseblock option
-  | BuiltinDecD of id * tparam list * arg list
+  | BuiltinDecD of id * tparam list * arg list * typ
   | DecD of id * tparam list * arg list * block * elseblock option
 
 type spec = def list

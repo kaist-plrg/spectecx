@@ -243,6 +243,9 @@ let rec subtyp (ctx : Ctx.t) (typ : typ) (value : value) : bool =
       let tparams, deftyp = Ctx.find_typdef ctx tid in
       let theta = List.combine tparams targs |> TIdMap.of_list in
       match (deftyp.it, value.it) with
+      | OpaqueT, OpaqueV value ->
+          Opaque_types.has_type ctx.opaque_types ~name:tid.it ~value
+      | OpaqueT, _ -> false
       | PlainT typ, _ ->
           let typ = Typ.subst_typ theta typ in
           subtyp ctx typ value
@@ -1277,7 +1280,7 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     (ctx, args_input, prems, exp_output)
   in
   (* Builtin function invocation *)
-  let invoke_func_builtin () =
+  let invoke_func_builtin signature =
     (* Invoke builtin function *)
     let invoke_func_builtin' () =
       Instrumentation.Dispatcher.emit
@@ -1285,6 +1288,14 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
       let value_output =
         ctx.builtins.invoke id targs values_input |> unwrap_builtin
       in
+      (match
+         Builtins.check_result ~opaque_types:ctx.opaque_types
+           ~find_typdef_opt:(Ctx.find_typdef_opt ctx) ~signature ~targs
+           value_output
+       with
+      | Ok () -> ()
+      | Error message ->
+          error id.at ("builtin $" ^ id.it ^ " result: " ^ message));
       Instrumentation.Dispatcher.emit
         (Events.Clause_exit
            { id = id.it; clause_idx = 0; at = id.at; success = true });
@@ -1393,12 +1404,12 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     let invoke_func' () =
       let* _, value_output =
         match Ctx.find_func_opt ctx id with
-        | Some (_, Ctx.Func.Builtin) ->
+        | Some (_, Ctx.Func.Builtin (tparams, typ)) ->
             checkf
               (ctx.builtins.is_builtin id)
               id.at "builtin $%s is declared in the spec but not implemented"
               id.it;
-            invoke_func_builtin ()
+            invoke_func_builtin (tparams, typ)
         | Some (_, Ctx.Func.Defined (tparams, clauses)) ->
             check_warnf (clauses <> []) id.at "function has no clauses";
             invoke_func_def tparams clauses
@@ -1442,22 +1453,27 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
 
 (* Load definitions into the context *)
 
-let load_def (l : Ctx.global_loader) (def : def) : unit =
+let load_def opaque_types (l : Ctx.global_loader) (def : def) : unit =
   match def.it with
   | TypD { synid = id; tparams; deftyp } ->
+      (match Opaque_types.check_declaration opaque_types ~id ~deftyp with
+      | Ok () -> ()
+      | Error message -> error id.at message);
       let typdef = (tparams, deftyp) in
       Ctx.load_typdef l id typdef
   | RelD { relid = id; reltyp; rules } ->
       let rel = (reltyp, rules) in
       Ctx.load_rel l id rel
-  | BuiltinDecD { defid = id; _ } -> Ctx.load_func l id Ctx.Func.Builtin
+  | BuiltinDecD { defid = id; tparams; typ; _ } ->
+      Ctx.load_func l id (Ctx.Func.Builtin (tparams, typ))
   | DecD { defid = id; tparams; clauses; _ } ->
       let func = Ctx.Func.Defined (tparams, clauses) in
       Ctx.load_func l id func
 
-let load_spec ~(check_determinism : bool) (filename : string)
+let load_spec ~(check_determinism : bool) ~opaque_types (filename : string)
     (builtins : Builtins.t) (cache : Cache.t) (spec : spec) : Ctx.t =
   let l = Ctx.create_loader () in
-  List.iter (load_def l) spec;
+  List.iter (load_def opaque_types l) spec;
   let global_layer = Ctx.freeze l in
-  Ctx.create ~filename ~check_determinism builtins cache global_layer
+  Ctx.create ~filename ~check_determinism ~opaque_types builtins cache
+    global_layer

@@ -130,6 +130,7 @@ and to_doc_nottyp (nottyp : nottyp) =
 
 and to_doc_deftyp (deftyp : deftyp) =
   match deftyp.it with
+  | OpaqueTD -> P.string "opaque"
   | PlainTD plaintyp -> to_doc_plaintyp plaintyp
   | StructTD typfields -> P.braces (comma_list to_doc_typfield typfields)
   | VariantTD typcases ->
@@ -345,6 +346,7 @@ let to_doc_def (def : def) =
         ^^ to_doc_hints hints ^^ P.string " ="
       in
       match deftyp.it with
+      | OpaqueTD -> P.string "opaque syntax " ^^ to_doc_typid typid
       | VariantTD typcases ->
           head
           ^^ P.concat_map

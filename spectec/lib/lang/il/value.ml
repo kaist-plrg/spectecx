@@ -18,6 +18,7 @@ and compare_struct (value_l : t) (value_r : t) =
     | OptV _ -> 6
     | ListV _ -> 7
     | FuncV _ -> 8
+    | OpaqueV _ -> 9
   in
   match (value_l.it, value_r.it) with
   | BoolV b_l, BoolV b_r -> Stdlib.compare b_l b_r
@@ -39,6 +40,7 @@ and compare_struct (value_l : t) (value_r : t) =
       | None, Some _ -> -1
       | None, None -> 0)
   | ListV values_l, ListV values_r -> compares values_l values_r
+  | OpaqueV left, OpaqueV right -> Opaque.compare left right
   | _ -> Int.compare (tag value_l) (tag value_r)
 
 and compares (values_l : t list) (values_r : t list) : int =
@@ -109,6 +111,7 @@ module MakeWithVid (VidProvider : VidProvider) = struct
     | ListV values ->
         List.fold_left (fun hash v -> hash +! v.note.vhash) 8 values
     | FuncV id -> 9 +! Hashtbl.hash id.Common.Source.it
+    | OpaqueV value -> 10 +! Opaque.hash value
 
   let with_fresh_vid (typ : typ') (vhash : int) : vnote =
     let vid = VidProvider.fresh () in
@@ -141,6 +144,10 @@ module MakeWithVid (VidProvider : VidProvider) = struct
   let int (i : Bigint.t) : t = Make.int Typ.int i
   let text (s : string) : t = Make.text Typ.text s
   let func (id : id) : t = FuncV id |> make_val Typ.func
+
+  let opaque typdef payload : t =
+    let value = Opaque.of_ocaml ~typdef payload in
+    OpaqueV value |> make_val (Typ.var (Opaque.name value) [])
 
   let record (tid : string) (fields : valuefield list) : t =
     Make.record (Typ.var tid []) fields

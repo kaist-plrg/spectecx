@@ -52,6 +52,7 @@ and eq_nottyp (a : nottyp) (b : nottyp) : bool =
 
 and eq_deftyp (a : deftyp) (b : deftyp) : bool =
   match (a.it, b.it) with
+  | OpaqueTD, OpaqueTD -> true
   | PlainTD pa, PlainTD pb -> eq_plaintyp pa pb
   | StructTD fa, StructTD fb -> List.equal eq_typfield fa fb
   | VariantTD ca, VariantTD cb -> List.equal eq_typcase ca cb

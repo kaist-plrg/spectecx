@@ -65,6 +65,7 @@ type t = {
   filename : string;
   (* Builtins *)
   builtins : Builtins.t;
+  opaque_types : Opaque_types.t;
   (* Cache *)
   cache : Cache.t;
   check_determinism : bool;
@@ -200,11 +201,11 @@ let empty_local () : local =
     venv = VEnv.empty;
   }
 
-let empty ~(check_determinism : bool) (filename : string)
+let empty ~(check_determinism : bool) ~opaque_types (filename : string)
     (builtins : Builtins.t) (cache : Cache.t) : t =
   let global = empty_global () in
   let local = empty_local () in
-  { filename; builtins; cache; check_determinism; global; local }
+  { filename; builtins; opaque_types; cache; check_determinism; global; local }
 
 (* Constructing a local context *)
 

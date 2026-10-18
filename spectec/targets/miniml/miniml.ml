@@ -26,6 +26,7 @@ module Target : Spectec.Target.S = struct
     | [] -> "spectec/specs/miniml"
 
   let builtins : (string * Builtins.Define.t) list = []
+  let opaque_types = []
 
   let with_state f =
     let vid_counter = ref 0 in

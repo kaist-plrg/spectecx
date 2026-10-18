@@ -18,6 +18,7 @@ type expectation =
 
 module Pure_target : Interp.Target.S = struct
   let builtins = []
+  let opaque_types = []
   let is_impure_func _ = false
   let is_impure_rel _ = false
   let state_version = ref 0

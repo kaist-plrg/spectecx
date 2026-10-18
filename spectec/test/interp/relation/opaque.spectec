@@ -1,0 +1,62 @@
+opaque syntax state
+opaque syntax otherState
+
+syntax stateAlias = state
+syntax box = { CURRENT state, HISTORY state*, SAVED state? }
+
+builtin dec $make_state(nat) : state
+builtin dec $read_state(state) : nat
+builtin dec $increment_state(state) : state
+builtin dec $wrong_state : state
+builtin dec $wrong_box : (nat, state*)
+builtin dec $wrong_record : box
+builtin dec $identity_state<X>(X) : X
+
+dec $keep<X>(X) : X
+def $keep<X>(X) = X
+
+dec $pack(state) : box
+def $pack(state) = { CURRENT state, HISTORY ([state]), SAVED state }
+
+dec $is_state(state) : bool
+def $is_state(state) = state <: state
+
+relation Roundtrip : nat ~> nat state* state?
+  hint(input %0)
+
+rule Roundtrip : nat ~> nat_read box.HISTORY box.SAVED
+  -- if state = $keep<stateAlias>($make_state(nat))
+  -- if (state_before, state_after) = (state, $increment_state(state))
+  -- if box = $pack(state_after)
+  -- if nat_read = $read_state(box.CURRENT)
+  -- if $read_state(state_before) = nat
+
+relation Membership : state ~> bool
+  hint(input %0)
+
+rule Membership : state ~> $is_state(state)
+
+relation Equal : nat nat ~> bool
+  hint(input %0 %1)
+
+rule Equal : nat_0 nat_1 ~> ($make_state(nat_0) = $make_state(nat_1))
+
+relation Wrong_result : nat ~> state
+  hint(input %0)
+rule Wrong_result : nat ~> $wrong_state
+
+relation Wrong_nested_result : nat ~> (nat, state*)
+  hint(input %0)
+rule Wrong_nested_result : nat ~> $wrong_box
+
+relation Wrong_record_result : nat ~> box
+  hint(input %0)
+rule Wrong_record_result : nat ~> $wrong_record
+
+relation Read_box : box ~> nat
+  hint(input %0)
+rule Read_box : box ~> $read_state(box.CURRENT)
+
+relation Builtin_identity : state ~> state
+  hint(input %0)
+rule Builtin_identity : state ~> $identity_state<stateAlias>(state)

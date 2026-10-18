@@ -36,7 +36,7 @@ let prose_extract (spec_pl : Pl.spec) : (string * string) list =
   List.filter_map
     (fun (def_pl : Pl.def) ->
       match def_pl.node.it with
-      | DecD (id, tparams, args, _, _) | BuiltinDecD (id, tparams, args) ->
+      | DecD (id, tparams, args, _, _) | BuiltinDecD (id, tparams, args, _) ->
           Some
             ( id.it,
               Pl.Render.render_func_title_adoc def_pl.hints id tparams args )

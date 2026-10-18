@@ -1,0 +1,2 @@
+opaque syntax state
+syntax state = nat

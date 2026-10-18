@@ -121,6 +121,7 @@ module Target : Spectec.Target.S = struct
     match P4_sites.Sites.specs with dir :: _ -> dir | [] -> "spectec/specs/p4"
 
   let builtins = Builtins.builtins
+  let opaque_types = []
   let with_state = with_state
   let is_impure_func = is_impure_func
   let is_impure_rel = is_impure_rel
@@ -137,6 +138,7 @@ module Target_old : Spectec.Target.S = struct
     | [] -> "spectec/specs/p4-old"
 
   let builtins = old_builtins
+  let opaque_types = []
   let with_state = with_state
   let is_impure_func = is_impure_func
   let is_impure_rel = is_impure_rel

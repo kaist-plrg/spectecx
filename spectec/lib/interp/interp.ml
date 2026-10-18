@@ -1,4 +1,6 @@
 module Builtins = Builtins
+module Opaque_types = Opaque_types
+module Value_typecheck = Value_typecheck
 module Target = Target
 
 type target_state = TargetState of (module Target.S)

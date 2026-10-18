@@ -2,6 +2,7 @@
     after elaboration. *)
 
 include module type of Types
+module Opaque = Opaque
 module Mixfix : module type of Mixfix
 module Mode : module type of Mode
 module Eq : module type of Eq

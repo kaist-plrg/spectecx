@@ -713,7 +713,7 @@ let render_def (def : def) : string option =
       Some
         (render_defined_rel_def hints
            (id_rel, sig_, exps, block, elseblock_opt))
-  | BuiltinDecD (id_func, tparams, args) ->
+  | BuiltinDecD (id_func, tparams, args, _) ->
       Some (render_func_header hints id_func tparams args)
   | DecD (id_func, tparams, args, block, elseblock_opt) ->
       Some

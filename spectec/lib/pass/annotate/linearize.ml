@@ -82,8 +82,8 @@ let linearize_def (def : Sl.def) : Ll.def =
         if elseblock_ll = [] then None else Some elseblock_ll
       in
       Ll.RelD (id, (mixop, inputs), exps, block_ll, elseblock_opt_ll) $ at
-  | Sl.BuiltinDecD (id, tparams, args) ->
-      Ll.BuiltinDecD (id, tparams, args) $ at
+  | Sl.BuiltinDecD (id, tparams, args, typ) ->
+      Ll.BuiltinDecD (id, tparams, args, typ) $ at
   | Sl.DecD (id, tparams, args, block, elseblock_opt) ->
       let block_ll = linearize_block block in
       let elseblock_ll = linearize_elseblock_opt elseblock_opt in
