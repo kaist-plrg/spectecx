@@ -112,7 +112,7 @@ rule Constructor_call/externConstructorDef:
       ~> STO_1 IC_callee_2
   ---- ;; bind default values to the callee context
   -- Copy_in_inst_default:
-      STO_0 p IC
+      STO_1 p IC
          '@' p_callee IC_callee_2 constructorParameterIR_default*
       ~> STO_2 IC_callee_3
   ---- ;; instantiate method prototypes
@@ -121,9 +121,11 @@ rule Constructor_call/externConstructorDef:
   ---- ;; create an extern object with the final callee context
   -- if `{ (callableId ':' externMethodDef)* `} = IC_callee_4.BLOCK.CALLABLE
   ---- ;; initialize extern state
-  -- if (_ _ _ id_cparam _ = constructorParameterIR)*
+  -- if (_ _ _ id_cparam_default _ = constructorParameterIR_default)*
+  -- if id_cparam* = id_aligned* ++ id_cparam_default*
   -- if (value_cparam = $find_map<id, value>(IC_callee_4.BLOCK.FRAME, id_cparam))*
-  -- if objectState = $init_objectState(nameIR, typeArgumentIR*, value_cparam*)
+  -- if objectState
+      = $init_objectState(nameIR, typeArgumentIR*, id_cparam*, value_cparam*)
   ---- ;; create extern object
   -- if theta_extern = IC_callee_4.BLOCK.TYPE
   -- if frame_extern = IC_callee_4.BLOCK.FRAME
@@ -166,7 +168,7 @@ rule Constructor_call/parserConstructorDef:
       ~> STO_1 IC_callee_2
   ---- ;; bind default values to the callee context
   -- Copy_in_inst_default:
-      STO_0 p IC
+      STO_1 p IC
          '@' p_callee IC_callee_2 constructorParameterIR_default*
       ~> STO_2 IC_callee_3
   ---- ;; instantiate local declarations
@@ -219,7 +221,7 @@ rule Constructor_call/controlConstructorDef:
       ~> STO_1 IC_callee_2
   ---- ;; bind default values to the callee context
   -- Copy_in_inst_default:
-      STO_0 p IC
+      STO_1 p IC
          '@' p_callee IC_callee_2 constructorParameterIR_default*
       ~> STO_2 IC_callee_3
   ---- ;; instantiate local declarations

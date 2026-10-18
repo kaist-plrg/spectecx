@@ -11159,7 +11159,7 @@ xref:parameterListIR_of_constructorDef[$parameterListIR_of_constructorDef(constr
 . Else:
  .. Return ``constructorParameterListIR``.
 
-xref:init_objectState[Initialization of ``nameIR````+<+`` ``typeIR^{asterisk}^`` ``+>+````+(+`` ``value^{asterisk}^`` ``+)+`` in the target]
+xref:init_objectState[Initialization of ``nameIR````+<+`` ``typeIR^{asterisk}^`` ``+>+````+(+`` ``id^{asterisk}^`` ``+=+`` ``value^{asterisk}^`` ``+)+`` in the target]
 
 
 
@@ -12370,18 +12370,19 @@ xref:Constructor_call[Constructor_call]:
  .. Let ``+GIVEN+ constructorParameterIR~aligned~^{asterisk}^ +DEFAULT+ constructorParameterIR~default~^{asterisk}^`` be xref:align_parameterListIR[aligning ``constructorParameterIR^{asterisk}^`` with ``argumentIR^{asterisk}^`` where defaults are ``id~default~^{asterisk}^`` and optionals are ``id~optional~^{asterisk}^``].
  .. Let ``++_++ ++_++ ++_++ id~aligned~ ++_++`` be ``constructorParameterIR~aligned~``, for all ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``constructorParameterIR~aligned~`` in ``constructorParameterIR~aligned~^{asterisk}^``, and ``id~aligned~`` in ``id~aligned~^{asterisk}^``.
  .. Let store ``STO~1~`` and context ``IC~callee_2~`` be the result of xref:Copy_in_inst[copy-in from ``IC`` at ``p`` with ``argumentIR^{asterisk}^`` to ``IC~callee_1~`` at ``p~callee~`` with ``id~aligned~^{asterisk}^``, under store ``STO~0~``].
- .. Let store ``STO~2~`` and context ``IC~callee_3~`` be the result of xref:Copy_in_inst_default[copying defaults ``constructorParameterIR~default~^{asterisk}^`` from ``p`` at ``IC`` to ``IC~callee_2~`` at ``p~callee~``, under store ``STO~0~``].
+ .. Let store ``STO~2~`` and context ``IC~callee_3~`` be the result of xref:Copy_in_inst_default[copying defaults ``constructorParameterIR~default~^{asterisk}^`` from ``p`` at ``IC`` to ``IC~callee_2~`` at ``p~callee~``, under store ``STO~1~``].
  .. Let context ``IC~callee_4~`` be the result of xref:ExternMethods_inst[compile-time evaluation of ``externMethodPrototypeIR^{asterisk}^``, under context ``IC~callee_3~``].
  .. Let ``+{+( callableId +:+ callableDef )^{asterisk}^+}+`` be ``IC~callee_4~.+BLOCK+.+CALLABLE+``.
  .. Check that ``callableDef`` has type ``externMethodDef``, for all ``callableDef`` in ``callableDef^{asterisk}^``.
 
  .. Let ``externMethodDef`` be ``callableDef``, for all ``callableDef`` in ``callableDef^{asterisk}^`` and ``externMethodDef`` in ``externMethodDef^{asterisk}^``.
- .. Let ``++_++ ++_++ ++_++ id~cparam~ ++_++`` be ``constructorParameterIR``, for all ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``constructorParameterIR`` in ``constructorParameterIR^{asterisk}^``, and ``id~cparam~`` in ``id~cparam~^{asterisk}^``.
+ .. Let ``++_++ ++_++ ++_++ id~cparam_default~ ++_++`` be ``constructorParameterIR~default~``, for all ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``constructorParameterIR~default~`` in ``constructorParameterIR~default~^{asterisk}^``, and ``id~cparam_default~`` in ``id~cparam_default~^{asterisk}^``.
+ .. Let ``id~cparam~^{asterisk}^`` be ``id~aligned~^{asterisk}^`` concatenated with ``id~cparam_default~^{asterisk}^``.
  .. Let ``value^?^`` be xref:find_map[the value of ``id~cparam~`` in map ``IC~callee_4~.+BLOCK+.+FRAME+``], for all ``id~cparam~`` in ``id~cparam~^{asterisk}^`` and ``value^?^`` in ``value^?^^{asterisk}^``.
  .. Check that ``value^?^`` is defined, for all ``value^?^`` in ``value^?^^{asterisk}^``.
 
  .. Let ``value~cparam~`` be ``value^?^``, for all ``value^?^`` in ``value^?^^{asterisk}^`` and ``value~cparam~`` in ``value~cparam~^{asterisk}^``.
- .. Let ``objectState`` be xref:init_objectState[initialization of ``nameIR````+<+`` ``typeArgumentIR^{asterisk}^`` ``+>+````+(+`` ``value~cparam~^{asterisk}^`` ``+)+`` in the target].
+ .. Let ``objectState`` be xref:init_objectState[initialization of ``nameIR````+<+`` ``typeArgumentIR^{asterisk}^`` ``+>+````+(+`` ``id~cparam~^{asterisk}^`` ``+=+`` ``value~cparam~^{asterisk}^`` ``+)+`` in the target].
  .. Let ``theta~extern~`` be ``IC~callee_4~.+BLOCK+.+TYPE+``.
  .. Let ``frame~extern~`` be ``IC~callee_4~.+BLOCK+.+FRAME+``.
  .. Let ``externMethodDefEnv~extern~`` be ``+{+( callableId +:+ externMethodDef )^{asterisk}^+}+``.
@@ -12396,7 +12397,7 @@ xref:Constructor_call[Constructor_call]:
  .. Let ``+GIVEN+ constructorParameterIR~aligned~^{asterisk}^ +DEFAULT+ constructorParameterIR~default~^{asterisk}^`` be xref:align_parameterListIR[aligning ``constructorParameterIR^{asterisk}^`` with ``argumentIR^{asterisk}^`` where defaults are ``id~default~^{asterisk}^`` and optionals are ``id~optional~^{asterisk}^``].
  .. Let ``++_++ ++_++ ++_++ id~aligned~ ++_++`` be ``constructorParameterIR~aligned~``, for all ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``constructorParameterIR~aligned~`` in ``constructorParameterIR~aligned~^{asterisk}^``, and ``id~aligned~`` in ``id~aligned~^{asterisk}^``.
  .. Let store ``STO~1~`` and context ``IC~callee_2~`` be the result of xref:Copy_in_inst[copy-in from ``IC`` at ``p`` with ``argumentIR^{asterisk}^`` to ``IC~callee_1~`` at ``p~callee~`` with ``id~aligned~^{asterisk}^``, under store ``STO~0~``].
- .. Let store ``STO~2~`` and context ``IC~callee_3~`` be the result of xref:Copy_in_inst_default[copying defaults ``constructorParameterIR~default~^{asterisk}^`` from ``p`` at ``IC`` to ``IC~callee_2~`` at ``p~callee~``, under store ``STO~0~``].
+ .. Let store ``STO~2~`` and context ``IC~callee_3~`` be the result of xref:Copy_in_inst_default[copying defaults ``constructorParameterIR~default~^{asterisk}^`` from ``p`` at ``IC`` to ``IC~callee_2~`` at ``p~callee~``, under store ``STO~1~``].
  .. Let context ``IC~local~``, store ``STO~3~``, and ``parserLocalDeclarationIR~inst~^{asterisk}^`` be the result of xref:ParserLocalDecls_inst[compile-time evaluation of ``parserLocalDeclarationIR^{asterisk}^``, under context ``IC~callee_3~`` and store ``STO~2~``].
  .. Let context ``IC~state~`` and store ``STO~4~`` be the result of xref:ParserStates_inst[compile-time evaluation of ``parserStateIR^{asterisk}^``, under context ``IC~local~`` and store ``STO~3~``].
  .. Let ``frame~parser~`` be ``IC~callee_3~.+BLOCK+.+FRAME+``.
@@ -12412,7 +12413,7 @@ xref:Constructor_call[Constructor_call]:
  .. Let ``+GIVEN+ constructorParameterIR~aligned~^{asterisk}^ +DEFAULT+ constructorParameterIR~default~^{asterisk}^`` be xref:align_parameterListIR[aligning ``constructorParameterIR^{asterisk}^`` with ``argumentIR^{asterisk}^`` where defaults are ``id~default~^{asterisk}^`` and optionals are ``id~optional~^{asterisk}^``].
  .. Let ``++_++ ++_++ ++_++ id~aligned~ ++_++`` be ``constructorParameterIR~aligned~``, for all ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``constructorParameterIR~aligned~`` in ``constructorParameterIR~aligned~^{asterisk}^``, and ``id~aligned~`` in ``id~aligned~^{asterisk}^``.
  .. Let store ``STO~1~`` and context ``IC~callee_2~`` be the result of xref:Copy_in_inst[copy-in from ``IC`` at ``p`` with ``argumentIR^{asterisk}^`` to ``IC~callee_1~`` at ``p~callee~`` with ``id~aligned~^{asterisk}^``, under store ``STO~0~``].
- .. Let store ``STO~2~`` and context ``IC~callee_3~`` be the result of xref:Copy_in_inst_default[copying defaults ``constructorParameterIR~default~^{asterisk}^`` from ``p`` at ``IC`` to ``IC~callee_2~`` at ``p~callee~``, under store ``STO~0~``].
+ .. Let store ``STO~2~`` and context ``IC~callee_3~`` be the result of xref:Copy_in_inst_default[copying defaults ``constructorParameterIR~default~^{asterisk}^`` from ``p`` at ``IC`` to ``IC~callee_2~`` at ``p~callee~``, under store ``STO~1~``].
  .. Let context ``IC~local_0~``, store ``STO~3~``, and ``controlLocalDeclarationIR~inst~^{asterisk}^`` be the result of xref:ControlLocalDecls_inst[compile-time evaluation of ``controlLocalDeclarationIR^{asterisk}^``, under context ``IC~callee_3~``and store ``STO~2~``].
  .. Let context ``IC~local_1~``, store ``STO~4~``, and ``controlBodyIR~inst~`` be the result of xref:Block_inst[compile-time evaluation of ``controlBodyIR``, under context ``IC~local_0~``, and store ``STO~3~``].
  .. Let ``frame~control~`` be ``IC~callee_3~.+BLOCK+.+FRAME+``.
