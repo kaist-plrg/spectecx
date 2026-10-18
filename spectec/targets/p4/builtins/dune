@@ -1,4 +1,4 @@
 (library
  (name builtins_p4)
  (public_name spectec-target-p4.builtins)
- (libraries spectec.interp.builtins))
+ (libraries spectec.interp.builtins spectec.interp.target))

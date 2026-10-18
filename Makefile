@@ -109,7 +109,8 @@ vsix:
 #   make test-lsp        - LSP multi-file diagnostics
 #
 # Grouped tests:
-#   make test-quick      - Fast tests, including relation, Mini-ML, and package tests
+#   make test-quick      - Fast tests, including P4 instantiation across IL/SL/PL
+#   make test-interp     - Current-target interpreter tests, including P4 instantiation
 #   make test-il         - IL tests for new p4 (pos + neg)
 #   make test-sl         - SL tests for new p4 (pos + neg)
 #   make test-pl         - PL tests for new p4 (pos + neg)
@@ -129,9 +130,9 @@ vsix:
 #   make test-miniml-il / -sl / -pl                  - per-mode pos+neg
 #   make test-miniml                                  - all Mini-ML tests
 #
-#   make test            - quick + new p4 il/sl/pl
+#   make test            - quick + interpreter tests
 
-.PHONY: test test-quick test-elab test-elab-neg test-interp-relation test-interp-neg test-cli test-lsp test-struct test-annotate test-roundtrip-il test-roundtrip-el test-parsegen test-package
+.PHONY: test test-quick test-interp test-elab test-elab-neg test-interp-relation test-interp-neg test-cli test-lsp test-struct test-annotate test-roundtrip-il test-roundtrip-el test-parsegen test-package
 .PHONY: test-il test-il-pos test-il-neg
 .PHONY: test-sl test-sl-pos test-sl-neg
 .PHONY: test-pl test-pl-pos test-pl-neg
@@ -247,7 +248,12 @@ test-pl-neg-old:
 	$(call run_interp_test,p4-old,pl,neg)
 
 test-quick: test-elab test-elab-neg test-interp-relation test-interp-neg test-cli test-lsp test-struct test-annotate test-roundtrip-il test-roundtrip-el test-impty test-miniml test-parsegen test-package
+	@$(DUNE) build @test/interp/p4/runtest --profile=release
 	@echo "#### Quick tests passed"
+
+test-interp: test-interp-relation test-interp-neg test-il test-sl test-pl test-impty test-miniml
+	@$(DUNE) build @test/interp/p4/runtest --profile=release
+	@echo "#### Interpreter tests passed"
 
 test-il: test-il-pos test-il-neg
 	@echo "#### IL tests passed"
@@ -363,5 +369,5 @@ test-miniml-pl: test-miniml-pl-pos test-miniml-pl-neg
 test-miniml: test-miniml-il test-miniml-sl test-miniml-pl
 	@echo "#### Mini-ML interpreter tests passed"
 
-test: test-quick test-il test-sl test-pl
+test: test-quick test-interp
 	@echo "#### All quick tests + p4 + impty + Mini-ML interpreter tests passed"

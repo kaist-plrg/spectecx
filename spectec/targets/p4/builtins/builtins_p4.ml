@@ -1,4 +1,5 @@
 module Fresh = Fresh
+module Ebpf = Ebpf
 
 let builtins =
   [

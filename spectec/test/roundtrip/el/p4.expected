@@ -15421,11 +15421,11 @@ def $parameterListIR_of_constructorDef(PACKAGE
                                        `(constructorParameterListIR`))
   = constructorParameterListIR
 ;; === 6-dynamic-runtime/6.4.1-object.spectec ===
-syntax objectState
+opaque syntax objectState
 
 syntax externMethodDefEnv = map<callableId, externMethodDef>
 
-dec $init_objectState(nameIR, typeIR*, id*, value*) : objectState
+builtin dec $init_objectState(nameIR, typeIR*, id*, value*) : objectState
   hint(prose_in "initialization of" %0#`<%1`>#`(%2 '=' %3`) "in the target")
 
 syntax externObject =

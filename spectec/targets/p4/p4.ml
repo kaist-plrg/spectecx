@@ -120,8 +120,8 @@ module Target : Spectec.Target.S = struct
   let spec_dir =
     match P4_sites.Sites.specs with dir :: _ -> dir | [] -> "spectec/specs/p4"
 
-  let builtins = Builtins.builtins
-  let opaque_types = []
+  let builtins = Builtins.builtins @ Builtins.Ebpf.builtins
+  let opaque_types = Builtins.Ebpf.opaque_types
   let with_state = with_state
   let is_impure_func = is_impure_func
   let is_impure_rel = is_impure_rel
@@ -188,6 +188,18 @@ module Typecheck = struct
   let save_output _filename _values = ()
 end
 
+module Instantiate = struct
+  include Typecheck
+
+  let name = "instantiator"
+
+  let parse_input ~spec input =
+    Typecheck.parse_input ~spec input
+    |> Result.map (fun (_, values) -> ("Program_inst", values))
+
+  let format_output _values = "Instantiation succeeded"
+end
+
 (* P4 Typechecker task — old spec *)
 module Typecheck_old = struct
   let name = "typechecker"
@@ -231,15 +243,23 @@ module Typecheck_old = struct
   let save_output _filename _values = ()
 end
 
+let cli_flags =
+  let open Core.Command.Let_syntax in
+  let open Core.Command.Param in
+  let%map includes = flag "-i" (listed string) ~doc:"DIR P4 include paths"
+  and filename = flag "-p" (required string) ~doc:"FILE P4 file to process" in
+  { Typecheck.includes; filename; expect = Spectec.Task.Positive }
+
 module Typecheck_cli : Cli.Task_cli.S = struct
   module Task = Typecheck
 
-  let flags =
-    let open Core.Command.Let_syntax in
-    let open Core.Command.Param in
-    let%map includes = flag "-i" (listed string) ~doc:"DIR P4 include paths"
-    and filename = flag "-p" (required string) ~doc:"FILE P4 file to process" in
-    { Typecheck.includes; filename; expect = Spectec.Task.Positive }
+  let flags = cli_flags
+end
+
+module Instantiate_cli : Cli.Task_cli.S = struct
+  module Task = Instantiate
+
+  let flags = cli_flags
 end
 
 let target = (module Target : Spectec.Target.S)
@@ -254,6 +274,9 @@ module Cli : Cli.Target_cli.S = struct
         Subcommand.make_task target ~name:"typecheck"
           ~summary:"Run P4 typechecker"
           (module Typecheck_cli);
+        Subcommand.make_task target ~name:"instantiate"
+          ~summary:"Instantiate a P4 program with eBPF extern objects"
+          (module Instantiate_cli);
         Subcommand.make_parse target ~name:"parse"
           ~summary:"parse a P4 program to an IL value"
           (module Typecheck_cli);

@@ -19915,11 +19915,14 @@ def $parameterListIR_of_constructorDef(constructorDef) : parameterIR* =
       -- if constructorDef <: packageObjectConstructorDef
       -- let package < _typeParameterListIR > ( constructorParameterListIR ) = constructorDef as packageObjectConstructorDef
 
+;; ../../../../../spectec/specs/p4/6-dynamic-runtime/6.4.1-object.spectec:12:1-12:26:
+opaque syntax objectState
+
 ;; ../../../../../spectec/specs/p4/6-dynamic-runtime/6.4.1-object.spectec:13:29-13:61:
 syntax externMethodDefEnv = map<callableId, externMethodDef>
 
 ;; ../../../../../spectec/specs/p4/6-dynamic-runtime/6.4.1-object.spectec:15:1-16:77:
-def $init_objectState(nameIR, typeIR*, id*, value*) : objectState =
+builtin dec $init_objectState(nameIR, typeIR*, id*, value*) : objectState
 
 ;; ../../../../../spectec/specs/p4/6-dynamic-runtime/6.4.1-object.spectec:19:3-19:71:
 syntax externObject = 

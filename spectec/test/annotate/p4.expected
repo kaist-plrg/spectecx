@@ -11161,8 +11161,6 @@ xref:parameterListIR_of_constructorDef[$parameterListIR_of_constructorDef(constr
 
 xref:init_objectState[Initialization of ``nameIR````+<+`` ``typeIR^{asterisk}^`` ``+>+````+(+`` ``id^{asterisk}^`` ``+=+`` ``value^{asterisk}^`` ``+)+`` in the target]
 
-
-
 xref:empty_frame[$empty_frame]
 
 . Return xref:empty_map[an empty map].

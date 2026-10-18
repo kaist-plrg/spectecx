@@ -1,0 +1,16 @@
+; Tests need private counter values to check initialization.
+
+(copy_files ../../../targets/p4/builtins/ebpf.ml)
+
+(test
+ (name instantiate)
+ (modules instantiate)
+ (libraries spectec targets_p4)
+ (deps
+  (source_tree ../../../specs/p4)
+  (glob_files *.p4)))
+
+(test
+ (name ebpf_state)
+ (modules ebpf_state ebpf)
+ (libraries spectec.interp.builtins))
