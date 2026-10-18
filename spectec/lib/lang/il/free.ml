@@ -1,3 +1,4 @@
+open Types.Expression
 open Types
 open Common.Domain
 open Common.Source

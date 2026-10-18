@@ -3,6 +3,7 @@ open Lang.Xl
 module Il = Lang.Il
 module Mixop = Lang.Il.Mixfix
 module Value = Lang.Il.Value
+open Il.Expression
 open Lang.Sl
 open Envs.Make
 module Typ = Envs.Il.Typ
@@ -284,7 +285,7 @@ let rec eval_exp (ctx : Ctx.t) (exp : exp) : Ctx.t * value =
     let value = Ctx.find_value Local ctx (id, []) in
     (ctx, value)
   in
-  let at, note = (exp.at, exp.note) in
+  let at, note = (exp.at, exp.note.typ) in
   match exp.it with
   | BoolE b -> eval_bool_exp note ctx b
   | NumE n -> eval_num_exp note ctx n
@@ -633,8 +634,8 @@ and eval_upd_exp (_note : typ') (ctx : Ctx.t) (exp_b : exp) (path : path)
   (* Path operations *)
   let rec eval_access_path ctx value_b path =
     match path.it with
-    | Il.RootP -> (ctx, value_b)
-    | Il.IdxP (path, exp_i) -> (
+    | RootP -> (ctx, value_b)
+    | IdxP (path, exp_i) -> (
         let ctx, value = eval_access_path ctx value_b path in
         let ctx, value_i = eval_exp ctx exp_i in
         let idx = value_i |> Value.get_num |> Num.to_int |> Bigint.to_int_exn in
@@ -659,7 +660,7 @@ and eval_upd_exp (_note : typ') (ctx : Ctx.t) (exp_b : exp) (path : path)
               (Format.asprintf
                  "indexing expects either a text or a list, but got %s"
                  (Il.Print.string_of_value ~short:true value)))
-    | Il.SliceP (path, exp_i, exp_n) -> (
+    | SliceP (path, exp_i, exp_n) -> (
         let ctx, value = eval_access_path ctx value_b path in
         let ctx, value_i = eval_exp ctx exp_i in
         let idx_l =
@@ -698,7 +699,7 @@ and eval_upd_exp (_note : typ') (ctx : Ctx.t) (exp_b : exp) (path : path)
               (Format.asprintf
                  "slicing expects either a text or a list, but got %s"
                  (Il.Print.string_of_value ~short:true value)))
-    | Il.DotP (path, atom) ->
+    | DotP (path, atom) ->
         let ctx, value = eval_access_path ctx value_b path in
         let fields = value |> Value.get_struct in
         let value =
@@ -709,8 +710,8 @@ and eval_upd_exp (_note : typ') (ctx : Ctx.t) (exp_b : exp) (path : path)
         (ctx, value)
   and eval_update_path ctx value_b path value_new =
     match path.it with
-    | Il.RootP -> (ctx, value_new)
-    | Il.IdxP (path, exp_i) -> (
+    | RootP -> (ctx, value_new)
+    | IdxP (path, exp_i) -> (
         let ctx, value = eval_access_path ctx value_b path in
         let ctx, value_i = eval_exp ctx exp_i in
         let idx_target =
@@ -755,7 +756,7 @@ and eval_upd_exp (_note : typ') (ctx : Ctx.t) (exp_b : exp) (path : path)
               (Format.asprintf
                  "indexing expects either a text or a list, but got %s"
                  (Il.Print.string_of_value ~short:true value)))
-    | Il.SliceP (path, exp_i, exp_n) -> (
+    | SliceP (path, exp_i, exp_n) -> (
         let ctx, value = eval_access_path ctx value_b path in
         let ctx, value_i = eval_exp ctx exp_i in
         let idx_l =
@@ -816,7 +817,7 @@ and eval_upd_exp (_note : typ') (ctx : Ctx.t) (exp_b : exp) (path : path)
               (Format.asprintf
                  "slicing expects either a text or a list, but got %s"
                  (Il.Print.string_of_value ~short:true value)))
-    | Il.DotP (path, atom) ->
+    | DotP (path, atom) ->
         let ctx, value = eval_access_path ctx value_b path in
         let fields = value |> Value.get_struct in
         let fields =
@@ -884,8 +885,8 @@ and eval_iter_exp (note : typ') (ctx : Ctx.t) (exp : exp) (iterexp : iterexp) :
 and eval_args (ctx : Ctx.t) (args : arg list) : Ctx.t * value list =
   let eval_arg ctx arg =
     match arg.it with
-    | Il.ExpA exp -> eval_exp ctx exp
-    | Il.DefA id ->
+    | ExpA exp -> eval_exp ctx exp
+    | DefA id ->
         let value_res = Value.func id in
         (ctx, value_res)
   in
@@ -1121,14 +1122,15 @@ and eval_case_instr (ctx : Ctx.t) (exp : exp) (cases : case list) :
                let exp_cond =
                  match guard with
                  | BoolG true -> exp.it
-                 | BoolG false -> Il.UnE (`NotOp, `BoolT, exp)
-                 | CmpG (cmpop, optyp, exp_r) ->
-                     Il.CmpE (cmpop, optyp, exp, exp_r)
-                 | SubG typ -> Il.SubE (exp, typ)
-                 | MatchG pattern -> Il.MatchE (exp, pattern)
-                 | MemG exp_s -> Il.MemE (exp, exp_s)
+                 | BoolG false -> UnE (`NotOp, `BoolT, exp)
+                 | CmpG (cmpop, optyp, exp_r) -> CmpE (cmpop, optyp, exp, exp_r)
+                 | SubG typ -> SubE (exp, typ)
+                 | MatchG pattern -> MatchE (exp, pattern)
+                 | MemG exp_s -> MemE (exp, exp_s)
                in
-               let exp_cond = exp_cond $$ (exp.at, Il.BoolT) in
+               let exp_cond =
+                 exp_cond $$ (exp.at, { typ = Il.BoolT; annot = () })
+               in
                let ctx, value_cond = eval_exp ctx exp_cond in
                let values_cond_rev = value_cond :: values_cond_rev in
                let cond = Value.get_bool value_cond in

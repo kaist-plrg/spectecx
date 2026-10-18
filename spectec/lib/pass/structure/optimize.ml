@@ -2,6 +2,7 @@ open Common.Source
 open Common.Domain
 open Lang
 open Lang.Xl
+open Il.Expression
 open Ol.Ast
 module RTEnv = Envs.RTEnv
 module TDEnv = Envs.Il.TDEnv
@@ -72,13 +73,13 @@ let matchify_exp_eq_terminal (exp : exp) : exp =
   match exp.it with
   | CmpE (`EqOp, _, exp_l, { it = CaseE notexp; _ })
     when Il.Mixfix.args notexp = [] ->
-      Il.MatchE (exp_l, CaseP (Il.Mixfix.to_mixop notexp)) $$ (at, note)
+      MatchE (exp_l, CaseP (Il.Mixfix.to_mixop notexp)) $$ (at, note)
   | CmpE (`NeOp, _, exp_l, { it = CaseE notexp; _ })
     when Il.Mixfix.args notexp = [] ->
       let exp =
-        Il.MatchE (exp_l, CaseP (Il.Mixfix.to_mixop notexp)) $$ (at, note)
+        MatchE (exp_l, CaseP (Il.Mixfix.to_mixop notexp)) $$ (at, note)
       in
-      Il.UnE (`NotOp, `BoolT, exp) $$ (at, note)
+      UnE (`NotOp, `BoolT, exp) $$ (at, note)
   | _ -> exp
 
 let rec matchify_if_eq_terminal (instr : instr) : instr =
@@ -502,13 +503,18 @@ let guard_as_exp (exp_target : exp) (guard : guard) : exp =
   match guard with
   | BoolG true -> exp_target
   | BoolG false ->
-      Il.UnE (`NotOp, `BoolT, exp_target) $$ (exp_target.at, Il.BoolT)
+      UnE (`NotOp, `BoolT, exp_target)
+      $$ (exp_target.at, { typ = Il.BoolT; annot = () })
   | CmpG (cmpop, optyp, exp) ->
-      Il.CmpE (cmpop, optyp, exp_target, exp) $$ (exp_target.at, Il.BoolT)
-  | SubG typ -> Il.SubE (exp_target, typ) $$ (exp_target.at, Il.BoolT)
+      CmpE (cmpop, optyp, exp_target, exp)
+      $$ (exp_target.at, { typ = Il.BoolT; annot = () })
+  | SubG typ ->
+      SubE (exp_target, typ) $$ (exp_target.at, { typ = Il.BoolT; annot = () })
   | MatchG pattern ->
-      Il.MatchE (exp_target, pattern) $$ (exp_target.at, Il.BoolT)
-  | MemG exp -> Il.MemE (exp_target, exp) $$ (exp_target.at, Il.BoolT)
+      MatchE (exp_target, pattern)
+      $$ (exp_target.at, { typ = Il.BoolT; annot = () })
+  | MemG exp ->
+      MemE (exp_target, exp) $$ (exp_target.at, { typ = Il.BoolT; annot = () })
 
 (* Conversion from type to its variants *)
 
@@ -1151,7 +1157,7 @@ and totalize_case_analysis' (tdenv : TDEnv.t) (instr : instr) : instr =
             let compare = Il.Mixfix.compare_mixop
           end) in
           let mixops_total =
-            let typ = exp.note $ exp.at in
+            let typ = exp.note.typ $ exp.at in
             typ |> typ_as_variant tdenv |> Option.get
           in
           let mixops_total = Set.of_list mixops_total in

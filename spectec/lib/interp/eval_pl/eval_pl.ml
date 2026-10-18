@@ -9,7 +9,7 @@ let run_relation (ctx : Ctx.t) (spec : spec) (rid : id') (values : value list) :
   let mode, _, _ = Ctx.find_rel Ctx.Global ctx (rid $ no_region) in
   let typs =
     List.map
-      (fun (exp : Lang.Pl.exp) -> exp.node.note $ exp.node.at)
+      (fun (exp : Lang.Pl.exp) -> exp.note.typ $ exp.at)
       (Lang.Il.Mode.inputs mode)
   in
   (match

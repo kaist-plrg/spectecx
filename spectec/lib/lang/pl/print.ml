@@ -1,6 +1,7 @@
-open Common.Source
+open Il.Expression
 open Types
 open Annot
+open Common.Source
 
 (* Leaf types *)
 
@@ -34,7 +35,7 @@ let string_of_phantom = Sl.Print.string_of_phantom
 (* Expressions *)
 
 let rec string_of_exp exp =
-  match exp.node.it with
+  match exp.it with
   | BoolE b -> string_of_bool b
   | NumE n -> string_of_num n
   | TextE text -> "\"" ^ String.escaped text ^ "\""

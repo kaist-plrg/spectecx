@@ -1,5 +1,6 @@
 open Common.Domain
 open Common.Source
+open Lang.Il.Expression
 open Lang.Il
 open Diagnostic
 open Ctx
@@ -140,7 +141,9 @@ and analyze_if_eq_prem (dctx : Dctx.t) (at : region) (note : typ')
       let prem =
         IfPr
           {
-            cond = CmpE (`EqOp, optyp, exp_l, exp_r) $$ (at, note);
+            cond =
+              CmpE (`EqOp, optyp, exp_l, exp_r)
+              $$ (at, { typ = note; annot = () });
             role = Condition;
           }
       in
@@ -163,7 +166,7 @@ and analyze_if_prem (dctx : Dctx.t) (at : region) (exp : exp) :
   match exp.it with
   | CmpE (`EqOp, optyp, exp_l, exp_r) ->
       let dctx, venv, prem, prems =
-        analyze_if_eq_prem dctx exp.at exp.note optyp exp_l exp_r
+        analyze_if_eq_prem dctx exp.at exp.note.typ optyp exp_l exp_r
       in
       let prem = prem $ at in
       (dctx, venv, prem, prems)

@@ -8,7 +8,9 @@ let run_relation (ctx : Ctx.t) (spec : spec) (rid : id') (values : value list) :
   let ctx = Interp.load_spec ctx spec in
   let mode, _, _ = Ctx.find_rel Ctx.Global ctx (rid $ no_region) in
   let typs =
-    List.map (fun exp -> exp.note $ exp.at) (Lang.Il.Mode.inputs mode)
+    List.map
+      (fun (exp : Lang.Sl.exp) -> exp.note.typ $ exp.at)
+      (Lang.Il.Mode.inputs mode)
   in
   (match
      Value_typecheck.check_values ~opaque_types:ctx.opaque_types

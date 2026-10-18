@@ -1,5 +1,6 @@
 open Common.Source
 open Lang.Xl
+open Lang.Il.Expression
 open Lang.Il
 open Envs.Make
 module Typ = Envs.Il.Typ
@@ -290,7 +291,7 @@ let rec eval_exp (ctx : Ctx.t) (exp : exp) : Ctx.t * value =
   let eval_text_exp note s = Value.Make.text note s in
   let eval_var_exp _note ctx id = Ctx.find_value ctx (id, []) in
   let wrap_ctx value = (ctx, value) in
-  let at, note = (exp.at, exp.note) in
+  let at, note = (exp.at, exp.note.typ) in
   match exp.it with
   | BoolE b -> eval_bool_exp note b |> wrap_ctx
   | NumE n -> eval_num_exp note n |> wrap_ctx

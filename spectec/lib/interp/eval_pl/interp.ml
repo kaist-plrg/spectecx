@@ -3,6 +3,7 @@ open Lang.Xl
 module Il = Lang.Il
 module Mixop = Lang.Il.Mixfix
 module Value = Lang.Il.Value
+open Il.Expression
 open Lang.Pl
 open Annot
 open Envs.Make
@@ -21,7 +22,7 @@ let ( let* ) = Option.bind
 
 let rec assign_exp (ctx : Ctx.t) (exp : exp) (value : value) : Ctx.t =
   let note = value.note.typ in
-  match (exp.node.it, value.it) with
+  match (exp.it, value.it) with
   | VarE id, _ ->
       let ctx = Ctx.add_value Local ctx (id, []) value in
       ctx
@@ -45,7 +46,7 @@ let rec assign_exp (ctx : Ctx.t) (exp : exp) (value : value) : Ctx.t =
           ctx
       | None, None -> ctx
       | _ ->
-          error exp.node.at
+          error exp.at
             (F.asprintf "match failed %s <- %s" (Print.string_of_exp exp)
                (Il.Print.string_of_value ~short:true value)))
   | ListE exps_inner, ListV values_inner ->
@@ -107,14 +108,14 @@ let rec assign_exp (ctx : Ctx.t) (exp : exp) (value : value) : Ctx.t =
           Ctx.add_value Local ctx (id, iters @ [ Il.List ]) value_sub)
         ctx vars
   | _ ->
-      error exp.node.at
+      error exp.at
         (F.asprintf "(TODO) match failed %s <- %s" (Print.string_of_exp exp)
            (Il.Print.string_of_value ~short:true value))
 
 and assign_exps (ctx : Ctx.t) (exps : exp list) (values : value list) : Ctx.t =
   check
     (List.length exps = List.length values)
-    (over_region (List.map (fun exp -> exp.node.at) exps))
+    (over_region (List.map at exps))
     (F.asprintf
        "mismatch in number of expressions and values while assigning, expected \
         %d value(s) but got %d"
@@ -292,8 +293,8 @@ let rec eval_exp (ctx : Ctx.t) (exp : exp) : Ctx.t * value =
     let value = Ctx.find_value Local ctx (id, []) in
     (ctx, value)
   in
-  let at, note = (exp.node.at, exp.node.note) in
-  match exp.node.it with
+  let at, note = (exp.at, exp.note.typ) in
+  match exp.it with
   | BoolE b -> eval_bool_exp note ctx b
   | NumE n -> eval_num_exp note ctx n
   | TextE s -> eval_text_exp note ctx s
@@ -545,7 +546,7 @@ and eval_len_exp (note : typ') (ctx : Ctx.t) (exp : exp) : Ctx.t * value =
     | TextV s -> s |> String.length |> Bigint.of_int
     | ListV values -> values |> List.length |> Bigint.of_int
     | _ ->
-        error exp.node.at
+        error exp.at
           (Format.asprintf
              "length operation expects either a text or a list, but got %s"
              (Il.Print.string_of_value ~short:true value))
@@ -576,19 +577,19 @@ and eval_idx_exp (_note : typ') (ctx : Ctx.t) (exp_b : exp) (exp_i : exp) :
   let value_res =
     match value_b.it with
     | TextV s when idx < 0 || idx >= String.length s ->
-        error exp_i.node.at
+        error exp_i.at
           (Format.asprintf "index %d out of bounds [0, %d)" idx
              (String.length s))
     | TextV s ->
         let s = String.get s idx |> String.make 1 in
         Value.Make.text Il.TextT s
     | ListV values when idx < 0 || idx >= List.length values ->
-        error exp_i.node.at
+        error exp_i.at
           (Format.asprintf "index %d out of bounds [0, %d)" idx
              (List.length values))
     | ListV values -> List.nth values idx
     | _ ->
-        error exp_b.node.at
+        error exp_b.at
           (Format.asprintf
              "indexing expects either a text or a list, but got %s"
              (Il.Print.string_of_value ~short:true value_b))
@@ -608,14 +609,14 @@ and eval_slice_exp (note : typ') (ctx : Ctx.t) (exp_b : exp) (exp_i : exp)
   let value_res =
     match value_b.it with
     | TextV s when idx_l < 0 || idx_h > String.length s ->
-        error exp_i.node.at
+        error exp_i.at
           (Format.asprintf "slice [%d, %d) out of bounds [0, %d)" idx_l idx_h
              (String.length s))
     | TextV s ->
         let s_slice = String.sub s idx_l (idx_h - idx_l) in
         Value.Make.text Il.TextT s_slice
     | ListV values when idx_l < 0 || idx_h > List.length values ->
-        error exp_n.node.at
+        error exp_n.at
           (Format.asprintf "slice [%d, %d) out of bounds [0, %d)" idx_l idx_h
              (List.length values))
     | ListV values ->
@@ -628,7 +629,7 @@ and eval_slice_exp (note : typ') (ctx : Ctx.t) (exp_b : exp) (exp_i : exp)
         in
         Value.Make.list note values_slice
     | _ ->
-        error exp_b.node.at
+        error exp_b.at
           (Format.asprintf "slicing expects either a text or a list, but got %s"
              (Il.Print.string_of_value ~short:true value_b))
   in
@@ -648,7 +649,7 @@ and eval_upd_exp (_note : typ') (ctx : Ctx.t) (exp_b : exp) (path : path)
         let idx = value_i |> Value.get_num |> Num.to_int |> Bigint.to_int_exn in
         match value.it with
         | Il.TextV s when idx < 0 || idx >= String.length s ->
-            error exp_i.node.at
+            error exp_i.at
               (Format.asprintf "index %d out of bounds [0, %d)" idx
                  (String.length s))
         | Il.TextV s ->
@@ -656,7 +657,7 @@ and eval_upd_exp (_note : typ') (ctx : Ctx.t) (exp_b : exp) (path : path)
             let value_res = Value.Make.text Il.TextT s in
             (ctx, value_res)
         | Il.ListV values when idx < 0 || idx >= List.length values ->
-            error exp_i.node.at
+            error exp_i.at
               (Format.asprintf "index %d out of bounds [0, %d)" idx
                  (List.length values))
         | Il.ListV values ->
@@ -680,7 +681,7 @@ and eval_upd_exp (_note : typ') (ctx : Ctx.t) (exp_b : exp) (path : path)
         let idx_h = idx_l + idx_n in
         match value.it with
         | Il.TextV s when idx_l < 0 || idx_h > String.length s ->
-            error exp_n.node.at
+            error exp_n.at
               (Format.asprintf "slice [%d, %d) out of bounds [0, %d)" idx_l
                  idx_h (String.length s))
         | Il.TextV s ->
@@ -688,7 +689,7 @@ and eval_upd_exp (_note : typ') (ctx : Ctx.t) (exp_b : exp) (path : path)
             let value_res = Value.Make.text Il.TextT s_slice in
             (ctx, value_res)
         | Il.ListV values when idx_l < 0 || idx_h > List.length values ->
-            error exp_n.node.at
+            error exp_n.at
               (Format.asprintf "slice [%d, %d) out of bounds [0, %d)" idx_l
                  idx_h (List.length values))
         | Il.ListV values ->
@@ -726,13 +727,13 @@ and eval_upd_exp (_note : typ') (ctx : Ctx.t) (exp_b : exp) (path : path)
         in
         match value.it with
         | TextV s when idx_target < 0 || idx_target >= String.length s ->
-            error exp_i.node.at
+            error exp_i.at
               (Format.asprintf "index %d out of bounds [0, %d)" idx_target
                  (String.length s))
         | TextV s ->
             let s_new = Value.get_text value_new in
             if String.length s_new <> 1 then
-              error exp_i.node.at
+              error exp_i.at
                 (Format.asprintf
                    "updating a character requires a single-character text, but \
                     got %s"
@@ -747,7 +748,7 @@ and eval_upd_exp (_note : typ') (ctx : Ctx.t) (exp_b : exp) (path : path)
               eval_update_path ctx value_b path value
         | ListV values when idx_target < 0 || idx_target >= List.length values
           ->
-            error exp_i.node.at
+            error exp_i.at
               (Format.asprintf "index %d out of bounds [0, %d)" idx_target
                  (List.length values))
         | ListV values ->
@@ -776,13 +777,13 @@ and eval_upd_exp (_note : typ') (ctx : Ctx.t) (exp_b : exp) (path : path)
         let idx_h = idx_l + idx_n in
         match value.it with
         | TextV s when idx_l < 0 || idx_h > String.length s ->
-            error exp_n.node.at
+            error exp_n.at
               (Format.asprintf "slice [%d, %d) out of bounds [0, %d)" idx_l
                  idx_h (String.length s))
         | TextV s ->
             let s_new = Value.get_text value_new in
             if String.length s_new <> idx_n then
-              error exp_n.node.at
+              error exp_n.at
                 (Format.asprintf
                    "updating a slice of length %d requires a text of length \
                     %d, but got %s"
@@ -796,13 +797,13 @@ and eval_upd_exp (_note : typ') (ctx : Ctx.t) (exp_b : exp) (path : path)
               let value = Value.Make.text Il.TextT s_updated in
               eval_update_path ctx value_b path value
         | ListV values when idx_l < 0 || idx_h > List.length values ->
-            error exp_n.node.at
+            error exp_n.at
               (Format.asprintf "slice [%d, %d) out of bounds [0, %d)" idx_l
                  idx_h (List.length values))
         | ListV values ->
             let values_new = Value.get_list value_new in
             if List.length values_new <> idx_n then
-              error exp_n.node.at
+              error exp_n.at
                 (Format.asprintf
                    "updating a slice of length %d requires a list of length \
                     %d, but got %s"
@@ -920,9 +921,7 @@ and eval_instr (ctx : Ctx.t) (instr : instr) : Ctx.t * Sign.t =
   let eval_debug_instr ctx exp =
     let ctx, value = eval_exp ctx exp in
     print_endline
-    @@ F.sprintf "%s: %s"
-         (string_of_region exp.node.at)
-         (Print.string_of_exp exp);
+    @@ F.sprintf "%s: %s" (string_of_region exp.at) (Print.string_of_exp exp);
     print_endline @@ Il.Print.string_of_value value;
     (ctx, Sign.Cont)
   in
@@ -991,11 +990,11 @@ and eval_check_let_instr (ctx : Ctx.t) (exp_l : exp) (exp_r : exp)
     (block : instr list) : Ctx.t * Sign.t =
   let ctx, value = eval_exp ctx exp_r in
   let case_ok =
-    match (exp_l.node.it, value.it) with
+    match (exp_l.it, value.it) with
     | CaseE notexp, CaseV valuecase -> Mixop.eq_mixop notexp valuecase
     | _ -> true
   in
-  let typ_target = exp_l.node.note $ exp_l.node.at in
+  let typ_target = exp_l.note.typ $ exp_l.at in
   if case_ok && subtyp ctx typ_target value then
     let ctx, value = downcast ctx typ_target value in
     match assign_exp_opt ctx exp_l value with
@@ -1029,7 +1028,7 @@ and eval_destruct_instr (ctx : Ctx.t) (fields : (string option * exp) list)
       in
       (ctx, Sign.Cont)
   | _ ->
-      error exp_source.node.at
+      error exp_source.at
         (F.sprintf "destructure failed: %s"
            (Il.Print.string_of_value ~short:true value))
 
@@ -1179,7 +1178,7 @@ and bind_guard_target (ctx : Ctx.t) (exp : exp) (guard : guard) : Ctx.t =
   match guard with
   | CheckLetSubG (_, exp_target) ->
       let ctx, value = eval_exp ctx exp in
-      let typ_target = exp_target.node.note $ exp_target.node.at in
+      let typ_target = exp_target.note.typ $ exp_target.at in
       let ctx, value = downcast ctx typ_target value in
       assign_exp ctx exp_target value
   | CheckLetMatchG (_, exp_target) ->
@@ -1198,7 +1197,7 @@ and eval_case_instr (ctx : Ctx.t) (exp : exp) (cases : case list) :
            | None ->
                let exp_cond' =
                  match guard with
-                 | BoolG true -> exp.node.it
+                 | BoolG true -> exp.it
                  | BoolG false -> UnE (`NotOp, `BoolT, exp)
                  | CmpG (cmpop, optyp, exp_r) -> CmpE (cmpop, optyp, exp, exp_r)
                  | SubG typ | CheckLetSubG (typ, _) -> SubE (exp, typ)
@@ -1207,7 +1206,7 @@ and eval_case_instr (ctx : Ctx.t) (exp : exp) (cases : case list) :
                  | MemG exp_s -> MemE (exp, exp_s)
                in
                let exp_cond =
-                 Annot.bare (exp_cond' $$ (exp.node.at, Il.BoolT))
+                 exp_cond' $$ (exp.at, { typ = Il.BoolT; annot = Annot.empty })
                in
                let ctx, value_cond = eval_exp ctx exp_cond in
                let values_cond_rev = value_cond :: values_cond_rev in

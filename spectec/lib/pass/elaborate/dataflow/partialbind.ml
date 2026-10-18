@@ -1,5 +1,6 @@
 open Common.Domain
 open Common.Source
+open Lang.Il.Expression
 open Lang.Il
 open Envs.Make
 open Ctx
@@ -30,13 +31,13 @@ module To = struct
 
   let as_exp ({ varid; typ; iters } : t) =
     List.fold_left
-      (fun exp iter ->
+      (fun (exp : exp) iter ->
         let typ =
-          let typ = exp.note $ exp.at in
+          let typ = exp.note.typ $ exp.at in
           IterT { typ; iter }
         in
-        IterE (exp, (iter, [])) $$ (exp.at, typ))
-      (VarE varid $$ (varid.at, typ.it))
+        IterE (exp, (iter, [])) $$ (exp.at, { typ; annot = () }))
+      (VarE varid $$ (varid.at, { typ = typ.it; annot = () }))
       iters
 end
 
@@ -80,14 +81,19 @@ let gen_prem_bound (dctx : Dctx.t) (to_ : To.t) (exp_from : exp)
     match exp_from.it with
     | CaseE notexp
       when Mixop.args notexp = []
-           && not (is_singleton_case dctx (exp_from.note $ exp_from.at)) ->
-        MatchE (exp_l, CaseP (Mixop.to_mixop notexp)) $$ (exp_from.at, BoolT)
-    | OptE (Some _) -> MatchE (exp_l, OptP `Some) $$ (exp_from.at, BoolT)
-    | OptE None -> MatchE (exp_l, OptP `None) $$ (exp_from.at, BoolT)
-    | ListE [] -> MatchE (exp_l, ListP `Nil) $$ (exp_from.at, BoolT)
+           && not (is_singleton_case dctx (exp_from.note.typ $ exp_from.at)) ->
+        MatchE (exp_l, CaseP (Mixop.to_mixop notexp))
+        $$ (exp_from.at, { typ = BoolT; annot = () })
+    | OptE (Some _) ->
+        MatchE (exp_l, OptP `Some) $$ (exp_from.at, { typ = BoolT; annot = () })
+    | OptE None ->
+        MatchE (exp_l, OptP `None) $$ (exp_from.at, { typ = BoolT; annot = () })
+    | ListE [] ->
+        MatchE (exp_l, ListP `Nil) $$ (exp_from.at, { typ = BoolT; annot = () })
     | _ ->
         let exp_r = exp_from in
-        CmpE (`EqOp, `BoolT, exp_l, exp_r) $$ (exp_from.at, BoolT)
+        CmpE (`EqOp, `BoolT, exp_l, exp_r)
+        $$ (exp_from.at, { typ = BoolT; annot = () })
   in
   let sidecondition =
     IfPr { cond = exp_cond; role = Condition } $ exp_from.at
@@ -100,7 +106,9 @@ let gen_prem_bind_match (to_ : To.t) (pattern : pattern) (exp_from : exp)
     (iters : iter list) : prem list =
   let exp_to = To.as_exp to_ in
   let prems =
-    let exp_guard_match = MatchE (exp_to, pattern) $$ (exp_from.at, BoolT) in
+    let exp_guard_match =
+      MatchE (exp_to, pattern) $$ (exp_from.at, { typ = BoolT; annot = () })
+    in
     let sidecondition_guard_match =
       IfPr { cond = exp_guard_match; role = Condition } $ exp_from.at
     in
@@ -118,12 +126,15 @@ let gen_prem_bind_sub (to_ : To.t) (typ_sub : typ) (exp_sub : exp)
     (exp_from : exp) (iters : iter list) : prem list =
   let exp_to = To.as_exp to_ in
   let prems =
-    let exp_guard_sub = SubE (exp_to, typ_sub) $$ (exp_from.at, BoolT) in
+    let exp_guard_sub =
+      SubE (exp_to, typ_sub) $$ (exp_from.at, { typ = BoolT; annot = () })
+    in
     let sidecondition_guard_sub =
       IfPr { cond = exp_guard_sub; role = Condition } $ exp_from.at
     in
     let exp_downcast =
-      DownCastE (typ_sub, exp_to) $$ (exp_from.at, typ_sub.it)
+      DownCastE (typ_sub, exp_to)
+      $$ (exp_from.at, { typ = typ_sub.it; annot = () })
     in
     let prem_bind = LetPr (exp_sub, exp_downcast) $ exp_from.at in
     [ sidecondition_guard_sub; prem_bind ]
@@ -230,12 +241,12 @@ and rename_exp_bind (dctx : Dctx.t) (binds : IdSet.t) (renv : REnv.t)
   | UpCastE (typ, exp) ->
       let dctx, renv, exp = rename_exp dctx binds renv exp in
       let exp_renamed = UpCastE (typ, exp) $$ (at, note) in
-      rename_exp_bind_sub dctx renv (exp.note $ at) exp exp_renamed
+      rename_exp_bind_sub dctx renv (exp.note.typ $ at) exp exp_renamed
   | TupleE exps ->
       let dctx, renv, exps = rename_exps dctx binds renv exps in
       let exp = TupleE exps $$ (at, note) in
       (dctx, renv, exp)
-  | CaseE notexp when is_singleton_case dctx (note $ at) ->
+  | CaseE notexp when is_singleton_case dctx (note.typ $ at) ->
       let mixop, exps = Mixop.split notexp in
       let dctx, renv, exps = rename_exps dctx binds renv exps in
       let exp = CaseE (Mixop.fill mixop exps) $$ (at, note) in

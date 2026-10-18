@@ -56,7 +56,7 @@ let pid () =
 (* Path condition *)
 
 let negate_exp (exp : exp) : exp =
-  Il.UnE (`NotOp, `BoolT, exp) $$ (exp.at, exp.note)
+  Il.Expression.UnE (`NotOp, `BoolT, exp) $$ (exp.at, exp.note)
 
 let rec negate_pathcond (pathcond : pathcond) : pathcond =
   match pathcond with

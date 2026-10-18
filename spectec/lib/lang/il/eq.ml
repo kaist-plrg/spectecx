@@ -1,4 +1,5 @@
 open Xl
+open Types.Expression
 open Types
 
 (* Identifiers *)

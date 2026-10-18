@@ -106,57 +106,68 @@ and optyp = [ Bool.typ | Num.typ ]
 
 (* Expressions *)
 
-and exp = (exp', typ') note_phrase
-and exp' =
-  | BoolE of bool                         (* bool *)
-  | NumE of num                           (* num *)
-  | TextE of text                         (* text *)
-  | VarE of id                            (* varid *)
-  | UnE of unop * optyp * exp             (* unop exp *)
-  | BinE of binop * optyp * exp * exp     (* exp binop exp *)
-  | CmpE of cmpop * optyp * exp * exp     (* exp cmpop exp *)
-  | UpCastE of typ * exp                  (* exp as typ *)
-  | DownCastE of typ * exp                (* exp as typ *)
-  | SubE of exp * typ                     (* exp `<:` typ *)
-  | MatchE of exp * pattern               (* exp `matches` pattern *)
-  | TupleE of exp list                    (* `(` exp* `)` *)
-  | CaseE of notexp                       (* notexp *)
-  | StrE of (atom * exp) list             (* { expfield* } *)
-  | OptE of exp option                    (* exp? *)
-  | ListE of exp list                     (* `[` exp* `]` *)
-  | ConsE of exp * exp                    (* exp `::` exp *)
-  | CatE of exp * exp                     (* exp `++` exp *)
-  | MemE of exp * exp                     (* exp `<-` exp *)
-  | LenE of exp                           (* `|` exp `|` *)
-  | DotE of exp * atom                    (* exp.atom *)
-  | IdxE of exp * exp                     (* exp `[` exp `]` *)
-  | SliceE of exp * exp * exp             (* exp `[` exp `:` exp `]` *)
-  | UpdE of exp * path * exp              (* exp `[` path `=` exp `]` *)
-  | CallE of id * targ list * arg list    (* $id`<` targ* `>``(` arg* `)` *)
-  | IterE of exp * iterexp                (* exp iterexp *)
+type iterexp = iter * var list
 
-and notexp = exp Mixfix.t
-and iterexp = iter * var list
-
-(* Patterns *)
-
-and pattern =
+type pattern =
   | CaseP of mixop
   | ListP of [ `Cons | `Fixed of int | `Nil ]
   | OptP of [ `Some | `None ]
 
-(* Path *)
+module Expression = struct
+  type 'ann note = { typ : typ'; annot : 'ann }
 
-and path = (path', typ') note_phrase
-and path' =
-  | RootP                        (*  *)
-  | IdxP of path * exp           (* path `[` exp `]` *)
-  | SliceP of path * exp * exp   (* path `[` exp `:` exp `]` *)
-  | DotP of path * atom          (* path `.` atom *)
+  type 'ann t = ('ann node, 'ann note) note_phrase
+  and 'ann node =
+    | BoolE of bool                            (* bool *)
+    | NumE of num                              (* num *)
+    | TextE of text                            (* text *)
+    | VarE of id                               (* varid *)
+    | UnE of unop * optyp * 'ann t             (* unop exp *)
+    | BinE of binop * optyp * 'ann t * 'ann t  (* exp binop exp *)
+    | CmpE of cmpop * optyp * 'ann t * 'ann t  (* exp cmpop exp *)
+    | UpCastE of typ * 'ann t                  (* exp as typ *)
+    | DownCastE of typ * 'ann t                (* exp as typ *)
+    | SubE of 'ann t * typ                     (* exp `<:` typ *)
+    | MatchE of 'ann t * pattern               (* exp `matches` pattern *)
+    | TupleE of 'ann t list                    (* `(` exp* `)` *)
+    | CaseE of 'ann notation                   (* notexp *)
+    | StrE of (atom * 'ann t) list             (* { expfield* } *)
+    | OptE of 'ann t option                    (* exp? *)
+    | ListE of 'ann t list                     (* `[` exp* `]` *)
+    | ConsE of 'ann t * 'ann t                 (* exp `::` exp *)
+    | CatE of 'ann t * 'ann t                  (* exp `++` exp *)
+    | MemE of 'ann t * 'ann t                  (* exp `<-` exp *)
+    | LenE of 'ann t                           (* `|` exp `|` *)
+    | DotE of 'ann t * atom                    (* exp.atom *)
+    | IdxE of 'ann t * 'ann t                  (* exp `[` exp `]` *)
+    | SliceE of 'ann t * 'ann t * 'ann t       (* exp `[` exp `:` exp `]` *)
+    | UpdE of 'ann t * 'ann path * 'ann t      (* exp `[` path `=` exp `]` *)
+    | CallE of id * targ list * 'ann arg list  (* $id`<` targ* `>``(` arg* `)` *)
+    | IterE of 'ann t * iterexp                (* exp iterexp *)
 
-(* Parameters *)
+  and 'ann notation = 'ann t Mixfix.t
+  and 'ann path = ('ann path_node, typ') note_phrase
+  and 'ann path_node =
+    | RootP                                    (*  *)
+    | IdxP of 'ann path * 'ann t               (* path `[` exp `]` *)
+    | SliceP of 'ann path * 'ann t * 'ann t    (* path `[` exp `:` exp `]` *)
+    | DotP of 'ann path * atom                 (* path `.` atom *)
 
-and param = param' phrase
+  and 'ann arg = 'ann arg_node phrase
+  and 'ann arg_node =
+    | ExpA of 'ann t                           (* exp *)
+    | DefA of id                               (* `$`id *)
+end
+
+type exp = unit Expression.t
+type exp' = unit Expression.node
+type notexp = unit Expression.notation
+type path = unit Expression.path
+type path' = unit Expression.path_node
+type arg = unit Expression.arg
+type arg' = unit Expression.arg_node
+
+type param = param' phrase
 and param' =
   (* typ *)
   | ExpP of typ
@@ -167,13 +178,6 @@ and param' =
 
 and tparam = tparam' phrase
 and tparam' = id'
-
-(* Arguments *)
-
-and arg = arg' phrase
-and arg' =
-  | ExpA of exp   (* exp *)
-  | DefA of id    (* `$`id *)
 
 (* Rules *)
 

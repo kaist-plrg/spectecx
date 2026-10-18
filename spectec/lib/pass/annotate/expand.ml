@@ -41,6 +41,7 @@ module RelMap = Map.Make (Id)
 let ( let* ) = Option.bind
 
 module Transform = struct
+  open Lang.Il.Expression
   open Lang.Il
 
   let ( ++ ) = VarSet.union
@@ -322,8 +323,8 @@ type lift = Root | Kept | Liftable
 
 let advance (lift : lift) (exp : exp) : lift =
   match exp.it with
-  | Il.CallE _ -> ( match lift with Root -> Kept | _ -> Liftable)
-  | Il.IterE _ -> lift
+  | CallE _ -> ( match lift with Root -> Kept | _ -> Liftable)
+  | IterE _ -> lift
   | _ -> Liftable
 
 (* Variables bound by the iterations an instruction runs under. A call reading
@@ -343,7 +344,7 @@ let reads_iter_local (iter_locals : IdSet.t) (args : arg list) : bool =
 let rewrite_call (iter_locals : IdSet.t) (ids_used : IdSet.t) (lift : lift)
     (exp : exp) : (exp * Transform.iter_state) option =
   match (lift, exp.it) with
-  | Liftable, Il.CallE (_, _, args)
+  | Liftable, CallE (_, _, args)
     when args <> [] && not (reads_iter_local iter_locals args) ->
       let var_base = Il.Fresh.fresh_var_from_exp ids_used exp in
       Some

@@ -2,6 +2,7 @@
     responsibility; this module only emits inner fragments. *)
 
 open Common.Source
+open Il.Expression
 open Types
 open Annot
 module F = Format
@@ -157,7 +158,7 @@ let render_alter_hint ?(caps = false) (ctx : context) (h : Hints.Alter.t)
 
 let rec render_exp (ctx : context) (exp : exp) : string =
   let in_code_ctx = code ctx in
-  match exp.node.it with
+  match exp.it with
   | BoolE b -> string_of_bool b |> adoc_as_code ctx
   | NumE n -> Sl.Print.string_of_num n |> adoc_as_code ctx
   | TextE text -> "\"" ^ String.escaped text ^ "\"" |> adoc_as_code ctx
@@ -205,8 +206,8 @@ let rec render_exp (ctx : context) (exp : exp) : string =
   | CaseE notexp -> (
       if ctx.in_code then code_of_notexp ctx notexp
       else
-        let hint_opt = exp.hints.prose in
-        let link_opt = tid_of_typ exp.node.note in
+        let hint_opt = exp.note.annot.prose in
+        let link_opt = tid_of_typ exp.note.typ in
         match (hint_opt, link_opt) with
         | Some hints, Some tid ->
             let exps = Mixfix.args notexp in
@@ -269,8 +270,8 @@ let rec render_exp (ctx : context) (exp : exp) : string =
         ^ " set to "
         ^ (render_exp in_code_ctx exp_f |> adoc_as_code ctx)
   | CallE (id, targs, args) -> (
-      let hint_in = exp.hints.prose_in in
-      let hint_true = exp.hints.prose_true in
+      let hint_in = exp.note.annot.prose_in in
+      let hint_true = exp.note.annot.prose_true in
       if ctx.in_code then
         string_of_defid id
         ^ Sl.Print.string_of_targs targs
@@ -290,8 +291,8 @@ let rec render_exp (ctx : context) (exp : exp) : string =
             |> adoc_as_link ctx ~link:id.it
             |> adoc_as_code ctx)
   | IterE (exp_inner, (_, [])) -> render_exp ctx exp_inner
-  | IterE (({ node = { it = VarE _; _ }; _ } as exp_inner), iterexp)
-  | IterE (({ node = { it = TupleE _; _ }; _ } as exp_inner), iterexp) ->
+  | IterE (({ it = VarE _; _ } as exp_inner), iterexp)
+  | IterE (({ it = TupleE _; _ } as exp_inner), iterexp) ->
       render_exp in_code_ctx exp_inner ^ code_of_iterexp iterexp
       |> adoc_as_code ctx
   | IterE (exp_inner, iterexp) ->
@@ -301,7 +302,7 @@ let rec render_exp (ctx : context) (exp : exp) : string =
       else sexp ^ code_of_iterexp iterexp |> adoc_as_code ctx
 
 and render_negated_exp_opt (ctx : context) (exp_inner : exp) : string option =
-  match exp_inner.node.it with
+  match exp_inner.it with
   | MatchE (exp_e, pattern) ->
       Some
         (F.asprintf "%s does not match pattern %s" (render_exp ctx exp_e)
@@ -317,7 +318,7 @@ and render_negated_exp_opt (ctx : context) (exp_inner : exp) : string option =
            (render_exp_as_code ctx exp_e)
            (render_exp_as_code ctx exp_s))
   | CallE (id, _targs, args) when not ctx.in_code -> (
-      match exp_inner.hints.prose_false with
+      match exp_inner.note.annot.prose_false with
       | Some hints ->
           Some
             (render_alter_hint (link ctx) hints (reindent_lines ~level:0)
@@ -391,11 +392,11 @@ let render_guard (ctx : context) (exp_scrut : exp) (guard : guard) : string =
   match guard with
   | BoolG true -> render_exp ctx exp_scrut
   | BoolG false ->
-      let scrut_node = exp_scrut.node in
-      let neg_inner =
-        UnE (`NotOp, `BoolT, exp_scrut) $$ (scrut_node.at, scrut_node.note)
+      let exp =
+        UnE (`NotOp, `BoolT, exp_scrut)
+        $$ (exp_scrut.at, { typ = exp_scrut.note.typ; annot = empty })
       in
-      render_exp ctx { node = neg_inner; hints = empty }
+      render_exp ctx exp
   | CmpG (cmpop, _, e) ->
       render_exp ctx exp_scrut ^ " " ^ render_cmpop ctx cmpop ^ " "
       ^ render_exp ctx e
@@ -615,10 +616,8 @@ let rec render_instr ?(level = 0) ?(unordered = false) (instr : instr) : string
 
 and render_instrs ?(level = 0) (instrs : instr list) : string =
   match instrs with
-  | [
-   ({ node = { it = ReturnI ({ node = { it = BoolE _; _ }; _ } as e); _ }; _ } :
-     instr);
-  ] ->
+  | [ ({ node = { it = ReturnI ({ it = BoolE _; _ } as e); _ }; _ } : instr) ]
+    ->
       F.asprintf " return %s." (render_exp_as_code in_prose e)
   | _ -> "\n" ^ (List.map (render_instr ~level) instrs |> String.concat "\n")
 

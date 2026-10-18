@@ -2,12 +2,13 @@
     / [DestructI] / [OptionGetI] after annotation. *)
 
 open Common.Source
+open Lang.Il.Expression
 module Pl = Lang.Pl
 
 let rec eq_exp_var (a : Pl.exp) (b : Pl.exp) : bool =
-  match (a.node.it, b.node.it) with
-  | Pl.VarE id_a, Pl.VarE id_b -> id_a.it = id_b.it
-  | Pl.IterE (a_inner, _), Pl.IterE (b_inner, _) -> eq_exp_var a_inner b_inner
+  match (a.it, b.it) with
+  | VarE id_a, VarE id_b -> id_a.it = id_b.it
+  | IterE (a_inner, _), IterE (b_inner, _) -> eq_exp_var a_inner b_inner
   | _ -> false
 
 let is_underscored (id : Pl.id) : bool =
@@ -17,8 +18,8 @@ let mk_instr (src : Pl.instr) (it : Pl.instr') : Pl.instr =
   { node = it $$ (src.node.at, src.node.note); hints = src.hints }
 
 let is_scrut_alias (exp_scrut : Pl.exp) (exp_rhs : Pl.exp) : bool =
-  match exp_rhs.node.it with
-  | Pl.DownCastE (_, exp_scrut') -> eq_exp_var exp_scrut exp_scrut'
+  match exp_rhs.it with
+  | DownCastE (_, exp_scrut') -> eq_exp_var exp_scrut exp_scrut'
   | _ -> eq_exp_var exp_scrut exp_rhs
 
 let strip_leading_rename (exp_scrut : Pl.exp) (block : Pl.instr list) :
@@ -38,9 +39,8 @@ let shorten_check_let (instr : Pl.instr) : Pl.instr option =
   in
   match instr.node.it with
   | Pl.IfI (exp_cond, [], block, _phantom) -> (
-      match exp_cond.node.it with
-      | Pl.SubE (exp_scrut, _) | Pl.MatchE (exp_scrut, _) ->
-          try_lift exp_scrut block
+      match exp_cond.it with
+      | SubE (exp_scrut, _) | MatchE (exp_scrut, _) -> try_lift exp_scrut block
       | _ -> None)
   | Pl.CaseI (exp_scrut, [ ((Pl.SubG _ | Pl.MatchG _), block) ], _phantom) ->
       try_lift exp_scrut block
@@ -59,8 +59,8 @@ let shorten_case_let_guard (exp_scrut : Pl.exp) ((guard, block) : Pl.case) :
 let shorten_destruct (instr : Pl.instr) : Pl.instr option =
   match instr.node.it with
   | Pl.LetI (exp_l, exp_r, []) -> (
-      match (exp_l.node.it, instr.hints.prose_fields) with
-      | Pl.CaseE notexp, Some fields ->
+      match (exp_l.it, instr.hints.prose_fields) with
+      | CaseE notexp, Some fields ->
           let exps_l = Lang.Il.Mixfix.args notexp in
           if List.length exps_l <> List.length fields then None
           else
@@ -68,10 +68,10 @@ let shorten_destruct (instr : Pl.instr) : Pl.instr option =
               List.combine exps_l fields
               |> List.map (fun ((e : Pl.exp), name) ->
                      let visible =
-                       match e.node.it with
-                       | Pl.VarE id when is_underscored id -> false
-                       | Pl.IterE ({ node = { it = Pl.VarE id; _ }; _ }, _)
-                         when is_underscored id ->
+                       match e.it with
+                       | VarE id when is_underscored id -> false
+                       | IterE ({ it = VarE id; _ }, _) when is_underscored id
+                         ->
                            false
                        | _ -> true
                      in
@@ -101,14 +101,14 @@ let shorten_option_get (instrs : Pl.instr list) :
       match (i1.node.it, i2.node.it) with
       | ( Pl.LetI (exp_tmp, exp_call, []),
           Pl.IfI (exp_cond, [], inner_block, _phantom) ) -> (
-          match (exp_cond.node.it, inner_block) with
-          | Pl.MatchE (exp_scrut, OptP `Some), inner :: body_rest
+          match (exp_cond.it, inner_block) with
+          | MatchE (exp_scrut, OptP `Some), inner :: body_rest
             when eq_exp_var exp_tmp exp_scrut -> (
               match inner.node.it with
               | Pl.LetI (exp_target, exp_tmp', [])
                 when eq_exp_var exp_tmp exp_tmp' -> (
-                  match exp_target.node.it with
-                  | Pl.OptE (Some exp_inner) ->
+                  match exp_target.it with
+                  | OptE (Some exp_inner) ->
                       Some
                         ( [
                             mk_instr i1

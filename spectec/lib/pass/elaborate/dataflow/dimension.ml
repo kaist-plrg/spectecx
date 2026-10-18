@@ -1,6 +1,7 @@
 open Common.Domain
 open Common.Source
 open Lang
+open Il.Expression
 open Il
 open Ctx
 open Diagnostic
@@ -44,7 +45,7 @@ let rec annotate_exp (bounds : VEnv.t) (exp : exp) : VEnv.t * exp =
   match exp.it with
   | BoolE _ | NumE _ | TextE _ -> (empty, exp)
   | VarE id ->
-      if VEnv.mem id bounds then (singleton id (note $ at), exp)
+      if VEnv.mem id bounds then (singleton id (note.typ $ at), exp)
       else error exp.at ("free identifier: " ^ Id.to_string id)
   | UnE (op, optyp, exp) ->
       let occurs, exp = annotate_exp bounds exp in
