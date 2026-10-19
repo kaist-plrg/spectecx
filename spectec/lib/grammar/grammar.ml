@@ -15,6 +15,7 @@ type production = {
   notation : arg Il.Mixfix.t;
   recursion : recursion;
   precedence : precedence option;
+  not_followed_by : Xl.Atom.t option;
   construction : construction;
   origin : Il.id;
 }
@@ -58,12 +59,13 @@ let is_plain_inclusion (notation : arg Il.Mixfix.t) : bool =
   Il.Mixfix.atoms notation = [] && Il.Mixfix.arity notation = 1
 
 let production_of_notation (self : Il.id) ~(origin : Il.id)
-    ~(precedence : precedence option) (notation : arg Il.Mixfix.t) : production
-    =
+    ~(precedence : precedence option) ~(not_followed_by : Xl.Atom.t option)
+    (notation : arg Il.Mixfix.t) : production =
   {
     notation;
     recursion = recursion_of self notation;
     precedence;
+    not_followed_by;
     construction = (if is_plain_inclusion notation then Alias else Case);
     origin;
   }
@@ -74,6 +76,7 @@ let precedence_of_typcase (typcase : Il.typcase) : precedence option =
 let production_of_typcase (self : Il.id) (typcase : Il.typcase) : production =
   production_of_notation self ~origin:typcase.origin.it.synid
     ~precedence:(precedence_of_typcase typcase)
+    ~not_followed_by:(Hints.Follow.find typcase.hints)
     (Il.Mixfix.map arg_of_typ typcase.notation.it)
 
 let syntax_of_def (def : Il.def) : syntax option =
@@ -91,6 +94,7 @@ let syntax_of_def (def : Il.def) : syntax option =
           productions =
             [
               production_of_notation synid ~origin:synid ~precedence:None
+                ~not_followed_by:None
                 [ Il.Mixfix.Arg (arg_of_typ typ) ];
             ];
         }
@@ -169,6 +173,11 @@ let rank (syntax : syntax) (atom : Xl.Atom.t) : int =
   in
   height atom
 
+let production_rank (syntax : syntax) (production : production) : int =
+  match production.precedence with
+  | Some (Tighter tighter) -> 1 + rank syntax tighter
+  | None -> 0
+
 module Terminal = struct
   type t = Atom of Xl.Atom.t | Primitive of primitive * Il.value
 end
@@ -198,6 +207,10 @@ let string_of_precedence = function
   | None -> ""
   | Some (Tighter atom) -> "tighter than " ^ Xl.Atom.unparse atom
 
+let string_of_follow = function
+  | None -> ""
+  | Some atom -> "not followed by " ^ Xl.Atom.unparse atom
+
 let string_of_production (self : Il.id) (production : production) : string =
   let notation =
     String.concat " " (List.map string_of_mixeme production.notation)
@@ -207,7 +220,11 @@ let string_of_production (self : Il.id) (production : production) : string =
     else Printf.sprintf "(from %s)" production.origin.it
   in
   let suffix =
-    [ string_of_precedence production.precedence; from ]
+    [
+      string_of_precedence production.precedence;
+      string_of_follow production.not_followed_by;
+      from;
+    ]
     |> List.filter (fun s -> s <> "")
   in
   let suffix =
