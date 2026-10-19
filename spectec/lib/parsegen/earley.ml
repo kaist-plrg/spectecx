@@ -57,12 +57,40 @@ let string_of_production name (prod : Grammar.production) =
 type matcher = Text of string | Prim of Grammar.primitive * string option
 type symbol = N of int | T of matcher
 
+(* Disambiguation, from the [tighter_than] and [not_followed_by] hints.
+
+   A production is open at an end where it recurses on its own syntax: a call
+   [e ( e* )] is open on the left, a borrow [& e] on the right. An operator
+   [p]'s operand [c] (a direct child at an open end of [p]) is filtered out
+   when [c] is looser than [p] and open toward [p]'s operator, which is when
+   the same tokens could also be read with [p] inside [c]:
+   - left operand: [c] open on the right and [rank c < rank p]. A call's
+     callee cannot be [& f] or [|x| f], so [&f(x)] is [&(f(x))].
+   - right operand: [c] open on the left and [rank c < rank p], or equal ranks
+     when [p] is infix, so [a + b + c] groups to the left.
+   A [c] closed toward [p] is never filtered, so [&|x| x] still parses, as in
+   rustc. Filtering only where the two operators meet borrows the idea of
+   Afroozeh et al. (SLE 2013, see earley.mli), who rewrite the grammar and
+   prove the language unchanged. This filter looks at direct children only
+   and has no such proof; the tests are its evidence. *)
+type operand = Left_operand | Right_operand
+
+type prec = {
+  rank : int;
+  open_left : bool;
+  open_right : bool;
+  operand : operand option array;  (** Per rhs position. *)
+  not_before : string option;
+      (** The text of the first token it never ends before. *)
+}
+
 type rule = {
   lhs : int;
   rhs : symbol array;
   carries : bool array;  (** Which rhs positions contribute a value. *)
   build : Il.value list -> Il.value;
   label : string;
+  prec : prec;
 }
 
 type bnf = {
@@ -102,8 +130,20 @@ let to_bnf (lexicon : _ lexicon) (grammar : Grammar.t) (start : string) : bnf =
         i
   in
   let rules = ref [] in
-  let add_rule lhs rhs build label =
+  let add_rule ?prec lhs rhs build label =
     let rhs, carries = List.split rhs in
+    let prec =
+      match prec with
+      | Some prec -> prec
+      | None ->
+          {
+            rank = 0;
+            open_left = false;
+            open_right = false;
+            operand = Array.make (List.length rhs) None;
+            not_before = None;
+          }
+    in
     rules :=
       {
         lhs;
@@ -111,6 +151,7 @@ let to_bnf (lexicon : _ lexicon) (grammar : Grammar.t) (start : string) : bnf =
         carries = Array.of_list carries;
         build;
         label;
+        prec;
       }
       :: !rules
   in
@@ -235,8 +276,41 @@ let to_bnf (lexicon : _ lexicon) (grammar : Grammar.t) (start : string) : bnf =
       let lhs = intern syntax.name.it in
       List.iter
         (fun (prod : Grammar.production) ->
-          add_rule lhs
-            (rhs_of_notation prod.notation)
+          let rhs = rhs_of_notation prod.notation in
+          let open_left, open_right =
+            match prod.recursion with
+            | Grammar.Neither -> (false, false)
+            | Grammar.Left -> (true, false)
+            | Grammar.Right -> (false, true)
+            | Grammar.Both -> (true, true)
+          in
+          (* Tags are gone from [rhs], so a production open on the left has
+             its operand first, and one open on the right has it last. *)
+          let last = List.length rhs - 1 in
+          let operand =
+            Array.init (List.length rhs) (fun k ->
+                if open_left && k = 0 then Some Left_operand
+                else if open_right && k = last then Some Right_operand
+                else None)
+          in
+          let not_before =
+            Option.map
+              (fun atom ->
+                match lexicon.spell atom with
+                | first :: _ -> Xl.Atom.to_string first
+                | [] -> Xl.Atom.to_string atom)
+              prod.not_followed_by
+          in
+          let prec =
+            {
+              rank = Grammar.production_rank syntax prod;
+              open_left;
+              open_right;
+              operand;
+              not_before;
+            }
+          in
+          add_rule ~prec lhs rhs
             (Parse.value_of_production prod)
             (string_of_production syntax.name.it prod))
         syntax.productions)
@@ -284,6 +358,16 @@ let string_of_matcher = function
       ^ (match tag with Some t -> ":" ^ t | None -> "")
       ^ ">"
 
+(* Whether rule [c] may derive the child at position [k] of rule [p] (see
+   [operand] above). *)
+let allowed (bnf : bnf) p k c =
+  let p = bnf.rules.(p).prec and c = bnf.rules.(c).prec in
+  match p.operand.(k) with
+  | None -> true
+  | Some Left_operand -> not (c.open_right && c.rank < p.rank)
+  | Some Right_operand ->
+      not (c.open_left && (c.rank < p.rank || (c.rank = p.rank && p.open_left)))
+
 (* Item [rule, dot, origin] in set j: [rule]'s rhs before [dot] derives the
    tokens from [origin] up to (not including) j. *)
 type item = { rule : int; dot : int; origin : int }
@@ -299,8 +383,16 @@ let recognize (bnf : bnf) (tokens : token array) : item list array =
   let agenda = Array.init (n + 1) (fun _ -> Queue.create ()) in
   (* (j, x) -> the items of set j whose next symbol is nonterminal x. *)
   let waiting = Hashtbl.create 1024 in
+  (* A complete item for a rule that never ends before token j is dropped:
+     that reading does not exist. *)
+  let blocked j item =
+    match bnf.rules.(item.rule).prec.not_before with
+    | Some text ->
+        next_symbol bnf item = None && j < n && matches (Text text) tokens.(j)
+    | None -> false
+  in
   let add j item =
-    if not (Hashtbl.mem seen.(j) item) then (
+    if (not (Hashtbl.mem seen.(j) item)) && not (blocked j item) then (
       Hashtbl.add seen.(j) item ();
       sets.(j) <- item :: sets.(j);
       (match next_symbol bnf item with
@@ -318,7 +410,9 @@ let recognize (bnf : bnf) (tokens : token array) : item list array =
           (* Complete: advance the items in the origin set that wait on it. *)
           let lhs = bnf.rules.(item.rule).lhs in
           List.iter
-            (fun waiter -> add j (advance waiter))
+            (fun waiter ->
+              if allowed bnf waiter.rule waiter.dot item.rule then
+                add j (advance waiter))
             (Hashtbl.find_all waiting (item.origin, lhs))
       | Some (N x) ->
           List.iter
@@ -363,8 +457,9 @@ let derive (bnf : bnf) (tokens : token array) (sets : item list array) =
   in
   let ends_of x i = List.sort compare (Hashtbl.find_all ends (x, i)) in
   let count_memo = Hashtbl.create 1024 and ways_memo = Hashtbl.create 4096 in
-  (* A nonterminal that derives itself over the same span would loop; the
-     memo entry is 0 while it is being computed, which cuts the cycle. *)
+  (* A nonterminal or rule that derives itself over the same span would loop;
+     its memo entry is 0 while it is being computed, which cuts the cycle (no
+     finite tree contains itself). *)
   let rec count x i j =
     match Hashtbl.find_opt count_memo (x, i, j) with
     | Some c -> c
@@ -377,11 +472,20 @@ let derive (bnf : bnf) (tokens : token array) (sets : item list array) =
         in
         Hashtbl.replace count_memo (x, i, j) c;
         c
+  (* The derivations of rule [r]'s child at [k] over tokens p to q. *)
+  and child_count r k x p q =
+    if bnf.rules.(r).prec.operand.(k) = None then count x p q
+    else
+      List.fold_left
+        (fun acc c ->
+          if allowed bnf r k c then saturating_add acc (ways c 0 p q) else acc)
+        0 (rules_of x p q)
   (* How many ways rule [r]'s rhs from position [k] derives tokens p to j. *)
   and ways r k p j =
     match Hashtbl.find_opt ways_memo (r, k, p, j) with
     | Some c -> c
     | None ->
+        Hashtbl.replace ways_memo (r, k, p, j) 0;
         let rhs = bnf.rules.(r).rhs in
         let c =
           if k = Array.length rhs then if p = j then 1 else 0
@@ -395,8 +499,13 @@ let derive (bnf : bnf) (tokens : token array) (sets : item list array) =
                   (fun acc q ->
                     if q > j then acc
                     else
-                      saturating_add acc
-                        (saturating_mul (count x p q) (ways r (k + 1) q j)))
+                      (* The rest first: it rules out most splits, such as a
+                         callee spanning the whole call, cheaply. *)
+                      let rest = ways r (k + 1) q j in
+                      if rest = 0 then acc
+                      else
+                        saturating_add acc
+                          (saturating_mul (child_count r k x p q) rest))
                   0 (ends_of x p)
         in
         Hashtbl.replace ways_memo (r, k, p, j) c;
@@ -411,8 +520,10 @@ let derive (bnf : bnf) (tokens : token array) (sets : item list array) =
     | Some (Terminal.Primitive (_, v)) -> v
     | _ -> assert false
   in
-  let rec build_nt x i j =
-    let viable = List.filter (fun r -> ways r 0 i j > 0) (rules_of x i j) in
+  let rec build_nt ~allow x i j =
+    let viable =
+      List.filter (fun r -> allow r && ways r 0 i j > 0) (rules_of x i j)
+    in
     (match viable with
     | _ :: _ :: _ ->
         note bnf.names.(x) i j (List.map (fun r -> bnf.rules.(r).label) viable)
@@ -431,7 +542,8 @@ let derive (bnf : bnf) (tokens : token array) (sets : item list array) =
         | N x ->
             let splits =
               List.filter
-                (fun q -> q <= j && count x p q > 0 && ways r (k + 1) q j > 0)
+                (fun q ->
+                  q <= j && ways r (k + 1) q j > 0 && child_count r k x p q > 0)
                 (ends_of x p)
             in
             (match splits with
@@ -444,13 +556,14 @@ let derive (bnf : bnf) (tokens : token array) (sets : item list array) =
                      splits)
             | _ -> ());
             let q = List.hd splits in
-            go (k + 1) q (keep (lazy (build_nt x p q)) acc)
+            go (k + 1) q
+              (keep (lazy (build_nt ~allow:(allowed bnf r k) x p q)) acc)
     in
     rule.build (go 0 i [])
   in
   let n = Array.length tokens in
   let trees = count 0 0 n in
-  let value = build_nt 0 0 n in
+  let value = build_nt ~allow:(fun _ -> true) 0 0 n in
   (value, trees, List.rev !ambiguities)
 
 let run (lexicon : 'tok lexicon) (grammar : Grammar.t) (start : string)

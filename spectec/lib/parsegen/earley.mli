@@ -10,6 +10,13 @@
     more than one way, it builds one value and reports where the readings
     diverge.
 
+    Two hints on productions remove readings, the way a hand-written parser
+    would. [tighter_than] keeps a looser operator from being the operand of a
+    tighter one where the two meet ([&f(x)] is [&(f(x))]), and treats equal
+    infix operators as left-associative. [not_followed_by a] drops a reading in
+    which the production ends right before [a] ([e.f(x)] is a method call, not a
+    call of the field [e.f]).
+
     Some facts about the concrete syntax are not in a SpecTec grammar, because
     EL has no notation for them. The {!lexicon} supplies them.
 
@@ -19,6 +26,16 @@
     - Nullable nonterminals are handled as in John Aycock and R. Nigel Horspool,
       "Practical Earley Parsing", The Computer Journal 45(6):620-630, 2002
       (doi:10.1093/comjnl/45.6.620).
+    - Hints as filters on readings follow Paul Klint and Eelco Visser, "Using
+      Filters for the Disambiguation of Context-free Grammars", Proc. ASMICS
+      Workshop on Parsing Theory, Milano, 1994. Their follow restrictions (in
+      SDF) are the model for [not_followed_by].
+    - Filtering precedence only where two operators meet borrows the idea of Ali
+      Afroozeh, Mark van den Brand, Adrian Johnstone, Elizabeth Scott, and
+      Jurgen Vinju, "Safe Specification of Operator Precedence Rules", SLE 2013,
+      LNCS 8225:137-156 (doi:10.1007/978-3-319-02654-1_8). They rewrite the
+      grammar and prove it keeps the language; this parser filters direct
+      children only and has no such proof.
     - Counting parses, building the value, and reporting ambiguities are not
       from these papers. *)
 
