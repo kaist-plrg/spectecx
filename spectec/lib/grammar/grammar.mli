@@ -3,8 +3,12 @@
 type primitive = Num of Xl.Num.typ | Bool | Text
 
 (** What fills an [Il.Mixfix.Arg] position: a reference to another syntax
-    ([Nonterminal]) or a primitive terminal. *)
-type arg = Nonterminal of Il.id | Primitive of primitive
+    ([Nonterminal]), a primitive terminal, or an iteration of either ([x*],
+    [x?]). *)
+type arg =
+  | Nonterminal of Il.id
+  | Primitive of primitive
+  | Iter of arg * Il.iter
 
 (** Whether the production is left- and/or right-recursive in its own syntax. *)
 type recursion = Neither | Left | Right | Both

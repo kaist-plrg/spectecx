@@ -1,7 +1,12 @@
 open Common.Source
 
 type primitive = Num of Xl.Num.typ | Bool | Text
-type arg = Nonterminal of Il.id | Primitive of primitive
+
+type arg =
+  | Nonterminal of Il.id
+  | Primitive of primitive
+  | Iter of arg * Il.iter
+
 type recursion = Neither | Left | Right | Both
 type precedence = Tighter of Xl.Atom.t
 type construction = Case | Alias
@@ -17,8 +22,9 @@ type production = {
 type syntax = { name : Il.id; productions : production list }
 type t = syntax list
 
-let arg_of_typ (typ : Il.typ) : arg =
+let rec arg_of_typ (typ : Il.typ) : arg =
   match typ.it with
+  | Il.IterT { typ; iter } -> Iter (arg_of_typ typ, iter)
   | Il.VarT { synid; _ } -> Nonterminal synid
   | Il.NumT numtyp -> Primitive (Num numtyp)
   | Il.BoolT -> Primitive Bool
@@ -41,6 +47,8 @@ let recursion_of (self : Il.id) (notation : arg Il.Mixfix.t) : recursion =
   | true, true -> Both
   | false, false -> Neither
 
+(* Also [items = x*]: EL has no variant case [| x*], so an iteration alone
+   is always a whole definition, an alias of the list type. *)
 let is_plain_inclusion (notation : arg Il.Mixfix.t) : bool =
   Il.Mixfix.atoms notation = [] && Il.Mixfix.arity notation = 1
 
@@ -87,8 +95,11 @@ type syntax_usage = { name : string; uses : string list }
 type usage_graph = syntax_usage list
 
 let usage_graph_of (spec : Il.spec) : usage_graph =
-  let uses_of_typ (typ : Il.typ) =
-    match typ.it with Il.VarT { synid; _ } -> [ synid.it ] | _ -> []
+  let rec uses_of_typ (typ : Il.typ) =
+    match typ.it with
+    | Il.VarT { synid; _ } -> [ synid.it ]
+    | Il.IterT { typ; _ } -> uses_of_typ typ
+    | _ -> []
   in
   let usage_of_def (def : Il.def) : syntax_usage option =
     match def.it with
@@ -162,9 +173,11 @@ let string_of_primitive = function
   | Bool -> "bool"
   | Text -> "text"
 
-let string_of_arg = function
+let rec string_of_arg = function
   | Nonterminal id -> "<" ^ id.it ^ ">"
   | Primitive prim -> "<" ^ string_of_primitive prim ^ ">"
+  | Iter (arg, Il.Opt) -> string_of_arg arg ^ "?"
+  | Iter (arg, Il.List) -> string_of_arg arg ^ "*"
 
 let string_of_mixeme : arg Il.Mixfix.mixeme -> string = function
   | Il.Mixfix.Atom atom -> Xl.Atom.unparse atom.it
