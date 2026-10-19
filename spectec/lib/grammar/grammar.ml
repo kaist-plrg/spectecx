@@ -37,8 +37,13 @@ let is_self_arg (self : Il.id) : arg Il.Mixfix.mixeme -> bool = function
   | Il.Mixfix.Arg (Nonterminal id) -> id.it = self.it
   | _ -> false
 
+(* A tag has no surface form, so [_FIELD e '.' x] still starts with [e]. *)
 let recursion_of (self : Il.id) (notation : arg Il.Mixfix.t) : recursion =
-  let head_is_self = function [] -> false | e :: _ -> is_self_arg self e in
+  let rec head_is_self = function
+    | [] -> false
+    | Il.Mixfix.Atom { it = Xl.Atom.Tag _; _ } :: rest -> head_is_self rest
+    | e :: _ -> is_self_arg self e
+  in
   let left = head_is_self notation in
   let right = head_is_self (List.rev notation) in
   match (left, right) with
