@@ -2,11 +2,14 @@
 ;; Rust implied-bounds core fragment: syntax only
 ;;
 ;; Source: the BNF on pp. 1-3 of ../implied_bounds_syntax.pdf, as reviewed
-;; in ../syntax-review/syntax-review.pdf (section 1), with one extension:
+;; in ../syntax-review/syntax-review.pdf (section 1), with two extensions:
 ;;  [EXT-1] a path may start with `self` or `Self` (pathhead below), so that
 ;;          `self.0` (#104005) and `-> Self` (#112417) are expressible. The
 ;;          original BNF had `self` only as a receiver parameter and `Self`
 ;;          nowhere.
+;;  [EXT-2] a macro invocation `p!tt` is an expression (expr below), so that
+;;          println!(..) and panic!() parse. The PDF puts it in a separate
+;;          pre-expansion syntax e_src, outside the grammar.
 ;;
 ;; Differences forced by SpecTec EL (only the first one changes the
 ;; accepted language; see ../spectec/correspondence.pdf):
@@ -199,6 +202,8 @@ syntax block =                        (; b: BlockExpression ;)
 
 syntax movekw = MOVE
 
+syntax tokentree = text               (; opaque macro token tree ;)
+
 syntax expr =                         (; e ;)
   | valpath                           (; PathExpression: foo ;)
   | _NUM nat                          (; integer literal n: 0 ;)
@@ -208,21 +213,17 @@ syntax expr =                         (; e ;)
   | `( expr ',' expr* `)              (; TupleExpression: (val, None) ;)
   | `[ expr* `]                       (; ArrayExpression: [] ;)
   | `[ expr ';' nat `]                (; ArrayExpression, repeat: [x; 0] ;)
-  | '&' mutkw? expr                   (; BorrowExpression: &String::from("temporary") ;)
+  | '&' mutkw? expr                   hint(tighter_than '|')
+                                      (; BorrowExpression: &String::from("temporary") ;)
   | _BLOCK block                      (; BlockExpression ;)
   | LOOP block                        (; InfiniteLoopExpression: loop {} ;)
-  | expr `( expr* `)                  (; CallExpression: f(v, &&0) ;)
-  | expr '.' id `( expr* `)           (; MethodCallExpression: proof.subtype(x) ;)
-  | _FIELD expr '.' id                (; FieldExpression: p.field ;)
-  | _TUPLEINDEX expr '.' nat          (; TupleIndexingExpression: n(input).0 ;)
+  | expr `( expr* `)                  hint(tighter_than '&')
+                                      (; CallExpression: f(v, &&0) ;)
+  | expr '.' id `( expr* `)           hint(tighter_than '&')
+                                      (; MethodCallExpression: proof.subtype(x) ;)
+  | _FIELD expr '.' id                hint(tighter_than '&') hint(not_followed_by '(')
+                                      (; FieldExpression: p.field ;)
+  | _TUPLEINDEX expr '.' nat          hint(tighter_than '&')
+                                      (; TupleIndexingExpression: n(input).0 ;)
   | movekw? '|' pat* '|' expr         (; ClosureExpression: |x| Bounded(x, []) ;)
-
-;;
-;; Pre-expansion source extension (the PDF puts this outside the grammar)
-;;
-
-syntax tokentree = text               (; opaque macro token tree ;)
-
-syntax esrc =                         (; e_src ;)
-  | _SRC expr
-  | path '!' tokentree                (; MacroInvocation: println!("{}", s), panic!() ;)
+  | _MACRO path '!' tokentree         (; [EXT-2] MacroInvocation: println!("{}", s), panic!() ;)

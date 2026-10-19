@@ -1,11 +1,8 @@
 (* Does the core-calculus grammar (syntax.spectec) derive the Rust listings it
-   was written for? This parses each listing with the parser that
-   Parsegen.Earley builds from the grammar alone, and checks the outcome
-   against goals.txt.
-
-   The grammar is used in two forms (see goals.txt): [as-is], and [macros],
-   where expr also admits esrc's macro case. Everything below that is not in
-   the grammar is lexical, and is listed in [lexicon]. *)
+   was written for, and in exactly one way? This parses each listing with the
+   parser that Parsegen.Earley builds from the grammar alone, and checks the
+   outcome against goals.txt. Everything below that is not in the grammar is
+   lexical, and is listed in [lexicon]. *)
 
 open Spectec
 module Atom = Lang.Xl.Atom
@@ -24,43 +21,7 @@ let load_il spec : Lang.Il.spec =
       | Error _ -> failwith ("could not elaborate " ^ spec))
   | Error _ -> failwith ("could not parse " ^ spec)
 
-let find_syntax name (grammar : Grammar.t) : Grammar.syntax =
-  List.find (fun (s : Grammar.syntax) -> s.name.it = name) grammar
-
-(* esrc ::= expr | path '!' tokentree is unreachable from program. Like
-   bnf_check.py --macros, add its macro case to expr, so a macro may stand
-   wherever an expression may. *)
-let with_macros (il : Lang.Il.spec) (grammar : Grammar.t) : Grammar.t =
-  let esrc_grammar = Grammar.extract ~start:"esrc" il in
-  let is_macro (prod : Grammar.production) =
-    List.exists
-      (function
-        | Lang.Il.Mixfix.Atom atom -> Atom.to_string atom.it = "!" | _ -> false)
-      prod.notation
-  in
-  let macro =
-    List.find is_macro (find_syntax "esrc" esrc_grammar).productions
-  in
-  find_syntax "tokentree" esrc_grammar
-  :: List.map
-       (fun (s : Grammar.syntax) ->
-         if s.name.it = "expr" then
-           { s with productions = s.productions @ [ macro ] }
-         else s)
-       grammar
-
-type variant = As_is | Macros
-
-let string_of_variant = function As_is -> "as-is" | Macros -> "macros"
-
-let variant_of_string = function
-  | "as-is" -> As_is
-  | "macros" -> Macros
-  | s -> failwith ("unknown grammar variant " ^ s)
-
-let grammar_of il = function
-  | As_is -> Grammar.extract ~start:"program" il
-  | Macros -> with_macros il (Grammar.extract ~start:"program" il)
+let grammar_of spec = Grammar.extract ~start:"program" (load_il spec)
 
 (* Lexicon: the facts about Rust's concrete syntax that the grammar leaves
    out. *)
@@ -194,12 +155,13 @@ let position (tokens : Lexer.token list) at =
   | None -> "end"
 
 let verdict tokens = function
-  | Earley.Accepted _ -> "accept"
+  | Earley.Accepted { trees = 1; _ } -> "accept unique"
+  | Earley.Accepted { trees; _ } -> Printf.sprintf "accept (%d parses)" trees
   | Earley.Rejected { at; _ } -> "reject " ^ position tokens at
 
 (* goals.txt *)
 
-type goal = { file : string; variant : variant; expect : string }
+type goal = { file : string; expect : string }
 
 let read_goals dir : goal list =
   read_file (Filename.concat dir "goals.txt")
@@ -211,43 +173,32 @@ let read_goals dir : goal list =
            match
              String.split_on_char ' ' line |> List.filter (fun w -> w <> "")
            with
-           | file :: variant :: expect ->
-               Some
-                 {
-                   file;
-                   variant = variant_of_string variant;
-                   expect = String.concat " " expect;
-                 }
+           | file :: (_ :: _ as expect) ->
+               Some { file; expect = String.concat " " expect }
            | _ -> failwith ("bad goal line: " ^ line))
 
-(* "reject" alone accepts a rejection anywhere. *)
+(* "accept" and "reject" alone also take any parse count or stop position. *)
 let meets goal got =
+  let starts_with prefix =
+    String.length got >= String.length prefix
+    && String.sub got 0 (String.length prefix) = prefix
+  in
   goal.expect = got
-  || goal.expect = "reject"
-     && String.length got > 6
-     && String.sub got 0 6 = "reject"
-
-let with_grammars spec f =
-  let il = load_il spec in
-  let grammars = List.map (fun v -> (v, grammar_of il v)) [ As_is; Macros ] in
-  f (fun variant -> List.assoc variant grammars)
+  || (goal.expect = "accept" || goal.expect = "reject")
+     && starts_with goal.expect
 
 let goals_command dir =
-  with_grammars (Filename.concat dir "syntax.spectec") @@ fun grammar ->
+  let grammar = grammar_of (Filename.concat dir "syntax.spectec") in
   let goals = read_goals dir in
   let met =
     List.fold_left
       (fun met goal ->
-        let tokens, outcome =
-          parse (grammar goal.variant) (Filename.concat dir goal.file)
-        in
+        let tokens, outcome = parse grammar (Filename.concat dir goal.file) in
         let got = verdict tokens outcome in
         let ok = meets goal got in
-        Printf.printf "%s  %-40s %-7s %s%s\n"
+        Printf.printf "%s  %-40s %s%s\n"
           (if ok then "PASS" else "FAIL")
-          goal.file
-          (string_of_variant goal.variant)
-          goal.expect
+          goal.file goal.expect
           (if ok then "" else "   (got: " ^ got ^ ")");
         if ok then met + 1 else met)
       0 goals
@@ -293,20 +244,19 @@ let report_file ~show_value grammar path =
   ()
 
 let report_command dir =
-  with_grammars (Filename.concat dir "syntax.spectec") @@ fun grammar ->
+  let grammar = grammar_of (Filename.concat dir "syntax.spectec") in
   List.iter
     (fun goal ->
-      Printf.printf "%s [%s]\n" goal.file (string_of_variant goal.variant);
-      report_file ~show_value:false (grammar goal.variant)
-        (Filename.concat dir goal.file))
+      print_endline goal.file;
+      report_file ~show_value:false grammar (Filename.concat dir goal.file))
     (read_goals dir)
 
-let parse_command spec variant show_value files =
-  with_grammars spec @@ fun grammar ->
+let parse_command spec show_value files =
+  let grammar = grammar_of spec in
   List.iter
     (fun file ->
-      Printf.printf "%s [%s]\n" file (string_of_variant variant);
-      report_file ~show_value (grammar variant) file)
+      print_endline file;
+      report_file ~show_value grammar file)
     files
 
 let command =
@@ -334,15 +284,10 @@ let command =
       ( "parse",
         Core.Command.basic ~summary:"parse FILEs with the grammar of SPEC"
           (let%map spec = flag "-s" (required string) ~doc:"FILE syntax.spectec"
-           and macros =
-             flag "--macros" no_arg ~doc:" add esrc's macro case to expr"
            and show_value =
              flag "--value" no_arg ~doc:" print the parsed IL value"
            and files = anon (sequence ("FILE" %: string)) in
-           fun () ->
-             parse_command spec
-               (if macros then Macros else As_is)
-               show_value files) );
+           fun () -> parse_command spec show_value files) );
     ]
 
 let () = Command_unix.run command

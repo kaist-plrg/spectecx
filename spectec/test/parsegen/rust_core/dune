@@ -47,3 +47,23 @@
  (alias runtest)
  (action
   (diff report.expected report.actual)))
+
+; A syntax defined as one iteration (program = bar*) parses to the list
+; itself, as its IL type is that list type.
+
+(rule
+ (target plain_iteration.actual)
+ (deps
+  (source_tree ../../../testdata/parsegen/plain-iteration)
+  main.exe)
+ (action
+  (with-stdout-to
+   %{target}
+   (chdir
+    ../../../testdata/parsegen/plain-iteration
+    (run %{dep:main.exe} parse --value -s syntax.spectec input.rs)))))
+
+(rule
+ (alias runtest)
+ (action
+  (diff plain_iteration.expected plain_iteration.actual)))
