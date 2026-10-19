@@ -1,0 +1,55 @@
+# Goals for the grammar-driven parser on the Rust core calculus.
+#
+# Each line: FILE GRAMMAR EXPECT
+#   GRAMMAR  as-is   the grammar extracted from syntax.spectec, start `program`
+#            macros  the same grammar, with `expr` also admitting the macro
+#                    case of `esrc` (path '!' tokentree), as in
+#                    bnf_check.py --macros
+#   EXPECT   accept | reject | reject LINE:COL (the token parsing stops at)
+#
+# The 8 listings: as-is, the 5 that use println!/panic! must stop at the `!`
+# of their first macro (esrc is unreachable from program); with macros, all 8
+# must parse.
+listings/100051.rs            as-is   reject 26:12
+listings/104005.rs            as-is   reject 21:12
+listings/112417.rs            as-is   reject 17:10
+listings/118876.rs            as-is   accept
+listings/98117.rs             as-is   reject 15:12
+listings/98543.rs             as-is   reject 22:12
+listings/99158-guarded.rs     as-is   accept
+listings/99158-simplified.rs  as-is   accept
+listings/100051.rs            macros  accept
+listings/104005.rs            macros  accept
+listings/112417.rs            macros  accept
+listings/118876.rs            macros  accept
+listings/98117.rs             macros  accept
+listings/98543.rs             macros  accept
+listings/99158-guarded.rs     macros  accept
+listings/99158-simplified.rs  macros  accept
+#
+# Controls, so that "accept" means something. The first 14 are the Rust
+# constructs outside the BNF that bnf_check.py rejected (syntax-review 2.1);
+# the next 4 check the lexical choices made in the test (lifetime vs
+# identifier, comma separators). The accept-* ones are inside the BNF.
+controls/reject-named-field-struct.rs     macros  reject
+controls/reject-binary-plus.rs            macros  reject
+controls/reject-mut-self.rs               macros  reject
+controls/reject-struct-where.rs           macros  reject
+controls/reject-typed-closure-param.rs    macros  reject
+controls/reject-maybe-sized.rs            macros  reject
+controls/reject-mid-path-turbofish.rs     macros  reject
+controls/reject-inherent-impl.rs          macros  reject
+controls/reject-if.rs                     macros  reject
+controls/reject-loop-stmt-no-semi.rs      macros  reject
+controls/reject-return.rs                 macros  reject
+controls/reject-let-no-init.rs            macros  reject
+controls/reject-unsafe-fn-ptr.rs          macros  reject
+controls/reject-dyn-two-traits.rs         macros  reject
+controls/reject-ident-as-lifetime.rs      macros  reject
+controls/reject-lifetime-as-type.rs       macros  reject
+controls/reject-missing-comma.rs          macros  reject
+controls/reject-comma-between-items.rs    macros  reject
+controls/accept-hrtb-where.rs             macros  accept
+controls/accept-impl-trait-closure.rs     macros  accept
+controls/accept-array-closure.rs          macros  accept
+controls/accept-qualified-path-loop.rs    macros  accept

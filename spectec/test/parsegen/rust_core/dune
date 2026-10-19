@@ -1,0 +1,49 @@
+; Does the Rust core-calculus grammar derive its listings? See main.ml.
+;
+;   goals.expected   one PASS line per goal in testdata/.../goals.txt. Written
+;                    before the parser; every line must stay PASS.
+;   report.expected  parse counts, ambiguities and rejection sites, as a
+;                    snapshot to review on change (dune promote).
+
+(executable
+ (name main)
+ (preprocess
+  (pps ppx_let))
+ (libraries
+  spectec
+  spectec.grammar
+  spectec.parsegen
+  spectec.lang
+  bignum.bigint
+  core
+  core_unix.command_unix))
+
+(rule
+ (target goals.actual)
+ (deps
+  (source_tree ../../../testdata/parsegen/rust-core)
+  main.exe)
+ (action
+  (with-stdout-to
+   %{target}
+   (run ./main.exe goals -d ../../../testdata/parsegen/rust-core))))
+
+(rule
+ (alias runtest)
+ (action
+  (diff goals.expected goals.actual)))
+
+(rule
+ (target report.actual)
+ (deps
+  (source_tree ../../../testdata/parsegen/rust-core)
+  main.exe)
+ (action
+  (with-stdout-to
+   %{target}
+   (run ./main.exe report -d ../../../testdata/parsegen/rust-core))))
+
+(rule
+ (alias runtest)
+ (action
+  (diff report.expected report.actual)))

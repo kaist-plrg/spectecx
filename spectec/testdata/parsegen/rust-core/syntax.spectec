@@ -1,0 +1,228 @@
+;;
+;; Rust implied-bounds core fragment: syntax only
+;;
+;; Source: the BNF on pp. 1-3 of ../implied_bounds_syntax.pdf, as reviewed
+;; in ../syntax-review/syntax-review.pdf (section 1), with one extension:
+;;  [EXT-1] a path may start with `self` or `Self` (pathhead below), so that
+;;          `self.0` (#104005) and `-> Self` (#112417) are expressible. The
+;;          original BNF had `self` only as a receiver parameter and `Self`
+;;          nowhere.
+;;
+;; Differences forced by SpecTec EL (only the first one changes the
+;; accepted language; see ../spectec/correspondence.pdf):
+;;  * EL has only `?` and `*` iteration, with no separators. The BNF's
+;;    comma lists (overbar) become `x*` with the commas left implicit. A
+;;    nonempty list (overbar-plus) also becomes `x*` and is marked "1+".
+;;  * EL cannot iterate a group such as `(':' beta)?`, so each group gets a
+;;    one-line helper type (supers, arrowty, ...).
+;;  * A quoted atom cannot contain `'`. Lifetimes are therefore
+;;    `_LT id` ('a), STATIC ('static), and PLACEHOLDER ('_).
+;;  * Alternatives of one type need distinct atom arrangements, so
+;;    alternatives without atoms carry an invisible `_TAG`.
+;;
+;; Right-hand comments name the Rust Reference construct and give an
+;; example, mostly from the seven ISSTA cases.
+
+;;
+;; Lexical
+;;
+
+syntax id = text                      (; x, f, X, A: identifier ;)
+
+;;
+;; Lifetimes
+;;
+
+syntax lname =                        (; l: named lifetime ;)
+  | _LT id                            (; 'a ;)
+
+syntax lbound =                       (; lambda_b: bound-position lifetime ;)
+  | lname
+  | STATIC                            (; 'static ;)
+
+syntax region =                       (; rho: Lifetime ;)
+  | lbound
+  | PLACEHOLDER                       (; '_ (explicit placeholder) ;)
+
+;;
+;; Paths
+;;
+
+syntax pathhead =                     (; [EXT-1] first path segment ;)
+  | _NAME id                          (; x ;)
+  | SELF                              (; self: receiver value, as in self.0 ;)
+  | Self                              (; Self: implementing type, as in -> Self ;)
+
+syntax pathseg = '::' id
+syntax path =                         (; p: (x | self | Self) (::x)* ;)
+  | _PATH pathhead pathseg*           (; std::marker::PhantomData, self, Self::A ;)
+
+;;
+;; Generic parameters and predicates
+;;
+
+syntax typ, traitref, bounds
+
+syntax lboundtail = '+' lbound
+syntax lbounds =                      (; beta_l: LifetimeBounds ;)
+  | _LBOUNDS lbound lboundtail*       (; 'a + 'static ;)
+
+syntax lsupers = ':' lbounds
+syntax supers = ':' bounds
+
+syntax gparam =                       (; g ;)
+  | _LTPARAM lname lsupers?           (; LifetimeParam: 'b: 'a ;)
+  | _TYPARAM id supers?               (; TypeParam: F: FnOnce() -> R ;)
+
+syntax generics =                     (; G: GenericParams, 1+ ;)
+  | `< gparam* `>                     (; <'a, 'b: 'a, T> ;)
+
+syntax binder =                       (; H: ForLifetimes, 1+ ;)
+  | FOR `< lname* `>                  (; for<'what, 'ever> ;)
+
+syntax pred =                         (; pi ;)
+  | _OUTLIVES lname ':' lbounds       (; LifetimeWhereClauseItem: 'a: 'b ;)
+  | _BOUND binder? typ ':' bounds     (; TypeBoundWhereClauseItem: for<'w> &'w (): Trait ;)
+
+syntax whereclause =                  (; W: WhereClause, 1+ ;)
+  | WHERE pred*                       (; where &'static S: Static, ;)
+
+syntax bound =                        (; B: TypeParamBound ;)
+  | lbound                            (; Lifetime: 'static ;)
+  | _TRAIT binder? traitref           (; TraitBound: for<'x> Fn(&'x T) ;)
+
+syntax boundtail = '+' bound
+syntax bounds =                       (; beta: TypeParamBounds ;)
+  | _BOUNDS bound boundtail*          (; Display + 'static ;)
+
+syntax fnkind =                       (; kappa ;)
+  | Fn | FnMut | FnOnce               (; trait names; distinct from the keyword atom FN (fn) ;)
+
+syntax garg =                         (; a: GenericArg ;)
+  | _LTARG region                     (; '_ ;)
+  | _TYARG typ                        (; Option<U> ;)
+
+syntax gargs =                        (; M: GenericArgs, 1+ ;)
+  | `< garg* `>                       (; <'static, '_, T> ;)
+
+syntax arrowty = '->' typ
+
+syntax traitref =                     (; q ;)
+  | _TRAITPATH path gargs?            (; TypePath in trait position: Extend<'a, 'b> ;)
+  | fnkind `( typ* `) arrowty?        (; TypePathFn: FnOnce(&T) -> R ;)
+
+;;
+;; Types
+;;
+
+syntax mutkw = MUT
+syntax objlt = '+' region
+
+syntax typ =                          (; tau ;)
+  | _TYPATH path gargs?               (; TypePath: Box<dyn Display> ;)
+  | `< typ AS traitref `> '::' id     (; QualifiedPathInType: <&'a &'b () as Trait>::Type ;)
+  | '&' region? mutkw? typ            (; ReferenceType: &T, &'_ T, &'a mut T ;)
+  | '()'                              (; unit type ;)
+  | `( typ `)                         (; ParenthesizedType: (T) ;)
+  | `( typ ',' typ* `)                (; TupleType: (T, Option<&'static T>) ;)
+  | `[ typ ';' nat `]                 (; ArrayType: [&'b (); 0] ;)
+  | binder? FN `( typ* `) arrowty?    (; BareFunctionType: fn(&'a i32, _) -> &'static i32 ;)
+  | DYN binder? traitref objlt?       (; TraitObjectType: dyn FnOnce(&T) -> R ;)
+  | '_'                               (; InferredType: fn(&'a i32, _) ;)
+
+;;
+;; Items
+;;
+
+syntax pat =                          (; z ;)
+  | _VAR id                           (; IdentifierPattern: x ;)
+  | '_'                               (; WildcardPattern: _ ;)
+  | MUT id                            (; IdentifierPattern: mut n ;)
+
+syntax param =                        (; d ;)
+  | pat ':' typ                       (; FunctionParam: _: F ;)
+  | SELF                              (; SelfParam: self ;)
+  | '&' region? mutkw? SELF           (; SelfParam: &'a mut self ;)
+
+syntax ret =                          (; R: FunctionReturnType ;)
+  | '->' typ                          (; -> &'a str ;)
+  | '->' IMPL bounds                  (; ImplTraitType: -> impl CallMeMaybe<'a, 'b> ;)
+
+syntax block
+
+syntax titem =                        (; J: item inside a trait ;)
+  | TYPE id supers? ';'               (; associated type declaration: type Type; ;)
+  | FN id generics? `( param* `) ret? whereclause? ';'
+                                      (; method declaration, no body: fn mk() -> Self; ;)
+
+syntax iitem =                        (; K: item inside an impl ;)
+  | TYPE id '=' typ ';'               (; associated type definition: type Type = (); ;)
+  | FN id generics? `( param* `) ret? whereclause? block
+                                      (; method: fn extend(self, s: &'a str) -> &'b str { s } ;)
+
+syntax item =                         (; I ;)
+  | USE path ';'                      (; UseDeclaration: use std::fmt::Display; ;)
+  | STRUCT id generics? `( typ* `) ';'
+                                      (; TupleStruct: struct Foo<'a, 'b: 'a>(&'a (), &'b ()); ;)
+  | TRAIT id generics? supers? whereclause? `{ titem* `}
+                                      (; Trait: trait Static: 'static {} ;)
+  | IMPL generics? traitref FOR typ whereclause? `{ iitem* `}
+                                      (; TraitImpl: impl<T> Trait for T { .. } ;)
+  | FN id generics? `( param* `) ret? whereclause? block
+                                      (; Function: fn foo<S: Display>(x: S) -> .. { .. } ;)
+
+syntax program =                      (; P: Crate ;)
+  | _PROGRAM item*
+
+;;
+;; Bodies and expressions
+;;
+
+syntax expr
+
+syntax turbofish = '::' `< garg* `>   (; 1+ ;)
+
+syntax valpath =                      (; v ;)
+  | _VALPATH path turbofish?          (; PathInExpression: Box::new, None ;)
+  | `< typ AS traitref `> '::' id turbofish?
+                                      (; QualifiedPathInExpression: <() as Extend<'_, '_>>::extend ;)
+
+syntax tyannot = ':' typ
+
+syntax stmt =                         (; s ;)
+  | _ITEM item                        (; item statement: struct Bounded<..>(..); inside fn ;)
+  | LET pat tyannot? '=' expr ';'     (; LetStatement: let f: fn(..) -> .. = foo; ;)
+  | _EXPR expr ';'                    (; ExpressionStatement: drop(x); ;)
+
+syntax block =                        (; b: BlockExpression ;)
+  | `{ stmt* expr? `}
+
+syntax movekw = MOVE
+
+syntax expr =                         (; e ;)
+  | valpath                           (; PathExpression: foo ;)
+  | _NUM nat                          (; integer literal n: 0 ;)
+  | _STR text                         (; string literal c: "temporary" ;)
+  | '()'                              (; unit value ;)
+  | `( expr `)                        (; GroupedExpression: (x) ;)
+  | `( expr ',' expr* `)              (; TupleExpression: (val, None) ;)
+  | `[ expr* `]                       (; ArrayExpression: [] ;)
+  | `[ expr ';' nat `]                (; ArrayExpression, repeat: [x; 0] ;)
+  | '&' mutkw? expr                   (; BorrowExpression: &String::from("temporary") ;)
+  | _BLOCK block                      (; BlockExpression ;)
+  | LOOP block                        (; InfiniteLoopExpression: loop {} ;)
+  | expr `( expr* `)                  (; CallExpression: f(v, &&0) ;)
+  | expr '.' id `( expr* `)           (; MethodCallExpression: proof.subtype(x) ;)
+  | _FIELD expr '.' id                (; FieldExpression: p.field ;)
+  | _TUPLEINDEX expr '.' nat          (; TupleIndexingExpression: n(input).0 ;)
+  | movekw? '|' pat* '|' expr         (; ClosureExpression: |x| Bounded(x, []) ;)
+
+;;
+;; Pre-expansion source extension (the PDF puts this outside the grammar)
+;;
+
+syntax tokentree = text               (; opaque macro token tree ;)
+
+syntax esrc =                         (; e_src ;)
+  | _SRC expr
+  | path '!' tokentree                (; MacroInvocation: println!("{}", s), panic!() ;)

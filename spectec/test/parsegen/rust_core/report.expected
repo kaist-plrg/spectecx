@@ -1,0 +1,103 @@
+listings/100051.rs [as-is]
+  reject at 26:12: found `!`, expected one of: ( . :: ; }
+listings/104005.rs [as-is]
+  reject at 21:12: found `!`, expected one of: ( . :: ; }
+listings/112417.rs [as-is]
+  reject at 17:10: found `!`, expected one of: ( . :: ; }
+listings/118876.rs [as-is]
+  accept, 4 parses
+    ambiguous expr at 7:18-7:35: | x | Bounded ( x , [ ] )
+      | expr ::= expr ( expr* )
+      | expr ::= movekw? | pat* | expr
+    ambiguous expr at 19:18-19:35: | x | Bounded ( x , [ ] )
+      | expr ::= expr ( expr* )
+      | expr ::= movekw? | pat* | expr
+listings/98117.rs [as-is]
+  reject at 15:12: found `!`, expected one of: ( . :: ; }
+listings/98543.rs [as-is]
+  reject at 22:12: found `!`, expected one of: ( . :: ; }
+listings/99158-guarded.rs [as-is]
+  accept, 1 parse
+listings/99158-simplified.rs [as-is]
+  accept, 1 parse
+listings/100051.rs [macros]
+  accept, 2 parses
+    ambiguous expr at 24:13-24:38: & String :: from ( "temporary" )
+      | expr ::= & mutkw? expr
+      | expr ::= expr ( expr* )
+listings/104005.rs [macros]
+  accept, 2 parses
+    ambiguous expr at 20:25-20:50: & String :: from ( "temporary" )
+      | expr ::= & mutkw? expr
+      | expr ::= expr ( expr* )
+listings/112417.rs [macros]
+  accept, 4 parses
+    ambiguous expr at 33:5-33:20: proof . subtype ( x )
+      | expr ::= expr ( expr* )
+      | expr ::= expr . id ( expr* )
+    ambiguous expr at 37:26-37:51: & String :: from ( "temporary" )
+      | expr ::= & mutkw? expr
+      | expr ::= expr ( expr* )
+listings/118876.rs [macros]
+  accept, 4 parses
+    ambiguous expr at 7:18-7:35: | x | Bounded ( x , [ ] )
+      | expr ::= expr ( expr* )
+      | expr ::= movekw? | pat* | expr
+    ambiguous expr at 19:18-19:35: | x | Bounded ( x , [ ] )
+      | expr ::= expr ( expr* )
+      | expr ::= movekw? | pat* | expr
+listings/98117.rs [macros]
+  accept, 2 parses
+    ambiguous expr at 14:17-14:42: & String :: from ( "temporary" )
+      | expr ::= & mutkw? expr
+      | expr ::= expr ( expr* )
+listings/98543.rs [macros]
+  accept, 1 parse
+listings/99158-guarded.rs [macros]
+  accept, 1 parse
+listings/99158-simplified.rs [macros]
+  accept, 1 parse
+controls/reject-named-field-struct.rs [macros]
+  reject at 1:10: found `{`, expected one of: ( <
+controls/reject-binary-plus.rs [macros]
+  reject at 1:23: found `+`, expected one of: ! ( . :: ; }
+controls/reject-mut-self.rs [macros]
+  reject at 1:20: found `self`, expected one of: <text>
+controls/reject-struct-where.rs [macros]
+  reject at 1:16: found `where`, expected one of: ;
+controls/reject-typed-closure-param.rs [macros]
+  reject at 1:20: found `:`, expected one of: , |
+controls/reject-maybe-sized.rs [macros]
+  reject at 1:9: found `?`, expected one of: <text:LT> <text> FOR Fn FnMut FnOnce SELF STATIC Self
+controls/reject-mid-path-turbofish.rs [macros]
+  reject at 1:17: found `::`, expected one of: ( . ; }
+controls/reject-inherent-impl.rs [macros]
+  reject at 1:8: found `{`, expected one of: :: < FOR
+controls/reject-if.rs [macros]
+  reject at 1:17: found `if`, expected one of: & ( < <nat> <text:STR> <text> FN IMPL LET LOOP MOVE SELF STRUCT Self TRAIT USE [ { | }
+controls/reject-loop-stmt-no-semi.rs [macros]
+  reject at 1:24: found `0`, expected one of: ( . ; }
+controls/reject-return.rs [macros]
+  reject at 1:10: found `return`, expected one of: & ( < <nat> <text:STR> <text> FN IMPL LET LOOP MOVE SELF STRUCT Self TRAIT USE [ { | }
+controls/reject-let-no-init.rs [macros]
+  reject at 1:15: found `;`, expected one of: : =
+controls/reject-unsafe-fn-ptr.rs [macros]
+  reject at 1:9: found `unsafe`, expected one of: & ( < <text> DYN FN FOR SELF Self [ _
+controls/reject-dyn-two-traits.rs [macros]
+  reject at 1:21: found `B`, expected one of: <text:LT> PLACEHOLDER STATIC
+controls/reject-ident-as-lifetime.rs [macros]
+  reject at 1:12: found `u8`, expected one of: ) , :: <
+controls/reject-lifetime-as-type.rs [macros]
+  reject at 1:13: found `'a`, expected one of: & ( < <text> DYN FN FOR SELF Self [ _
+controls/reject-missing-comma.rs [macros]
+  reject at 1:12: found `y`, expected one of: ) , :: <
+controls/reject-comma-between-items.rs [macros]
+  reject at 1:10: found `,`, expected one of: FN IMPL STRUCT TRAIT USE
+controls/accept-hrtb-where.rs [macros]
+  accept, 1 parse
+controls/accept-impl-trait-closure.rs [macros]
+  accept, 1 parse
+controls/accept-array-closure.rs [macros]
+  accept, 1 parse
+controls/accept-qualified-path-loop.rs [macros]
+  accept, 1 parse
