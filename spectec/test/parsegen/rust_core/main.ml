@@ -1,153 +1,18 @@
 (* Does the core-calculus grammar (syntax.spectec) derive the Rust listings it
    was written for, and in exactly one way? This parses each listing with the
    parser that Parsegen.Earley builds from the grammar alone, and checks the
-   outcome against goals.txt. Everything below that is not in the grammar is
-   lexical, and is listed in [lexicon]. *)
+   outcome against goals.txt. The Rust lexer and the lexical facts the
+   grammar leaves out are in spectec/targets/rust_core_calculus. *)
 
-open Spectec
-module Atom = Lang.Xl.Atom
-module Value = Lang.Il.Value
-module Terminal = Grammar.Terminal
 module Earley = Parsegen.Earley
-module Lexer = Rust_lexer
+module Rust = Targets_rust_core_calculus
+module Lexer = Rust.Lexer
 
-(* Grammar *)
-
-let load_il spec : Lang.Il.spec =
-  match parse_spec_files [ spec ] with
-  | Ok el -> (
-      match elaborate el with
-      | Ok il -> il
-      | Error _ -> failwith ("could not elaborate " ^ spec))
-  | Error _ -> failwith ("could not parse " ^ spec)
-
-let grammar_of spec = Grammar.extract ~start:"program" (load_il spec)
-
-(* Lexicon: the facts about Rust's concrete syntax that the grammar leaves
-   out. *)
-
-(* Rust words that are keyword atoms in the grammar. Other Rust keywords (if,
-   return, unsafe, ...) have no production, so they classify to [None]. *)
-let keywords =
-  [
-    ("as", "AS");
-    ("dyn", "DYN");
-    ("fn", "FN");
-    ("for", "FOR");
-    ("impl", "IMPL");
-    ("let", "LET");
-    ("loop", "LOOP");
-    ("move", "MOVE");
-    ("mut", "MUT");
-    ("self", "SELF");
-    ("Self", "Self");
-    ("struct", "STRUCT");
-    ("trait", "TRAIT");
-    ("type", "TYPE");
-    ("use", "USE");
-    ("where", "WHERE");
-    (* The closure traits are atoms too (fnkind), distinct from paths. *)
-    ("Fn", "Fn");
-    ("FnMut", "FnMut");
-    ("FnOnce", "FnOnce");
-  ]
-
-let other_rust_keywords =
-  [
-    "async";
-    "await";
-    "break";
-    "const";
-    "continue";
-    "crate";
-    "else";
-    "enum";
-    "extern";
-    "false";
-    "if";
-    "in";
-    "match";
-    "mod";
-    "pub";
-    "ref";
-    "return";
-    "static";
-    "super";
-    "true";
-    "unsafe";
-    "while";
-  ]
-
-let classify (tok : Lexer.token) : Terminal.t option =
-  let atom a = Some (Terminal.Atom a) in
-  let text s = Some (Terminal.Primitive (Grammar.Text, Value.text s)) in
-  match tok.kind with
-  | Lexer.Ident "_" -> atom (Atom.operator "_")
-  | Lexer.Ident s -> (
-      match List.assoc_opt s keywords with
-      | Some k -> atom (Atom.keyword k)
-      | None -> if List.mem s other_rust_keywords then None else text s)
-  (* 'static and '_ are atoms; any other lifetime is text of class LT. *)
-  | Lexer.Lifetime "static" -> atom (Atom.keyword "STATIC")
-  | Lexer.Lifetime "_" -> atom (Atom.keyword "PLACEHOLDER")
-  | Lexer.Lifetime s -> text s
-  | Lexer.Int n ->
-      Some (Terminal.Primitive (Grammar.Num `NatT, Value.nat (Bigint.of_int n)))
-  | Lexer.Str s -> text s
-  | Lexer.Tree s -> text s
-  | Lexer.Punct "(" -> atom Atom.LParen
-  | Lexer.Punct ")" -> atom Atom.RParen
-  | Lexer.Punct "[" -> atom Atom.LBrack
-  | Lexer.Punct "]" -> atom Atom.RBrack
-  | Lexer.Punct "{" -> atom Atom.LBrace
-  | Lexer.Punct "}" -> atom Atom.RBrace
-  | Lexer.Punct "<" -> atom Atom.LAngle
-  | Lexer.Punct ">" -> atom Atom.RAngle
-  | Lexer.Punct p -> atom (Atom.operator p)
-  | Lexer.Unknown _ -> None
-
-(* lname ::= _LT id and expr ::= _STR text: both read text, which a plain
-   identifier also is. The class keeps 'a and "a" out of identifier
-   positions, and identifiers out of theirs. *)
-let lexical_tag (tok : Lexer.token) : string option =
-  match tok.kind with
-  | Lexer.Lifetime ("static" | "_") -> None
-  | Lexer.Lifetime _ -> Some "LT"
-  | Lexer.Str _ -> Some "STR"
-  | _ -> None
-
-(* The BNF's comma lists (overbar) became plain x* in EL. These are their
-   element syntaxes; every other x* (item*, stmt*, pathseg*, ...) has no
-   separator. *)
-let comma_separated =
-  [ "gparam"; "lname"; "pred"; "garg"; "typ"; "param"; "expr"; "pat" ]
-
-let lexicon : Lexer.token Earley.lexicon =
-  {
-    classify;
-    lexical_tag;
-    lexical_tags = [ "LT"; "STR" ];
-    separator =
-      (fun name ->
-        if List.mem name comma_separated then Some (Atom.operator ",") else None);
-    (* The unit type and value '()' is two tokens, as in rustc. *)
-    spell =
-      (fun atom ->
-        if Atom.is_operator atom "()" then [ Atom.LParen; Atom.RParen ]
-        else [ atom ]);
-  }
+let grammar_of = Rust.Parse.grammar_of_spec
+let read_file = Rust.Parse.read_file
+let parse = Rust.Parse.parse_file
 
 (* Running *)
-
-let read_file path =
-  let ic = open_in path in
-  Fun.protect
-    ~finally:(fun () -> close_in ic)
-    (fun () -> really_input_string ic (in_channel_length ic))
-
-let parse grammar path =
-  let tokens = Lexer.tokenize (read_file path) in
-  (tokens, Earley.run lexicon grammar "program" tokens)
 
 let position (tokens : Lexer.token list) at =
   match List.nth_opt tokens at with

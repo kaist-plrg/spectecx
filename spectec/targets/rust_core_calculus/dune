@@ -1,0 +1,13 @@
+; Rust-specific code for the core-calculus grammar of rs-implied-bounds: a
+; lexer, the lexicon Parsegen.Earley needs beyond the grammar, and parsing a
+; file. Not yet a full target (no package, plugin, or tasks): the calculus has
+; no relation to run yet.
+
+(library
+ (name targets_rust_core_calculus)
+ (libraries
+  spectec
+  spectec.grammar
+  spectec.parsegen
+  spectec.lang
+  bignum.bigint))

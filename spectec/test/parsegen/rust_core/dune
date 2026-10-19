@@ -14,7 +14,7 @@
   spectec.grammar
   spectec.parsegen
   spectec.lang
-  bignum.bigint
+  targets_rust_core_calculus
   core
   core_unix.command_unix))
 
