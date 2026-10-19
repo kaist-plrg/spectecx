@@ -82,6 +82,7 @@ vsix:
 # Tests
 #
 # Individual tests (run against the new p4 spec by default):
+#   make test-lang       - Shared language operations
 #   make test-elab       - Elaboration test (both p4 and p4-old)
 #   make test-struct     - Structuring test (both p4 and p4-old)
 #   make test-annotate   - Annotate/prose render test (impty x3 + p4-old)
@@ -132,7 +133,7 @@ vsix:
 #
 #   make test            - quick + interpreter tests
 
-.PHONY: test test-quick test-interp test-elab test-elab-neg test-interp-relation test-interp-neg test-cli test-lsp test-struct test-annotate test-roundtrip-il test-roundtrip-el test-parsegen test-package
+.PHONY: test test-quick test-lang test-interp test-elab test-elab-neg test-interp-relation test-interp-neg test-cli test-lsp test-struct test-annotate test-roundtrip-il test-roundtrip-el test-parsegen test-package
 .PHONY: test-il test-il-pos test-il-neg
 .PHONY: test-sl test-sl-pos test-sl-neg
 .PHONY: test-pl test-pl-pos test-pl-neg
@@ -152,6 +153,10 @@ vsix:
 .PHONY: test-miniml-sl-pos test-miniml-sl-neg
 .PHONY: test-miniml-pl-pos test-miniml-pl-neg
 .PHONY: promote
+
+test-lang:
+	@echo "#### Running language unit tests"
+	@$(DUNE) build @test/lang/runtest --profile=release && echo OK
 
 test-elab:
 	@echo "#### Running elaboration test"
@@ -247,7 +252,7 @@ test-pl-pos-old:
 test-pl-neg-old:
 	$(call run_interp_test,p4-old,pl,neg)
 
-test-quick: test-elab test-elab-neg test-interp-relation test-interp-neg test-cli test-lsp test-struct test-annotate test-roundtrip-il test-roundtrip-el test-impty test-miniml test-parsegen test-package
+test-quick: test-lang test-elab test-elab-neg test-interp-relation test-interp-neg test-cli test-lsp test-struct test-annotate test-roundtrip-il test-roundtrip-el test-impty test-miniml test-parsegen test-package
 	@$(DUNE) build @test/interp/p4/runtest --profile=release
 	@echo "#### Quick tests passed"
 

@@ -12,13 +12,8 @@ let wrap_instr (instr' : Pl.instr' phrase) (hints : Pl.Annot.hints) : Pl.instr =
 let wrap_def (def' : Pl.def' phrase) (hints : Pl.Annot.hints) : Pl.def =
   { node = def'; hints }
 
-let wrap_exp (inner : (Pl.exp', Pl.typ') note_phrase) (hints : Pl.Annot.hints) :
-    Pl.exp =
-  { inner with note = { typ = inner.note; annot = hints } }
-
 let bare_instr instr' = wrap_instr instr' Pl.Annot.empty
 let bare_def def' = wrap_def def' Pl.Annot.empty
-let bare_exp inner = wrap_exp inner Pl.Annot.empty
 
 let lookup_prose_out_rel (ctx : Ctx.t) (id_str : string) : Hints.Alter.t option
     =
@@ -86,78 +81,27 @@ let hints_of_func_def (ctx : Ctx.t) (id_func : Il.id) : Pl.Annot.hints =
     prose_false = Ctx.find_prose_false_func ctx id_str;
   }
 
-let rec annotate_exp (ctx : Ctx.t) (exp : Sl.exp) : Pl.exp =
-  let exp_inner, hints =
-    match exp.it with
-    | BoolE b -> (BoolE b, Pl.Annot.empty)
-    | NumE n -> (NumE n, Pl.Annot.empty)
-    | TextE t -> (TextE t, Pl.Annot.empty)
-    | VarE id -> (VarE id, Pl.Annot.empty)
-    | UnE (op, optyp, e) -> (UnE (op, optyp, annotate_exp ctx e), Pl.Annot.empty)
-    | BinE (op, optyp, e1, e2) ->
-        ( BinE (op, optyp, annotate_exp ctx e1, annotate_exp ctx e2),
-          Pl.Annot.empty )
-    | CmpE (op, optyp, e1, e2) ->
-        ( CmpE (op, optyp, annotate_exp ctx e1, annotate_exp ctx e2),
-          Pl.Annot.empty )
-    | UpCastE (typ, e) -> (UpCastE (typ, annotate_exp ctx e), Pl.Annot.empty)
-    | DownCastE (typ, e) -> (DownCastE (typ, annotate_exp ctx e), Pl.Annot.empty)
-    | SubE (e, typ) -> (SubE (annotate_exp ctx e, typ), Pl.Annot.empty)
-    | MatchE (e, pat) -> (MatchE (annotate_exp ctx e, pat), Pl.Annot.empty)
-    | TupleE es -> (TupleE (List.map (annotate_exp ctx) es), Pl.Annot.empty)
-    | CaseE notexp ->
-        let mixop = Il.Mixfix.to_mixop notexp in
-        let hints =
+let annotate_exp (ctx : Ctx.t) (exp : Sl.exp) : Pl.exp =
+  Il.Expression.map_annotations
+    (fun exp ->
+      match exp.it with
+      | CaseE notexp ->
+          let mixop = Il.Mixfix.to_mixop notexp in
           { Pl.Annot.empty with prose = Ctx.find_prose_typcase ctx ~mixop }
-        in
-        (CaseE (annotate_notexp ctx notexp), hints)
-    | StrE fields ->
-        ( StrE (List.map (fun (a, e) -> (a, annotate_exp ctx e)) fields),
-          Pl.Annot.empty )
-    | OptE eo -> (OptE (Option.map (annotate_exp ctx) eo), Pl.Annot.empty)
-    | ListE es -> (ListE (List.map (annotate_exp ctx) es), Pl.Annot.empty)
-    | ConsE (e1, e2) ->
-        (ConsE (annotate_exp ctx e1, annotate_exp ctx e2), Pl.Annot.empty)
-    | CatE (e1, e2) ->
-        (CatE (annotate_exp ctx e1, annotate_exp ctx e2), Pl.Annot.empty)
-    | MemE (e1, e2) ->
-        (MemE (annotate_exp ctx e1, annotate_exp ctx e2), Pl.Annot.empty)
-    | LenE e -> (LenE (annotate_exp ctx e), Pl.Annot.empty)
-    | DotE (e, atom) -> (DotE (annotate_exp ctx e, atom), Pl.Annot.empty)
-    | IdxE (e1, e2) ->
-        (IdxE (annotate_exp ctx e1, annotate_exp ctx e2), Pl.Annot.empty)
-    | SliceE (e1, e2, e3) ->
-        ( SliceE (annotate_exp ctx e1, annotate_exp ctx e2, annotate_exp ctx e3),
-          Pl.Annot.empty )
-    | UpdE (e1, path, e2) ->
-        ( UpdE (annotate_exp ctx e1, annotate_path ctx path, annotate_exp ctx e2),
-          Pl.Annot.empty )
-    | CallE (id, targs, args) ->
-        ( CallE (id, targs, List.map (annotate_arg ctx) args),
-          hints_of_call_exp ctx id )
-    | IterE (e, iterexp) -> (IterE (annotate_exp ctx e, iterexp), Pl.Annot.empty)
-  in
-  wrap_exp (exp_inner $$ (exp.at, exp.note.typ)) hints
+      | CallE (id, _, _) -> hints_of_call_exp ctx id
+      | _ -> Pl.Annot.empty)
+    exp
 
-and annotate_notexp (ctx : Ctx.t) (notexp : Sl.notexp) : Pl.notexp =
+let annotate_notexp (ctx : Ctx.t) (notexp : Sl.notexp) : Pl.notexp =
   Il.Mixfix.map (annotate_exp ctx) notexp
 
-and annotate_path (ctx : Ctx.t) (path : Sl.path) : Pl.path =
-  let path_inner : Pl.path' =
-    match path.it with
-    | RootP -> RootP
-    | IdxP (p, e) -> IdxP (annotate_path ctx p, annotate_exp ctx e)
-    | SliceP (p, e1, e2) ->
-        SliceP (annotate_path ctx p, annotate_exp ctx e1, annotate_exp ctx e2)
-    | DotP (p, atom) -> DotP (annotate_path ctx p, atom)
+let annotate_arg (ctx : Ctx.t) (arg : Sl.arg) : Pl.arg =
+  let it =
+    match arg.it with
+    | ExpA exp -> ExpA (annotate_exp ctx exp)
+    | DefA id -> DefA id
   in
-  path_inner $$ (path.at, path.note)
-
-and annotate_arg (ctx : Ctx.t) (arg : Sl.arg) : Pl.arg =
-  let arg_inner : Pl.arg' =
-    match arg.it with ExpA e -> ExpA (annotate_exp ctx e) | DefA id -> DefA id
-  in
-  arg_inner $ arg.at
+  { arg with it }
 
 let annotate_guard (ctx : Ctx.t) (g : Ll.guard) : Pl.guard =
   match g with

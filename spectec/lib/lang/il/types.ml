@@ -157,6 +157,67 @@ module Expression = struct
   and 'ann arg_node =
     | ExpA of 'ann t                           (* exp *)
     | DefA of id                               (* `$`id *)
+
+  (** Replace annotations throughout an expression, including expressions in paths
+      and arguments. The callback receives each original expression. Syntax,
+      types, source regions, and provenance are preserved. Callback order among
+      sibling expressions is unspecified. *)
+  let map_annotations annotate exp =
+    let rec map_exp (exp : _ t) =
+      let it =
+        match exp.it with
+        | BoolE b -> BoolE b
+        | NumE n -> NumE n
+        | TextE text -> TextE text
+        | VarE id -> VarE id
+        | UnE (op, typ, exp) -> UnE (op, typ, map_exp exp)
+        | BinE (op, typ, exp_l, exp_r) ->
+            BinE (op, typ, map_exp exp_l, map_exp exp_r)
+        | CmpE (op, typ, exp_l, exp_r) ->
+            CmpE (op, typ, map_exp exp_l, map_exp exp_r)
+        | UpCastE (typ, exp) -> UpCastE (typ, map_exp exp)
+        | DownCastE (typ, exp) -> DownCastE (typ, map_exp exp)
+        | SubE (exp, typ) -> SubE (map_exp exp, typ)
+        | MatchE (exp, pattern) -> MatchE (map_exp exp, pattern)
+        | TupleE exps -> TupleE (List.map map_exp exps)
+        | CaseE notation -> CaseE (Mixfix.map map_exp notation)
+        | StrE fields ->
+            StrE (List.map (fun (atom, exp) -> (atom, map_exp exp)) fields)
+        | OptE exp -> OptE (Option.map map_exp exp)
+        | ListE exps -> ListE (List.map map_exp exps)
+        | ConsE (exp_h, exp_t) -> ConsE (map_exp exp_h, map_exp exp_t)
+        | CatE (exp_l, exp_r) -> CatE (map_exp exp_l, map_exp exp_r)
+        | MemE (exp_e, exp_s) -> MemE (map_exp exp_e, map_exp exp_s)
+        | LenE exp -> LenE (map_exp exp)
+        | DotE (exp, atom) -> DotE (map_exp exp, atom)
+        | IdxE (exp_b, exp_i) -> IdxE (map_exp exp_b, map_exp exp_i)
+        | SliceE (exp_b, exp_l, exp_h) ->
+            SliceE (map_exp exp_b, map_exp exp_l, map_exp exp_h)
+        | UpdE (exp_b, path, exp_f) ->
+            UpdE (map_exp exp_b, map_path path, map_exp exp_f)
+        | CallE (id, targs, args) -> CallE (id, targs, List.map map_arg args)
+        | IterE (exp, iterexp) -> IterE (map_exp exp, iterexp)
+      in
+      { exp with it; note = { exp.note with annot = annotate exp } }
+    and map_path (path : _ path) =
+      let it =
+        match path.it with
+        | RootP -> RootP
+        | IdxP (path, exp) -> IdxP (map_path path, map_exp exp)
+        | SliceP (path, exp_l, exp_h) ->
+            SliceP (map_path path, map_exp exp_l, map_exp exp_h)
+        | DotP (path, atom) -> DotP (map_path path, atom)
+      in
+      { path with it }
+    and map_arg (arg : _ arg) =
+      let it =
+        match arg.it with
+        | ExpA exp -> ExpA (map_exp exp)
+        | DefA id -> DefA id
+      in
+      { arg with it }
+    in
+    map_exp exp
 end
 
 type exp = unit Expression.t
