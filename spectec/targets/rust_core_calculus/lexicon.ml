@@ -34,6 +34,8 @@ let keywords =
     ("FnOnce", "FnOnce");
     (* Sized is an atom so that a bound can relax exactly it (?Sized). *)
     ("Sized", "Sized");
+    (* The item keyword static; STATIC is already the lifetime 'static. *)
+    ("static", "STATICKW");
   ]
 
 let other_rust_keywords =
@@ -55,7 +57,6 @@ let other_rust_keywords =
     "pub";
     "ref";
     "return";
-    "static";
     "super";
     "true";
     "unsafe";
