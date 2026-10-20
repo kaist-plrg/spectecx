@@ -80,8 +80,6 @@ type local = {
 }
 
 type t = {
-  (* Filename of the source file *)
-  filename : string;
   (* Builtins *)
   builtins : Builtins.t;
   opaque_types : Opaque_types.t;
@@ -257,10 +255,9 @@ let freeze (l : global_loader) : global =
     fenv = Global.FEnv.freeze l.fenv;
   }
 
-let create ~filename ~check_determinism ~opaque_types builtins cache
-    (global : global) : t =
+let create ~check_determinism ~opaque_types builtins cache (global : global) : t
+    =
   {
-    filename;
     builtins;
     opaque_types;
     cache;

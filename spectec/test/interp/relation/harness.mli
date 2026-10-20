@@ -1,5 +1,4 @@
 type compiled_spec = {
-  filename : string;
   spec_il : Lang.Il.spec;
   spec_sl : Lang.Sl.spec;
   spec_pl : Lang.Pl.spec;

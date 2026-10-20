@@ -3,7 +3,6 @@ module Value = Lang.Il.Value
 module Diagnostic = Spectec.Diagnostic
 
 type compiled_spec = {
-  filename : string;
   spec_il : Lang.Il.spec;
   spec_sl : Lang.Sl.spec;
   spec_pl : Lang.Pl.spec;
@@ -53,7 +52,7 @@ let compile_source ~filename contents =
         in
         let spec_sl = Spectec.structure spec_il in
         let spec_pl = spec_sl |> Spectec.annotate ~henv |> Spectec.shorten in
-        Ok { filename; spec_il; spec_sl; spec_pl })
+        Ok { spec_il; spec_sl; spec_pl })
   in
   match result with
   | Ok spec when Diagnostic.Bag.is_empty diagnostics -> spec
@@ -80,15 +79,12 @@ let eval ~check_determinism target_state spec mode relation args =
   match mode with
   | Il ->
       Interp.eval_il ~check_determinism target_state spec.spec_il relation args
-        spec.filename
       |> Result.map ~f:snd
   | Sl ->
       Interp.eval_sl ~check_determinism target_state spec.spec_sl relation args
-        spec.filename
       |> Result.map ~f:snd
   | Pl ->
       Interp.eval_pl ~check_determinism target_state spec.spec_pl relation args
-        spec.filename
       |> Result.map ~f:snd
 
 let fail_check ~name ~mode ~check_determinism message =

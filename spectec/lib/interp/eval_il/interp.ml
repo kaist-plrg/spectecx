@@ -1471,10 +1471,9 @@ let load_def opaque_types (l : Ctx.global_loader) (def : def) : unit =
       let func = Ctx.Func.Defined (tparams, clauses) in
       Ctx.load_func l id func
 
-let load_spec ~(check_determinism : bool) ~opaque_types (filename : string)
-    (builtins : Builtins.t) (cache : Cache.t) (spec : spec) : Ctx.t =
+let load_spec ~(check_determinism : bool) ~opaque_types (builtins : Builtins.t)
+    (cache : Cache.t) (spec : spec) : Ctx.t =
   let l = Ctx.create_loader () in
   List.iter (load_def opaque_types l) spec;
   let global_layer = Ctx.freeze l in
-  Ctx.create ~filename ~check_determinism ~opaque_types builtins cache
-    global_layer
+  Ctx.create ~check_determinism ~opaque_types builtins cache global_layer

@@ -47,9 +47,8 @@ let check_undeclared_builtin () =
       [ ("boom", fun ~at:_ _ _ -> failwith "undeclared builtin was invoked") ]
   end in
   (* Elaboration requires declarations, so remove them from the compiled forms. *)
-  let spec =
+  let spec : H.compiled_spec =
     {
-      spec with
       spec_il =
         List.filter
           (fun (def : Lang.Il.def) ->

@@ -27,19 +27,16 @@ let run_relation (ctx : Ctx.t) (spec : spec) (rid : id') (values : value list) :
 (* Entry point : Run typing rule *)
 
 let run_relation_fresh ~(check_determinism : bool) ~opaque_types
-    (filename : string) (builtins : Builtins.t) (cache : Cache.t) (spec : spec)
-    (rid : id') (values : value list) : Ctx.t * value list =
+    (builtins : Builtins.t) (cache : Cache.t) (spec : spec) (rid : id')
+    (values : value list) : Ctx.t * value list =
   Cache.clear cache;
-  let ctx =
-    Ctx.empty ~check_determinism ~opaque_types filename builtins cache
-  in
+  let ctx = Ctx.empty ~check_determinism ~opaque_types builtins cache in
   run_relation ctx spec rid values
 
 type error = region * string
 
 let run ?(check_determinism = false) (module T : Target.S) (spec : spec)
-    (rid : string) (values : value list) (filename : string) :
-    (Ctx.t * value list, error) result =
+    (rid : string) (values : value list) : (Ctx.t * value list, error) result =
   let builtins = Builtins.make T.builtins in
   let cache =
     Cache.make ~is_impure_func:T.is_impure_func ~is_impure_rel:T.is_impure_rel
@@ -51,8 +48,8 @@ let run ?(check_determinism = false) (module T : Target.S) (spec : spec)
       | Ok types -> types
       | Error message -> Error.error no_region message
     in
-    run_relation_fresh ~check_determinism ~opaque_types filename builtins cache
-      spec rid values
+    run_relation_fresh ~check_determinism ~opaque_types builtins cache spec rid
+      values
     |> Result.ok
   with InterpError (at, msg) -> Error (at, msg)
 
