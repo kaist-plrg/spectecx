@@ -32,6 +32,8 @@ let keywords =
     ("Fn", "Fn");
     ("FnMut", "FnMut");
     ("FnOnce", "FnOnce");
+    (* Sized is an atom so that a bound can relax exactly it (?Sized). *)
+    ("Sized", "Sized");
   ]
 
 let other_rust_keywords =
@@ -102,7 +104,7 @@ let lexical_tag (tok : Lexer.token) : string option =
    element syntaxes; every other x* (item*, stmt*, pathseg*, ...) has no
    separator. *)
 let comma_separated =
-  [ "gparam"; "lname"; "pred"; "garg"; "typ"; "param"; "expr"; "pat" ]
+  [ "gparam"; "lname"; "pred"; "garg"; "typ"; "param"; "cparam"; "expr"; "pat" ]
 
 let lexicon : Lexer.token Earley.lexicon =
   {
