@@ -25,7 +25,7 @@ let run_relation ~check_determinism ~opaque_types (builtins : Builtins.t)
   | Error message ->
       Error.error no_region ("relation " ^ rid ^ " input: " ^ message));
   match Interp.invoke_rel ctx (rid $ no_region) values with
-  | Some (ctx, values) -> (ctx, values)
+  | Some values -> (ctx, values)
   | None -> error no_region "relation was not matched"
 
 let run_relation_fresh ~check_determinism ~opaque_types builtins cache spec rid

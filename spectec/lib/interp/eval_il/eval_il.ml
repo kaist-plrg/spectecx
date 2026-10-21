@@ -20,7 +20,7 @@ let run_relation ~(check_determinism : bool) ~opaque_types
   | Ok () -> ()
   | Error message ->
       Error.error no_region ("relation " ^ rid ^ " input: " ^ message));
-  let+ ctx, values = Interp.invoke_rel ctx (rid $ no_region) values in
+  let+ values = Interp.invoke_rel ctx (rid $ no_region) values in
   (ctx, values)
 
 let run_relation_fresh ~(check_determinism : bool) ~opaque_types
