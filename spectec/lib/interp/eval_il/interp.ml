@@ -1403,11 +1403,10 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
             check_warnf (clauses <> []) id.at "function has no clauses";
             invoke_func_def tparams clauses
         | None ->
-            if ctx.builtins.is_builtin id then (
-              warn id.at
+            if ctx.builtins.is_builtin id then
+              error id.at
                 (F.asprintf "builtin $%s is invoked without a spec declaration"
-                   id.it);
-              invoke_func_builtin ())
+                   id.it)
             else fail id.at (F.asprintf "unknown function %s" id.it)
       in
       Ok value_output

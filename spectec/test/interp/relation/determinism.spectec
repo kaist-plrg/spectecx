@@ -191,6 +191,17 @@ rule Fatal_after_match/boom:
   x |- $boom(x)
   -- if $(x < 20)
 
+relation Undeclared_builtin:
+  nat |- nat
+  hint(input %0)
+
+rule Undeclared_builtin/call:
+  x |- $boom(x)
+
+rule Undeclared_builtin/fallback:
+  x |- 0
+  -- otherwise
+
 dec $pick(nat) : nat
 def $pick(x) = 1
   -- if $(x < 10)

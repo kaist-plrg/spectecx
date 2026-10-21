@@ -1591,11 +1591,10 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
               id.at "function has no instructions";
             invoke_func_def tparams args_input block elseblock_opt
         | None ->
-            if ctx.builtins.is_builtin id then (
-              warn id.at
+            if ctx.builtins.is_builtin id then
+              error id.at
                 (F.asprintf "builtin $%s is invoked without a spec declaration"
-                   id.it);
-              invoke_func_builtin ())
+                   id.it)
             else error id.at (F.asprintf "unknown function %s" id.it)
       in
       Ok v
