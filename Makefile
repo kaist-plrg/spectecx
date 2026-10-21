@@ -133,7 +133,7 @@ vsix:
 #
 #   make test            - quick + interpreter tests
 
-.PHONY: test test-quick test-lang test-interp test-elab test-elab-neg test-interp-relation test-interp-neg test-cli test-lsp test-struct test-annotate test-roundtrip-il test-roundtrip-el test-parsegen test-package
+.PHONY: test test-quick test-lang test-context test-interp test-elab test-elab-neg test-interp-relation test-interp-neg test-cli test-lsp test-struct test-annotate test-roundtrip-il test-roundtrip-el test-parsegen test-package
 .PHONY: test-il test-il-pos test-il-neg
 .PHONY: test-sl test-sl-pos test-sl-neg
 .PHONY: test-pl test-pl-pos test-pl-neg
@@ -173,6 +173,10 @@ test-elab-neg:
 test-interp-relation:
 	@echo "#### Running interpreter relation tests"
 	@$(DUNE) build @test/interp/relation/runtest --profile=release && echo OK
+
+test-context:
+	@echo "#### Running interpreter context tests"
+	@$(DUNE) build @test/interp/context/runtest --profile=release && echo OK
 
 test-interp-neg:
 	@echo "#### Running interpreter negative tests (per-case impty IL corpus)"
@@ -252,7 +256,7 @@ test-pl-pos-old:
 test-pl-neg-old:
 	$(call run_interp_test,p4-old,pl,neg)
 
-test-quick: test-lang test-elab test-elab-neg test-interp-relation test-interp-neg test-cli test-lsp test-struct test-annotate test-roundtrip-il test-roundtrip-el test-impty test-miniml test-parsegen test-package
+test-quick: test-context test-lang test-elab test-elab-neg test-interp-relation test-interp-neg test-cli test-lsp test-struct test-annotate test-roundtrip-il test-roundtrip-el test-impty test-miniml test-parsegen test-package
 	@$(DUNE) build @test/interp/p4/runtest --profile=release
 	@echo "#### Quick tests passed"
 

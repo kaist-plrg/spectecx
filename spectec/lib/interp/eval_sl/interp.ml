@@ -23,7 +23,7 @@ let rec assign_exp (ctx : Ctx.t) (exp : exp) (value : value) : Ctx.t =
   let note = value.note.typ in
   match (exp.it, value.it) with
   | VarE id, _ ->
-      let ctx = Ctx.add_value Local ctx (id, []) value in
+      let ctx = Ctx.set_value ctx ~var:(id, []) ~value in
       ctx
   | TupleE exps_inner, TupleV values_inner ->
       let ctx = assign_exps ctx exps_inner values_inner in
@@ -62,7 +62,7 @@ let rec assign_exp (ctx : Ctx.t) (exp : exp) (value : value) : Ctx.t =
             let typ = Il.Typ.iterate typ (iters @ [ Il.Opt ]) in
             None |> Value.Make.opt typ.it
           in
-          Ctx.add_value Local ctx (id, iters @ [ Il.Opt ]) value_sub)
+          Ctx.set_value ctx ~var:(id, iters @ [ Il.Opt ]) ~value:value_sub)
         ctx vars
   | IterE (exp, (Opt, vars)), OptV (Some value) ->
       (* Assign the value to the iterated expression *)
@@ -71,11 +71,11 @@ let rec assign_exp (ctx : Ctx.t) (exp : exp) (value : value) : Ctx.t =
       List.fold_left
         (fun ctx { Il.varid = id; typ; iters } ->
           let value_sub =
-            let value = Ctx.find_value Local ctx (id, iters) in
+            let value = Ctx.find_value_exn ctx ~var:(id, iters) in
             let typ = Il.Typ.iterate typ (iters @ [ Il.Opt ]) in
             Some value |> Value.Make.opt typ.it
           in
-          Ctx.add_value Local ctx (id, iters @ [ Il.Opt ]) value_sub)
+          Ctx.set_value ctx ~var:(id, iters @ [ Il.Opt ]) ~value:value_sub)
         ctx vars
   | IterE (exp, (List, vars)), ListV values ->
       (* Map over the value list elements,
@@ -83,9 +83,7 @@ let rec assign_exp (ctx : Ctx.t) (exp : exp) (value : value) : Ctx.t =
       let ctxs_rev =
         List.fold_left
           (fun ctxs_rev value ->
-            let ctx =
-              { ctx with local = { ctx.local with venv = Ctx.VEnv.empty } }
-            in
+            let ctx = Ctx.without_values ctx in
             let ctx = assign_exp ctx exp value in
             ctx :: ctxs_rev)
           [] values
@@ -96,13 +94,13 @@ let rec assign_exp (ctx : Ctx.t) (exp : exp) (value : value) : Ctx.t =
       List.fold_left
         (fun ctx { Il.varid = id; typ; iters } ->
           let values =
-            List.map (fun ctx -> Ctx.find_value Local ctx (id, iters)) ctxs
+            List.map (fun ctx -> Ctx.find_value_exn ctx ~var:(id, iters)) ctxs
           in
           let value_sub =
             let typ = Il.Typ.iterate typ (iters @ [ Il.List ]) in
             values |> Value.Make.list typ.it
           in
-          Ctx.add_value Local ctx (id, iters @ [ Il.List ]) value_sub)
+          Ctx.set_value ctx ~var:(id, iters @ [ Il.List ]) ~value:value_sub)
         ctx vars
   | _ ->
       error exp.at
@@ -128,8 +126,8 @@ and assign_arg (ctx_caller : Ctx.t) (ctx_callee : Ctx.t) (arg : arg)
   let assign_arg_def ctx_caller ctx_callee id value =
     match value.it with
     | Il.FuncV id_f ->
-        let func = Ctx.find_func Local ctx_caller id_f in
-        Ctx.add_func Local ctx_callee id func
+        let func = Ctx.find_func_exn ctx_caller ~id:id_f in
+        Ctx.add_func_exn ctx_callee ~id ~func
     | _ ->
         error id.at
           (F.asprintf "cannot assign a value %s to a definition %s"
@@ -173,7 +171,7 @@ let rec upcast (ctx : Ctx.t) (typ : typ) (value : value) : Ctx.t * value =
       | NumV (`Int _) -> (ctx, value)
       | _ -> assert false)
   | VarT { synid = tid; targs } -> (
-      let tparams, deftyp = Ctx.find_typdef Local ctx tid in
+      let tparams, deftyp = Ctx.find_typdef_exn ctx ~id:tid in
       let theta = List.combine tparams targs |> TIdMap.of_list in
       match deftyp.it with
       | PlainT typ ->
@@ -202,7 +200,7 @@ let rec downcast (ctx : Ctx.t) (typ : typ) (value : value) : Ctx.t * value =
       | NumV (`Int i) when Bigint.(i >= zero) -> (ctx, Value.nat i)
       | _ -> assert false)
   | VarT { synid = tid; targs } -> (
-      let tparams, deftyp = Ctx.find_typdef Local ctx tid in
+      let tparams, deftyp = Ctx.find_typdef_exn ctx ~id:tid in
       let theta = List.combine tparams targs |> TIdMap.of_list in
       match deftyp.it with
       | PlainT typ ->
@@ -234,11 +232,11 @@ let rec subtyp (ctx : Ctx.t) (typ : typ) (value : value) : bool =
   | NumT `IntT -> ( match value.it with NumV _ -> true | _ -> false)
   | TextT -> ( match value.it with TextV _ -> true | _ -> false)
   | VarT { synid = tid; targs } -> (
-      let tparams, deftyp = Ctx.find_typdef Local ctx tid in
+      let tparams, deftyp = Ctx.find_typdef_exn ctx ~id:tid in
       let theta = List.combine tparams targs |> TIdMap.of_list in
       match (deftyp.it, value.it) with
       | OpaqueT, OpaqueV value ->
-          Opaque_types.has_type ctx.opaque_types ~name:tid.it ~value
+          Opaque_types.has_type (Ctx.opaque_types ctx) ~name:tid.it ~value
       | OpaqueT, _ -> false
       | PlainT typ, _ ->
           let typ = Typ.subst_typ theta typ in
@@ -282,7 +280,7 @@ let rec eval_exp (ctx : Ctx.t) (exp : exp) : Ctx.t * value =
   let eval_num_exp note ctx n = (ctx, Value.Make.num note n) in
   let eval_text_exp note ctx s = (ctx, Value.Make.text note s) in
   let eval_var_exp _note ctx id =
-    let value = Ctx.find_value Local ctx (id, []) in
+    let value = Ctx.find_value_exn ctx ~var:(id, []) in
     (ctx, value)
   in
   let at, note = (exp.at, exp.note.typ) in
@@ -848,12 +846,13 @@ and eval_iter_exp (note : typ') (ctx : Ctx.t) (exp : exp) (iterexp : iterexp) :
     Ctx.t * value =
   (* Iteration helpers *)
   let eval_iter_exp_opt note ctx exp vars =
-    let ctx_sub_opt = Ctx.sub_opt ctx vars in
+    let ctx_sub_opt =
+      Interp_runtime.Context.get_exn (Ctx.for_optional_iteration ctx ~vars)
+    in
     let ctx, value_res =
       match ctx_sub_opt with
       | Some ctx_sub ->
-          let ctx_sub, value = eval_exp ctx_sub exp in
-          let ctx = Ctx.commit ctx ctx_sub in
+          let _, value = eval_exp ctx_sub exp in
           let value_res = Some value |> Value.Make.opt note in
           (ctx, value_res)
       | None ->
@@ -863,12 +862,13 @@ and eval_iter_exp (note : typ') (ctx : Ctx.t) (exp : exp) (iterexp : iterexp) :
     (ctx, value_res)
   in
   let eval_iter_exp_list note ctx exp vars =
-    let ctxs_sub = Ctx.sub_list ctx vars in
+    let ctxs_sub =
+      Interp_runtime.Context.get_exn (Ctx.for_list_iteration ctx ~vars)
+    in
     let ctx, values_rev =
       List.fold_left
         (fun (ctx, values_rev) ctx_sub ->
-          let ctx_sub, value = eval_exp ctx_sub exp in
-          let ctx = Ctx.commit ctx ctx_sub in
+          let _, value = eval_exp ctx_sub exp in
           (ctx, value :: values_rev))
         (ctx, []) ctxs_sub
     in
@@ -938,7 +938,7 @@ and eval_instr (ctx : Ctx.t) (instr : instr) : Ctx.t * Sign.t =
 (* Each SL instruction contains one alternative's continuation. *)
 and eval_instrs (ctx : Ctx.t) (sign : Sign.t) (instrs : instr list) :
     Ctx.t * Sign.t =
-  if ctx.check_determinism then eval_instrs_unique ctx sign instrs
+  if Ctx.has_determinism_checks ctx then eval_instrs_unique ctx sign instrs
   else
     List.fold_left
       (fun (ctx, sign) instr ->
@@ -980,29 +980,31 @@ and eval_if_instr (ctx : Ctx.t) (exp_cond : exp) (iterexps : iterexp list)
         (ctx, cond, value_cond)
       in
       let eval_if_cond_opt ctx exp_cond vars iterexps =
-        match Ctx.sub_opt ctx vars with
+        match
+          Interp_runtime.Context.get_exn (Ctx.for_optional_iteration ctx ~vars)
+        with
         | Some ctx_sub ->
-            let ctx_sub, cond, value_cond =
+            let _, cond, value_cond =
               eval_if_cond_iter' ctx_sub exp_cond iterexps
             in
-            let ctx = Ctx.commit ctx ctx_sub in
             (ctx, cond, Some value_cond)
         | None -> (ctx, true, None)
       in
       let eval_if_cond_list ctx exp_cond vars iterexps =
-        let ctxs_sub = Ctx.sub_list ctx vars in
-        let ctx, cond, values_cond_rev =
+        let ctxs_sub =
+          Interp_runtime.Context.get_exn (Ctx.for_list_iteration ctx ~vars)
+        in
+        let cond, values_cond_rev =
           List.fold_left
-            (fun (ctx, cond, values_cond_rev) ctx_sub ->
-              if not cond then (ctx, cond, values_cond_rev)
+            (fun (cond, values_cond_rev) ctx_sub ->
+              if not cond then (cond, values_cond_rev)
               else
-                let ctx_sub, cond, value_cond =
+                let _, cond, value_cond =
                   eval_if_cond_iter' ctx_sub exp_cond iterexps
                 in
-                let ctx = Ctx.commit ctx ctx_sub in
                 let values_cond_rev = value_cond :: values_cond_rev in
-                (ctx, cond, values_cond_rev))
-            (ctx, true, []) ctxs_sub
+                (cond, values_cond_rev))
+            (true, []) ctxs_sub
         in
         (ctx, cond, List.rev values_cond_rev)
       in
@@ -1052,29 +1054,31 @@ and eval_rel_assert_instr (ctx : Ctx.t) (id : id) (notexp : notexp)
         (ctx, cond, value_res)
       in
       let eval_rel_assert_cond_opt ctx id notexp vars iterexps =
-        match Ctx.sub_opt ctx vars with
+        match
+          Interp_runtime.Context.get_exn (Ctx.for_optional_iteration ctx ~vars)
+        with
         | Some ctx_sub ->
-            let ctx_sub, cond, value_cond =
+            let _, cond, value_cond =
               eval_rel_assert_cond_iter' ctx_sub id notexp iterexps
             in
-            let ctx = Ctx.commit ctx ctx_sub in
             (ctx, cond, Some value_cond)
         | None -> (ctx, true, None)
       in
       let eval_rel_assert_cond_list ctx id notexp vars iterexps =
-        let ctxs_sub = Ctx.sub_list ctx vars in
-        let ctx, cond, values_cond_rev =
+        let ctxs_sub =
+          Interp_runtime.Context.get_exn (Ctx.for_list_iteration ctx ~vars)
+        in
+        let cond, values_cond_rev =
           List.fold_left
-            (fun (ctx, cond, values_cond_rev) ctx_sub ->
-              if not cond then (ctx, cond, values_cond_rev)
+            (fun (cond, values_cond_rev) ctx_sub ->
+              if not cond then (cond, values_cond_rev)
               else
-                let ctx_sub, cond, value_cond =
+                let _, cond, value_cond =
                   eval_rel_assert_cond_iter' ctx_sub id notexp iterexps
                 in
-                let ctx = Ctx.commit ctx ctx_sub in
                 let values_cond_rev = value_cond :: values_cond_rev in
-                (ctx, cond, values_cond_rev))
-            (ctx, true, []) ctxs_sub
+                (cond, values_cond_rev))
+            (true, []) ctxs_sub
         in
         (ctx, cond, List.rev values_cond_rev)
       in
@@ -1164,10 +1168,13 @@ and eval_let_instr (ctx : Ctx.t) (exp_l : exp) (exp_r : exp)
         let vars_bound, vars_binding =
           List.partition
             (fun { Il.varid = id; iters; _ } ->
-              Ctx.bound_value Local ctx (id, iters @ [ Il.Opt ]))
+              Ctx.has_value ctx ~var:(id, iters @ [ Il.Opt ]))
             vars
         in
-        let ctx_sub_opt = Ctx.sub_opt ctx vars_bound in
+        let ctx_sub_opt =
+          Interp_runtime.Context.get_exn
+            (Ctx.for_optional_iteration ctx ~vars:vars_bound)
+        in
         let ctx, values_binding =
           match ctx_sub_opt with
           (* If the bound variable supposed to guide the iteration is already empty,
@@ -1189,7 +1196,6 @@ and eval_let_instr (ctx : Ctx.t) (exp_l : exp) (exp_r : exp)
           (* Otherwise, evaluate the premise for the subcontext *)
           | Some ctx_sub ->
               let ctx_sub = eval_let_iter' ctx_sub exp_l exp_r iterexps in
-              let ctx = Ctx.commit ctx ctx_sub in
               let values_binding =
                 List.map
                   (fun {
@@ -1198,7 +1204,7 @@ and eval_let_instr (ctx : Ctx.t) (exp_l : exp) (exp_r : exp)
                          iters = iters_binding;
                        } ->
                     let value_binding =
-                      Ctx.find_value Local ctx_sub (id_binding, iters_binding)
+                      Ctx.find_value_exn ctx_sub ~var:(id_binding, iters_binding)
                     in
                     let value_binding =
                       let typ =
@@ -1215,9 +1221,9 @@ and eval_let_instr (ctx : Ctx.t) (exp_l : exp) (exp_r : exp)
         List.fold_left2
           (fun ctx { Il.varid = id_binding; iters = iters_binding; _ }
                value_binding ->
-            Ctx.add_value Local ctx
-              (id_binding, iters_binding @ [ Il.Opt ])
-              value_binding)
+            Ctx.set_value ctx
+              ~var:(id_binding, iters_binding @ [ Il.Opt ])
+              ~value:value_binding)
           ctx vars_binding values_binding
       in
       let eval_let_list ctx exp_l exp_r vars iterexps =
@@ -1225,11 +1231,14 @@ and eval_let_instr (ctx : Ctx.t) (exp_l : exp) (exp_r : exp)
         let vars_bound, vars_binding =
           List.partition
             (fun { Il.varid = id; iters; _ } ->
-              Ctx.bound_value Local ctx (id, iters @ [ Il.List ]))
+              Ctx.has_value ctx ~var:(id, iters @ [ Il.List ]))
             vars
         in
         (* Create a subcontext for each batch of bound values *)
-        let ctxs_sub = Ctx.sub_list ctx vars_bound in
+        let ctxs_sub =
+          Interp_runtime.Context.get_exn
+            (Ctx.for_list_iteration ctx ~vars:vars_bound)
+        in
         let ctx, values_binding =
           match ctxs_sub with
           (* If the bound variable supposed to guide the iteration is already empty,
@@ -1242,27 +1251,21 @@ and eval_let_instr (ctx : Ctx.t) (exp_l : exp) (exp_r : exp)
               (* Otherwise, evaluate the premise for each batch of bound values,
             and collect the resulting binding batches *)
           | _ ->
-              let ctx, values_binding_batch_rev =
-                List.fold_left
-                  (fun (ctx, values_binding_batch_rev) ctx_sub ->
+              let values_binding_batch =
+                List.map
+                  (fun ctx_sub ->
                     let ctx_sub = eval_let_iter' ctx_sub exp_l exp_r iterexps in
-                    let ctx = Ctx.commit ctx ctx_sub in
-                    let value_binding_batch =
-                      List.map
-                        (fun { Il.varid = id_binding; iters = iters_binding; _ }
-                           ->
-                          Ctx.find_value Local ctx_sub
-                            (id_binding, iters_binding))
-                        vars_binding
-                    in
-                    let values_binding_batch_rev =
-                      value_binding_batch :: values_binding_batch_rev
-                    in
-                    (ctx, values_binding_batch_rev))
-                  (ctx, []) ctxs_sub
+                    List.map
+                      (fun { Il.varid = id_binding; iters = iters_binding; _ }
+                         ->
+                        Ctx.find_value_exn ctx_sub
+                          ~var:(id_binding, iters_binding))
+                      vars_binding)
+                  ctxs_sub
               in
               let values_binding =
-                values_binding_batch_rev |> List.rev |> Ctx.transpose
+                Interp_runtime.Context.transpose_values values_binding_batch
+                |> Interp_runtime.Context.get_exn
               in
               (ctx, values_binding)
         in
@@ -1280,9 +1283,9 @@ and eval_let_instr (ctx : Ctx.t) (exp_l : exp) (exp_r : exp)
               in
               values_binding |> Value.Make.list typ.it
             in
-            Ctx.add_value Local ctx
-              (id_binding, iters_binding @ [ Il.List ])
-              value_binding)
+            Ctx.set_value ctx
+              ~var:(id_binding, iters_binding @ [ Il.List ])
+              ~value:value_binding)
           ctx vars_binding values_binding
       in
       match iterexps with
@@ -1308,7 +1311,7 @@ and eval_rel_instr (ctx : Ctx.t) (id : id) (notexp : notexp)
     let rec eval_rel_iter' ctx id notexp iterexps =
       (* Single relation evaluation *)
       let eval_rel ctx id notexp =
-        let mode, _, _ = Ctx.find_rel Local ctx id in
+        let mode, _, _ = Ctx.find_rel_exn ctx ~id in
         let exps_input, exps_output =
           Lang.Il.Mode.partition mode (Mixop.args notexp)
         in
@@ -1326,11 +1329,14 @@ and eval_rel_instr (ctx : Ctx.t) (id : id) (notexp : notexp)
         let vars_bound, vars_binding =
           List.partition
             (fun { Il.varid = id; iters; _ } ->
-              Ctx.bound_value Local ctx (id, iters @ [ Il.List ]))
+              Ctx.has_value ctx ~var:(id, iters @ [ Il.List ]))
             vars
         in
         (* Create a subcontext for each batch of bound values *)
-        let ctxs_sub = Ctx.sub_list ctx vars_bound in
+        let ctxs_sub =
+          Interp_runtime.Context.get_exn
+            (Ctx.for_list_iteration ctx ~vars:vars_bound)
+        in
         let ctx, values_binding =
           match ctxs_sub with
           (* If the bound variable supposed to guide the iteration is already empty,
@@ -1343,27 +1349,21 @@ and eval_rel_instr (ctx : Ctx.t) (id : id) (notexp : notexp)
           (* Otherwise, evaluate the premise for each batch of bound values,
             and collect the resulting binding batches *)
           | _ ->
-              let ctx, values_binding_batch_rev =
-                List.fold_left
-                  (fun (ctx, values_binding_batch_rev) ctx_sub ->
+              let values_binding_batch =
+                List.map
+                  (fun ctx_sub ->
                     let ctx_sub = eval_rel_iter' ctx_sub id notexp iterexps in
-                    let ctx = Ctx.commit ctx ctx_sub in
-                    let value_binding_batch =
-                      List.map
-                        (fun { Il.varid = id_binding; iters = iters_binding; _ }
-                           ->
-                          Ctx.find_value Local ctx_sub
-                            (id_binding, iters_binding))
-                        vars_binding
-                    in
-                    let values_binding_batch_rev =
-                      value_binding_batch :: values_binding_batch_rev
-                    in
-                    (ctx, values_binding_batch_rev))
-                  (ctx, []) ctxs_sub
+                    List.map
+                      (fun { Il.varid = id_binding; iters = iters_binding; _ }
+                         ->
+                        Ctx.find_value_exn ctx_sub
+                          ~var:(id_binding, iters_binding))
+                      vars_binding)
+                  ctxs_sub
               in
               let values_binding =
-                values_binding_batch_rev |> List.rev |> Ctx.transpose
+                Interp_runtime.Context.transpose_values values_binding_batch
+                |> Interp_runtime.Context.get_exn
               in
               (ctx, values_binding)
         in
@@ -1381,9 +1381,9 @@ and eval_rel_instr (ctx : Ctx.t) (id : id) (notexp : notexp)
               in
               values_binding |> Value.Make.list typ.it
             in
-            Ctx.add_value Local ctx
-              (id_binding, iters_binding @ [ Il.List ])
-              value_binding)
+            Ctx.set_value ctx
+              ~var:(id_binding, iters_binding @ [ Il.List ])
+              ~value:value_binding)
           ctx vars_binding values_binding
       in
       (* Optional relation evaluation *)
@@ -1391,10 +1391,13 @@ and eval_rel_instr (ctx : Ctx.t) (id : id) (notexp : notexp)
         let vars_bound, vars_binding =
           List.partition
             (fun { Il.varid = id; iters; _ } ->
-              Ctx.bound_value Local ctx (id, iters @ [ Il.Opt ]))
+              Ctx.has_value ctx ~var:(id, iters @ [ Il.Opt ]))
             vars
         in
-        let ctx_sub_opt = Ctx.sub_opt ctx vars_bound in
+        let ctx_sub_opt =
+          Interp_runtime.Context.get_exn
+            (Ctx.for_optional_iteration ctx ~vars:vars_bound)
+        in
         let ctx, values_binding =
           match ctx_sub_opt with
           | None ->
@@ -1410,7 +1413,6 @@ and eval_rel_instr (ctx : Ctx.t) (id : id) (notexp : notexp)
               (ctx, values_binding)
           | Some ctx_sub ->
               let ctx_sub = eval_rel_iter' ctx_sub id notexp iterexps in
-              let ctx = Ctx.commit ctx ctx_sub in
               let values_binding =
                 List.map
                   (fun {
@@ -1419,7 +1421,7 @@ and eval_rel_instr (ctx : Ctx.t) (id : id) (notexp : notexp)
                          iters = iters_binding;
                        } ->
                     let value_binding =
-                      Ctx.find_value Local ctx_sub (id_binding, iters_binding)
+                      Ctx.find_value_exn ctx_sub ~var:(id_binding, iters_binding)
                     in
                     let typ =
                       Il.Typ.iterate typ_binding (iters_binding @ [ Il.Opt ])
@@ -1432,9 +1434,9 @@ and eval_rel_instr (ctx : Ctx.t) (id : id) (notexp : notexp)
         List.fold_left2
           (fun ctx { Il.varid = id_binding; iters = iters_binding; _ }
                value_binding ->
-            Ctx.add_value Local ctx
-              (id_binding, iters_binding @ [ Il.Opt ])
-              value_binding)
+            Ctx.set_value ctx
+              ~var:(id_binding, iters_binding @ [ Il.Opt ])
+              ~value:value_binding)
           ctx vars_binding values_binding
       in
       match iterexps with
@@ -1458,7 +1460,7 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
     (Ctx.t * value list) option =
   Instrumentation.Dispatcher.emit
     (Events.Rel_enter { id = id.it; at = id.at; inputs = values_input });
-  let mode, block, elseblock_opt = Ctx.find_rel Local ctx id in
+  let mode, block, elseblock_opt = Ctx.find_rel_exn ctx ~id in
   let exps_input = Lang.Il.Mode.inputs mode in
   checkf
     (block <> [] || Option.is_some elseblock_opt)
@@ -1466,16 +1468,14 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
   let attempt_rules () =
     Instrumentation.Dispatcher.emit
       (Events.Rule_enter { id = id.it; rule_id = "0"; at = id.at });
-    let ctx_local = Ctx.localize ctx in
-    let ctx_local = Ctx.localize_inputs ctx_local values_input in
+    let ctx_local = Ctx.for_call ctx in
     let ctx_local = assign_exps ctx_local exps_input values_input in
     let ctx_local, sign = eval_instrs ctx_local Cont block in
-    let ctx_local, sign =
+    let _, sign =
       match (sign, elseblock_opt) with
       | Cont, Some elseblock -> eval_instrs ctx_local Cont elseblock
       | _ -> (ctx_local, sign)
     in
-    let ctx = Ctx.commit ctx ctx_local in
     let result =
       match sign with
       | Res values_output -> Some (ctx, values_output)
@@ -1497,7 +1497,7 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
       | Some (_, values_output) -> Ok values_output
       | None -> Error ()
     in
-    match invoke |> Cache.with_rel_cache ctx.cache (id.it, values_input) with
+    match Ctx.memoize_rel ctx ~id ~values:values_input ~f:invoke with
     | Ok values_output -> Some (ctx, values_output)
     | Error _ -> None
   in
@@ -1520,11 +1520,11 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
   (* Builtin function invocation *)
   let invoke_func_builtin signature =
     let value_output =
-      ctx.builtins.invoke id targs values_input |> unwrap_builtin
+      Ctx.call_builtin ctx ~id ~targs ~values:values_input |> unwrap_builtin
     in
     (match
-       Builtins.check_result ~opaque_types:ctx.opaque_types
-         ~find_typdef_opt:(Ctx.find_typdef_opt Local ctx)
+       Builtins.check_result ~opaque_types:(Ctx.opaque_types ctx)
+         ~find_typdef_opt:(fun id -> Ctx.find_typdef_opt ctx ~id)
          ~signature ~targs value_output
      with
     | Ok () -> ()
@@ -1533,7 +1533,7 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
   in
   (* User-defined function invocation *)
   let invoke_func_def tparams args_input block elseblock_opt =
-    let ctx_local = Ctx.localize ctx in
+    let ctx_local = Ctx.for_call ctx in
     checkf
       (List.length targs = List.length tparams)
       id.at "arity mismatch in type arguments";
@@ -1542,34 +1542,32 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
       | [] -> []
       | targs ->
           let theta =
-            Ctx.TDEnv.fold
-              (fun tid typdef theta ->
+            Ctx.fold_local_typdefs ctx ~init:TIdMap.empty
+              ~f:(fun theta tid typdef ->
                 let tparams, deftyp = typdef in
                 match (tparams, deftyp.it) with
                 | [], Il.PlainT typ -> TIdMap.add tid typ theta
                 | _ -> theta)
-              ctx.local.tdenv TIdMap.empty
           in
           List.map (Typ.subst_typ theta) targs
     in
     let ctx_local =
       List.fold_left2
         (fun ctx_local tparam targ ->
-          Ctx.add_typdef Local ctx_local tparam ([], Il.PlainT targ $ targ.at))
+          Ctx.add_typdef_exn ctx_local ~id:tparam
+            ~typdef:([], Il.PlainT targ $ targ.at))
         ctx_local tparams targs
     in
     let attempt_clauses () =
       Instrumentation.Dispatcher.emit
         (Events.Clause_enter { id = id.it; clause_idx = 0; at = id.at });
-      let ctx_local = Ctx.localize_inputs ctx_local values_input in
       let ctx_local = assign_args ctx ctx_local args_input values_input in
       let ctx_local, sign = eval_instrs ctx_local Cont block in
-      let ctx_local, sign =
+      let _, sign =
         match (sign, elseblock_opt) with
         | Cont, Some elseblock -> eval_instrs ctx_local Cont elseblock
         | _ -> (ctx_local, sign)
       in
-      let ctx = Ctx.commit ctx ctx_local in
       match sign with
       | Ret value_output ->
           Instrumentation.Dispatcher.emit
@@ -1590,12 +1588,10 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
   let invoke_func' () =
     let invoke () =
       let _, v =
-        match Ctx.find_func_opt Local ctx id with
+        match Ctx.find_func_opt ctx ~id with
         | Some (Ctx.Func.Builtin (tparams, typ)) ->
-            checkf
-              (ctx.builtins.is_builtin id)
-              id.at "builtin $%s is declared in the spec but not implemented"
-              id.it;
+            checkf (Ctx.has_builtin ctx ~id) id.at
+              "builtin $%s is declared in the spec but not implemented" id.it;
             invoke_func_builtin (tparams, typ)
         | Some (Ctx.Func.Defined (tparams, args_input, block, elseblock_opt)) ->
             checkf
@@ -1603,7 +1599,7 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
               id.at "function has no instructions";
             invoke_func_def tparams args_input block elseblock_opt
         | None ->
-            if ctx.builtins.is_builtin id then
+            if Ctx.has_builtin ctx ~id then
               error id.at
                 (F.asprintf "builtin $%s is invoked without a spec declaration"
                    id.it)
@@ -1611,22 +1607,19 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
       in
       Ok v
     in
-    let is_anonymous fid =
-      match Ctx.find_func_opt Local ctx fid with
-      | Some _ -> Ctx.find_func_opt Global ctx fid = None
-      | None -> false
-    in
-    let is_high_order values =
+    let has_function_arguments values =
       List.exists
         (fun value ->
           match value.it with Lang.Il.FuncV _ -> true | _ -> false)
         values
     in
     let value_output_result =
-      (* Skip caching for generics and HOFs *)
-      if targs <> [] || is_anonymous id || is_high_order values_input then
-        invoke ()
-      else invoke |> Cache.with_func_cache ctx.cache (id.it, values_input)
+      (* Cache keys omit type arguments and local function definitions. *)
+      if
+        targs <> [] || Ctx.has_local_func ctx ~id
+        || has_function_arguments values_input
+      then invoke ()
+      else Ctx.memoize_func ctx ~id ~values:values_input ~f:invoke
     in
     (ctx, value_output_result |> Result.get_ok)
   in
@@ -1637,22 +1630,23 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
 
 (* Load definitions into the context *)
 
-let load_def (ctx : Ctx.t) (def : def) : Ctx.t =
+let global_definition_of_def ~opaque_types (def : def) : Ctx.Global.definition =
   match def.it with
   | TypD (id, tparams, deftyp) ->
-      (match Opaque_types.check_declaration ctx.opaque_types ~id ~deftyp with
+      (match Opaque_types.check_declaration opaque_types ~id ~deftyp with
       | Ok () -> ()
       | Error message -> error id.at message);
-      let typdef = (tparams, deftyp) in
-      Ctx.add_typdef Global ctx id typdef
+      Ctx.Global.Syntax (id, (tparams, deftyp))
   | RelD (id, mode, block, elseblock_opt) ->
-      let rel = (mode, block, elseblock_opt) in
-      Ctx.add_rel Global ctx id rel
+      Ctx.Global.Relation (id, (mode, block, elseblock_opt))
   | BuiltinDecD (id, tparams, _, typ) ->
-      Ctx.add_func Global ctx id (Ctx.Func.Builtin (tparams, typ))
+      Ctx.Global.Function (id, Ctx.Func.Builtin (tparams, typ))
   | DecD (id, tparams, args_input, block, elseblock_opt) ->
-      let func = Ctx.Func.Defined (tparams, args_input, block, elseblock_opt) in
-      Ctx.add_func Global ctx id func
+      Ctx.Global.Function
+        (id, Ctx.Func.Defined (tparams, args_input, block, elseblock_opt))
 
-let load_spec (ctx : Ctx.t) (spec : spec) : Ctx.t =
-  List.fold_left load_def ctx spec
+let context_of_spec (spec : spec) ~builtins ~cache ~opaque_types
+    ~check_determinism : Ctx.t =
+  let definitions = List.map (global_definition_of_def ~opaque_types) spec in
+  let global = Ctx.Global.of_definitions_exn definitions in
+  Ctx.make global ~builtins ~cache ~opaque_types ~check_determinism
