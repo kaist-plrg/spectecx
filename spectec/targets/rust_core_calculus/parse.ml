@@ -21,9 +21,14 @@ let read_file path =
     ~finally:(fun () -> close_in ic)
     (fun () -> really_input_string ic (in_channel_length ic))
 
+(* The tokens of the Rust source [src], and the outcome of parsing them as a
+   [program]. *)
+let parse_source grammar src : Lexer.token list * Earley.outcome =
+  let tokens = Lexer.tokenize src in
+  (tokens, Earley.run Lexicon.lexicon grammar "program" tokens)
+
 (* The tokens of the Rust file at [path], and the outcome of parsing them as a
    [program]. The tokens give the source positions of the outcome's token
    indices. *)
 let parse_file grammar path : Lexer.token list * Earley.outcome =
-  let tokens = Lexer.tokenize (read_file path) in
-  (tokens, Earley.run Lexicon.lexicon grammar "program" tokens)
+  parse_source grammar (read_file path)

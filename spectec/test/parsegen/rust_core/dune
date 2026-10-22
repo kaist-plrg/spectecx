@@ -67,3 +67,79 @@
  (alias runtest)
  (action
   (diff plain_iteration.expected plain_iteration.actual)))
+
+; `spectecx rust check` (Task 1.6): parse a program with the grammar of the
+; snapshot syntax.spectec, run a relation on it, print the verdict. The
+; relation is a stub (stub-elabform.spectec) until Task 1.5 writes the real
+; ElabForm. Each run's exit code is checked too: 0 holds, 1 does not, 2 parse
+; reject. Diagnostics go to check.stderr, which is not compared.
+
+(rule
+ (targets check.actual check.stderr)
+ (deps
+  %{bin:spectec}
+  (package spectec)
+  (source_tree ../../../testdata/parsegen/rust-core)
+  stub-elabform.spectec
+  check-elab.rs
+  check-not-elab.rs
+  check-parse-reject.rs)
+ (action
+  (with-stderr-to
+   check.stderr
+   (with-stdout-to
+    check.actual
+    (progn
+     (echo "check-elab.rs\n")
+     (with-accepted-exit-codes
+      0
+      (run
+       %{bin:spectec}
+       rust
+       check
+       -s
+       ../../../testdata/parsegen/rust-core/syntax.spectec
+       -s
+       stub-elabform.spectec
+       --no-prelude
+       --relation
+       ElabForm
+       -p
+       check-elab.rs))
+     (echo "check-not-elab.rs\n")
+     (with-accepted-exit-codes
+      1
+      (run
+       %{bin:spectec}
+       rust
+       check
+       -s
+       ../../../testdata/parsegen/rust-core/syntax.spectec
+       -s
+       stub-elabform.spectec
+       --no-prelude
+       --relation
+       ElabForm
+       -p
+       check-not-elab.rs))
+     (echo "check-parse-reject.rs\n")
+     (with-accepted-exit-codes
+      2
+      (run
+       %{bin:spectec}
+       rust
+       check
+       -s
+       ../../../testdata/parsegen/rust-core/syntax.spectec
+       -s
+       stub-elabform.spectec
+       --no-prelude
+       --relation
+       ElabForm
+       -p
+       check-parse-reject.rs)))))))
+
+(rule
+ (alias runtest)
+ (action
+  (diff check.expected check.actual)))

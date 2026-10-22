@@ -1,13 +1,40 @@
-; Rust-specific code for the core-calculus grammar of rs-implied-bounds: a
-; lexer, the lexicon Parsegen.Earley needs beyond the grammar, and parsing a
-; file. Not yet a full target (no package, plugin, or tasks): the calculus has
-; no relation to run yet.
+; The Rust core-calculus target of rs-implied-bounds: a lexer, the lexicon
+; Parsegen.Earley needs beyond the grammar, parsing a file, and the `rust
+; check` command (rust_cli.ml), which runs a relation of the calculus on a
+; parsed program. builtins/ is for the calculus's builtin functions; empty
+; for now.
+;
+; The plugin belongs to package spectec rather than a package of its own, so
+; that registering it touches no file outside this directory (dune-project
+; declares the packages).
 
 (library
  (name targets_rust_core_calculus)
+ (public_name spectec.target-rust-core-calculus)
+ (modules
+  (:standard \ register_rust))
  (libraries
   spectec
+  spectec.cli
   spectec.grammar
   spectec.parsegen
   spectec.lang
-  bignum.bigint))
+  spectec.interp.eval_il
+  spectec.interp.eval_sl
+  bignum.bigint
+  core)
+ (preprocess
+  (pps ppx_let)))
+
+(library
+ (name register_rust)
+ (public_name spectec.target-rust-core-calculus-plugin)
+ (modules register_rust)
+ (libraries spectec.cli targets_rust_core_calculus))
+
+(plugin
+ (name rust)
+ (package spectec)
+ (libraries spectec.target-rust-core-calculus-plugin)
+ (site
+  (spectec target_plugins)))
