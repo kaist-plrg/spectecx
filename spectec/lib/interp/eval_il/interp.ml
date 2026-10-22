@@ -34,7 +34,7 @@ let rec assign_exp (ctx : Ctx.t) (exp : exp) (value : value) : Ctx.t =
   let note = value.note.typ in
   match (exp.it, value.it) with
   | VarE id, _ ->
-      let ctx = Ctx.add_value_exn ctx ~var:(id, []) ~value in
+      let ctx = Ctx.set_value ctx ~var:(id, []) ~value in
       ctx
   | TupleE exps, TupleV values -> assign_exps ctx exps values
   | CaseE notexp, CaseV valuecase ->
@@ -68,7 +68,7 @@ let rec assign_exp (ctx : Ctx.t) (exp : exp) (value : value) : Ctx.t =
             ((id, iters @ [ Opt ]), value_sub))
           vars
       in
-      Ctx.add_values_exn ctx ~bindings
+      Ctx.set_values ctx ~bindings
   | IterE (exp, (Opt, vars)), OptV (Some value) ->
       (* Assign the value to the iterated expression *)
       let ctx_inner = assign_exp ctx exp value in
@@ -84,7 +84,7 @@ let rec assign_exp (ctx : Ctx.t) (exp : exp) (value : value) : Ctx.t =
             ((id, iters @ [ Opt ]), value_sub))
           vars
       in
-      Ctx.add_values_exn ctx ~bindings
+      Ctx.set_values ctx ~bindings
   | IterE (exp, (List, vars)), ListV values ->
       (* Map over the value list elements,
          and assign each value to the iterated expression *)
@@ -108,7 +108,7 @@ let rec assign_exp (ctx : Ctx.t) (exp : exp) (value : value) : Ctx.t =
             let typ = Lang.Il.Typ.iterate typ (iters @ [ List ]) in
             values |> Value.Make.list typ.it
           in
-          Ctx.add_value_exn ctx ~var:(id, iters @ [ List ]) ~value:value_sub)
+          Ctx.set_value ctx ~var:(id, iters @ [ List ]) ~value:value_sub)
         ctx vars
   | _ ->
       error exp.at
