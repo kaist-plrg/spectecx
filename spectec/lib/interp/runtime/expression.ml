@@ -11,9 +11,18 @@ module type Context = sig
   type t
   type annotation
 
+  module Func : sig
+    type t
+  end
+
   val find_value_exn : t -> var:Envs.Interp.Var.t -> Lang.Il.value
   val opaque_types : t -> Opaque_types.t
   val find_typdef_exn : t -> id:Common.Domain.TId.t -> Envs.Il.Typdef.t
+  val find_func_exn : t -> id:Common.Domain.FId.t -> Func.t
+  val add_func_exn : t -> id:Common.Domain.FId.t -> func:Func.t -> t
+  val set_value : t -> var:Envs.Interp.Var.t -> value:Lang.Il.value -> t
+  val set_values : t -> bindings:(Envs.Interp.Var.t * Lang.Il.value) list -> t
+  val without_values : t -> t
 
   val for_optional_iteration :
     t -> vars:Lang.Il.var list -> t option Common.Attempt.attempt
@@ -31,6 +40,109 @@ module Make (Ctx : Context) = struct
   type arg = Ctx.annotation Il.Expression.arg
 
   let error = Ctx.error
+
+  let rec assign_exp (ctx : Ctx.t) ~(exp : exp) ~(value : value) : Ctx.t =
+    match (exp.it, value.it) with
+    | VarE id, _ -> Ctx.set_value ctx ~var:(id, []) ~value
+    | TupleE exps, TupleV values | ListE exps, ListV values ->
+        assign_exps ctx ~exps ~values
+    | CaseE notexp, CaseV valuecase ->
+        assign_exps ctx ~exps:(Mixfix.args notexp)
+          ~values:(Mixfix.args valuecase)
+    | StrE expfields, StructV valuefields ->
+        assign_exps ctx ~exps:(List.map snd expfields)
+          ~values:(List.map snd valuefields)
+    | OptE (Some exp), OptV (Some value) -> assign_exp ctx ~exp ~value
+    | OptE None, OptV None -> ctx
+    | ConsE (exp_h, exp_t), ListV (value_h :: values_t) ->
+        let value_t = Value.Make.list value.note.typ values_t in
+        let ctx = assign_exp ctx ~exp:exp_h ~value:value_h in
+        assign_exp ctx ~exp:exp_t ~value:value_t
+    | IterE (_, (Opt, vars)), OptV None ->
+        let bindings =
+          List.map
+            (fun { varid; typ; iters } ->
+              let typ = Il.Typ.iterate typ (iters @ [ Opt ]) in
+              ((varid, iters @ [ Opt ]), Value.Make.opt typ.it None))
+            vars
+        in
+        Ctx.set_values ctx ~bindings
+    | IterE (exp, (Opt, vars)), OptV (Some value) ->
+        let ctx_inner = assign_exp ctx ~exp ~value in
+        let bindings =
+          List.map
+            (fun { varid; typ; iters } ->
+              let value = Ctx.find_value_exn ctx_inner ~var:(varid, iters) in
+              let typ = Il.Typ.iterate typ (iters @ [ Opt ]) in
+              ((varid, iters @ [ Opt ]), Value.Make.opt typ.it (Some value)))
+            vars
+        in
+        Ctx.set_values ctx ~bindings
+    | IterE (exp, (List, vars)), ListV values ->
+        let ctx_inner = Ctx.without_values ctx in
+        let ctxs =
+          List.map (fun value -> assign_exp ctx_inner ~exp ~value) values
+        in
+        let bindings =
+          List.map
+            (fun { varid; typ; iters } ->
+              let values =
+                List.map
+                  (fun ctx -> Ctx.find_value_exn ctx ~var:(varid, iters))
+                  ctxs
+              in
+              let typ = Il.Typ.iterate typ (iters @ [ List ]) in
+              ((varid, iters @ [ List ]), Value.Make.list typ.it values))
+            vars
+        in
+        Ctx.set_values ctx ~bindings
+    | _ ->
+        let exp = Il.Expression.map_annotations (fun _ -> ()) exp in
+        error exp.at
+          (Format.asprintf "match failed %s <- %s"
+             (Il.Print.string_of_exp exp)
+             (Il.Print.string_of_value ~short:true value))
+
+  and assign_exps (ctx : Ctx.t) ~(exps : exp list) ~(values : value list) :
+      Ctx.t =
+    if List.length exps <> List.length values then
+      error
+        (over_region (List.map at exps))
+        (Format.asprintf
+           "mismatch in number of expressions and values while assigning, \
+            expected %d value(s) but got %d"
+           (List.length exps) (List.length values));
+    List.fold_left2
+      (fun ctx exp value -> assign_exp ctx ~exp ~value)
+      ctx exps values
+
+  let assign_arg (callee : Ctx.t) ~(caller : Ctx.t) ~(arg : arg)
+      ~(value : value) : Ctx.t =
+    match arg.it with
+    | ExpA exp -> assign_exp callee ~exp ~value
+    | DefA id -> (
+        match value.it with
+        | FuncV id_f ->
+            let func = Ctx.find_func_exn caller ~id:id_f in
+            Ctx.add_func_exn callee ~id ~func
+        | _ ->
+            error id.at
+              (Format.asprintf "cannot assign a value %s to a definition %s"
+                 (Il.Print.string_of_value ~short:true value)
+                 id.it))
+
+  let assign_args (callee : Ctx.t) ~(caller : Ctx.t) ~(args : arg list)
+      ~(values : value list) : Ctx.t =
+    if List.length args <> List.length values then
+      error
+        (over_region (List.map at args))
+        (Format.asprintf
+           "mismatch in number of arguments and values while assigning, \
+            expected %d value(s) but got %d"
+           (List.length args) (List.length values));
+    List.fold_left2
+      (fun callee arg value -> assign_arg callee ~caller ~arg ~value)
+      callee args values
 
   let matches_pattern (value : value) ~(pattern : pattern) : bool =
     match (pattern, value.it) with

@@ -14,140 +14,6 @@ module F = Format
 
 let ( let* ) = Option.bind
 
-(* Assignments *)
-
-(* Assigning a value to an expression *)
-
-let rec assign_exp (ctx : Ctx.t) (exp : exp) (value : value) : Ctx.t =
-  let note = value.note.typ in
-  match (exp.it, value.it) with
-  | VarE id, _ ->
-      let ctx = Ctx.set_value ctx ~var:(id, []) ~value in
-      ctx
-  | TupleE exps_inner, TupleV values_inner ->
-      let ctx = assign_exps ctx exps_inner values_inner in
-      ctx
-  | CaseE notexp, CaseV valuecase ->
-      let exps_inner = Mixop.args notexp in
-      let values_inner = Mixop.args valuecase in
-      let ctx = assign_exps ctx exps_inner values_inner in
-      ctx
-  | StrE expfields, StructV valuefields ->
-      let exps_inner = List.map snd expfields in
-      let values_inner = List.map snd valuefields in
-      let ctx = assign_exps ctx exps_inner values_inner in
-      ctx
-  | OptE exp_opt, OptV value_opt -> (
-      match (exp_opt, value_opt) with
-      | Some exp_inner, Some value_inner ->
-          let ctx = assign_exp ctx exp_inner value_inner in
-          ctx
-      | None, None -> ctx
-      | _ -> assert false)
-  | ListE exps_inner, ListV values_inner ->
-      let ctx = assign_exps ctx exps_inner values_inner in
-      ctx
-  | ConsE (exp_h, exp_t), ListV values_inner ->
-      let value_h = List.hd values_inner in
-      let value_t = List.tl values_inner |> Value.Make.list note in
-      let ctx = assign_exp ctx exp_h value_h in
-      let ctx = assign_exp ctx exp_t value_t in
-      ctx
-  | IterE (_, (Opt, vars)), OptV None ->
-      (* Per iterated variable, make an option out of the value *)
-      List.fold_left
-        (fun ctx { Il.varid = id; typ; iters } ->
-          let value_sub =
-            let typ = Il.Typ.iterate typ (iters @ [ Il.Opt ]) in
-            None |> Value.Make.opt typ.it
-          in
-          Ctx.set_value ctx ~var:(id, iters @ [ Il.Opt ]) ~value:value_sub)
-        ctx vars
-  | IterE (exp, (Opt, vars)), OptV (Some value) ->
-      (* Assign the value to the iterated expression *)
-      let ctx_inner = assign_exp ctx exp value in
-      (* Per iterated variable, make an option out of the value *)
-      List.fold_left
-        (fun ctx { Il.varid = id; typ; iters } ->
-          let value_sub =
-            let value = Ctx.find_value_exn ctx_inner ~var:(id, iters) in
-            let typ = Il.Typ.iterate typ (iters @ [ Il.Opt ]) in
-            Some value |> Value.Make.opt typ.it
-          in
-          Ctx.set_value ctx ~var:(id, iters @ [ Il.Opt ]) ~value:value_sub)
-        ctx vars
-  | IterE (exp, (List, vars)), ListV values ->
-      (* Map over the value list elements,
-         and assign each value to the iterated expression *)
-      let ctxs_rev =
-        List.fold_left
-          (fun ctxs_rev value ->
-            let ctx = Ctx.without_values ctx in
-            let ctx = assign_exp ctx exp value in
-            ctx :: ctxs_rev)
-          [] values
-      in
-      let ctxs = List.rev ctxs_rev in
-      (* Per iterated variable, collect its elementwise value,
-         then make a sequence out of them *)
-      List.fold_left
-        (fun ctx { Il.varid = id; typ; iters } ->
-          let values =
-            List.map (fun ctx -> Ctx.find_value_exn ctx ~var:(id, iters)) ctxs
-          in
-          let value_sub =
-            let typ = Il.Typ.iterate typ (iters @ [ Il.List ]) in
-            values |> Value.Make.list typ.it
-          in
-          Ctx.set_value ctx ~var:(id, iters @ [ Il.List ]) ~value:value_sub)
-        ctx vars
-  | _ ->
-      error exp.at
-        (F.asprintf "(TODO) match failed %s <- %s"
-           (Lang.Sl.Print.string_of_exp exp)
-           (Lang.Sl.Print.string_of_value ~short:true value))
-
-and assign_exps (ctx : Ctx.t) (exps : exp list) (values : value list) : Ctx.t =
-  let region = over_region (List.map at exps) in
-  checkf
-    (List.length exps = List.length values)
-    region
-    "mismatch in number of expressions and values while assigning, expected %d \
-     value(s) but got %d"
-    (List.length exps) (List.length values);
-  List.fold_left2 assign_exp ctx exps values
-
-(* Assigning a value to an argument *)
-
-and assign_arg (ctx_caller : Ctx.t) (ctx_callee : Ctx.t) (arg : arg)
-    (value : value) : Ctx.t =
-  let assign_arg_exp ctx exp value = assign_exp ctx exp value in
-  let assign_arg_def ctx_caller ctx_callee id value =
-    match value.it with
-    | Il.FuncV id_f ->
-        let func = Ctx.find_func_exn ctx_caller ~id:id_f in
-        Ctx.add_func_exn ctx_callee ~id ~func
-    | _ ->
-        error id.at
-          (F.asprintf "cannot assign a value %s to a definition %s"
-             (Lang.Sl.Print.string_of_value ~short:true value)
-             id.it)
-  in
-  match arg.it with
-  | ExpA exp -> assign_arg_exp ctx_callee exp value
-  | DefA id -> assign_arg_def ctx_caller ctx_callee id value
-
-and assign_args (ctx_caller : Ctx.t) (ctx_callee : Ctx.t) (args : arg list)
-    (values : value list) : Ctx.t =
-  let region = over_region (List.map at args) in
-  checkf
-    (List.length args = List.length values)
-    region
-    "mismatch in number of arguments and values while assigning, expected %d \
-     value(s) but got %d"
-    (List.length args) (List.length values);
-  List.fold_left2 (assign_arg ctx_caller) ctx_callee args values
-
 module Expressions = Interp_runtime.Expression.Make (struct
   include Ctx
 
@@ -411,7 +277,7 @@ and eval_let_instr (ctx : Ctx.t) (exp_l : exp) (exp_r : exp)
     let rec eval_let_iter' ctx exp_l exp_r iterexps =
       let eval_let ctx exp_l exp_r =
         let value = eval_exp ctx exp_r in
-        assign_exp ctx exp_l value
+        Expressions.assign_exp ctx ~exp:exp_l ~value
       in
       let eval_let_opt ctx exp_l exp_r vars iterexps =
         (* Discriminate between bound and binding variables *)
@@ -570,7 +436,7 @@ and eval_rel_instr (ctx : Ctx.t) (id : id) (notexp : notexp)
           | Some values_output -> values_output
           | None -> error id.at "relation was not matched"
         in
-        assign_exps ctx exps_output values_output
+        Expressions.assign_exps ctx ~exps:exps_output ~values:values_output
       in
       (* Relation list evaluation *)
       let eval_rel_list ctx id notexp vars iterexps =
@@ -717,7 +583,9 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
     Instrumentation.Dispatcher.emit
       (Events.Rule_enter { id = id.it; rule_id = "0"; at = id.at });
     let ctx_local = Ctx.for_call ctx in
-    let ctx_local = assign_exps ctx_local exps_input values_input in
+    let ctx_local =
+      Expressions.assign_exps ctx_local ~exps:exps_input ~values:values_input
+    in
     let sign = eval_instrs ctx_local block in
     let sign =
       match (sign, elseblock_opt) with
@@ -807,7 +675,10 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     let attempt_clauses () =
       Instrumentation.Dispatcher.emit
         (Events.Clause_enter { id = id.it; clause_idx = 0; at = id.at });
-      let ctx_local = assign_args ctx ctx_local args_input values_input in
+      let ctx_local =
+        Expressions.assign_args ctx_local ~caller:ctx ~args:args_input
+          ~values:values_input
+      in
       let sign = eval_instrs ctx_local block in
       let sign =
         match (sign, elseblock_opt) with
