@@ -68,19 +68,23 @@
  (action
   (diff plain_iteration.expected plain_iteration.actual)))
 
-; `spectecx rust check` (Task 1.6): parse a program with the grammar of the
-; snapshot syntax.spectec, run a relation on it, print the verdict. The
-; relation is a stub (stub-elabform.spectec) until Task 1.5 writes the real
-; ElabForm. Each run's exit code is checked too: 0 holds, 1 does not, 2 parse
-; reject. Diagnostics go to check.stderr, which is not compared.
+; `spectecx rust check` (Task 1.6): parse a program with a grammar, run a
+; relation on it, print the verdict. The relation is the real ElabForm of
+; Task 1.5. syntax.spectec and 05-elabform.spectec here are copies of
+; 06-core-calculus/spectec/syntax.spectec and
+; 06-core-calculus/spectec/static/05-elabform.spectec of the research repo
+; (2026-10-22); ElabForm needs that grammar, not the older snapshot in
+; testdata/parsegen/rust-core used by goals and report above. Each run's exit
+; code is checked too: 0 holds, 1 does not, 2 parse reject. Diagnostics go to
+; check.stderr, which is not compared.
 
 (rule
  (targets check.actual check.stderr)
  (deps
   %{bin:spectec}
   (package spectec)
-  (source_tree ../../../testdata/parsegen/rust-core)
-  stub-elabform.spectec
+  syntax.spectec
+  05-elabform.spectec
   check-elab.rs
   check-not-elab.rs
   check-parse-reject.rs)
@@ -98,9 +102,9 @@
        rust
        check
        -s
-       ../../../testdata/parsegen/rust-core/syntax.spectec
+       syntax.spectec
        -s
-       stub-elabform.spectec
+       05-elabform.spectec
        --no-prelude
        --relation
        ElabForm
@@ -114,9 +118,9 @@
        rust
        check
        -s
-       ../../../testdata/parsegen/rust-core/syntax.spectec
+       syntax.spectec
        -s
-       stub-elabform.spectec
+       05-elabform.spectec
        --no-prelude
        --relation
        ElabForm
@@ -130,9 +134,9 @@
        rust
        check
        -s
-       ../../../testdata/parsegen/rust-core/syntax.spectec
+       syntax.spectec
        -s
-       stub-elabform.spectec
+       05-elabform.spectec
        --no-prelude
        --relation
        ElabForm
