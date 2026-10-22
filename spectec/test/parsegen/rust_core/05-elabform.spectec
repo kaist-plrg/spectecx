@@ -204,6 +204,10 @@ def $structents((STRUCT id generics? `( typ* `) ';') :: item'*) =
   (_ENT id $nreq(generics?, eps, eps)) :: $structents(item'*)
 def $structents((STRUCT id generics? ';') :: item'*) =
   (_ENT id $nreq(generics?, eps, eps)) :: $structents(item'*)
+;; [EXT-24] an enum's type path (Option::<T>::map) carries all its type args,
+;; as a struct's does. Its variants (None::<T>) are not in the table.
+def $structents((ENUM id generics? whereclause? `{ variant* `}) :: item'*) =
+  (_ENT id $nreq(generics?, eps, eps)) :: $structents(item'*)
 def $structents(item :: item'*) = $structents(item'*)
   -- otherwise
 
@@ -449,6 +453,9 @@ rule ItemE/tuple-struct:
 
 rule ItemE/unit-struct:
   ectx |- (STRUCT id generics? ';') ELAB
+
+rule ItemE/enum:
+  ectx |- (ENUM id generics? whereclause? `{ variant* `}) ELAB
 
 rule ItemE/trait:
   ectx |- (TRAIT id generics? supers? whereclause? `{ titem* `}) ELAB

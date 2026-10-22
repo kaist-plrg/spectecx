@@ -49,6 +49,10 @@
 ;;    EXT-22 fn without a body, `fn f(..) -> T;`, in an impl and at the top
 ;;           level, as a trait method already is
 ;;    EXT-23 inherent impl `impl<T> Box<T> { .. }`
+;;  [EXT-24] enum item with unit and tuple variants, `enum Option<T> { None,
+;;          Some(T) }`, for Option and Result in the prelude; no struct
+;;          variant, no discriminant, no match. The lexicon reads `enum` as
+;;          the atom ENUM and separates `variant*` by commas.
 ;;
 ;; Differences forced by SpecTec EL (only the first one changes the
 ;; accepted language; see ../spectec/correspondence.pdf):
@@ -216,6 +220,10 @@ syntax attrarg = `( path `)
 syntax attr = '#' `[ path attrarg? `]           (; [EXT-16] OuterAttribute: #[define_opaque(F)] ;)
 syntax iattr = '#' '!' `[ path attrarg? `]      (; [EXT-16] InnerAttribute: #![feature(type_alias_impl_trait)] ;)
 
+syntax variant =                      (; [EXT-24] EnumVariant ;)
+  | _UNITVAR id                       (; unit variant: None ;)
+  | _TUPLEVAR id `( typ* `)           (; tuple variant: Some(T) ;)
+
 syntax item =                         (; I ;)
   | _ATTRED attr item                 (; [EXT-16] item with an outer attribute ;)
   | TYPE id generics? '=' typ ';'     (; [EXT-15] TypeAlias: type Payload = Box<i32>; ;)
@@ -226,6 +234,7 @@ syntax item =                         (; I ;)
   | STRUCT id generics? `( typ* `) ';'
                                       (; TupleStruct: struct Foo<'a, 'b: 'a>(&'a (), &'b ()); ;)
   | STRUCT id generics? ';'           (; [EXT-5] UnitStruct: struct MyStruct; ;)
+  | ENUM id generics? whereclause? `{ variant* `}  (; [EXT-24] Enumeration: enum Option<T> { None, Some(T) } ;)
   | TRAIT id generics? supers? whereclause? `{ titem* `}
                                       (; Trait: trait Static: 'static {} ;)
   | IMPL generics? traitref FOR typ whereclause? `{ iitem* `}
