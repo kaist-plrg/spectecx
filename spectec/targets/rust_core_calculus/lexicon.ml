@@ -36,6 +36,10 @@ let keywords =
     ("Sized", "Sized");
     (* The item keyword static; STATIC is already the lifetime 'static. *)
     ("static", "STATICKW");
+    (* The elaborated form's type names closure#N and opaque#path (fn#path
+       uses FN). *)
+    ("closure", "CLOSURE");
+    ("opaque", "OPAQUE");
   ]
 
 let other_rust_keywords =
