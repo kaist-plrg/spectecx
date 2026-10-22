@@ -68,12 +68,12 @@ let rec assign_exp (ctx : Ctx.t) (exp : exp) (value : value) : Ctx.t =
         ctx vars
   | IterE (exp, (Opt, vars)), OptV (Some value) ->
       (* Assign the value to the iterated expression *)
-      let ctx = assign_exp ctx exp value in
+      let ctx_inner = assign_exp ctx exp value in
       (* Per iterated variable, make an option out of the value *)
       List.fold_left
         (fun ctx { Il.varid = id; typ; iters } ->
           let value_sub =
-            let value = Ctx.find_value_exn ctx ~var:(id, iters) in
+            let value = Ctx.find_value_exn ctx_inner ~var:(id, iters) in
             let typ = Il.Typ.iterate typ (iters @ [ Il.Opt ]) in
             Some value |> Value.Make.opt typ.it
           in
