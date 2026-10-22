@@ -40,6 +40,8 @@ let keywords =
        uses FN). *)
     ("closure", "CLOSURE");
     ("opaque", "OPAQUE");
+    (* The item keyword enum (EXT-24). *)
+    ("enum", "ENUM");
   ]
 
 let other_rust_keywords =
@@ -51,7 +53,6 @@ let other_rust_keywords =
     "continue";
     "crate";
     "else";
-    "enum";
     "extern";
     "false";
     "if";
@@ -109,7 +110,7 @@ let lexical_tag (tok : Lexer.token) : string option =
    element syntaxes; every other x* (item*, stmt*, pathseg*, ...) has no
    separator. *)
 let comma_separated =
-  [ "gparam"; "lname"; "pred"; "garg"; "typ"; "param"; "cparam"; "expr"; "pat" ]
+  [ "gparam"; "lname"; "pred"; "garg"; "typ"; "param"; "cparam"; "expr"; "pat"; "variant" ]
 
 let lexicon : Lexer.token Earley.lexicon =
   {
