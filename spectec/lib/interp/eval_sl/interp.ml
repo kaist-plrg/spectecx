@@ -163,25 +163,24 @@ and eval_args ctx args = Expressions.eval_args args ~ctx ~call_func:invoke_func
 
 (* Instruction evaluation *)
 
-and eval_instr (ctx : Ctx.t) (instr : instr) : Ctx.t * Sign.t =
+and eval_instr (ctx : Ctx.t) (instr : instr) : Sign.t =
   Instrumentation.Dispatcher.emit (Events.Instr { instr; at = instr.at });
   (* Result instruction evaluation *)
   let eval_result_instr ctx exps =
     let values = eval_exps ctx exps in
-    (ctx, Sign.Res values)
+    Sign.Res values
   in
   (* Return instruction evaluation *)
   let eval_return_instr ctx exp =
     let value = eval_exp ctx exp in
-    (ctx, Sign.Ret value)
+    Sign.Ret value
   in
   (* Debug instruction evaluation *)
   let eval_debug_instr ctx exp =
     let value = eval_exp ctx exp in
     print_endline
     @@ F.sprintf "%s: %s" (string_of_region exp.at) (Il.Print.string_of_exp exp);
-    print_endline @@ Il.Print.string_of_value value;
-    ctx
+    print_endline @@ Il.Print.string_of_value value
   in
   match instr.it with
   | RelI { call; iterexps; block } ->
@@ -197,46 +196,38 @@ and eval_instr (ctx : Ctx.t) (instr : instr) : Ctx.t * Sign.t =
   | ResultI exps -> eval_result_instr ctx exps
   | ReturnI exp -> eval_return_instr ctx exp
   | DebugI (exp, instr_body) ->
-      let ctx = eval_debug_instr ctx exp in
+      eval_debug_instr ctx exp;
       eval_instr ctx instr_body
 
 (* Each SL instruction contains one alternative's continuation. *)
-and eval_instrs (ctx : Ctx.t) (sign : Sign.t) (instrs : instr list) :
-    Ctx.t * Sign.t =
-  if Ctx.has_determinism_checks ctx then eval_instrs_unique ctx sign instrs
+and eval_instrs (ctx : Ctx.t) (instrs : instr list) : Sign.t =
+  if Ctx.has_determinism_checks ctx then eval_instrs_unique ctx instrs
   else
     List.fold_left
-      (fun (ctx, sign) instr ->
-        match sign with Sign.Cont -> eval_instr ctx instr | _ -> (ctx, sign))
-      (ctx, sign) instrs
+      (fun sign instr ->
+        match sign with Sign.Cont -> eval_instr ctx instr | _ -> sign)
+      Sign.Cont instrs
 
-and eval_instrs_unique (ctx : Ctx.t) (sign : Sign.t) (instrs : instr list) :
-    Ctx.t * Sign.t =
-  match sign with
-  | Sign.Res _ | Sign.Ret _ -> (ctx, sign)
-  | Sign.Cont -> (
-      let ctx_unmatched, applied =
-        List.fold_left
-          (fun (ctx_unmatched, applied) instr ->
-            match (eval_instr ctx_unmatched instr, applied) with
-            | (ctx_post, Sign.Cont), _ -> (ctx_post, applied)
-            | result, None -> (ctx_unmatched, Some (result, instr.at))
-            | _, Some (_, at_applied) ->
-                error instr.at
-                  (F.asprintf
-                     "this alternative applies, and so does the alternative at \
-                      %s"
-                     (string_of_region at_applied)))
-          (ctx, None) instrs
-      in
-      match applied with
-      | Some (result, _) -> result
-      | None -> (ctx_unmatched, Sign.Cont))
+and eval_instrs_unique (ctx : Ctx.t) (instrs : instr list) : Sign.t =
+  let applied =
+    List.fold_left
+      (fun applied instr ->
+        match (eval_instr ctx instr, applied) with
+        | Sign.Cont, _ -> applied
+        | sign, None -> Some (sign, instr.at)
+        | _, Some (_, at_applied) ->
+            error instr.at
+              (F.asprintf
+                 "this alternative applies, and so does the alternative at %s"
+                 (string_of_region at_applied)))
+      None instrs
+  in
+  match applied with Some (sign, _) -> sign | None -> Sign.Cont
 
 (* If instruction evaluation *)
 
 and eval_if_instr (ctx : Ctx.t) (exp_cond : exp) (iterexps : iterexp list)
-    (instrs_then : instr list) : Ctx.t * Sign.t =
+    (instrs_then : instr list) : Sign.t =
   let eval_if_cond_iter ctx exp_cond iterexps =
     let rec eval_if_cond_iter' ctx exp_cond iterexps =
       let eval_if_cond ctx exp_cond =
@@ -299,13 +290,12 @@ and eval_if_instr (ctx : Ctx.t) (exp_cond : exp) (iterexps : iterexp list)
     eval_if_cond_iter' ctx exp_cond iterexps
   in
   let cond, _value_cond = eval_if_cond_iter ctx exp_cond iterexps in
-  if cond then eval_instrs ctx Cont instrs_then else (ctx, Cont)
+  if cond then eval_instrs ctx instrs_then else Cont
 
 (* Relation-assertion instruction evaluation *)
 
 and eval_rel_assert_instr (ctx : Ctx.t) (id : id) (notexp : notexp)
-    (expect : bool) (iterexps : iterexp list) (block : instr list) :
-    Ctx.t * Sign.t =
+    (expect : bool) (iterexps : iterexp list) (block : instr list) : Sign.t =
   let eval_rel_assert_cond_iter ctx id notexp iterexps =
     let rec eval_rel_assert_cond_iter' ctx id notexp iterexps =
       let eval_rel_assert_cond ctx id notexp =
@@ -373,12 +363,11 @@ and eval_rel_assert_instr (ctx : Ctx.t) (id : id) (notexp : notexp)
     eval_rel_assert_cond_iter' ctx id notexp iterexps
   in
   let cond, _value_cond = eval_rel_assert_cond_iter ctx id notexp iterexps in
-  if cond then eval_instrs ctx Cont block else (ctx, Cont)
+  if cond then eval_instrs ctx block else Cont
 
 (* Case analysis instruction evaluation *)
 
-and eval_case_instr (ctx : Ctx.t) (exp : exp) (cases : case list) :
-    Ctx.t * Sign.t =
+and eval_case_instr (ctx : Ctx.t) (exp : exp) (cases : case list) : Sign.t =
   let eval_cases ctx exp cases =
     cases
     |> List.fold_left
@@ -412,14 +401,12 @@ and eval_case_instr (ctx : Ctx.t) (exp : exp) (cases : case list) :
     (block_match, value_cond)
   in
   let instrs_opt, _value_cond = eval_cases ctx exp cases in
-  match instrs_opt with
-  | Some instrs -> eval_instrs ctx Cont instrs
-  | None -> (ctx, Cont)
+  match instrs_opt with Some instrs -> eval_instrs ctx instrs | None -> Cont
 
 (* Let instruction evaluation *)
 
 and eval_let_instr (ctx : Ctx.t) (exp_l : exp) (exp_r : exp)
-    (iterexps : iterexp list) (block : block) : Ctx.t * Sign.t =
+    (iterexps : iterexp list) (block : block) : Sign.t =
   let eval_let_iter ctx exp_l exp_r iterexps =
     let rec eval_let_iter' ctx exp_l exp_r iterexps =
       let eval_let ctx exp_l exp_r =
@@ -563,12 +550,12 @@ and eval_let_instr (ctx : Ctx.t) (exp_l : exp) (exp_r : exp)
     eval_let_iter' ctx exp_l exp_r iterexps
   in
   let ctx = eval_let_iter ctx exp_l exp_r iterexps in
-  eval_instrs ctx Cont block
+  eval_instrs ctx block
 
 (* Relation instruction evaluation *)
 
 and eval_rel_instr (ctx : Ctx.t) (id : id) (notexp : notexp)
-    (iterexps : iterexp list) (block : block) : Ctx.t * Sign.t =
+    (iterexps : iterexp list) (block : block) : Sign.t =
   let eval_rel_iter ctx id notexp iterexps =
     let rec eval_rel_iter' ctx id notexp iterexps =
       (* Single relation evaluation *)
@@ -713,7 +700,7 @@ and eval_rel_instr (ctx : Ctx.t) (id : id) (notexp : notexp)
     eval_rel_iter' ctx id notexp iterexps
   in
   let ctx = eval_rel_iter ctx id notexp iterexps in
-  eval_instrs ctx Cont block
+  eval_instrs ctx block
 
 (* Invoke a relation *)
 
@@ -731,11 +718,11 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
       (Events.Rule_enter { id = id.it; rule_id = "0"; at = id.at });
     let ctx_local = Ctx.for_call ctx in
     let ctx_local = assign_exps ctx_local exps_input values_input in
-    let ctx_local, sign = eval_instrs ctx_local Cont block in
-    let _, sign =
+    let sign = eval_instrs ctx_local block in
+    let sign =
       match (sign, elseblock_opt) with
-      | Cont, Some elseblock -> eval_instrs ctx_local Cont elseblock
-      | _ -> (ctx_local, sign)
+      | Cont, Some elseblock -> eval_instrs ctx_local elseblock
+      | _ -> sign
     in
     let result =
       match sign with Res values_output -> Some values_output | _ -> None
@@ -821,11 +808,11 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
       Instrumentation.Dispatcher.emit
         (Events.Clause_enter { id = id.it; clause_idx = 0; at = id.at });
       let ctx_local = assign_args ctx ctx_local args_input values_input in
-      let ctx_local, sign = eval_instrs ctx_local Cont block in
-      let _, sign =
+      let sign = eval_instrs ctx_local block in
+      let sign =
         match (sign, elseblock_opt) with
-        | Cont, Some elseblock -> eval_instrs ctx_local Cont elseblock
-        | _ -> (ctx_local, sign)
+        | Cont, Some elseblock -> eval_instrs ctx_local elseblock
+        | _ -> sign
       in
       match sign with
       | Ret value_output ->

@@ -811,7 +811,7 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
       (Events.Rule_enter { id = id.it; rule_id = "0"; at = id.at });
     let ctx_local = Ctx.for_call ctx in
     let ctx_local = assign_exps ctx_local exps_input values_input in
-    let ctx_local, sign = eval_instrs ctx_local Cont block in
+    let _, sign = eval_instrs ctx_local Cont block in
     let _, sign =
       match (sign, elseblock_opt) with
       | Cont, Some elseblock -> eval_instrs ctx_local Cont elseblock
@@ -901,7 +901,7 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
       Instrumentation.Dispatcher.emit
         (Events.Clause_enter { id = id.it; clause_idx = 0; at = id.at });
       let ctx_local = assign_args ctx ctx_local args_input values_input in
-      let ctx_local, sign = eval_instrs ctx_local Cont block in
+      let _, sign = eval_instrs ctx_local Cont block in
       let _, sign =
         match (sign, elseblock_opt) with
         | Cont, Some elseblock -> eval_instrs ctx_local Cont elseblock
