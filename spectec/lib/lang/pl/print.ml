@@ -252,10 +252,10 @@ and string_of_instr ?(short = false) ?(level = 0) ?(index = 0) instr =
           field_str
       in
       if short then s_short else Format.asprintf "%s%s" order s_short
-  | CheckLetI (exp_target, exp_source, block) ->
+  | CheckLetI { check = _; exp_l; exp_r; block } ->
       let s_short =
-        Format.asprintf "Check let %s be %s" (string_of_exp exp_target)
-          (string_of_exp exp_source)
+        Format.asprintf "Check let %s be %s" (string_of_exp exp_l)
+          (string_of_exp exp_r)
       in
       if short then s_short
       else

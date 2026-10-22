@@ -119,13 +119,6 @@ and assign_exps (ctx : Ctx.t) (exps : exp list) (values : value list) : Ctx.t =
        (List.length exps) (List.length values));
   List.fold_left2 assign_exp ctx exps values
 
-(* A speculative assignment: a subtype check can leave the target's shape not
-   matching the value (an option target against a [None], say), so the bind is
-   allowed to fail and the caller falls through. *)
-and assign_exp_opt (ctx : Ctx.t) (exp : exp) (value : value) : Ctx.t option =
-  try Some (assign_exp ctx exp value)
-  with InterpError _ | Interp_runtime.Context.Error _ -> None
-
 (* Assigning a value to an argument *)
 
 and assign_arg (ctx_caller : Ctx.t) (ctx_callee : Ctx.t) (arg : arg)
@@ -206,8 +199,8 @@ and eval_instr (ctx : Ctx.t) (instr : instr) : Ctx.t * Sign.t =
   | DebugI exp -> eval_debug_instr ctx exp
   | TryI arms -> eval_try_instr ctx arms
   | DestructI (fields, exp_source) -> eval_destruct_instr ctx fields exp_source
-  | CheckLetI (exp_l, exp_r, block) ->
-      eval_check_let_instr ctx exp_l exp_r block
+  | CheckLetI { check; exp_l; exp_r; block } ->
+      eval_check_let_instr ctx check exp_l exp_r block
   | OptionGetI (exp_l, exp_r, block) ->
       eval_option_get_instr ctx exp_l exp_r block
 
@@ -252,21 +245,24 @@ and eval_try_instr_unique (ctx : Ctx.t) (arms : instr list list) :
 
 (* Check-let instruction evaluation *)
 
-and eval_check_let_instr (ctx : Ctx.t) (exp_l : exp) (exp_r : exp)
-    (block : instr list) : Ctx.t * Sign.t =
+and eval_check_let_instr (ctx : Ctx.t)
+    (check : [ `Match of pattern | `Subtype of typ ]) (exp_l : exp)
+    (exp_r : exp) (block : instr list) : Ctx.t * Sign.t =
   let value = eval_exp ctx exp_r in
-  let case_ok =
-    match (exp_l.it, value.it) with
-    | CaseE notexp, CaseV valuecase -> Mixop.eq_mixop notexp valuecase
-    | _ -> true
+  let value_opt =
+    match check with
+    | `Match pattern ->
+        if Expressions.matches_pattern value ~pattern then Some value else None
+    | `Subtype typ ->
+        if Expressions.matches_type value ~typ ~ctx then
+          Some (Expressions.downcast value ~to_typ:typ ~ctx)
+        else None
   in
-  let typ_target = exp_l.note.typ $ exp_l.at in
-  if case_ok && Expressions.matches_type value ~typ:typ_target ~ctx then
-    let value = Expressions.downcast value ~to_typ:typ_target ~ctx in
-    match assign_exp_opt ctx exp_l value with
-    | Some ctx -> eval_instrs ctx Sign.Cont block
-    | None -> (ctx, Sign.Cont)
-  else (ctx, Sign.Cont)
+  match value_opt with
+  | Some value ->
+      let ctx = assign_exp ctx exp_l value in
+      eval_instrs ctx Sign.Cont block
+  | None -> (ctx, Sign.Cont)
 
 (* Option-get instruction evaluation *)
 
@@ -444,10 +440,9 @@ and eval_rel_assert_instr (ctx : Ctx.t) (id : id) (notexp : notexp)
 
 and bind_guard_target (ctx : Ctx.t) (exp : exp) (guard : guard) : Ctx.t =
   match guard with
-  | CheckLetSubG (_, exp_target) ->
+  | CheckLetSubG (typ, exp_target) ->
       let value = eval_exp ctx exp in
-      let typ_target = exp_target.note.typ $ exp_target.at in
-      let value = Expressions.downcast value ~to_typ:typ_target ~ctx in
+      let value = Expressions.downcast value ~to_typ:typ ~ctx in
       assign_exp ctx exp_target value
   | CheckLetMatchG (_, exp_target) ->
       let value = eval_exp ctx exp in

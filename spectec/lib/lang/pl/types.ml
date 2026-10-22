@@ -99,9 +99,8 @@ and instr' =
   (* DestructI: bind each [exp] from [exp_source]'s positional CaseV args;
      [string option] is the prose field name (None = underscore, hidden). *)
   | DestructI of (string option * exp) list * exp
-  (* CheckLetI: bind [exp_target] to [exp_source] after a subtype-or-match
-     check, then run [block]. *)
-  | CheckLetI of exp * exp * instr list
+  (* A subtype check and its assignment use the same type for downcasting. *)
+  | CheckLetI of { check : [ `Match of pattern | `Subtype of typ ]; exp_l : exp; exp_r : exp; block : block }
   (* OptionGetI: bind [exp_target] to the inner value of [exp_source] when it is
      [Some _] and then run [block]; otherwise skip [block]. *)
   | OptionGetI of exp * exp * block

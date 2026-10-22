@@ -598,7 +598,7 @@ let rec render_instr ?(level = 0) ?(unordered = false) (instr : instr) : string
             (render_exps in_prose exps_target)
             (render_list (List.map (fun s -> "the " ^ s) names))
             (render_exp in_prose exp_source))
-  | CheckLetI (exp_l, exp_r, block) ->
+  | CheckLetI { check = _; exp_l; exp_r; block } ->
       let head =
         F.asprintf "%sLet!~type~ %s be %s." bullet
           (render_exp_as_code in_prose exp_l)
