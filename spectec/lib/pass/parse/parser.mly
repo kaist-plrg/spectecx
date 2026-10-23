@@ -65,7 +65,7 @@ let exit_scope () = vars := List.hd !scopes; scopes := List.tl !scopes
 %token HOLE_MULTI HOLE_NIL
 %token EQ NEQ UP BAR
 %token LATEX BOOL NAT INT TEXT
-%token SYNTAX RELATION RULE VAR BUILTIN DEC DEF
+%token SYNTAX OPAQUE RELATION RULE VAR BUILTIN DEC DEF
 %token IF OTHERWISE DEBUG HINT_LPAREN EPS
 %token<bool> BOOLLIT
 %token<Bigint.t> NATLIT HEXLIT
@@ -674,6 +674,8 @@ def_ :
     }
   | SYNTAX varid_bind hint* EQ deftyp
     { TypD ($2, [], $5, $3) }
+  | OPAQUE SYNTAX varid_bind
+    { TypD ($3, [], OpaqueTD @@@ $sloc, []) }
   | SYNTAX varid_langle_bind enter_scope comma_list(tparam) RANGLE hint* EQ deftyp exit_scope
     { TypD ($2, $4, $8, $6) }
   | VAR varid_bind COLON plaintyp hint*

@@ -1,0 +1,4 @@
+(library
+ (name opaque_types)
+ (public_name spectec.interp.opaque_types)
+ (libraries spectec.common spectec.lang))

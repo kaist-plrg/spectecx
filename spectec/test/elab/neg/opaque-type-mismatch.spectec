@@ -1,0 +1,6 @@
+opaque syntax state
+opaque syntax otherState
+builtin dec $read(state) : nat
+dec $invalid(otherState) : nat
+def $invalid(otherState) = 0
+def $invalid(otherState) = $read(otherState)

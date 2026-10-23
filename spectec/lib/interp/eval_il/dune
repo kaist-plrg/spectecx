@@ -11,5 +11,7 @@
   spectec.instrumentation
   unix
   builtins
+  opaque_types
+  value_typecheck
   cache
   target))

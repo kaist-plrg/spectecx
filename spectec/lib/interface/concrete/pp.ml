@@ -43,6 +43,7 @@ let rec pp_value (hmap : hmap) fmt (value : value) : unit =
   | BoolV b -> F.fprintf fmt "%b" b
   | NumV n -> F.fprintf fmt "%a" pp_num n
   | TextV _ -> pp_text_v fmt value
+  | OpaqueV value -> F.fprintf fmt "<opaque %s>" (Opaque.name value)
   | StructV _ -> failwith "@pp_value: StructV not implemented"
   | CaseV _ -> pp_case_v hmap fmt value
   | TupleV values ->

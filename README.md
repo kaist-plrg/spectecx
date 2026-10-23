@@ -92,6 +92,9 @@ The target-specific examples require the corresponding target package.
 # reject multiple successful alternatives for the current input
 ./spectecx p4 typecheck -i spectec/testdata/interp/p4-tests/includes -p target/file.p4 --det
 
+# instantiate a P4 program using eBPF extern constructors
+./spectecx p4 instantiate -p target/file.p4 --sl
+
 ## ITPL commands
 
 ./spectecx ae eval -p spectec/testdata/interp/itpl/ae/arithmetic.ae
@@ -105,6 +108,8 @@ The target-specific examples require the corresponding target package.
 ./spectecx lfae eval -p spectec/testdata/interp/itpl/lfae/unused.lfae
 ./spectecx kfae eval -p spectec/testdata/interp/itpl/kfae/escape.kfae --sl
 ```
+
+The `p4 instantiate` command typechecks a P4 program and creates its initial objects and state. It currently supports the eBPF `CounterArray` extern, an array of counters initialized to zero.
 
 The [ITPL specifications](spectec/specs/itpl/README.md) follow the languages in chapters 6 through 17 of *Introduction to Programming Languages* by Jaemin Hong and Sukyoung Ryu, the textbook for KAIST CS320.
 

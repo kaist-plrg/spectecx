@@ -9,11 +9,11 @@
 ;;;; value environment (frame), and environment for methods (externMethodDefEnv)
 ;;
 
-syntax objectState
+opaque syntax objectState
 syntax externMethodDefEnv = map<callableId, externMethodDef>
 
-dec $init_objectState(nameIR, typeIR*, value*) : objectState
-  hint(prose_in "initialization of" %0#`<%1`>#`(%2`) "in the target")
+builtin dec $init_objectState(nameIR, typeIR*, id*, value*) : objectState
+  hint(prose_in "initialization of" %0#`<%1`>#`(%2 '=' %3`) "in the target")
 
 syntax externObject =
   EXTERN typeId `< theta `> `{ objectState frame externMethodDefEnv `}

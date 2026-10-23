@@ -15421,12 +15421,12 @@ def $parameterListIR_of_constructorDef(PACKAGE
                                        `(constructorParameterListIR`))
   = constructorParameterListIR
 ;; === 6-dynamic-runtime/6.4.1-object.spectec ===
-syntax objectState
+opaque syntax objectState
 
 syntax externMethodDefEnv = map<callableId, externMethodDef>
 
-dec $init_objectState(nameIR, typeIR*, value*) : objectState
-  hint(prose_in "initialization of" %0#`<%1`>#`(%2`) "in the target")
+builtin dec $init_objectState(nameIR, typeIR*, id*, value*) : objectState
+  hint(prose_in "initialization of" %0#`<%1`>#`(%2 '=' %3`) "in the target")
 
 syntax externObject =
   | EXTERN typeId `<theta`> `{objectState frame externMethodDefEnv`}
@@ -17781,14 +17781,16 @@ rule Constructor_call/externConstructorDef:
        STO_0 p IC argumentIR* '@' p_callee IC_callee_1 id_aligned*
          ~> STO_1 IC_callee_2
   -- Copy_in_inst_default:
-       STO_0 p IC '@' p_callee IC_callee_2 constructorParameterIR_default*
+       STO_1 p IC '@' p_callee IC_callee_2 constructorParameterIR_default*
          ~> STO_2 IC_callee_3
   -- ExternMethods_inst: IC_callee_3 |- externMethodPrototypeIR* : IC_callee_4
   -- if `{(callableId ':' externMethodDef)*`} = IC_callee_4.BLOCK.CALLABLE
-  -- (if (_ _ _ id_cparam _ = constructorParameterIR))*
+  -- (if (_ _ _ id_cparam_default _ = constructorParameterIR_default))*
+  -- if id_cparam* = id_aligned* ++ id_cparam_default*
   -- (if (value_cparam
          = $find_map<id, value>(IC_callee_4.BLOCK.FRAME, id_cparam)))*
-  -- if objectState = $init_objectState(nameIR, typeArgumentIR*, value_cparam*)
+  -- if objectState
+        = $init_objectState(nameIR, typeArgumentIR*, id_cparam*, value_cparam*)
   -- if theta_extern = IC_callee_4.BLOCK.TYPE
   -- if frame_extern = IC_callee_4.BLOCK.FRAME
   -- if externMethodDefEnv_extern = `{(callableId ':' externMethodDef)*`}
@@ -17827,7 +17829,7 @@ rule Constructor_call/parserConstructorDef:
        STO_0 p IC argumentIR* '@' p_callee IC_callee_1 id_aligned*
          ~> STO_1 IC_callee_2
   -- Copy_in_inst_default:
-       STO_0 p IC '@' p_callee IC_callee_2 constructorParameterIR_default*
+       STO_1 p IC '@' p_callee IC_callee_2 constructorParameterIR_default*
          ~> STO_2 IC_callee_3
   -- ParserLocalDecls_inst:
        IC_callee_3 STO_2
@@ -17871,7 +17873,7 @@ rule Constructor_call/controlConstructorDef:
        STO_0 p IC argumentIR* '@' p_callee IC_callee_1 id_aligned*
          ~> STO_1 IC_callee_2
   -- Copy_in_inst_default:
-       STO_0 p IC '@' p_callee IC_callee_2 constructorParameterIR_default*
+       STO_1 p IC '@' p_callee IC_callee_2 constructorParameterIR_default*
          ~> STO_2 IC_callee_3
   -- ControlLocalDecls_inst:
        IC_callee_3 STO_2

@@ -1,0 +1,2 @@
+opaque syntax state
+dec $invalid(state<nat>) : nat

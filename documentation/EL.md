@@ -95,9 +95,27 @@ syntax defType =
   | recordType
 
 syntax syntaxDefinition =
-  'syntax' typeName '=' defType
+  | 'syntax' typeName '=' defType
+  | 'opaque' 'syntax' typeName
 ```
-Type definitions either define an alias to a [plain type](#plain-types), define [multiple variants](#variant-types), or create a [record type](#record-types), with a lowercase-led type name.
+A type definition introduces an alias to a [plain type](#plain-types), a [variant type](#variant-types), a [record type](#record-types), or an [opaque type](#opaque-types). Type names begin with a lowercase letter.
+
+### Opaque Types
+
+An opaque type has values supplied by the host implementation. Its declaration has no type parameters or specification-level representation.
+
+```spectec
+opaque syntax state
+
+builtin dec $initial_state : state
+builtin dec $read_count(state) : nat
+builtin dec $increment(state) : state
+
+dec $keep_state(state) : state
+def $keep_state(state) = state
+```
+
+Specification functions can bind, pass, return, and compare opaque values, or put them in records, tuples, options, and lists. They inspect or update their contents through builtins. An opaque declaration is complete, so it cannot receive a later body or contribute cases to a variant. An alias of an opaque type names the same type.
 
 ## Expressions
 

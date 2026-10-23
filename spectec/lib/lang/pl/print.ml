@@ -327,12 +327,14 @@ let string_of_defined_dec (defid, tparams, args, block, elseblock_opt) =
 
 let string_of_def def =
   match def.node.it with
+  | TypD (id, _, { it = Il.OpaqueT; _ }) ->
+      "opaque syntax " ^ string_of_typid id
   | TypD (id, tparams, deftyp) ->
       "syntax " ^ string_of_typid id ^ string_of_tparams tparams ^ " = "
       ^ string_of_deftyp deftyp
   | RelD (id, sig_, exps, block, elseblock_opt) ->
       "relation " ^ string_of_defined_rel (id, sig_, exps, block, elseblock_opt)
-  | BuiltinDecD (id, tparams, args) ->
+  | BuiltinDecD (id, tparams, args, _) ->
       "builtin def " ^ string_of_builtin_dec (id, tparams, args)
   | DecD (id, tparams, args, block, elseblock_opt) ->
       "def " ^ string_of_defined_dec (id, tparams, args, block, elseblock_opt)

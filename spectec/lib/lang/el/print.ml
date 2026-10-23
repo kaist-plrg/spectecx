@@ -63,6 +63,7 @@ and string_of_nottyps sep nottyps =
 
 and string_of_deftyp deftyp =
   match deftyp.it with
+  | OpaqueTD -> "opaque"
   | PlainTD plaintyp -> string_of_plaintyp plaintyp
   | StructTD typfields -> "{" ^ string_of_typfields ", " typfields ^ "}"
   | VariantTD typcases -> "\n   | " ^ string_of_typcases "\n   | " typcases
@@ -245,6 +246,8 @@ let string_of_def def =
              (fun (typid, tparams) ->
                string_of_typid typid ^ string_of_tparams tparams)
              syns)
+  | TypD (typid, _, { it = OpaqueTD; _ }, _) ->
+      "opaque syntax " ^ string_of_typid typid
   | TypD (typid, tparams, deftyp, _hints) ->
       "syntax " ^ string_of_typid typid ^ string_of_tparams tparams ^ " = "
       ^ string_of_deftyp deftyp

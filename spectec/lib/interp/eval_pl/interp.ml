@@ -244,6 +244,9 @@ let rec subtyp (ctx : Ctx.t) (typ : typ) (value : value) : bool =
       let tparams, deftyp = Ctx.find_typdef Local ctx tid in
       let theta = List.combine tparams targs |> TIdMap.of_list in
       match (deftyp.it, value.it) with
+      | OpaqueT, OpaqueV value ->
+          Opaque_types.has_type ctx.opaque_types ~name:tid.it ~value
+      | OpaqueT, _ -> false
       | PlainT typ, _ ->
           let typ = Typ.subst_typ theta typ in
           subtyp ctx typ value
@@ -1593,10 +1596,17 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     Ctx.t * value =
   let ctx, values_input = eval_args ctx args in
   (* Builtin function invocation *)
-  let invoke_func_builtin () =
+  let invoke_func_builtin signature =
     let value_output =
       ctx.builtins.invoke id targs values_input |> unwrap_builtin
     in
+    (match
+       Builtins.check_result ~opaque_types:ctx.opaque_types
+         ~find_typdef_opt:(Ctx.find_typdef_opt Local ctx)
+         ~signature ~targs value_output
+     with
+    | Ok () -> ()
+    | Error message -> error id.at ("builtin $" ^ id.it ^ " result: " ^ message));
     (ctx, value_output)
   in
   (* User-defined function invocation *)
@@ -1659,24 +1669,23 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     let invoke () =
       let _, v =
         match Ctx.find_func_opt Local ctx id with
-        | Some Ctx.Func.Builtin ->
+        | Some (Ctx.Func.Builtin (tparams, typ)) ->
             check
               (ctx.builtins.is_builtin id)
               id.at
               (F.asprintf
                  "builtin $%s is declared in the spec but not implemented" id.it);
-            invoke_func_builtin ()
+            invoke_func_builtin (tparams, typ)
         | Some (Ctx.Func.Defined (tparams, args_input, block, elseblock_opt)) ->
             check
               (block <> [] || Option.is_some elseblock_opt)
               id.at "function has no instructions";
             invoke_func_def tparams args_input block elseblock_opt
         | None ->
-            if ctx.builtins.is_builtin id then (
-              warn id.at
+            if ctx.builtins.is_builtin id then
+              error id.at
                 (F.asprintf "builtin $%s is invoked without a spec declaration"
-                   id.it);
-              invoke_func_builtin ())
+                   id.it)
             else error id.at (F.asprintf "unknown function %s" id.it)
       in
       Ok v
@@ -1726,13 +1735,17 @@ let mode_of_relsig (mixop : mixop) (inputs : int list) (exps : exp list) :
 let load_def (ctx : Ctx.t) (def : def) : Ctx.t =
   match def.node.it with
   | TypD (id, tparams, deftyp) ->
+      (match Opaque_types.check_declaration ctx.opaque_types ~id ~deftyp with
+      | Ok () -> ()
+      | Error message -> error id.at message);
       let typdef = (tparams, deftyp) in
       Ctx.add_typdef Global ctx id typdef
   | RelD (id, (mixop, inputs), exps, block, elseblock_opt) ->
       let mode = mode_of_relsig mixop inputs exps in
       let rel = (mode, block, elseblock_opt) in
       Ctx.add_rel Global ctx id rel
-  | BuiltinDecD (id, _, _) -> Ctx.add_func Global ctx id Ctx.Func.Builtin
+  | BuiltinDecD (id, tparams, _, typ) ->
+      Ctx.add_func Global ctx id (Ctx.Func.Builtin (tparams, typ))
   | DecD (id, tparams, args_input, block, elseblock_opt) ->
       let func = Ctx.Func.Defined (tparams, args_input, block, elseblock_opt) in
       Ctx.add_func Global ctx id func

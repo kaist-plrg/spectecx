@@ -18,6 +18,7 @@ type expectation =
 
 module Pure_target : Interp.Target.S = struct
   let builtins = []
+  let opaque_types = []
   let is_impure_func _ = false
   let is_impure_rel _ = false
   let state_version = ref 0
@@ -122,12 +123,11 @@ let check_result ~name ~mode ~check_determinism expectation result =
         (sprintf "expected an error containing %S but returned %s" expected
            (string_of_values actual))
 
-let check spec ?(modes = [ Il; Sl; Pl ]) ?(check_determinism = false) ~name
-    ~relation ~args expectation =
+let check spec ?(target = (module Pure_target : Interp.Target.S))
+    ?(modes = [ Il; Sl; Pl ]) ?(check_determinism = false) ~name ~relation ~args
+    expectation =
   List.iter modes ~f:(fun mode ->
-      Interp.with_target_state
-        (module Pure_target)
-        (fun target_state ->
+      Interp.with_target_state target (fun target_state ->
           let args = args () in
           eval ~check_determinism target_state spec mode relation args
           |> check_result ~name ~mode ~check_determinism expectation))

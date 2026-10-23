@@ -18,7 +18,7 @@ let rec is_singleton_case (dctx : Dctx.t) (typ : typ) : bool =
               let theta = List.combine tparams targs |> TIdMap.of_list in
               let typ = Envs.Il.Typ.subst_typ theta typ in
               is_singleton_case dctx typ
-          | StructT _ -> false
+          | OpaqueT | StructT _ -> false
           | VariantT cases -> List.length cases = 1)
       | _ -> false)
   | _ -> false

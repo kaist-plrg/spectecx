@@ -4,11 +4,11 @@ open Lang.Pl.Print
 (* Function *)
 
 type t =
-  | Builtin
+  | Builtin of tparam list * typ
   | Defined of tparam list * arg list * block * elseblock option
 
 let to_string = function
-  | Builtin -> "builtin function"
+  | Builtin _ -> "builtin function"
   | Defined (tparams, args, block, elseblock_opt) -> (
       "def " ^ string_of_tparams tparams ^ string_of_args args ^ " :\n\n"
       ^ string_of_block block

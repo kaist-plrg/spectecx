@@ -1,4 +1,5 @@
 include Types
+module Opaque = Opaque
 module Mixfix = Mixfix
 module Mode = Mode
 module Print = Print

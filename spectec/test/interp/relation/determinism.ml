@@ -39,6 +39,41 @@ let overlapping_list ~name ~relation ns ~il =
   checked_list ~modes:[ H.Sl; H.Pl ] ~name ~relation ns
     (H.fails_with "and so does the")
 
+let check_undeclared_builtin () =
+  let module Target : Interp.Target.S = struct
+    include H.Pure_target
+
+    let builtins =
+      [ ("boom", fun ~at:_ _ _ -> failwith "undeclared builtin was invoked") ]
+  end in
+  (* Elaboration requires declarations, so remove them from the compiled forms. *)
+  let spec =
+    {
+      spec with
+      spec_il =
+        List.filter
+          (fun (def : Lang.Il.def) ->
+            match def.it with Lang.Il.BuiltinDecD _ -> false | _ -> true)
+          spec.spec_il;
+      spec_sl =
+        List.filter
+          (fun (def : Lang.Sl.def) ->
+            match def.it with Lang.Sl.BuiltinDecD _ -> false | _ -> true)
+          spec.spec_sl;
+      spec_pl =
+        List.filter
+          (fun (def : Lang.Pl.def) ->
+            match def.node.it with Lang.Pl.BuiltinDecD _ -> false | _ -> true)
+          spec.spec_pl;
+    }
+  in
+  H.check spec
+    ~target:(module Target)
+    ~name:"undeclared builtin prevents invocation and fallback"
+    ~relation:"Undeclared_builtin"
+    ~args:(fun () -> [ nat 1 ])
+    (H.fails_with "builtin $boom is invoked without a spec declaration")
+
 let run () =
   first_match ~name:"disagreeing rules" ~relation:"Disagree" 5 (returns 1);
   overlapping ~name:"disagreeing rules" ~relation:"Disagree" 5
@@ -95,6 +130,7 @@ let run () =
     (returns 1);
   checked ~name:"fatal rule after a match" ~relation:"Fatal_after_match" 5
     (H.fails_with "boom");
+  check_undeclared_builtin ();
   first_match ~name:"disagreeing clauses" ~relation:"Call_pick" 5 (returns 1);
   overlapping ~name:"disagreeing clauses" ~relation:"Call_pick" 5
     ~il:"applies through both clause 0 and clause 1";

@@ -2,10 +2,10 @@ open Lang.Il
 
 (* Function *)
 
-type t = Builtin | Defined of tparam list * clause list
+type t = Builtin of tparam list * typ | Defined of tparam list * clause list
 
 let to_string = function
-  | Builtin -> "builtin function"
+  | Builtin _ -> "builtin function"
   | Defined (tparams, clauses) ->
       "def"
       ^ Print.string_of_tparams tparams

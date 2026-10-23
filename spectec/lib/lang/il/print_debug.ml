@@ -67,6 +67,7 @@ and string_of_reltyp reltyp =
 
 and string_of_deftyp deftyp =
   match deftyp.it with
+  | OpaqueT -> "opaque"
   | PlainT typ -> string_of_typ typ
   | StructT typfields -> "{" ^ string_of_typfields ", " typfields ^ "}"
   | VariantT typcases -> "\n   | " ^ string_of_typcases "\n   | " typcases
@@ -125,6 +126,7 @@ and string_of_value ?(short = false) ?(level = 0) value =
                 indent ^ string_of_value ~short ~level:(level + 2) value)
               values))
   | FuncV id -> string_of_defid id
+  | OpaqueV value -> "<opaque " ^ Opaque.name value ^ ">"
 
 and string_of_notval notval =
   Mixfix.render ~pad_brackets:true ~string_of_atom
@@ -341,6 +343,8 @@ let rec string_of_def def =
   ";; " ^ string_of_region def.at ^ "\n"
   ^
   match def.it with
+  | TypD { synid = id; deftyp = { it = OpaqueT; _ }; _ } ->
+      "opaque syntax " ^ string_of_typid id
   | TypD { synid; tparams; deftyp } ->
       "syntax " ^ string_of_typid synid ^ string_of_tparams tparams ^ " = "
       ^ string_of_deftyp deftyp

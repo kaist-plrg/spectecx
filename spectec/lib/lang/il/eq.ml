@@ -93,6 +93,7 @@ and eq_value ?(dbg = false) (value_a : value) (value_b : value) : bool =
     | OptV None, OptV None -> true
     | ListV values_a, ListV values_b -> eq_values ~dbg values_a values_b
     | FuncV id_a, FuncV id_b -> id_a = id_b
+    | OpaqueV left, OpaqueV right -> Opaque.compare left right = 0
     | _ -> false
   in
   if dbg && not eq then

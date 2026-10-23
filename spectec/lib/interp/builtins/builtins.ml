@@ -48,3 +48,12 @@ let make (builtins : (string * Define.t) list) : t =
   in
 
   { invoke; is_builtin }
+
+let check_result ~opaque_types ~find_typdef_opt ~signature:(tparams, typ) ~targs
+    value =
+  if List.length tparams <> List.length targs then
+    Error "arity mismatch in builtin type arguments"
+  else
+    let theta = List.combine tparams targs |> Envs_make.TIdMap.of_list in
+    let typ = Envs_il.Typ.subst_typ theta typ in
+    Value_typecheck.check ~opaque_types ~find_typdef_opt ~typ value

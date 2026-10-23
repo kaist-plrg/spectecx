@@ -3,18 +3,31 @@ module F = Format
 open Attempt
 open Common.Source
 
-let run_relation ~(check_determinism : bool) (filename : string)
+let run_relation ~(check_determinism : bool) ~opaque_types (filename : string)
     (builtins : Builtins.t) (cache : Cache.t) (spec : spec) (rid : id')
     (values : value list) : Ctx.t * value list =
-  let ctx = Interp.load_spec ~check_determinism filename builtins cache spec in
+  let ctx =
+    Interp.load_spec ~check_determinism ~opaque_types filename builtins cache
+      spec
+  in
+  let reltyp, _ = Ctx.find_rel ctx (rid $ no_region) in
+  let typs = Mode.inputs reltyp.it in
+  (match
+     Value_typecheck.check_values ~opaque_types:ctx.opaque_types
+       ~find_typdef_opt:(Ctx.find_typdef_opt ctx) ~typs values
+   with
+  | Ok () -> ()
+  | Error message ->
+      Error.error no_region ("relation " ^ rid ^ " input: " ^ message));
   let+ ctx, values = Interp.invoke_rel ctx (rid $ no_region) values in
   (ctx, values)
 
-let run_relation_fresh ~(check_determinism : bool) (filename : string)
-    (builtins : Builtins.t) (cache : Cache.t) (spec : spec) (rid : id')
-    (values : value list) : Ctx.t * value list =
+let run_relation_fresh ~(check_determinism : bool) ~opaque_types
+    (filename : string) (builtins : Builtins.t) (cache : Cache.t) (spec : spec)
+    (rid : id') (values : value list) : Ctx.t * value list =
   Cache.clear cache;
-  run_relation ~check_determinism filename builtins cache spec rid values
+  run_relation ~check_determinism ~opaque_types filename builtins cache spec rid
+    values
 
 type error = Plain of region * string | Backtrack of failtrace list
 
@@ -27,8 +40,13 @@ let run ?(check_determinism = false) (module T : Target.S) (spec : spec)
       ~state_version:T.state_version
   in
   try
-    run_relation_fresh ~check_determinism filename builtins cache spec rid
-      values
+    let opaque_types =
+      match Opaque_types.make T.opaque_types with
+      | Ok types -> types
+      | Error message -> Error.error no_region message
+    in
+    run_relation_fresh ~check_determinism ~opaque_types filename builtins cache
+      spec rid values
     |> Result.ok
   with
   | Error.InterpError (at, msg) -> Error (Plain (at, msg))

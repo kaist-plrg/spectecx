@@ -9,6 +9,15 @@ type 'a t = region -> Value.t -> 'a result
 
 let value : Value.t t = fun _at v -> Ok v
 
+let opaque (typdef : 'a Opaque.typdef) : 'a t =
+ fun at v ->
+  match v.it with
+  | OpaqueV value -> (
+      match Opaque.to_ocaml_opt ~typdef value with
+      | Some payload -> Ok payload
+      | None -> Error (type_err at ("opaque " ^ Opaque.typdef_name typdef) v))
+  | _ -> Error (type_err at ("opaque " ^ Opaque.typdef_name typdef) v)
+
 let text : string t =
  fun at v ->
   match v.it with

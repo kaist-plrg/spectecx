@@ -159,7 +159,7 @@ and def' =
   (* `relation` id `:` mode `:` instr* *)
   | RelD of id * (exp, unit) Il.Mode.t * block * elseblock option
   (* `builtin` `dec` id `<` list(tparam, `,`) `>` list(arg, `,`) *)
-  | BuiltinDecD of id * tparam list * arg list
+  | BuiltinDecD of id * tparam list * arg list * typ
   (* `dec` id `<` list(tparam, `,`) `>` list(param, `,`) `:` typ instr* *)
   | DecD of id * tparam list * arg list * block * elseblock option
 

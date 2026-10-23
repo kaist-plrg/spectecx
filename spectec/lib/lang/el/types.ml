@@ -51,6 +51,7 @@ and nottyp' =
 
 and deftyp = deftyp' phrase
 and deftyp' =
+  | OpaqueTD
   | PlainTD of plaintyp         (* plaintyp *)
   | StructTD of typfield list   (* `{` list(typfield, `,`) `}` *)
   | VariantTD of typcase list   (* `|` list(typcase, `|`) *)

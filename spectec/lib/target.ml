@@ -4,6 +4,8 @@
     - name: Target identifier (e.g., "p4", "ethereum")
     - spec_dir: Directory containing the target's spec files *)
 
+module type Externals = Interp.Target.Externals
+
 module type S = sig
   include Interp.Target.S
 

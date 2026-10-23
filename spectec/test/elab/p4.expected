@@ -19915,11 +19915,14 @@ def $parameterListIR_of_constructorDef(constructorDef) : parameterIR* =
       -- if constructorDef <: packageObjectConstructorDef
       -- let package < _typeParameterListIR > ( constructorParameterListIR ) = constructorDef as packageObjectConstructorDef
 
+;; ../../../../../spectec/specs/p4/6-dynamic-runtime/6.4.1-object.spectec:12:1-12:26:
+opaque syntax objectState
+
 ;; ../../../../../spectec/specs/p4/6-dynamic-runtime/6.4.1-object.spectec:13:29-13:61:
 syntax externMethodDefEnv = map<callableId, externMethodDef>
 
-;; ../../../../../spectec/specs/p4/6-dynamic-runtime/6.4.1-object.spectec:15:1-16:70:
-def $init_objectState(nameIR, typeIR*, value*) : objectState =
+;; ../../../../../spectec/specs/p4/6-dynamic-runtime/6.4.1-object.spectec:15:1-16:77:
+builtin dec $init_objectState(nameIR, typeIR*, id*, value*) : objectState
 
 ;; ../../../../../spectec/specs/p4/6-dynamic-runtime/6.4.1-object.spectec:19:3-19:71:
 syntax externObject = 
@@ -21741,7 +21744,7 @@ relation Constructor_inst: cursor instContext |- prefixedNameIR < typeArgumentLi
 ;; ../../../../../spectec/specs/p4/7-instantiation/7.03-inst-relation.spectec:309:1-318:51:
 relation Constructor_call: cursor instContext store |- constructorDef < typeArgumentListIR > ( argumentListIR # id* # id* ) : store object
 
-   ;; ../../../../../spectec/specs/p4/7-instantiation/7.11.2-inst-constructor-call.spectec:90:1-134:54:
+   ;; ../../../../../spectec/specs/p4/7-instantiation/7.11.2-inst-constructor-call.spectec:90:1-136:54:
    rule externConstructorDef: p IC STO_0 |- constructorDef < typeArgumentIR*{typeArgumentIR <- typeArgumentIR*} > ( argumentIR*{argumentIR <- argumentIR*} # id_default*{id_default <- id_default*} # id_optional*{id_optional <- id_optional*} ) : STO_2 object_extern
       -- if constructorDef <: externObjectConstructorDef
       -- let externObjectConstructorDef = constructorDef as externObjectConstructorDef
@@ -21753,22 +21756,23 @@ relation Constructor_call: cursor instContext store |- constructorDef < typeArgu
       -- let given constructorParameterIR_aligned*{constructorParameterIR_aligned <- constructorParameterIR_aligned*} default constructorParameterIR_default*{constructorParameterIR_default <- constructorParameterIR_default*} = $align_parameterListIR(constructorParameterIR*{constructorParameterIR <- constructorParameterIR*}, argumentIR*{argumentIR <- argumentIR*}, id_default*{id_default <- id_default*}, id_optional*{id_optional <- id_optional*})
       -- (let _annotationList _direction _typeIR id_aligned _parameterInitializerOptIR = constructorParameterIR_aligned)*{_annotationList <- _annotationList*, _direction <- _direction*, _parameterInitializerOptIR <- _parameterInitializerOptIR*, _typeIR <- _typeIR*, constructorParameterIR_aligned <- constructorParameterIR_aligned*, id_aligned <- id_aligned*}
       -- rel Copy_in_inst: STO_0 p IC argumentIR*{argumentIR <- argumentIR*} @ p_callee IC_callee_1 id_aligned*{id_aligned <- id_aligned*} ~> STO_1 IC_callee_2
-      -- rel Copy_in_inst_default: STO_0 p IC @ p_callee IC_callee_2 constructorParameterIR_default*{constructorParameterIR_default <- constructorParameterIR_default*} ~> STO_2 IC_callee_3
+      -- rel Copy_in_inst_default: STO_1 p IC @ p_callee IC_callee_2 constructorParameterIR_default*{constructorParameterIR_default <- constructorParameterIR_default*} ~> STO_2 IC_callee_3
       -- rel ExternMethods_inst: IC_callee_3 |- externMethodPrototypeIR*{externMethodPrototypeIR <- externMethodPrototypeIR*} : IC_callee_4
       -- let { callableId : callableDef*{callableDef <- callableDef*, callableId <- callableId*} } = IC_callee_4.block.callable
       -- (if callableDef <: externMethodDef)*{callableDef <- callableDef*}
       -- (let externMethodDef = callableDef as externMethodDef)*{callableDef <- callableDef*, externMethodDef <- externMethodDef*}
-      -- (let _annotationList' _direction' _typeIR' id_cparam _parameterInitializerOptIR' = constructorParameterIR)*{_annotationList' <- _annotationList'*, _direction' <- _direction'*, _parameterInitializerOptIR' <- _parameterInitializerOptIR'*, _typeIR' <- _typeIR'*, constructorParameterIR <- constructorParameterIR*, id_cparam <- id_cparam*}
+      -- (let _annotationList' _direction' _typeIR' id_cparam_default _parameterInitializerOptIR' = constructorParameterIR_default)*{_annotationList' <- _annotationList'*, _direction' <- _direction'*, _parameterInitializerOptIR' <- _parameterInitializerOptIR'*, _typeIR' <- _typeIR'*, constructorParameterIR_default <- constructorParameterIR_default*, id_cparam_default <- id_cparam_default*}
+      -- let id_cparam*{id_cparam <- id_cparam*} = id_aligned*{id_aligned <- id_aligned*} ++ id_cparam_default*{id_cparam_default <- id_cparam_default*}
       -- (let value?{value <- value?} = $find_map<id, value>(IC_callee_4.block.frame, id_cparam))*{id_cparam <- id_cparam*, value? <- value?*}
       -- (if value?{value <- value?} matches (_))*{value? <- value?*}
       -- (let ?(value_cparam) = value?{value <- value?})*{value? <- value?*, value_cparam <- value_cparam*}
-      -- let objectState = $init_objectState(nameIR, typeArgumentIR*{typeArgumentIR <- typeArgumentIR*}, value_cparam*{value_cparam <- value_cparam*})
+      -- let objectState = $init_objectState(nameIR, typeArgumentIR*{typeArgumentIR <- typeArgumentIR*}, id_cparam*{id_cparam <- id_cparam*}, value_cparam*{value_cparam <- value_cparam*})
       -- let theta_extern = IC_callee_4.block.type
       -- let frame_extern = IC_callee_4.block.frame
       -- let externMethodDefEnv_extern = { callableId : externMethodDef*{callableId <- callableId*, externMethodDef <- externMethodDef*} }
       -- let object_extern = extern nameIR < theta_extern > { objectState frame_extern externMethodDefEnv_extern } as object
 
-   ;; ../../../../../spectec/specs/p4/7-instantiation/7.11.2-inst-constructor-call.spectec:143:1-187:32:
+   ;; ../../../../../spectec/specs/p4/7-instantiation/7.11.2-inst-constructor-call.spectec:145:1-189:32:
    rule parserConstructorDef: p IC STO_0 |- constructorDef < typeArgumentIR*{typeArgumentIR <- typeArgumentIR*} > ( argumentIR*{argumentIR <- argumentIR*} # id_default*{id_default <- id_default*} # id_optional*{id_optional <- id_optional*} ) : STO_4 object_parser
       -- if constructorDef <: parserObjectConstructorDef
       -- let parserObjectConstructorDef = constructorDef as parserObjectConstructorDef
@@ -21780,14 +21784,14 @@ relation Constructor_call: cursor instContext store |- constructorDef < typeArgu
       -- let given constructorParameterIR_aligned*{constructorParameterIR_aligned <- constructorParameterIR_aligned*} default constructorParameterIR_default*{constructorParameterIR_default <- constructorParameterIR_default*} = $align_parameterListIR(constructorParameterIR*{constructorParameterIR <- constructorParameterIR*}, argumentIR*{argumentIR <- argumentIR*}, id_default*{id_default <- id_default*}, id_optional*{id_optional <- id_optional*})
       -- (let _annotationList _direction _typeIR id_aligned _parameterInitializerOptIR = constructorParameterIR_aligned)*{_annotationList <- _annotationList*, _direction <- _direction*, _parameterInitializerOptIR <- _parameterInitializerOptIR*, _typeIR <- _typeIR*, constructorParameterIR_aligned <- constructorParameterIR_aligned*, id_aligned <- id_aligned*}
       -- rel Copy_in_inst: STO_0 p IC argumentIR*{argumentIR <- argumentIR*} @ p_callee IC_callee_1 id_aligned*{id_aligned <- id_aligned*} ~> STO_1 IC_callee_2
-      -- rel Copy_in_inst_default: STO_0 p IC @ p_callee IC_callee_2 constructorParameterIR_default*{constructorParameterIR_default <- constructorParameterIR_default*} ~> STO_2 IC_callee_3
+      -- rel Copy_in_inst_default: STO_1 p IC @ p_callee IC_callee_2 constructorParameterIR_default*{constructorParameterIR_default <- constructorParameterIR_default*} ~> STO_2 IC_callee_3
       -- rel ParserLocalDecls_inst: IC_callee_3 STO_2 |- parserLocalDeclarationIR*{parserLocalDeclarationIR <- parserLocalDeclarationIR*} : IC_local STO_3 parserLocalDeclarationIR_inst*{parserLocalDeclarationIR_inst <- parserLocalDeclarationIR_inst*}
       -- rel ParserStates_inst: IC_local STO_3 |- parserStateIR*{parserStateIR <- parserStateIR*} : IC_state STO_4
       -- let frame_parser = IC_callee_3.block.frame
       -- let stateEnv_parser = IC_state.block.state
       -- let object_parser = parser < theta_parser > ( parameterIR*{parameterIR <- parameterIR*} ) { frame_parser parserLocalDeclarationIR_inst*{parserLocalDeclarationIR_inst <- parserLocalDeclarationIR_inst*} stateEnv_parser } as object
 
-   ;; ../../../../../spectec/specs/p4/7-instantiation/7.11.2-inst-constructor-call.spectec:196:1-243:35:
+   ;; ../../../../../spectec/specs/p4/7-instantiation/7.11.2-inst-constructor-call.spectec:198:1-245:35:
    rule controlConstructorDef: p IC STO_0 |- constructorDef < typeArgumentIR*{typeArgumentIR <- typeArgumentIR*} > ( argumentIR*{argumentIR <- argumentIR*} # id_default*{id_default <- id_default*} # id_optional*{id_optional <- id_optional*} ) : STO_4 object_control
       -- if constructorDef <: controlObjectConstructorDef
       -- let controlObjectConstructorDef = constructorDef as controlObjectConstructorDef
@@ -21799,7 +21803,7 @@ relation Constructor_call: cursor instContext store |- constructorDef < typeArgu
       -- let given constructorParameterIR_aligned*{constructorParameterIR_aligned <- constructorParameterIR_aligned*} default constructorParameterIR_default*{constructorParameterIR_default <- constructorParameterIR_default*} = $align_parameterListIR(constructorParameterIR*{constructorParameterIR <- constructorParameterIR*}, argumentIR*{argumentIR <- argumentIR*}, id_default*{id_default <- id_default*}, id_optional*{id_optional <- id_optional*})
       -- (let _annotationList _direction _typeIR id_aligned _parameterInitializerOptIR = constructorParameterIR_aligned)*{_annotationList <- _annotationList*, _direction <- _direction*, _parameterInitializerOptIR <- _parameterInitializerOptIR*, _typeIR <- _typeIR*, constructorParameterIR_aligned <- constructorParameterIR_aligned*, id_aligned <- id_aligned*}
       -- rel Copy_in_inst: STO_0 p IC argumentIR*{argumentIR <- argumentIR*} @ p_callee IC_callee_1 id_aligned*{id_aligned <- id_aligned*} ~> STO_1 IC_callee_2
-      -- rel Copy_in_inst_default: STO_0 p IC @ p_callee IC_callee_2 constructorParameterIR_default*{constructorParameterIR_default <- constructorParameterIR_default*} ~> STO_2 IC_callee_3
+      -- rel Copy_in_inst_default: STO_1 p IC @ p_callee IC_callee_2 constructorParameterIR_default*{constructorParameterIR_default <- constructorParameterIR_default*} ~> STO_2 IC_callee_3
       -- rel ControlLocalDecls_inst: IC_callee_3 STO_2 |- controlLocalDeclarationIR*{controlLocalDeclarationIR <- controlLocalDeclarationIR*} : IC_local_0 STO_3 controlLocalDeclarationIR_inst*{controlLocalDeclarationIR_inst <- controlLocalDeclarationIR_inst*}
       -- rel Block_inst: IC_local_0 STO_3 |- controlBodyIR : IC_local_1 STO_4 controlBodyIR_inst
       -- let frame_control = IC_callee_3.block.frame
@@ -21809,7 +21813,7 @@ relation Constructor_call: cursor instContext store |- constructorDef < typeArgu
       -- let actionDefEnv_control = { callableId : actionDef*{actionDef <- actionDef*, callableId <- callableId*} }
       -- let object_control = control < theta_control > ( parameterIR*{parameterIR <- parameterIR*} ) { frame_control controlLocalDeclarationIR_inst*{controlLocalDeclarationIR_inst <- controlLocalDeclarationIR_inst*} { callableId : actionDef*{actionDef <- actionDef*, callableId <- callableId*} } controlBodyIR_inst } as object
 
-   ;; ../../../../../spectec/specs/p4/7-instantiation/7.11.2-inst-constructor-call.spectec:249:1-281:56:
+   ;; ../../../../../spectec/specs/p4/7-instantiation/7.11.2-inst-constructor-call.spectec:251:1-283:56:
    rule packageConstructorDef: p IC STO_0 |- constructorDef < typeArgumentIR*{typeArgumentIR <- typeArgumentIR*} > ( argumentIR*{argumentIR <- argumentIR*} # id_default*{id_default <- id_default*} # id_optional*{id_optional <- id_optional*} ) : STO_2 object_package
       -- if constructorDef <: packageObjectConstructorDef
       -- let packageObjectConstructorDef = constructorDef as packageObjectConstructorDef
