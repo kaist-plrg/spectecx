@@ -3,41 +3,40 @@ module F = Format
 open Attempt
 open Common.Source
 
-let run_relation ~(check_determinism : bool) ~opaque_types (filename : string)
-    (builtins : Builtins.t) (cache : Cache.t) (spec : spec) (rid : id')
-    (values : value list) : Ctx.t * value list =
+let run_relation ~(check_determinism : bool) ~opaque_types
+    (builtins : Builtins.t) (cache : Interp_runtime.Cache.t) (spec : spec)
+    (rid : id') (values : value list) : Ctx.t * value list =
   let ctx =
-    Interp.load_spec ~check_determinism ~opaque_types filename builtins cache
-      spec
+    Interp.context_of_spec spec ~builtins ~cache ~check_determinism
+      ~opaque_types
   in
-  let reltyp, _ = Ctx.find_rel ctx (rid $ no_region) in
+  let reltyp, _ = Ctx.find_rel_exn ctx ~id:(rid $ no_region) in
   let typs = Mode.inputs reltyp.it in
   (match
-     Value_typecheck.check_values ~opaque_types:ctx.opaque_types
-       ~find_typdef_opt:(Ctx.find_typdef_opt ctx) ~typs values
+     Value_typecheck.check_values ~opaque_types:(Ctx.opaque_types ctx)
+       ~find_typdef_opt:(fun id -> Ctx.find_typdef_opt ctx ~id)
+       ~typs values
    with
   | Ok () -> ()
   | Error message ->
       Error.error no_region ("relation " ^ rid ^ " input: " ^ message));
-  let+ ctx, values = Interp.invoke_rel ctx (rid $ no_region) values in
+  let+ values = Interp.invoke_rel ctx (rid $ no_region) values in
   (ctx, values)
 
 let run_relation_fresh ~(check_determinism : bool) ~opaque_types
-    (filename : string) (builtins : Builtins.t) (cache : Cache.t) (spec : spec)
+    (builtins : Builtins.t) (cache : Interp_runtime.Cache.t) (spec : spec)
     (rid : id') (values : value list) : Ctx.t * value list =
-  Cache.clear cache;
-  run_relation ~check_determinism ~opaque_types filename builtins cache spec rid
-    values
+  Interp_runtime.Cache.clear cache;
+  run_relation ~check_determinism ~opaque_types builtins cache spec rid values
 
 type error = Plain of region * string | Backtrack of failtrace list
 
 let run ?(check_determinism = false) (module T : Target.S) (spec : spec)
-    (rid : string) (values : value list) (filename : string) :
-    (Ctx.t * value list, error) result =
+    (rid : string) (values : value list) : (Ctx.t * value list, error) result =
   let builtins = Builtins.make T.builtins in
   let cache =
-    Cache.make ~is_impure_func:T.is_impure_func ~is_impure_rel:T.is_impure_rel
-      ~state_version:T.state_version
+    Interp_runtime.Cache.make ~is_impure_func:T.is_impure_func
+      ~is_impure_rel:T.is_impure_rel ~state_version:T.state_version
   in
   try
     let opaque_types =
@@ -45,11 +44,12 @@ let run ?(check_determinism = false) (module T : Target.S) (spec : spec)
       | Ok types -> types
       | Error message -> Error.error no_region message
     in
-    run_relation_fresh ~check_determinism ~opaque_types filename builtins cache
-      spec rid values
+    run_relation_fresh ~check_determinism ~opaque_types builtins cache spec rid
+      values
     |> Result.ok
   with
-  | Error.InterpError (at, msg) -> Error (Plain (at, msg))
+  | Error.InterpError (at, msg) | Interp_runtime.Context.Error (at, msg) ->
+      Error (Plain (at, msg))
   | Error.BacktrackError failtraces -> Error (Backtrack failtraces)
 
 let error_to_diagnostic = function

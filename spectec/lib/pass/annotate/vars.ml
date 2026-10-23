@@ -1,4 +1,5 @@
 open Common.Source
+open Lang.Il.Expression
 open Lang.Il
 
 (* Variables compare by name and iteration dimensions only. The type is carried
@@ -24,7 +25,7 @@ let rec free_exp (exp : exp) : VarSet.t =
   match exp.it with
   | BoolE _ | NumE _ | TextE _ -> empty
   | VarE id ->
-      VarSet.singleton { varid = id; typ = exp.note $ exp.at; iters = [] }
+      VarSet.singleton { varid = id; typ = exp.note.typ $ exp.at; iters = [] }
   | UnE (_, _, exp) -> free_exp exp
   | BinE (_, _, exp_l, exp_r) -> free_exp exp_l + free_exp exp_r
   | CmpE (_, _, exp_l, exp_r) -> free_exp exp_l + free_exp exp_r

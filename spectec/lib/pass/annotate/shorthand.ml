@@ -2,12 +2,14 @@
     / [DestructI] / [OptionGetI] after annotation. *)
 
 open Common.Source
+open Lang.Il.Expression
 module Pl = Lang.Pl
 
 let rec eq_exp_var (a : Pl.exp) (b : Pl.exp) : bool =
-  match (a.node.it, b.node.it) with
-  | Pl.VarE id_a, Pl.VarE id_b -> id_a.it = id_b.it
-  | Pl.IterE (a_inner, _), Pl.IterE (b_inner, _) -> eq_exp_var a_inner b_inner
+  match (a.it, b.it) with
+  | VarE id_a, VarE id_b -> id_a.it = id_b.it
+  | IterE (a_inner, iterexp_a), IterE (b_inner, iterexp_b) ->
+      Lang.Il.Eq.eq_iterexp iterexp_a iterexp_b && eq_exp_var a_inner b_inner
   | _ -> false
 
 let is_underscored (id : Pl.id) : bool =
@@ -16,51 +18,62 @@ let is_underscored (id : Pl.id) : bool =
 let mk_instr (src : Pl.instr) (it : Pl.instr') : Pl.instr =
   { node = it $$ (src.node.at, src.node.note); hints = src.hints }
 
-let is_scrut_alias (exp_scrut : Pl.exp) (exp_rhs : Pl.exp) : bool =
-  match exp_rhs.node.it with
-  | Pl.DownCastE (_, exp_scrut') -> eq_exp_var exp_scrut exp_scrut'
-  | _ -> eq_exp_var exp_scrut exp_rhs
-
-let strip_leading_rename (exp_scrut : Pl.exp) (block : Pl.instr list) :
-    (Pl.exp * Pl.instr list) option =
+let strip_checked_binding (exp_scrut : Pl.exp)
+    ~(check : [ `Match of Pl.pattern | `Subtype of Pl.typ ])
+    (block : Pl.instr list) : (Pl.exp * Pl.instr list) option =
   match block with
-  | { node = { it = Pl.LetI (exp_target, exp_rhs, []); _ }; _ } :: rest
-    when is_scrut_alias exp_scrut exp_rhs ->
-      Some (exp_target, rest)
+  | { node = { it = Pl.LetI (exp_target, exp_rhs, []); _ }; _ } :: rest ->
+      let matches =
+        match (check, exp_rhs.it) with
+        | `Match _, _ -> eq_exp_var exp_scrut exp_rhs
+        | `Subtype typ, DownCastE (typ_cast, exp_source) ->
+            Lang.Il.Eq.eq_typ typ typ_cast && eq_exp_var exp_scrut exp_source
+        | `Subtype _, _ -> false
+      in
+      if matches then Some (exp_target, rest) else None
   | _ -> None
 
 (* Single-arm form *)
 let shorten_check_let (instr : Pl.instr) : Pl.instr option =
-  let try_lift (exp_scrut : Pl.exp) (block : Pl.instr list) : Pl.instr option =
-    strip_leading_rename exp_scrut block
-    |> Option.map (fun (exp_target, rest) ->
-           mk_instr instr (Pl.CheckLetI (exp_target, exp_scrut, rest)))
+  let try_lift (exp_r : Pl.exp)
+      (check : [ `Match of Pl.pattern | `Subtype of Pl.typ ])
+      (block : Pl.instr list) : Pl.instr option =
+    strip_checked_binding exp_r ~check block
+    |> Option.map (fun (exp_l, block) ->
+           mk_instr instr (Pl.CheckLetI { check; exp_l; exp_r; block }))
   in
   match instr.node.it with
   | Pl.IfI (exp_cond, [], block, _phantom) -> (
-      match exp_cond.node.it with
-      | Pl.SubE (exp_scrut, _) | Pl.MatchE (exp_scrut, _) ->
-          try_lift exp_scrut block
+      match exp_cond.it with
+      | SubE (exp_scrut, typ) -> try_lift exp_scrut (`Subtype typ) block
+      | MatchE (exp_scrut, pattern) -> try_lift exp_scrut (`Match pattern) block
       | _ -> None)
-  | Pl.CaseI (exp_scrut, [ ((Pl.SubG _ | Pl.MatchG _), block) ], _phantom) ->
-      try_lift exp_scrut block
+  | Pl.CaseI (exp_scrut, [ (Pl.SubG typ, block) ], _phantom) ->
+      try_lift exp_scrut (`Subtype typ) block
+  | Pl.CaseI (exp_scrut, [ (Pl.MatchG pattern, block) ], _phantom) ->
+      try_lift exp_scrut (`Match pattern) block
   | _ -> None
 
 (* Per-arm form for multi-arm CaseI *)
 let shorten_case_let_guard (exp_scrut : Pl.exp) ((guard, block) : Pl.case) :
     Pl.case =
-  match (strip_leading_rename exp_scrut block, guard) with
-  | Some (exp_target, rest), Pl.SubG typ ->
-      (Pl.CheckLetSubG (typ, exp_target), rest)
-  | Some (exp_target, rest), Pl.MatchG patt ->
-      (Pl.CheckLetMatchG (patt, exp_target), rest)
+  match guard with
+  | Pl.SubG typ -> (
+      match strip_checked_binding exp_scrut ~check:(`Subtype typ) block with
+      | Some (exp_target, rest) -> (Pl.CheckLetSubG (typ, exp_target), rest)
+      | None -> (guard, block))
+  | Pl.MatchG pattern -> (
+      match strip_checked_binding exp_scrut ~check:(`Match pattern) block with
+      | Some (exp_target, rest) ->
+          (Pl.CheckLetMatchG (pattern, exp_target), rest)
+      | None -> (guard, block))
   | _ -> (guard, block)
 
 let shorten_destruct (instr : Pl.instr) : Pl.instr option =
   match instr.node.it with
   | Pl.LetI (exp_l, exp_r, []) -> (
-      match (exp_l.node.it, instr.hints.prose_fields) with
-      | Pl.CaseE notexp, Some fields ->
+      match (exp_l.it, instr.hints.prose_fields) with
+      | CaseE notexp, Some fields ->
           let exps_l = Lang.Il.Mixfix.args notexp in
           if List.length exps_l <> List.length fields then None
           else
@@ -68,10 +81,10 @@ let shorten_destruct (instr : Pl.instr) : Pl.instr option =
               List.combine exps_l fields
               |> List.map (fun ((e : Pl.exp), name) ->
                      let visible =
-                       match e.node.it with
-                       | Pl.VarE id when is_underscored id -> false
-                       | Pl.IterE ({ node = { it = Pl.VarE id; _ }; _ }, _)
-                         when is_underscored id ->
+                       match e.it with
+                       | VarE id when is_underscored id -> false
+                       | IterE ({ it = VarE id; _ }, _) when is_underscored id
+                         ->
                            false
                        | _ -> true
                      in
@@ -90,10 +103,7 @@ let shorten_instr (instr : Pl.instr) : Pl.instr list =
       | Some instr' -> [ instr' ]
       | None -> [ instr ])
 
-(* Sequence of two instructions:
-     LetI (tmp = call); IfI (tmp matches Some, [LetI (target = tmp); rest])
-   becomes
-     OptionGetI (target, call); rest *)
+(* OptionGetI retains the conditional body, which runs only for Some values. *)
 let shorten_option_get (instrs : Pl.instr list) :
     (Pl.instr list * Pl.instr list) option =
   match instrs with
@@ -101,14 +111,14 @@ let shorten_option_get (instrs : Pl.instr list) :
       match (i1.node.it, i2.node.it) with
       | ( Pl.LetI (exp_tmp, exp_call, []),
           Pl.IfI (exp_cond, [], inner_block, _phantom) ) -> (
-          match (exp_cond.node.it, inner_block) with
-          | Pl.MatchE (exp_scrut, OptP `Some), inner :: body_rest
+          match (exp_cond.it, inner_block) with
+          | MatchE (exp_scrut, OptP `Some), inner :: body_rest
             when eq_exp_var exp_tmp exp_scrut -> (
               match inner.node.it with
               | Pl.LetI (exp_target, exp_tmp', [])
                 when eq_exp_var exp_tmp exp_tmp' -> (
-                  match exp_target.node.it with
-                  | Pl.OptE (Some exp_inner) ->
+                  match exp_target.it with
+                  | OptE (Some exp_inner) ->
                       Some
                         ( [
                             mk_instr i1
@@ -145,8 +155,8 @@ and recurse_into_nested (instr : Pl.instr) : Pl.instr =
         Pl.CaseI (exp, cases', phantom)
     | Pl.OtherwiseI inner -> Pl.OtherwiseI (recurse_into_nested inner)
     | Pl.TryI arms -> Pl.TryI (List.map shorten_block arms)
-    | Pl.CheckLetI (e_l, e_r, block_inner) ->
-        Pl.CheckLetI (e_l, e_r, shorten_block block_inner)
+    | Pl.CheckLetI { check; exp_l; exp_r; block } ->
+        Pl.CheckLetI { check; exp_l; exp_r; block = shorten_block block }
     | Pl.OptionGetI (e_l, e_r, block_inner) ->
         Pl.OptionGetI (e_l, e_r, shorten_block block_inner)
     | Pl.LetI _ | Pl.RelI _ | Pl.ResultI _ | Pl.ReturnI _ | Pl.DebugI _

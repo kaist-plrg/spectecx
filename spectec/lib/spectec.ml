@@ -78,23 +78,19 @@ let validate_config config ~(mode : Interp_mode.request) =
 
 let eval_task (type i) (module T : Task.S with type input = i)
     ?(check_determinism = false) ~(mode : Interp_mode.t) ~spec_il (input : i) =
-  let source = T.source input in
   Interp.with_target_state (module T.Target) @@ fun target_state ->
   let* relation, values = T.parse_input ~spec:spec_il input in
   (match mode with
   | Il ->
       Interp.eval_il ~check_determinism target_state spec_il relation values
-        source
       |> Result.map snd
   | Sl ->
       let spec_sl = structure spec_il in
       Interp.eval_sl ~check_determinism target_state spec_sl relation values
-        source
       |> Result.map snd
   | Pl henv ->
       let spec_pl = structure spec_il |> Pass.annotate ~henv |> Pass.shorten in
       Interp.eval_pl ~check_determinism target_state spec_pl relation values
-        source
       |> Result.map snd)
   |> Result.map_error (fun e -> Error.InterpError e)
 
@@ -102,7 +98,6 @@ let eval_task_with_instrumentation (type i)
     (module T : Task.S with type input = i)
     ?(config = Instrumentation.Config.default) ?(check_determinism = false)
     ~(mode : Interp_mode.t) ~spec_il (input : i) =
-  let source = T.source input in
   Interp.with_target_state (module T.Target) @@ fun target_state ->
   let* relation, values = T.parse_input ~spec:spec_il input in
   (match mode with
@@ -110,14 +105,12 @@ let eval_task_with_instrumentation (type i)
       Instrumentation.with_instrumentation config
         (Instrumentation.Static.IlSpec spec_il) (fun () ->
           Interp.eval_il ~check_determinism target_state spec_il relation values
-            source
           |> Result.map snd)
   | Sl ->
       let spec_sl = structure spec_il in
       Instrumentation.with_instrumentation config
         (Instrumentation.Static.SlSpec spec_sl) (fun () ->
           Interp.eval_sl ~check_determinism target_state spec_sl relation values
-            source
           |> Result.map snd)
   | Pl henv ->
       let spec_sl = structure spec_il in
@@ -125,6 +118,5 @@ let eval_task_with_instrumentation (type i)
       Instrumentation.with_instrumentation config
         (Instrumentation.Static.SlSpec spec_sl) (fun () ->
           Interp.eval_pl ~check_determinism target_state spec_pl relation values
-            source
           |> Result.map snd))
   |> Result.map_error (fun e -> Error.InterpError e)

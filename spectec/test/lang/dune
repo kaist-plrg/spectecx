@@ -1,0 +1,3 @@
+(test
+ (name expression_annotations)
+ (libraries spectec.lang))

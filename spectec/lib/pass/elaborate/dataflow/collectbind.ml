@@ -1,4 +1,5 @@
 open Common.Source
+open Lang.Il.Expression
 open Lang.Il
 open Diagnostic
 open Ctx
@@ -28,7 +29,7 @@ let rec collect_exp (dctx : Dctx.t) (exp : exp) : Bind.BEnv.t =
   | BoolE _ | NumE _ | TextE _ -> Bind.BEnv.empty
   | VarE id ->
       if VEnv.mem id dctx.bounds then Bind.BEnv.empty
-      else Bind.BEnv.singleton id (exp.note $ exp.at)
+      else Bind.BEnv.singleton id (exp.note.typ $ exp.at)
   | UnE (_, _, exp) ->
       let binds = collect_exp dctx exp in
       collect_noninvertible exp.at "unary operator" binds;

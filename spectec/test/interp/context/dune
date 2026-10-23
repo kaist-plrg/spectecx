@@ -1,0 +1,3 @@
+(test
+ (name main)
+ (libraries interp_runtime spectec.common spectec.lang builtins opaque_types))

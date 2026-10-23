@@ -1,5 +1,6 @@
 open Common.Domain
 open Common.Source
+open Lang.Il.Expression
 open Lang.Il
 open Envs.Make
 module Mixop = Lang.Il.Mixfix
@@ -36,18 +37,25 @@ let gen_sidecondition (benv : Bind.BEnv.t) (id : Id.t) (ids_rename : Ids.t) :
   in
   let exp =
     let exp =
-      let exp_l = VarE id $$ (id.at, typ.it) in
-      let exp_r = VarE id_rename $$ (id_rename.at, typ.it) in
-      CmpE (`EqOp, `BoolT, exp_l, exp_r) $$ (id_rename.at, BoolT)
+      let exp_l = VarE id $$ (id.at, { typ = typ.it; annot = () }) in
+      let exp_r =
+        VarE id_rename $$ (id_rename.at, { typ = typ.it; annot = () })
+      in
+      CmpE (`EqOp, `BoolT, exp_l, exp_r)
+      $$ (id_rename.at, { typ = BoolT; annot = () })
     in
     List.fold_left
       (fun exp_l id_rename ->
         let exp_r =
-          let exp_l = VarE id $$ (id.at, typ.it) in
-          let exp_r = VarE id_rename $$ (id_rename.at, typ.it) in
-          CmpE (`EqOp, `BoolT, exp_l, exp_r) $$ (id_rename.at, BoolT)
+          let exp_l = VarE id $$ (id.at, { typ = typ.it; annot = () }) in
+          let exp_r =
+            VarE id_rename $$ (id_rename.at, { typ = typ.it; annot = () })
+          in
+          CmpE (`EqOp, `BoolT, exp_l, exp_r)
+          $$ (id_rename.at, { typ = BoolT; annot = () })
         in
-        BinE (`AndOp, `BoolT, exp_l, exp_r) $$ (id_rename.at, BoolT))
+        BinE (`AndOp, `BoolT, exp_l, exp_r)
+        $$ (id_rename.at, { typ = BoolT; annot = () }))
       exp ids_rename
   in
   let sidecondition = IfPr { cond = exp; role = Condition } $ id.at in

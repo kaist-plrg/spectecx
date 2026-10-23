@@ -16,5 +16,4 @@ val run :
   Lang.Sl.spec ->
   string ->
   Lang.Il.Value.t list ->
-  string ->
   (Ctx.t * Lang.Il.Value.t list, error) result

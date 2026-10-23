@@ -1,6 +1,7 @@
 open Common.Source
 module Sl = Lang.Sl
 module Il = Lang.Il
+open Il.Expression
 module Expand = Expand
 module Linearize = Linearize
 module Shorthand = Shorthand
@@ -11,13 +12,8 @@ let wrap_instr (instr' : Pl.instr' phrase) (hints : Pl.Annot.hints) : Pl.instr =
 let wrap_def (def' : Pl.def' phrase) (hints : Pl.Annot.hints) : Pl.def =
   { node = def'; hints }
 
-let wrap_exp (inner : (Pl.exp', Pl.typ') note_phrase) (hints : Pl.Annot.hints) :
-    Pl.exp =
-  { node = inner; hints }
-
 let bare_instr instr' = wrap_instr instr' Pl.Annot.empty
 let bare_def def' = wrap_def def' Pl.Annot.empty
-let bare_exp inner = wrap_exp inner Pl.Annot.empty
 
 let lookup_prose_out_rel (ctx : Ctx.t) (id_str : string) : Hints.Alter.t option
     =
@@ -85,87 +81,27 @@ let hints_of_func_def (ctx : Ctx.t) (id_func : Il.id) : Pl.Annot.hints =
     prose_false = Ctx.find_prose_false_func ctx id_str;
   }
 
-let rec annotate_exp (ctx : Ctx.t) (exp : Sl.exp) : Pl.exp =
-  let exp_inner, hints =
-    match exp.it with
-    | Il.BoolE b -> (Pl.BoolE b, Pl.Annot.empty)
-    | Il.NumE n -> (Pl.NumE n, Pl.Annot.empty)
-    | Il.TextE t -> (Pl.TextE t, Pl.Annot.empty)
-    | Il.VarE id -> (Pl.VarE id, Pl.Annot.empty)
-    | Il.UnE (op, optyp, e) ->
-        (Pl.UnE (op, optyp, annotate_exp ctx e), Pl.Annot.empty)
-    | Il.BinE (op, optyp, e1, e2) ->
-        ( Pl.BinE (op, optyp, annotate_exp ctx e1, annotate_exp ctx e2),
-          Pl.Annot.empty )
-    | Il.CmpE (op, optyp, e1, e2) ->
-        ( Pl.CmpE (op, optyp, annotate_exp ctx e1, annotate_exp ctx e2),
-          Pl.Annot.empty )
-    | Il.UpCastE (typ, e) ->
-        (Pl.UpCastE (typ, annotate_exp ctx e), Pl.Annot.empty)
-    | Il.DownCastE (typ, e) ->
-        (Pl.DownCastE (typ, annotate_exp ctx e), Pl.Annot.empty)
-    | Il.SubE (e, typ) -> (Pl.SubE (annotate_exp ctx e, typ), Pl.Annot.empty)
-    | Il.MatchE (e, pat) -> (Pl.MatchE (annotate_exp ctx e, pat), Pl.Annot.empty)
-    | Il.TupleE es ->
-        (Pl.TupleE (List.map (annotate_exp ctx) es), Pl.Annot.empty)
-    | Il.CaseE notexp ->
-        let mixop = Il.Mixfix.to_mixop notexp in
-        let hints =
+let annotate_exp (ctx : Ctx.t) (exp : Sl.exp) : Pl.exp =
+  Il.Expression.map_annotations
+    (fun exp ->
+      match exp.it with
+      | CaseE notexp ->
+          let mixop = Il.Mixfix.to_mixop notexp in
           { Pl.Annot.empty with prose = Ctx.find_prose_typcase ctx ~mixop }
-        in
-        (Pl.CaseE (annotate_notexp ctx notexp), hints)
-    | Il.StrE fields ->
-        ( Pl.StrE (List.map (fun (a, e) -> (a, annotate_exp ctx e)) fields),
-          Pl.Annot.empty )
-    | Il.OptE eo -> (Pl.OptE (Option.map (annotate_exp ctx) eo), Pl.Annot.empty)
-    | Il.ListE es -> (Pl.ListE (List.map (annotate_exp ctx) es), Pl.Annot.empty)
-    | Il.ConsE (e1, e2) ->
-        (Pl.ConsE (annotate_exp ctx e1, annotate_exp ctx e2), Pl.Annot.empty)
-    | Il.CatE (e1, e2) ->
-        (Pl.CatE (annotate_exp ctx e1, annotate_exp ctx e2), Pl.Annot.empty)
-    | Il.MemE (e1, e2) ->
-        (Pl.MemE (annotate_exp ctx e1, annotate_exp ctx e2), Pl.Annot.empty)
-    | Il.LenE e -> (Pl.LenE (annotate_exp ctx e), Pl.Annot.empty)
-    | Il.DotE (e, atom) -> (Pl.DotE (annotate_exp ctx e, atom), Pl.Annot.empty)
-    | Il.IdxE (e1, e2) ->
-        (Pl.IdxE (annotate_exp ctx e1, annotate_exp ctx e2), Pl.Annot.empty)
-    | Il.SliceE (e1, e2, e3) ->
-        ( Pl.SliceE
-            (annotate_exp ctx e1, annotate_exp ctx e2, annotate_exp ctx e3),
-          Pl.Annot.empty )
-    | Il.UpdE (e1, path, e2) ->
-        ( Pl.UpdE
-            (annotate_exp ctx e1, annotate_path ctx path, annotate_exp ctx e2),
-          Pl.Annot.empty )
-    | Il.CallE (id, targs, args) ->
-        ( Pl.CallE (id, targs, List.map (annotate_arg ctx) args),
-          hints_of_call_exp ctx id )
-    | Il.IterE (e, iterexp) ->
-        (Pl.IterE (annotate_exp ctx e, iterexp), Pl.Annot.empty)
-  in
-  wrap_exp (exp_inner $$ (exp.at, exp.note)) hints
+      | CallE (id, _, _) -> hints_of_call_exp ctx id
+      | _ -> Pl.Annot.empty)
+    exp
 
-and annotate_notexp (ctx : Ctx.t) (notexp : Sl.notexp) : Pl.notexp =
+let annotate_notexp (ctx : Ctx.t) (notexp : Sl.notexp) : Pl.notexp =
   Il.Mixfix.map (annotate_exp ctx) notexp
 
-and annotate_path (ctx : Ctx.t) (path : Sl.path) : Pl.path =
-  let path_inner : Pl.path' =
-    match path.it with
-    | Il.RootP -> Pl.RootP
-    | Il.IdxP (p, e) -> Pl.IdxP (annotate_path ctx p, annotate_exp ctx e)
-    | Il.SliceP (p, e1, e2) ->
-        Pl.SliceP (annotate_path ctx p, annotate_exp ctx e1, annotate_exp ctx e2)
-    | Il.DotP (p, atom) -> Pl.DotP (annotate_path ctx p, atom)
-  in
-  path_inner $$ (path.at, path.note)
-
-and annotate_arg (ctx : Ctx.t) (arg : Sl.arg) : Pl.arg =
-  let arg_inner : Pl.arg' =
+let annotate_arg (ctx : Ctx.t) (arg : Sl.arg) : Pl.arg =
+  let it =
     match arg.it with
-    | Il.ExpA e -> Pl.ExpA (annotate_exp ctx e)
-    | Il.DefA id -> Pl.DefA id
+    | ExpA exp -> ExpA (annotate_exp ctx exp)
+    | DefA id -> DefA id
   in
-  arg_inner $ arg.at
+  { arg with it }
 
 let annotate_guard (ctx : Ctx.t) (g : Ll.guard) : Pl.guard =
   match g with
@@ -229,8 +165,8 @@ let rec annotate_instr (ctx : Ctx.t) (instr : Ll.instr) : Pl.instr =
         let exp_l_pl = annotate_exp ctx exp_l in
         let exp_r_pl = annotate_exp ctx exp_r in
         let hints =
-          match exp_l_pl.node.it with
-          | Pl.CaseE notexp ->
+          match exp_l_pl.it with
+          | CaseE notexp ->
               let mixop = Il.Mixfix.to_mixop notexp in
               {
                 Pl.Annot.empty with

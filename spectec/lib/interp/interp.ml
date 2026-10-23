@@ -23,17 +23,14 @@ let with_target_state target f =
   let module T = (val target : Target.S) in
   T.with_state (fun () -> f (TargetState target))
 
-let eval_il ?(check_determinism = false) (TargetState target) spec rid args
-    filename =
-  Eval_il.run ~check_determinism target spec rid args filename
+let eval_il ?(check_determinism = false) (TargetState target) spec rid args =
+  Eval_il.run ~check_determinism target spec rid args
   |> Result.map_error (fun e -> EvalIlError e)
 
-let eval_sl ?(check_determinism = false) (TargetState target) spec rid args
-    filename =
-  Eval_sl.run ~check_determinism target spec rid args filename
+let eval_sl ?(check_determinism = false) (TargetState target) spec rid args =
+  Eval_sl.run ~check_determinism target spec rid args
   |> Result.map_error (fun e -> EvalSlError e)
 
-let eval_pl ?(check_determinism = false) (TargetState target) spec rid args
-    filename =
-  Eval_pl.run ~check_determinism target spec rid args filename
+let eval_pl ?(check_determinism = false) (TargetState target) spec rid args =
+  Eval_pl.run ~check_determinism target spec rid args
   |> Result.map_error (fun e -> EvalPlError e)
