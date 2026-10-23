@@ -1,7 +1,12 @@
 open Common.Source
 
 type primitive = Num of Xl.Num.typ | Bool | Text
-type arg = Nonterminal of Il.id | Primitive of primitive
+
+type arg =
+  | Nonterminal of Il.id
+  | Primitive of primitive
+  | Iter of arg * Il.iter
+
 type recursion = Neither | Left | Right | Both
 type precedence = Tighter of Xl.Atom.t
 type construction = Case | Alias
@@ -10,6 +15,7 @@ type production = {
   notation : arg Il.Mixfix.t;
   recursion : recursion;
   precedence : precedence option;
+  not_followed_by : Xl.Atom.t option;
   construction : construction;
   origin : Il.id;
 }
@@ -17,8 +23,9 @@ type production = {
 type syntax = { name : Il.id; productions : production list }
 type t = syntax list
 
-let arg_of_typ (typ : Il.typ) : arg =
+let rec arg_of_typ (typ : Il.typ) : arg =
   match typ.it with
+  | Il.IterT { typ; iter } -> Iter (arg_of_typ typ, iter)
   | Il.VarT { synid; _ } -> Nonterminal synid
   | Il.NumT numtyp -> Primitive (Num numtyp)
   | Il.BoolT -> Primitive Bool
@@ -31,8 +38,13 @@ let is_self_arg (self : Il.id) : arg Il.Mixfix.mixeme -> bool = function
   | Il.Mixfix.Arg (Nonterminal id) -> id.it = self.it
   | _ -> false
 
+(* A tag has no surface form, so [_FIELD e '.' x] still starts with [e]. *)
 let recursion_of (self : Il.id) (notation : arg Il.Mixfix.t) : recursion =
-  let head_is_self = function [] -> false | e :: _ -> is_self_arg self e in
+  let rec head_is_self = function
+    | [] -> false
+    | Il.Mixfix.Atom { it = Xl.Atom.Tag _; _ } :: rest -> head_is_self rest
+    | e :: _ -> is_self_arg self e
+  in
   let left = head_is_self notation in
   let right = head_is_self (List.rev notation) in
   match (left, right) with
@@ -41,16 +53,19 @@ let recursion_of (self : Il.id) (notation : arg Il.Mixfix.t) : recursion =
   | true, true -> Both
   | false, false -> Neither
 
+(* Also [items = x*]: EL has no variant case [| x*], so an iteration alone
+   is always a whole definition, an alias of the list type. *)
 let is_plain_inclusion (notation : arg Il.Mixfix.t) : bool =
   Il.Mixfix.atoms notation = [] && Il.Mixfix.arity notation = 1
 
 let production_of_notation (self : Il.id) ~(origin : Il.id)
-    ~(precedence : precedence option) (notation : arg Il.Mixfix.t) : production
-    =
+    ~(precedence : precedence option) ~(not_followed_by : Xl.Atom.t option)
+    (notation : arg Il.Mixfix.t) : production =
   {
     notation;
     recursion = recursion_of self notation;
     precedence;
+    not_followed_by;
     construction = (if is_plain_inclusion notation then Alias else Case);
     origin;
   }
@@ -61,6 +76,7 @@ let precedence_of_typcase (typcase : Il.typcase) : precedence option =
 let production_of_typcase (self : Il.id) (typcase : Il.typcase) : production =
   production_of_notation self ~origin:typcase.origin.it.synid
     ~precedence:(precedence_of_typcase typcase)
+    ~not_followed_by:(Hints.Follow.find typcase.hints)
     (Il.Mixfix.map arg_of_typ typcase.notation.it)
 
 let syntax_of_def (def : Il.def) : syntax option =
@@ -78,6 +94,7 @@ let syntax_of_def (def : Il.def) : syntax option =
           productions =
             [
               production_of_notation synid ~origin:synid ~precedence:None
+                ~not_followed_by:None
                 [ Il.Mixfix.Arg (arg_of_typ typ) ];
             ];
         }
@@ -87,8 +104,11 @@ type syntax_usage = { name : string; uses : string list }
 type usage_graph = syntax_usage list
 
 let usage_graph_of (spec : Il.spec) : usage_graph =
-  let uses_of_typ (typ : Il.typ) =
-    match typ.it with Il.VarT { synid; _ } -> [ synid.it ] | _ -> []
+  let rec uses_of_typ (typ : Il.typ) =
+    match typ.it with
+    | Il.VarT { synid; _ } -> [ synid.it ]
+    | Il.IterT { typ; _ } -> uses_of_typ typ
+    | _ -> []
   in
   let usage_of_def (def : Il.def) : syntax_usage option =
     match def.it with
@@ -153,6 +173,11 @@ let rank (syntax : syntax) (atom : Xl.Atom.t) : int =
   in
   height atom
 
+let production_rank (syntax : syntax) (production : production) : int =
+  match production.precedence with
+  | Some (Tighter tighter) -> 1 + rank syntax tighter
+  | None -> 0
+
 module Terminal = struct
   type t = Atom of Xl.Atom.t | Primitive of primitive * Il.value
 end
@@ -162,9 +187,11 @@ let string_of_primitive = function
   | Bool -> "bool"
   | Text -> "text"
 
-let string_of_arg = function
+let rec string_of_arg = function
   | Nonterminal id -> "<" ^ id.it ^ ">"
   | Primitive prim -> "<" ^ string_of_primitive prim ^ ">"
+  | Iter (arg, Il.Opt) -> string_of_arg arg ^ "?"
+  | Iter (arg, Il.List) -> string_of_arg arg ^ "*"
 
 let string_of_mixeme : arg Il.Mixfix.mixeme -> string = function
   | Il.Mixfix.Atom atom -> Xl.Atom.unparse atom.it
@@ -180,6 +207,10 @@ let string_of_precedence = function
   | None -> ""
   | Some (Tighter atom) -> "tighter than " ^ Xl.Atom.unparse atom
 
+let string_of_follow = function
+  | None -> ""
+  | Some atom -> "not followed by " ^ Xl.Atom.unparse atom
+
 let string_of_production (self : Il.id) (production : production) : string =
   let notation =
     String.concat " " (List.map string_of_mixeme production.notation)
@@ -189,7 +220,11 @@ let string_of_production (self : Il.id) (production : production) : string =
     else Printf.sprintf "(from %s)" production.origin.it
   in
   let suffix =
-    [ string_of_precedence production.precedence; from ]
+    [
+      string_of_precedence production.precedence;
+      string_of_follow production.not_followed_by;
+      from;
+    ]
     |> List.filter (fun s -> s <> "")
   in
   let suffix =

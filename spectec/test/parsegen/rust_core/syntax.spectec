@@ -1,0 +1,321 @@
+;;
+;; Rust implied-bounds core fragment: syntax only
+;;
+;; Source: the BNF on pp. 1-3 of ../implied_bounds_syntax.pdf, as reviewed
+;; in ../syntax-review/syntax-review.pdf (section 1), with these extensions:
+;;  [EXT-1] a path may start with `self` or `Self` (pathhead below), so that
+;;          `self.0` (#104005) and `-> Self` (#112417) are expressible. The
+;;          original BNF had `self` only as a receiver parameter and `Self`
+;;          nowhere.
+;;  [EXT-2] a macro invocation `p!tt` is an expression (expr below), so that
+;;          println!(..) and panic!() parse. The PDF puts it in a separate
+;;          pre-expansion syntax e_src, outside the grammar.
+;;  [EXT-3] .. [EXT-11] the constructs the core code of the 7 Project Zero
+;;          issues uses beyond the BNF (syntax-review section 3):
+;;    EXT-3  cast `e as T` (#129005)
+;;    EXT-4  generic args on a middle path segment, `Tr::<'a>::f` (#84533)
+;;    EXT-5  unit struct `struct S;` (#84591)
+;;    EXT-6  the relaxed bound `?Sized`, and no other `?Trait` (#152489)
+;;    EXT-7  associated item constraints `Assoc = T`, `Assoc: B` (#152489)
+;;    EXT-8  closure return type `|..| -> T { .. }` (#84366, #112905)
+;;    EXT-9  typed closure parameter `|x: T|` (#112905)
+;;    EXT-10 dereference `*e` (#112905)
+;;    EXT-11 tuple pattern `()` (#112905)
+;;  [EXT-12] .. [EXT-17] the constructs the witness code (exploit) of the 14
+;;          issues uses beyond EXT-1..EXT-11, comments removed
+;;          (parsegen/README.md):
+;;    EXT-12 let without initializer `let d;` (#84533, #84591, #84366)
+;;    EXT-13 assignment `d = e` (same three)
+;;    EXT-14 block statement without `;` (same three)
+;;    EXT-15 type alias, also to `impl Trait` (#151637, #112905)
+;;    EXT-16 attributes `#[p(p)]`, `#![p(p)]`, with one path argument (#112905)
+;;    EXT-17 static item (#25860)
+;;  [EXT-18] .. [EXT-21] the elaborated form: program text printed from
+;;          rustc's THIR, which names types that Rust surface syntax cannot
+;;          write (../design/2026-10-22-static-semantics-design.md):
+;;    EXT-18 closure type `closure#N`, the N-th closure expression of the
+;;           program in pre-order, from 1
+;;    EXT-19 fn item type `fn#foo::<T>`
+;;    EXT-20 opaque type `opaque#mk::<'a, 'a>`
+;;    EXT-21 closure with an explicit binder `for<'x> |x: &'x T| -> U { .. }`,
+;;           the `binder?` of the EXT-8 closure production
+;;          The Rust lexicon of spectecx (targets/rust_core_calculus) makes
+;;          `Sized` an atom (as it does `Fn`), separates `cparam*` by commas,
+;;          and reads the keyword `static` as STATICKW (STATIC is 'static).
+;;          It also reads `closure` and `opaque` as the atoms CLOSURE and
+;;          OPAQUE (EXT-18, EXT-20), so neither is an identifier.
+;;  [EXT-22] .. [EXT-23] the std item declarations (../elab/std-prelude.rs),
+;;          whose bodies are not modelled:
+;;    EXT-22 fn without a body, `fn f(..) -> T;`, in an impl and at the top
+;;           level, as a trait method already is
+;;    EXT-23 inherent impl `impl<T> Box<T> { .. }`
+;;  [EXT-24] enum item with unit and tuple variants, `enum Option<T> { None,
+;;          Some(T) }`, for Option and Result in the prelude; no struct
+;;          variant, no discriminant, no match. The lexicon reads `enum` as
+;;          the atom ENUM and separates `variant*` by commas.
+;;
+;; Differences forced by SpecTec EL (only the first one changes the
+;; accepted language; see ../spectec/correspondence.pdf):
+;;  * EL has only `?` and `*` iteration, with no separators. The BNF's
+;;    comma lists (overbar) become `x*` with the commas left implicit. A
+;;    nonempty list (overbar-plus) also becomes `x*` and is marked "1+".
+;;  * EL cannot iterate a group such as `(':' beta)?`, so each group gets a
+;;    one-line helper type (supers, arrowty, ...).
+;;  * A quoted atom cannot contain `'`. Lifetimes are therefore
+;;    `_LT id` ('a), STATIC ('static), and PLACEHOLDER ('_).
+;;  * Alternatives of one type need distinct atom arrangements, so
+;;    alternatives without atoms carry an invisible `_TAG`.
+;;
+;; Right-hand comments name the Rust Reference construct and give an
+;; example, mostly from the seven ISSTA cases.
+
+;;
+;; Lexical
+;;
+
+syntax id = text                      (; x, f, X, A: identifier ;)
+
+;;
+;; Lifetimes
+;;
+
+syntax lname =                        (; l: named lifetime ;)
+  | _LT id                            (; 'a ;)
+
+syntax lbound =                       (; lambda_b: bound-position lifetime ;)
+  | lname
+  | STATIC                            (; 'static ;)
+
+syntax region =                       (; rho: Lifetime ;)
+  | lbound
+  | PLACEHOLDER                       (; '_ (explicit placeholder) ;)
+
+;;
+;; Paths
+;;
+
+syntax pathhead =                     (; [EXT-1] first path segment ;)
+  | _NAME id                          (; x ;)
+  | SELF                              (; self: receiver value, as in self.0 ;)
+  | Self                              (; Self: implementing type, as in -> Self ;)
+
+syntax pathseg = '::' id
+syntax path =                         (; p: (x | self | Self) (::x)* ;)
+  | _PATH pathhead pathseg*           (; std::marker::PhantomData, self, Self::A ;)
+
+;;
+;; Generic parameters and predicates
+;;
+
+syntax typ, traitref, bounds
+
+syntax lboundtail = '+' lbound
+syntax lbounds =                      (; beta_l: LifetimeBounds ;)
+  | _LBOUNDS lbound lboundtail*       (; 'a + 'static ;)
+
+syntax lsupers = ':' lbounds
+syntax supers = ':' bounds
+
+syntax gparam =                       (; g ;)
+  | _LTPARAM lname lsupers?           (; LifetimeParam: 'b: 'a ;)
+  | _TYPARAM id supers?               (; TypeParam: F: FnOnce() -> R ;)
+
+syntax generics =                     (; G: GenericParams, 1+ ;)
+  | `< gparam* `>                     (; <'a, 'b: 'a, T> ;)
+
+syntax binder =                       (; H: ForLifetimes, 1+ ;)
+  | FOR `< lname* `>                  (; for<'what, 'ever> ;)
+
+syntax pred =                         (; pi ;)
+  | _OUTLIVES lname ':' lbounds       (; LifetimeWhereClauseItem: 'a: 'b ;)
+  | _BOUND binder? typ ':' bounds     (; TypeBoundWhereClauseItem: for<'w> &'w (): Trait ;)
+
+syntax whereclause =                  (; W: WhereClause, 1+ ;)
+  | WHERE pred*                       (; where &'static S: Static, ;)
+
+syntax bound =                        (; B: TypeParamBound ;)
+  | lbound                            (; Lifetime: 'static ;)
+  | _TRAIT binder? traitref           (; TraitBound: for<'x> Fn(&'x T) ;)
+  | '?' Sized                         (; [EXT-6] relaxed bound: T: ?Sized ;)
+
+syntax boundtail = '+' bound
+syntax bounds =                       (; beta: TypeParamBounds ;)
+  | _BOUNDS bound boundtail*          (; Display + 'static ;)
+
+syntax fnkind =                       (; kappa ;)
+  | Fn | FnMut | FnOnce               (; trait names; distinct from the keyword atom FN (fn) ;)
+
+syntax garg =                         (; a: GenericArg ;)
+  | _LTARG region                     (; '_ ;)
+  | _TYARG typ                        (; Option<U> ;)
+  | id '=' typ                        (; [EXT-7] AssociatedItemConstraint: Assoc = &'static &'hr &'b () ;)
+  | id ':' bounds                     (; [EXT-7] AssociatedItemConstraint: Assoc: Extend<'a, 'b> ;)
+
+syntax gargs =                        (; M: GenericArgs, 1+ ;)
+  | `< garg* `>                       (; <'static, '_, T> ;)
+
+syntax arrowty = '->' typ
+
+syntax traitref =                     (; q ;)
+  | _TRAITPATH path gargs?            (; TypePath in trait position: Extend<'a, 'b> ;)
+  | fnkind `( typ* `) arrowty?        (; TypePathFn: FnOnce(&T) -> R ;)
+
+;;
+;; Types
+;;
+
+syntax valpath
+
+syntax mutkw = MUT
+syntax objlt = '+' region
+
+syntax typ =                          (; tau ;)
+  | _TYPATH path gargs?               (; TypePath: Box<dyn Display> ;)
+  | `< typ AS traitref `> '::' id     (; QualifiedPathInType: <&'a &'b () as Trait>::Type ;)
+  | '&' region? mutkw? typ            (; ReferenceType: &T, &'_ T, &'a mut T ;)
+  | '()'                              (; unit type ;)
+  | `( typ `)                         (; ParenthesizedType: (T) ;)
+  | `( typ ',' typ* `)                (; TupleType: (T, Option<&'static T>) ;)
+  | `[ typ ';' nat `]                 (; ArrayType: [&'b (); 0] ;)
+  | binder? FN `( typ* `) arrowty?    (; BareFunctionType: fn(&'a i32, _) -> &'static i32 ;)
+  | DYN binder? traitref objlt?       (; TraitObjectType: dyn FnOnce(&T) -> R ;)
+  | '_'                               (; InferredType: fn(&'a i32, _) ;)
+  | _CLOSURETY CLOSURE '#' nat        (; [EXT-18] closure type: closure#1 ;)
+  | _FNITEMTY FN '#' valpath          (; [EXT-19] fn item type: fn#foo::<T> ;)
+  | _OPAQUETY OPAQUE '#' valpath      (; [EXT-20] opaque type: opaque#mk::<'a, 'a> ;)
+
+;;
+;; Items
+;;
+
+syntax pat =                          (; z ;)
+  | _VAR id                           (; IdentifierPattern: x ;)
+  | '_'                               (; WildcardPattern: _ ;)
+  | MUT id                            (; IdentifierPattern: mut n ;)
+  | `( pat* `)                        (; [EXT-11] TuplePattern: () ;)
+
+syntax param =                        (; d ;)
+  | pat ':' typ                       (; FunctionParam: _: F ;)
+  | SELF                              (; SelfParam: self ;)
+  | '&' region? mutkw? SELF           (; SelfParam: &'a mut self ;)
+
+syntax ret =                          (; R: FunctionReturnType ;)
+  | '->' typ                          (; -> &'a str ;)
+  | '->' IMPL bounds                  (; ImplTraitType: -> impl CallMeMaybe<'a, 'b> ;)
+
+syntax block, expr
+
+syntax titem =                        (; J: item inside a trait ;)
+  | TYPE id supers? ';'               (; associated type declaration: type Type; ;)
+  | FN id generics? `( param* `) ret? whereclause? ';'
+                                      (; method declaration, no body: fn mk() -> Self; ;)
+
+syntax iitem =                        (; K: item inside an impl ;)
+  | TYPE id '=' typ ';'               (; associated type definition: type Type = (); ;)
+  | FN id generics? `( param* `) ret? whereclause? block
+                                      (; method: fn extend(self, s: &'a str) -> &'b str { s } ;)
+  | FN id generics? `( param* `) ret? whereclause? ';'  (; [EXT-22] method declaration, no body: fn deref(&self) -> &str; ;)
+
+syntax attrarg = `( path `)
+syntax attr = '#' `[ path attrarg? `]           (; [EXT-16] OuterAttribute: #[define_opaque(F)] ;)
+syntax iattr = '#' '!' `[ path attrarg? `]      (; [EXT-16] InnerAttribute: #![feature(type_alias_impl_trait)] ;)
+
+syntax variant =                      (; [EXT-24] EnumVariant ;)
+  | _UNITVAR id                       (; unit variant: None ;)
+  | _TUPLEVAR id `( typ* `)           (; tuple variant: Some(T) ;)
+
+syntax item =                         (; I ;)
+  | _ATTRED attr item                 (; [EXT-16] item with an outer attribute ;)
+  | TYPE id generics? '=' typ ';'     (; [EXT-15] TypeAlias: type Payload = Box<i32>; ;)
+  | TYPE id generics? '=' IMPL bounds ';'
+                                      (; [EXT-15] TypeAlias to impl Trait: type F<'a, 'b> = impl 'static + Fn(T<'a>) -> T<'b>; ;)
+  | STATICKW id ':' typ '=' expr ';'  (; [EXT-17] StaticItem: static UNIT: &'static &'static () = &&(); ;)
+  | USE path ';'                      (; UseDeclaration: use std::fmt::Display; ;)
+  | STRUCT id generics? `( typ* `) ';'
+                                      (; TupleStruct: struct Foo<'a, 'b: 'a>(&'a (), &'b ()); ;)
+  | STRUCT id generics? ';'           (; [EXT-5] UnitStruct: struct MyStruct; ;)
+  | ENUM id generics? whereclause? `{ variant* `}  (; [EXT-24] Enumeration: enum Option<T> { None, Some(T) } ;)
+  | TRAIT id generics? supers? whereclause? `{ titem* `}
+                                      (; Trait: trait Static: 'static {} ;)
+  | IMPL generics? traitref FOR typ whereclause? `{ iitem* `}
+                                      (; TraitImpl: impl<T> Trait for T { .. } ;)
+  | IMPL generics? typ whereclause? `{ iitem* `}  (; [EXT-23] InherentImpl: impl<T> Box<T> { .. } ;)
+  | FN id generics? `( param* `) ret? whereclause? block
+                                      (; Function: fn foo<S: Display>(x: S) -> .. { .. } ;)
+  | FN id generics? `( param* `) ret? whereclause? ';'  (; [EXT-22] Function declaration, no body: fn drop<T>(_x: T); ;)
+
+syntax program =                      (; P: Crate ;)
+  | _PROGRAM iattr* item*            (; [EXT-16] inner attributes first ;)
+
+;;
+;; Bodies and expressions
+;;
+
+syntax turbofish = '::' `< garg* `>   (; 1+ ;)
+
+syntax vpathseg = '::' id turbofish?
+
+syntax valpath =                      (; v ;)
+  | _VALPATH path turbofish?          (; PathInExpression: Box::new, None ;)
+  | _VALPATHARGS path turbofish vpathseg vpathseg*
+                                      (; [EXT-4] PathInExpression: HelperTrait::<'b, 'a>::convert ;)
+  | `< typ AS traitref `> '::' id turbofish?
+                                      (; QualifiedPathInExpression: <() as Extend<'_, '_>>::extend ;)
+
+syntax tyannot = ':' typ
+
+syntax cparam =                       (; ClosureParam ;)
+  | _CPARAM pat tyannot?              (; x, [EXT-9] _: &'a str ;)
+
+syntax stmt =                         (; s ;)
+  | _ITEM item                        (; item statement: struct Bounded<..>(..); inside fn ;)
+  | LET pat tyannot? '=' expr ';'     (; LetStatement: let f: fn(..) -> .. = foo; ;)
+  | LET pat tyannot? ';'              (; [EXT-12] LetStatement without initializer: let d; ;)
+  | _BLOCKSTMT block                  hint(not_followed_by '}')
+                                      (; [EXT-14] ExpressionStatement, a block without ';'.
+                                         Last in a block, it is the tail expression instead. ;)
+  | _EXPR expr ';'                    (; ExpressionStatement: drop(x); ;)
+
+syntax block =                        (; b: BlockExpression ;)
+  | `{ stmt* expr? `}
+
+syntax movekw = MOVE
+
+syntax tokentree = text               (; opaque macro token tree ;)
+
+syntax expr =                         (; e ;)
+  | expr AS typ                       hint(tighter_than '=')
+                                      (; [EXT-3] TypeCastExpression: extend_inner as for<'hr> fn(&'hr str) -> &'l str ;)
+                                      (; First on purpose: tighter_than AS names the first production
+                                         whose first operator is AS, and valpath, inlined here, has
+                                         one too (<T as Tr>::f). ;)
+  | valpath                           (; PathExpression: foo ;)
+  | expr '=' expr                     hint(tighter_than '|')
+                                      (; [EXT-13] AssignmentExpression: d = extend_lifetime(&x).
+                                         Groups to the left, unlike rustc (a = b = c). ;)
+  | _NUM nat                          (; integer literal n: 0 ;)
+  | _STR text                         (; string literal c: "temporary" ;)
+  | '()'                              (; unit value ;)
+  | `( expr `)                        (; GroupedExpression: (x) ;)
+  | `( expr ',' expr* `)              (; TupleExpression: (val, None) ;)
+  | `[ expr* `]                       (; ArrayExpression: [] ;)
+  | `[ expr ';' nat `]                (; ArrayExpression, repeat: [x; 0] ;)
+  | '&' mutkw? expr                   hint(tighter_than AS)
+                                      (; BorrowExpression: &String::from("temporary") ;)
+  | '*' expr                          hint(tighter_than AS)
+                                      (; [EXT-10] DereferenceExpression: *any.downcast() ;)
+  | _BLOCK block                      (; BlockExpression ;)
+  | LOOP block                        (; InfiniteLoopExpression: loop {} ;)
+  | expr `( expr* `)                  hint(tighter_than '&')
+                                      (; CallExpression: f(v, &&0) ;)
+  | expr '.' id `( expr* `)           hint(tighter_than '&')
+                                      (; MethodCallExpression: proof.subtype(x) ;)
+  | _FIELD expr '.' id                hint(tighter_than '&') hint(not_followed_by '(')
+                                      (; FieldExpression: p.field ;)
+  | _TUPLEINDEX expr '.' nat          hint(tighter_than '&')
+                                      (; TupleIndexingExpression: n(input).0 ;)
+  | movekw? '|' cparam* '|' expr      (; ClosureExpression: |x| Bounded(x, []) ;)
+  | binder? movekw? '|' cparam* '|' '->' typ block
+                                      (; [EXT-8] ClosureExpression: || -> &'a str { "" },
+                                         [EXT-21] with ClosureBinder: for<'x> |x: &'x T| -> U { .. } ;)
+  | _MACRO path '!' tokentree         (; [EXT-2] MacroInvocation: println!("{}", s), panic!() ;)

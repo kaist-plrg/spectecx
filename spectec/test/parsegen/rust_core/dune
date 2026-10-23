@@ -1,0 +1,149 @@
+; Does the Rust core-calculus grammar derive its listings? See main.ml.
+;
+;   goals.expected   one PASS line per goal in testdata/.../goals.txt. Written
+;                    before the parser; every line must stay PASS.
+;   report.expected  parse counts, ambiguities and rejection sites, as a
+;                    snapshot to review on change (dune promote).
+
+(executable
+ (name main)
+ (preprocess
+  (pps ppx_let))
+ (libraries
+  spectec
+  spectec.grammar
+  spectec.parsegen
+  spectec.lang
+  targets_rust_core_calculus
+  core
+  core_unix.command_unix))
+
+(rule
+ (target goals.actual)
+ (deps
+  (source_tree ../../../testdata/parsegen/rust-core)
+  main.exe)
+ (action
+  (with-stdout-to
+   %{target}
+   (run ./main.exe goals -d ../../../testdata/parsegen/rust-core))))
+
+(rule
+ (alias runtest)
+ (action
+  (diff goals.expected goals.actual)))
+
+(rule
+ (target report.actual)
+ (deps
+  (source_tree ../../../testdata/parsegen/rust-core)
+  main.exe)
+ (action
+  (with-stdout-to
+   %{target}
+   (run ./main.exe report -d ../../../testdata/parsegen/rust-core))))
+
+(rule
+ (alias runtest)
+ (action
+  (diff report.expected report.actual)))
+
+; A syntax defined as one iteration (program = bar*) parses to the list
+; itself, as its IL type is that list type.
+
+(rule
+ (target plain_iteration.actual)
+ (deps
+  (source_tree ../../../testdata/parsegen/plain-iteration)
+  main.exe)
+ (action
+  (with-stdout-to
+   %{target}
+   (chdir
+    ../../../testdata/parsegen/plain-iteration
+    (run %{dep:main.exe} parse --value -s syntax.spectec input.rs)))))
+
+(rule
+ (alias runtest)
+ (action
+  (diff plain_iteration.expected plain_iteration.actual)))
+
+; `spectecx rust check` (Task 1.6): parse a program with a grammar, run a
+; relation on it, print the verdict. The relation is the real ElabForm of
+; Task 1.5. syntax.spectec and 05-elabform.spectec here are copies of
+; 06-core-calculus/spectec/syntax.spectec and
+; 06-core-calculus/spectec/static/05-elabform.spectec of the research repo
+; (2026-10-22); ElabForm needs that grammar, not the older snapshot in
+; testdata/parsegen/rust-core used by goals and report above. Each run's exit
+; code is checked too: 0 holds, 1 does not, 2 parse reject. Diagnostics go to
+; check.stderr, which is not compared.
+
+(rule
+ (targets check.actual check.stderr)
+ (deps
+  %{bin:spectec}
+  (package spectec)
+  syntax.spectec
+  05-elabform.spectec
+  check-elab.rs
+  check-not-elab.rs
+  check-parse-reject.rs)
+ (action
+  (with-stderr-to
+   check.stderr
+   (with-stdout-to
+    check.actual
+    (progn
+     (echo "check-elab.rs\n")
+     (with-accepted-exit-codes
+      0
+      (run
+       %{bin:spectec}
+       rust
+       check
+       -s
+       syntax.spectec
+       -s
+       05-elabform.spectec
+       --no-prelude
+       --relation
+       ElabForm
+       -p
+       check-elab.rs))
+     (echo "check-not-elab.rs\n")
+     (with-accepted-exit-codes
+      1
+      (run
+       %{bin:spectec}
+       rust
+       check
+       -s
+       syntax.spectec
+       -s
+       05-elabform.spectec
+       --no-prelude
+       --relation
+       ElabForm
+       -p
+       check-not-elab.rs))
+     (echo "check-parse-reject.rs\n")
+     (with-accepted-exit-codes
+      2
+      (run
+       %{bin:spectec}
+       rust
+       check
+       -s
+       syntax.spectec
+       -s
+       05-elabform.spectec
+       --no-prelude
+       --relation
+       ElabForm
+       -p
+       check-parse-reject.rs)))))))
+
+(rule
+ (alias runtest)
+ (action
+  (diff check.expected check.actual)))
