@@ -154,7 +154,7 @@ The P4, Mini-ML, Impty, and ITPL targets under `spectec/targets/` are working ex
 
 ### Contributing
 
-Contributions are welcome — open an issue or pull request. See [CONTRIBUTING.md](CONTRIBUTING.md) for code conventions, commit and PR format, and rebase guidance.
+Contributions are welcome through issues and pull requests. [CONTRIBUTING.md](CONTRIBUTING.md) describes what contributors are expected to do.
 
 ### License
 
