@@ -4,7 +4,7 @@
   open Common.Source
 
   let pos p =
-    { file = p.pos_fname; line = p.pos_lnum; column = p.pos_cnum }
+    { file = p.pos_fname; line = p.pos_lnum; column = p.pos_cnum - p.pos_bol }
   let region lb =
     { left = pos (lexeme_start_p lb); right = pos (lexeme_end_p lb) }
 }
