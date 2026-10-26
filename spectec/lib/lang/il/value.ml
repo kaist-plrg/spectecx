@@ -158,7 +158,6 @@ module MakeWithVid (VidProvider : VidProvider) = struct
 
   let opt (typ : typ) (v : t option) : t = OptV v |> make_val (Typ.opt typ)
   let list (typ : typ) (vs : t list) : t = ListV vs |> make_val (Typ.list typ)
-  let list' (typ : typ') (vs : t list) : t = list (typ $ no_region) vs
 end
 
 (* Default instance using global provider *)
@@ -189,19 +188,6 @@ let get_opt (value : t) =
 
 let get_struct (value : t) =
   match value.it with StructV fields -> fields | _ -> failwith "get_struct"
-
-let bool (b : bool) : t = Make.bool Typ.bool b
-let nat (i : Bigint.t) : t = Make.nat Typ.nat i
-let int (i : Bigint.t) : t = Make.int Typ.int i
-let text (s : string) : t = Make.text Typ.text s
-let func (id : id) : t = FuncV id |> make_val Typ.func
-
-let tuple (vs : t list) : t =
-  let typs = List.map (fun v -> v.note.typ $ no_region) vs in
-  TupleV vs |> make_val (Typ.tuple typs)
-
-let opt (typ : typ) (v : t option) : t = OptV v |> make_val (Typ.opt typ)
-let list (typ : typ) (vs : t list) : t = ListV vs |> make_val (Typ.list typ)
 
 let id_of_case_v (v : t) : string =
   match (v.it, v.note.typ) with
