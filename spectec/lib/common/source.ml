@@ -61,13 +61,11 @@ let string_of_region region =
    from; [None] is the default for kinds that do not track it. *)
 type ('a, 'b, 'c, 'd) info = { it : 'a; note : 'b; at : 'c; prov : 'd option }
 type ('a, 'b) note_phrase = ('a, 'b, region, unit) info
-type ('a, 'b) note = ('a, 'b, unit, unit) info
 type 'a phrase = ('a, unit, region, unit) info
 type ('a, 'd) phrase_prov = ('a, unit, region, 'd) info
 
 let ( $ ) it at = { it; at; note = (); prov = None }
 let ( $$ ) it (at, note) = { it; at; note; prov = None }
-let ( $$$ ) it note = { it; at = (); note; prov = None }
 let ( % ) at note = (at, note)
 let it { it; _ } = it
 let at { at; _ } = at

@@ -80,7 +80,7 @@ and typcase = { notation : nottyp; origin : typorigin; hints : hint list }
 type vid = int
 and vnote = { vid : vid; vhash : int; typ : typ' }
 
-and value = (value', vnote) note
+and value = (value', vnote) note_phrase
 and value' =
   | BoolV of bool
   | NumV of Num.t

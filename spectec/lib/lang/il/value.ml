@@ -119,7 +119,9 @@ module MakeWithVid (VidProvider : VidProvider) = struct
 
   let make_val (typ : typ') (v : value') : t =
     let vhash = hash_of v in
-    v $$$ with_fresh_vid typ vhash
+    v $$ (no_region, with_fresh_vid typ vhash)
+
+  let ( <<<| ) (value : t) (at : region) : t = { value with at }
 
   module Make = struct
     let value (t' : typ') (v : value') : t = make_val t' v
