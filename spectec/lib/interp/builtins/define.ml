@@ -79,6 +79,26 @@ module T0 = struct
         Error
           (Error.arity at
              (Printf.sprintf "Expected 3 arguments, got %d" (List.length vs)))
+
+  let a5 (p1 : 'a Arg.t) (p2 : 'b Arg.t) (p3 : 'c Arg.t) (p4 : 'd Arg.t)
+      (p5 : 'e Arg.t)
+      (impl :
+        at:region -> 'a -> 'b -> 'c -> 'd -> 'e -> (Value.t, Error.t) result) :
+      t =
+   fun ~at targs values ->
+    let* (), vs = Extract.extract ~targs_num:0 ~args_num:5 at targs values in
+    match vs with
+    | [ v1; v2; v3; v4; v5 ] ->
+        let* arg1 = p1 at v1 in
+        let* arg2 = p2 at v2 in
+        let* arg3 = p3 at v3 in
+        let* arg4 = p4 at v4 in
+        let* arg5 = p5 at v5 in
+        impl ~at arg1 arg2 arg3 arg4 arg5
+    | _ ->
+        Error
+          (Error.arity at
+             (Printf.sprintf "Expected 5 arguments, got %d" (List.length vs)))
 end
 
 module T1 = struct
@@ -112,6 +132,25 @@ module T1 = struct
           (Error.arity at
              (Printf.sprintf
                 "Expected 1 type argument and 2 value arguments, got %d type \
+                 arguments and %d value arguments"
+                (List.length targs) (List.length vs)))
+
+  let a3 (p1 : 'a Arg.t) (p2 : 'b Arg.t) (p3 : 'c Arg.t)
+      (impl : at:region -> targ -> 'a -> 'b -> 'c -> (Value.t, Error.t) result)
+      : t =
+   fun ~at targs values ->
+    let* (), vs = Extract.extract ~targs_num:1 ~args_num:3 at targs values in
+    match (targs, vs) with
+    | [ targ1 ], [ v1; v2; v3 ] ->
+        let* arg1 = p1 at v1 in
+        let* arg2 = p2 at v2 in
+        let* arg3 = p3 at v3 in
+        impl ~at targ1 arg1 arg2 arg3
+    | _ ->
+        Error
+          (Error.arity at
+             (Printf.sprintf
+                "Expected 1 type argument and 3 value arguments, got %d type \
                  arguments and %d value arguments"
                 (List.length targs) (List.length vs)))
 end
