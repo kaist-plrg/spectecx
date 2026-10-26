@@ -3,6 +3,9 @@
 open Lang.Il
 open Lang.Il.Value
 open Lang.Il.Case
+open Common.Source
+
+let at = region_of_positions
 
 let v_id (s : string) : value = text s
 let v_op (s : string) : value = [ kw s ] |> case_v ~var:"op"
@@ -10,8 +13,8 @@ let v_op (s : string) : value = [ kw s ] |> case_v ~var:"op"
 let mk (c: string) (vl: value list) : value =
   (kw c :: List.map arg vl) |> case_v ~var:"expr"
 
-let mk_cst n = mk "Ecst" [int n]
-let mk_op o = mk "Eop" [v_op o]
+let mk_cst at n = mk "Ecst" [int n <<<| at] <<<| at
+let mk_op at o = mk "Eop" [v_op o <<<| at] <<<| at
 let mk_var x = mk "Evar" [x]
 let mk_app e1 e2 = mk "Eapp" [e1; e2]
 let mk_let x e1 e2 = mk "Elet" [x; e1; e2]
@@ -39,17 +42,20 @@ prog:
 
 expr:
 | e=atom { e }
-| e=atom el=atom+ { List.fold_left mk_app e el }
-| LET x=id EQUAL e1=expr IN e2=expr { mk_let x e1 e2 }
-| FUN x=id ARROW e=expr { mk_fun x e }
+| e=atom el=atom+
+  { List.fold_left
+      (fun e1 e2 -> mk_app e1 e2 <<<| over_region [e1.at; e2.at])
+      e el }
+| LET x=id EQUAL e1=expr IN e2=expr { mk_let x e1 e2 <<<| at $sloc }
+| FUN x=id ARROW e=expr { mk_fun x e <<<| at $sloc }
 ;
 
 atom:
-| n=CST { mk_cst n }
-| x=id  { mk_var x }
-| o=op  { mk_op o }
+| n=CST { mk_cst (at $sloc) n }
+| x=id  { mk_var x <<<| at $sloc }
+| o=op  { mk_op (at $sloc) o }
 | LPAR e=expr RPAR { e }
-| LPAR e1=expr COMMA e2=expr RPAR { mk_pair e1 e2 }
+| LPAR e1=expr COMMA e2=expr RPAR { mk_pair e1 e2 <<<| at $sloc }
 ;
 
 op:
@@ -61,5 +67,5 @@ op:
 ;
 
 id:
-| x=ID { v_id x }
+| x=ID { v_id x <<<| at $sloc }
 ;
