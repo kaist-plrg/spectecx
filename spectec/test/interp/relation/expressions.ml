@@ -18,6 +18,12 @@ let run () =
     ~relation:"Ordered"
     ~args:(fun () -> [ nat 0 ])
     (H.fails_with "builtin $first is declared in the spec but not implemented");
+  H.check spec ~name:"natural power" ~relation:"Power_nat"
+    ~args:(fun () -> [ nat 2; nat 10 ])
+    (H.returns (fun () -> [ nat 1024 ]));
+  H.check spec ~name:"integer power" ~relation:"Power_int"
+    ~args:(fun () -> [ V.int (Bigint.of_int (-2)); nat 3 ])
+    (H.returns (fun () -> [ V.int (Bigint.of_int (-8)) ]));
   H.check spec ~name:"function returns indexed list update" ~relation:"Replace"
     ~args:(fun () -> [ nats [ 2; 4; 6 ]; nat 1; nat 9 ])
     (H.returns (fun () -> [ nats [ 2; 9; 6 ] ]));

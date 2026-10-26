@@ -85,6 +85,9 @@ let bin (op : binop) num_l num_r : t =
       `Nat Bigint.(rem n_l n_r)
   | `ModOp, `Int i_l, `Int i_r when Bigint.(i_r <> zero) ->
       `Int Bigint.(rem i_l i_r)
+  | `PowOp, `Nat n_l, `Nat n_r -> `Nat Bigint.(pow n_l n_r)
+  | `PowOp, `Int i_l, `Int i_r when Bigint.(i_r >= zero) ->
+      `Int Bigint.(pow i_l i_r)
   | _, _, _ -> assert false
 
 (* Comparison *)

@@ -1,5 +1,6 @@
 var x : nat
 var n : nat
+var i : int
 var t : text
 var b : bool
 
@@ -20,6 +21,20 @@ relation Ordered:
 
 rule Ordered:
   x |- $($first() + $second())
+
+relation Power_nat:
+  nat; nat |- nat
+  hint(input %0 %1)
+
+rule Power_nat:
+  n_1; n_2 |- $(n_1 ^ n_2)
+
+relation Power_int:
+  int; nat |- int
+  hint(input %0 %1)
+
+rule Power_int:
+  i; n |- $(i ^ n)
 
 dec $replace(nat*, nat, nat) : nat*
 def $replace(x_1*, n, x_2) = x_1*[[n] = x_2]
