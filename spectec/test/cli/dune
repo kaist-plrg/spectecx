@@ -12,3 +12,7 @@
   (source_tree ../../specs/p4)
   (source_tree ../../testdata/interp/impty)
   (source_tree ../../testdata/interp/miniml)))
+
+(cram
+ (applies_to launcher)
+ (deps ../../scripts/make-launcher.sh))

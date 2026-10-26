@@ -9,7 +9,7 @@ A few `make` targets matter mostly to contributors:
 - `make fmt` — runs `dune fmt`. Run before committing. Requires `opam install ocamlformat 0.27.0` in your switch.
 - `make fmt-check` — runs `dune build @fmt`; fails if anything is unformatted. CI runs the same check.
 - `make check` — runs `dune build @check`: type-checks every library and executable without producing the final binary. Faster than `make exe` for catching type errors during iteration.
-- `make test-quick` runs the fast test groups, including package ownership and plugin discovery.
+- `make test-quick` runs the fast test groups, including package ownership, plugin discovery, and the `./spectecx` launcher. `make test-launcher` rebuilds `./spectecx` with `make exe` before its checks run.
 - `make promote` — regenerates `.expected` files. The test suite is diff-based, so a spec or interpreter change that shifts output requires this before the commit lands, otherwise `make test` is red.
 
 ## Code Conventions

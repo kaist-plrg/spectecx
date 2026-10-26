@@ -15,10 +15,8 @@ exe:
 	rm -f ./$(NAME)
 	$(OPAM_EXEC) dune build --promote-install-files=false @install
 	@echo
-	@printf '%s\n' \
-	  '#!/bin/sh' \
-	  'exec opam exec --switch=$(SWITCH) -- dune exec --no-print-directory --root "$(abspath .)" --no-build spectec -- "$$@"' \
-	  > ./$(NAME)
+	@$(OPAM_EXEC) dune exec --no-build -- sh spectec/scripts/make-launcher.sh \
+	  "$(SWITCH)" "$(abspath _build/default/spectec/bin/main.exe)" > ./$(NAME)
 	chmod +x ./$(NAME)
 
 lsp:
@@ -105,8 +103,9 @@ vsix:
 #   make test-interp-relation - Relation tests across IL/SL/PL
 #   make test-interp-neg      - Per-case impty IL negative tests
 #
-# CLI snapshot tests (target commands and instrumentation):
-#   make test-cli        - target CLI and instrumentation snapshots
+# CLI tests (snapshots and the ./spectecx launcher):
+#   make test-cli        - target CLI, instrumentation and launcher snapshots
+#   make test-launcher   - ./spectecx concurrent runs and config lookup
 #   make test-lsp        - LSP multi-file diagnostics
 #
 # Grouped tests:
@@ -133,7 +132,7 @@ vsix:
 #
 #   make test            - quick + interpreter tests
 
-.PHONY: test test-quick test-lang test-context test-interp test-elab test-elab-neg test-interp-relation test-interp-neg test-cli test-lsp test-struct test-annotate test-roundtrip-il test-roundtrip-el test-parsegen test-package
+.PHONY: test test-quick test-lang test-context test-interp test-elab test-elab-neg test-interp-relation test-interp-neg test-cli test-launcher test-lsp test-struct test-annotate test-roundtrip-il test-roundtrip-el test-parsegen test-package
 .PHONY: test-il test-il-pos test-il-neg
 .PHONY: test-sl test-sl-pos test-sl-neg
 .PHONY: test-pl test-pl-pos test-pl-neg
@@ -185,6 +184,10 @@ test-interp-neg:
 test-cli:
 	@echo "#### Running CLI snapshot tests"
 	@$(DUNE) build @test/cli/runtest --profile=release && echo OK
+
+test-launcher: exe
+	@echo "#### Running launcher test"
+	@sh spectec/test/launcher/main.sh ./$(NAME)
 
 test-lsp:
 	@echo "#### Running LSP tests"
@@ -256,7 +259,7 @@ test-pl-pos-old:
 test-pl-neg-old:
 	$(call run_interp_test,p4-old,pl,neg)
 
-test-quick: test-context test-lang test-elab test-elab-neg test-interp-relation test-interp-neg test-cli test-lsp test-struct test-annotate test-roundtrip-il test-roundtrip-el test-impty test-miniml test-parsegen test-package
+test-quick: test-context test-lang test-elab test-elab-neg test-interp-relation test-interp-neg test-cli test-launcher test-lsp test-struct test-annotate test-roundtrip-il test-roundtrip-el test-impty test-miniml test-parsegen test-package
 	@$(DUNE) build @test/interp/p4/runtest --profile=release
 	@echo "#### Quick tests passed"
 
