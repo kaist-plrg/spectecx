@@ -4,9 +4,10 @@
     any diagnostics (and errors) to stderr, and exits with status 1 on [Error].
     Call sites stay free of exit plumbing. *)
 
-(** Resolve a [--color] choice into a concrete style, honoring [NO_COLOR] and a
-    stderr TTY check under [Auto]. *)
-val resolve_ansi : Cli_args.color -> Spectec.Diagnostic.Ansi.t
+(** Resolve a [--color] choice into a concrete style for output written to
+    [out], honoring [NO_COLOR] and a TTY check on [out] under [Auto]. *)
+val resolve_ansi :
+  out:Unix.file_descr -> Cli_args.color -> Spectec.Diagnostic.Ansi.t
 
 (** [suppress_trace] (default [false]) drops the diagnostic's backtrace section,
     for trace-related handlers that repeat the backtrace. *)

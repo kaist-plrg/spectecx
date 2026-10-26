@@ -35,7 +35,7 @@ let make_task (module Tgt : Spectec.Target.S) ~name ~summary
       guard_unit ~color
         ~suppress_trace:(Instrumentation.Config.has_handler config ~name:"tree")
       @@ fun () ->
-      let ansi = resolve_ansi color in
+      let ansi = resolve_ansi ~out:Unix.stdout color in
       let open Spectec in
       let* () = validate_config config ~mode in
       let* cfg = Config_file.load ~target:Tgt.name () in
@@ -124,7 +124,7 @@ let make_batch (module Tgt : Spectec.Target.S) ~name
     fun () ->
       guard_errors_only ~color @@ fun () ->
       let open Spectec in
-      let ansi = resolve_ansi color in
+      let ansi = resolve_ansi ~out:Unix.stdout color in
       let* () = validate_config config ~mode in
       let* cfg = Config_file.load ~target:Tgt.name () in
       let source =
