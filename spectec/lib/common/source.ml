@@ -30,6 +30,20 @@ let over_region = function
           })
         region regions
 
+let pos_of_position (position : Lexing.position) =
+  {
+    file = position.pos_fname;
+    line = position.pos_lnum;
+    column = position.pos_cnum - position.pos_bol;
+  }
+
+let region_of_positions
+    ((position_left, position_right) : Lexing.position * Lexing.position) =
+  {
+    left = pos_of_position position_left;
+    right = pos_of_position position_right;
+  }
+
 let string_of_pos pos =
   if pos.line = -1 then Printf.sprintf "0x%x" pos.column
   else string_of_int pos.line ^ ":" ^ string_of_int (pos.column + 1)
