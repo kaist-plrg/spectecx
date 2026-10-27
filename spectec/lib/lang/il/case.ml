@@ -1,8 +1,6 @@
 open Types
 open Common.Source
 
-(* [?at] is unused for now (frontends pass [no_region]); kept so atoms can carry
-   a source region once per-token positions are threaded through. *)
 let atom ?(at = no_region) (a : Xl.Atom.t) : value Mixfix.mixeme =
   Mixfix.Atom (a $ at)
 
