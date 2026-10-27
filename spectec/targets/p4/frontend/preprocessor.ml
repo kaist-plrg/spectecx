@@ -5,7 +5,16 @@ let preprocess includes filename =
     String.concat ~sep:" "
       ([ "cc" ]
       @ List.map ~f:(Printf.sprintf "-I%s") includes
-      @ [ "-undef"; "-nostdinc"; "-E"; "-x"; "c"; filename ])
+      @ [
+          "-undef";
+          "-nostdinc";
+          "-E";
+          "-C";
+          "-traditional-cpp";
+          "-x";
+          "c";
+          filename;
+        ])
   in
   let channels =
     Core_unix.open_process_full cmd ~env:(Core_unix.environment ())

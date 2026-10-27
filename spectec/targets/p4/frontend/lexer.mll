@@ -134,7 +134,7 @@ rule tokenize = parse
        | None -> tokenize lexbuf
        | Some _info -> PRAGMA_END }
   | "//"
-      { singleline_comment lexbuf; tokenize lexbuf }
+      { singleline_comment lexbuf; PRAGMA_END }
   | '\n'
       { debug_token "⏎\n"; Lexing.new_line lexbuf; PRAGMA_END }
   | '"'
