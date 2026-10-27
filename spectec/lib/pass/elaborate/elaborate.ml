@@ -37,12 +37,11 @@ let valid_tid (id : id) = id.it = (Var.strip_var_suffix id).it
 let rec as_guard (prem : Il.prem) : Il.prem =
   let guard =
     match prem.it with
-    | Il.IfPr { cond; _ } -> Il.IfPr { cond; role = Il.Guard } $ prem.at
-    | Il.IterPr (prem_inner, iterexp) ->
-        Il.IterPr (as_guard prem_inner, iterexp) $ prem.at
-    | _ -> prem
+    | Il.IfPr { cond; _ } -> Il.IfPr { cond; role = Il.Guard }
+    | Il.IterPr (prem_inner, iterexp) -> Il.IterPr (as_guard prem_inner, iterexp)
+    | _ -> prem.it
   in
-  { guard with prov = Some Il.Synthesized }
+  guard $$ (prem.at, Some Il.Synthesized)
 
 (* Iteration elaboration *)
 
@@ -1561,7 +1560,9 @@ and elab_args ?(as_def = false) (at : region) (ctx : Ctx.t)
 
 and elab_prem (ctx : Ctx.t) (prem : prem) : Ctx.t * Il.prem option =
   let ctx, prem_il_opt = elab_prem' ctx prem.it in
-  let prem_il_opt = Option.map (fun prem_il -> prem_il $ prem.at) prem_il_opt in
+  let prem_il_opt =
+    Option.map (fun prem_il -> prem_il $$ (prem.at, None)) prem_il_opt
+  in
   (ctx, prem_il_opt)
 
 and elab_prem' (ctx : Ctx.t) (prem : prem') : Ctx.t * Il.prem' option =
@@ -1584,10 +1585,10 @@ and elab_prem_with_bind (ctx : Ctx.t) (prem : prem) : Ctx.t * Il.prem list =
       let ctx, prem_il, sideconditions_il =
         Dataflow.Analysis.analyze_prem ctx prem_il
       in
-      let prem_il = { prem_il with prov = Some (Il.Source prem) } in
+      let prem_il = prem_il.it $$ (prem_il.at, Some (Il.Source prem)) in
       let sideconditions_il =
         List.map
-          (fun p -> { p with prov = Some Il.Synthesized })
+          (fun p -> p.it $$ (p.at, Some Il.Synthesized))
           sideconditions_il
       in
       let prems_il = prem_il :: sideconditions_il in

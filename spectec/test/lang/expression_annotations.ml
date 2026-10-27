@@ -6,14 +6,7 @@ let region line =
   let left = { file = "annotations.spectec"; line; column = 0 } in
   { left; right = { left with column = 1 } }
 
-let phrase ~line ~note it =
-  {
-    it;
-    at = region line;
-    note;
-    prov = (if line mod 2 = 0 then Some () else None);
-  }
-
+let phrase ~line ~note it = { it; at = region line; note }
 let exp ~line ~typ it : Il.exp = phrase ~line ~note:{ typ; annot = () } it
 let nat ~line n = exp ~line ~typ:Il.Typ.nat (NumE (`Nat (Bigint.of_int n)))
 

@@ -58,9 +58,10 @@ let gen_sidecondition (benv : Bind.BEnv.t) (id : Id.t) (ids_rename : Ids.t) :
         $$ (id_rename.at, { typ = BoolT; annot = () }))
       exp ids_rename
   in
-  let sidecondition = IfPr { cond = exp; role = Condition } $ id.at in
+  let sidecondition = IfPr { cond = exp; role = Condition } $$ (id.at, None) in
   List.fold_left
-    (fun sidecondition iter -> IterPr (sidecondition, (iter, [])) $ id.at)
+    (fun sidecondition iter ->
+      IterPr (sidecondition, (iter, [])) $$ (id.at, None))
     sidecondition iters
 
 let gen_sideconditions (benv : Bind.BEnv.t) (renv : REnv.t) : prem list =

@@ -160,7 +160,7 @@ module Expression = struct
 
   (** Replace annotations throughout an expression, including expressions in paths
       and arguments. The callback receives each original expression. Syntax,
-      types, source regions, and provenance are preserved. Callback order among
+      types and source regions are preserved. Callback order among
       sibling expressions is unspecified. *)
   let map_annotations annotate exp =
     let rec map_exp (exp : _ t) =
@@ -254,7 +254,7 @@ and clause' = { args : arg list; body : exp; prems : prem list }
 
 and relcall = { relid : id; notexp : notexp }
 
-and prem = (prem', prem_prov) phrase_prov
+and prem = (prem', prem_prov option) note_phrase
 and prem_prov =
   | Source of El.prem  (* lowered from this EL premise *)
   | Synthesized        (* introduced by elaboration; no EL source *)

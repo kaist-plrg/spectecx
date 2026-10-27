@@ -11,7 +11,7 @@ module Il = Lang.Il
 
 let recover (prems : Il.prem list) : El.prem list =
   List.filter_map prems ~f:(fun prem ->
-      match Source.prov prem with Some (Il.Source el) -> Some el | _ -> None)
+      match prem.note with Some (Il.Source el) -> Some el | _ -> None)
 
 let authored_rule_premises (spec : El.spec) relid : El.prem list list =
   List.filter_map spec ~f:(fun def ->

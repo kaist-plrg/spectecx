@@ -128,7 +128,7 @@ and analyze_rule_prem (dctx : Dctx.t) (at : region) (id : id) (notexp : notexp)
   in
   let exps = Mode.interleave reltyp.it ~ins:exps_input ~outs:exps_output in
   let notexp = Mixop.fill mixop exps in
-  let prem = RelPr { relid = id; notexp } $ at in
+  let prem = RelPr { relid = id; notexp } $$ (at, None) in
   (dctx, venv, prem, sideconditions)
 
 and analyze_if_eq_prem (dctx : Dctx.t) (at : region) (note : typ')
@@ -168,17 +168,17 @@ and analyze_if_prem (dctx : Dctx.t) (at : region) (exp : exp) :
       let dctx, venv, prem, prems =
         analyze_if_eq_prem dctx exp.at exp.note.typ optyp exp_l exp_r
       in
-      let prem = prem $ at in
+      let prem = prem $$ (at, None) in
       (dctx, venv, prem, prems)
   | _ ->
       analyze_exp_as_bound dctx exp;
-      let prem = IfPr { cond = exp; role = Condition } $ at in
+      let prem = IfPr { cond = exp; role = Condition } $$ (at, None) in
       (dctx, VEnv.empty, prem, [])
 
 and analyze_rel_assert_prem (dctx : Dctx.t) (at : region) (call : relcall)
     (expect : bool) : Dctx.t * VEnv.t * prem * prem list =
   analyze_exps_as_bound dctx (Mixop.args call.notexp);
-  let prem = RelAssertPr { call; expect } $ at in
+  let prem = RelAssertPr { call; expect } $$ (at, None) in
   (dctx, VEnv.empty, prem, [])
 
 and analyze_let_prem (dctx : Dctx.t) (exp_l : exp) (binds_l : BEnv.t)
@@ -203,12 +203,14 @@ and analyze_iter_prem (dctx : Dctx.t) (at : region) (prem : prem) (iter : iter)
     : Dctx.t * VEnv.t * prem * prem list =
   let dctx, venv, prem, prems = analyze_prem dctx prem in
   let venv = VEnv.map (Typ.add_iter iter) venv in
-  let prems = List.map (fun prem -> IterPr (prem, (iter, [])) $ at) prems in
-  let prem = IterPr (prem, (iter, [])) $ at in
+  let prems =
+    List.map (fun prem -> IterPr (prem, (iter, [])) $$ (at, None)) prems
+  in
+  let prem = IterPr (prem, (iter, [])) $$ (at, None) in
   (dctx, venv, prem, prems)
 
 and analyze_debug_prem (dctx : Dctx.t) (at : region) (exp : exp) :
     Dctx.t * VEnv.t * prem * prem list =
   analyze_exp_as_bound dctx exp;
-  let prem = DebugPr exp $ at in
+  let prem = DebugPr exp $$ (at, None) in
   (dctx, VEnv.empty, prem, [])
