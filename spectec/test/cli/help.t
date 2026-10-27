@@ -77,6 +77,7 @@ parse has a distinct, minimal surface with no instrumentation flags:
     [--spec-dir DIR]           . directory of .spectec files, collected
                                  recursively; mutually exclusive with --spec
     [-r]                       . roundtrip parse/unparse
+    [-t]                       . print the parsed values as a tree with regions
     [-help], -?                . print this help text and exit
   
 

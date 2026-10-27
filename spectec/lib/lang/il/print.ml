@@ -376,3 +376,66 @@ and string_of_defs defs = String.concat "\n\n" (List.map string_of_def defs)
 (* Spec *)
 
 let string_of_spec spec = string_of_defs spec
+
+(* Values as an indented tree *)
+
+type tree_part = Type | Mixop | Atom | Leaf | Region | No_region
+
+let string_of_value_tree ?(style = fun _ s -> s) value =
+  let buf = Buffer.create 1024 in
+  let unquote s =
+    let len = String.length s in
+    if len >= 2 && s.[0] = '`' && s.[len - 1] = '`' then String.sub s 1 (len - 2)
+    else s
+  in
+  let string_of_at at =
+    if at = no_region then style No_region "(no region)"
+    else style Region (string_of_range at.left at.right)
+  in
+  let add_line prefix label at =
+    Buffer.add_string buf (prefix ^ label ^ "  " ^ string_of_at at ^ "\n")
+  in
+  let values_of values = List.map (fun value -> Mixfix.Arg value) values in
+  let rec add_node prefix child_prefix value =
+    let label, children =
+      match value.it with
+      | CaseV valuecase ->
+          let mixop_str =
+            unquote (string_of_mixop (Mixfix.to_mixop valuecase))
+          in
+          let typ_name =
+            match value.note.typ with VarT { synid; _ } -> synid.it | _ -> ""
+          in
+          let label =
+            if mixop_str = "" then style Type typ_name
+            else style Type typ_name ^ " " ^ style Mixop mixop_str
+          in
+          (label, valuecase)
+      | TupleV values -> (style Type "tuple", values_of values)
+      | ListV values -> (style Type "list", values_of values)
+      | OptV (Some value) -> (style Type "some", [ Mixfix.Arg value ])
+      | StructV valuefields ->
+          (style Type "struct", values_of (List.map snd valuefields))
+      | _ -> (style Leaf (string_of_value value), [])
+    in
+    add_line prefix label value.at;
+    let arity = List.length children in
+    List.iteri
+      (fun idx child ->
+        let is_last = idx = arity - 1 in
+        let connector = if is_last then "└─" else "├─" in
+        let continuation = if is_last then "  " else "│ " in
+        match child with
+        | Mixfix.Arg value ->
+            add_node (child_prefix ^ connector)
+              (child_prefix ^ continuation)
+              value
+        | Mixfix.Atom atom ->
+            add_line (child_prefix ^ connector)
+              (style Type "atom" ^ " "
+              ^ style Atom (unquote (Xl.Atom.to_string atom.it)))
+              atom.at)
+      children
+  in
+  add_node "" "" value;
+  Buffer.contents buf

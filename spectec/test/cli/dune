@@ -10,5 +10,6 @@
   (source_tree ../../specs/impty)
   (source_tree ../../specs/miniml)
   (source_tree ../../specs/p4)
+  (source_tree ../../testdata/interp/p4)
   (source_tree ../../testdata/interp/impty)
   (source_tree ../../testdata/interp/miniml)))

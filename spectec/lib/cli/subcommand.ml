@@ -72,7 +72,13 @@ let make_parse (module Tgt : Spectec.Target.S) ~name ~summary
     let open Core.Command.Param in
     let%map cli_source = Cli_args.Spec.source_flag
     and input = TC.flags
-    and roundtrip = flag "-r" no_arg ~doc:" roundtrip parse/unparse"
+    and output =
+      choose_one ~if_nothing_chosen:(Default_to `Unparse)
+        [
+          flag "-r" (no_arg_some `Roundtrip) ~doc:" roundtrip parse/unparse";
+          flag "-t" (no_arg_some `Tree)
+            ~doc:" print the parsed values as a tree with regions";
+        ]
     and color = Cli_args.Output.color_flag in
     fun () ->
       guard ~color ~on_ok:(Format.printf "%s\n") @@ fun () ->
@@ -85,18 +91,38 @@ let make_parse (module Tgt : Spectec.Target.S) ~name ~summary
       let* _files, spec_il, _henv = load_spec source in
       TC.Task.Target.with_state @@ fun () ->
       let* _, values = TC.Task.parse_input ~spec:spec_il input in
-      let unparsed = TC.Task.unparse ~spec:spec_il values in
-      if roundtrip then
-        let* values_rt =
-          unparsed
-          |> TC.Task.parse_string ~spec:spec_il ~filename:(TC.Task.source input)
-        in
-        let eq = Lang.Il.Eq.eq_values ~dbg:true values values_rt in
-        if eq then Ok unparsed
-        else
-          Error
-            (Error.RoundtripError (Common.Source.no_region, "Roundtrip failed"))
-      else Ok unparsed
+      match output with
+      | `Roundtrip ->
+          let unparsed = TC.Task.unparse ~spec:spec_il values in
+          let* values_rt =
+            unparsed
+            |> TC.Task.parse_string ~spec:spec_il
+                 ~filename:(TC.Task.source input)
+          in
+          let eq = Lang.Il.Eq.eq_values ~dbg:true values values_rt in
+          if eq then Ok unparsed
+          else
+            Error
+              (Error.RoundtripError (Common.Source.no_region, "Roundtrip failed"))
+      | `Tree ->
+          let ansi = resolve_ansi ~out:Unix.stdout color in
+          let style part s =
+            let open Spectec.Diagnostic.Ansi in
+            let styles =
+              match (part : Lang.Il.Print.tree_part) with
+              | Type -> [ Cyan ]
+              | Mixop | Atom -> [ Blue ]
+              | Leaf -> [ Yellow ]
+              | Region -> [ Dim ]
+              | No_region -> [ Red ]
+            in
+            style ansi styles s
+          in
+          Ok
+            (values
+            |> List.map (Lang.Il.Print.string_of_value_tree ~style)
+            |> String.concat "\n")
+      | `Unparse -> Ok (TC.Task.unparse ~spec:spec_il values)
   in
   (name, cmd)
 
