@@ -402,6 +402,10 @@ and string = parse
   | '\\' '\\'
       { let rest, end_region = (string lexbuf) in
         ("\\" ^ rest, end_region) }
+  | '\n'
+      { Lexing.new_line lexbuf;
+        let rest, end_region = (string lexbuf) in
+        ("\n" ^ rest, end_region) }
   | '\\' _ as c
       { raise (Error ("Escape sequences not yet supported: \\" ^ c)) }
   | '"'
