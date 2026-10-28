@@ -279,6 +279,15 @@ struct
         ((varid, iters), collect_iteration_value values ~iter ~result_typ:typ))
       vars
 
+  let for_all_body_contexts ctx ~iterexps ~f =
+    let iterate body (iter, vars) ctx =
+      let* ctxs = expand_iteration_inputs ctx ~iter ~vars in
+      List.fold_left
+        (fun holds ctx -> match holds with Ok true -> body ctx | _ -> holds)
+        (Ok true) ctxs
+    in
+    List.fold_left iterate (fun ctx -> Ok (f ctx)) iterexps ctx
+
   let has_determinism_checks ctx = ctx.check_determinism
   let opaque_types ctx = ctx.opaque_types
   let has_builtin ctx ~id = ctx.builtins.is_builtin id

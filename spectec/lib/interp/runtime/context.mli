@@ -97,7 +97,8 @@ end) : sig
   (** {2 Iteration}
 
       Expansion binds input variables in one context per body evaluation.
-      Collection combines body results into option/list values or bindings. *)
+      Collection combines body results into option/list values or bindings.
+      Nested [iterexps] are ordered innermost first. *)
 
   (** Expand [vars] into body contexts. Mixed option presence or unequal list
       lengths return [Error]. Empty [vars] yields one context for [Opt], none
@@ -121,6 +122,14 @@ end) : sig
     iter:Lang.Il.iter ->
     vars:Lang.Il.var list ->
     (Var.t * Value.t) list
+
+  (** Test [f] in every body context, stopping at [false] or an input mismatch.
+      No body contexts yields [Ok true]. Empty [iterexps] tests [f] directly. *)
+  val for_all_body_contexts :
+    t ->
+    iterexps:Lang.Il.iterexp list ->
+    f:(t -> bool) ->
+    bool Common.Attempt.attempt
 
   val has_determinism_checks : t -> bool
   val opaque_types : t -> Opaque_types.t
