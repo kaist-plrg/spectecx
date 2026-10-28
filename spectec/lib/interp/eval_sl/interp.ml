@@ -159,299 +159,37 @@ and eval_case_instr (ctx : Ctx.t) (exp : exp) (cases : case list) : Sign.t =
 
 and eval_let_instr (ctx : Ctx.t) (exp_l : exp) (exp_r : exp)
     (iterexps : iterexp list) (block : block) : Sign.t =
-  let eval_let_iter ctx exp_l exp_r iterexps =
-    let rec eval_let_iter' ctx exp_l exp_r iterexps =
-      let eval_let ctx exp_l exp_r =
-        let value = eval_exp ctx exp_r in
-        Expressions.assign_exp ctx ~exp:exp_l ~value
-      in
-      let eval_let_opt ctx exp_l exp_r vars iterexps =
-        (* Discriminate between bound and binding variables *)
-        let vars_bound, vars_binding =
-          List.partition
-            (fun { Il.varid = id; iters; _ } ->
-              Ctx.has_value ctx ~var:(id, iters @ [ Il.Opt ]))
-            vars
-        in
-        let ctx_sub_opt =
-          Interp_runtime.Context.get_exn
-            (Ctx.for_optional_iteration ctx ~vars:vars_bound)
-        in
-        let ctx, values_binding =
-          match ctx_sub_opt with
-          (* If the bound variable supposed to guide the iteration is already empty,
-            then the binding variables are also empty *)
-          | None ->
-              let values_binding =
-                List.map
-                  (fun { Il.typ = typ_binding; iters = iters_binding; _ } ->
-                    let value_binding =
-                      let typ =
-                        Il.Typ.iterate typ_binding (iters_binding @ [ Il.Opt ])
-                      in
-                      None |> Value.Make.opt typ.it
-                    in
-                    value_binding)
-                  vars_binding
-              in
-              (ctx, values_binding)
-          (* Otherwise, evaluate the premise for the subcontext *)
-          | Some ctx_sub ->
-              let ctx_sub = eval_let_iter' ctx_sub exp_l exp_r iterexps in
-              let values_binding =
-                List.map
-                  (fun {
-                         Il.varid = id_binding;
-                         typ = typ_binding;
-                         iters = iters_binding;
-                       } ->
-                    let value_binding =
-                      Ctx.find_value_exn ctx_sub ~var:(id_binding, iters_binding)
-                    in
-                    let value_binding =
-                      let typ =
-                        Il.Typ.iterate typ_binding (iters_binding @ [ Il.Opt ])
-                      in
-                      Some value_binding |> Value.Make.opt typ.it
-                    in
-                    value_binding)
-                  vars_binding
-              in
-              (ctx, values_binding)
-        in
-        (* Finally, bind the resulting values *)
-        List.fold_left2
-          (fun ctx { Il.varid = id_binding; iters = iters_binding; _ }
-               value_binding ->
-            Ctx.set_value ctx
-              ~var:(id_binding, iters_binding @ [ Il.Opt ])
-              ~value:value_binding)
-          ctx vars_binding values_binding
-      in
-      let eval_let_list ctx exp_l exp_r vars iterexps =
-        (* Discriminate between bound and binding variables *)
-        let vars_bound, vars_binding =
-          List.partition
-            (fun { Il.varid = id; iters; _ } ->
-              Ctx.has_value ctx ~var:(id, iters @ [ Il.List ]))
-            vars
-        in
-        (* Create a subcontext for each batch of bound values *)
-        let ctxs_sub =
-          Interp_runtime.Context.get_exn
-            (Ctx.for_list_iteration ctx ~vars:vars_bound)
-        in
-        let ctx, values_binding =
-          match ctxs_sub with
-          (* If the bound variable supposed to guide the iteration is already empty,
-            then the binding variables are also empty *)
-          | [] ->
-              let values_binding =
-                List.init (List.length vars_binding) (fun _ -> [])
-              in
-              (ctx, values_binding)
-              (* Otherwise, evaluate the premise for each batch of bound values,
-            and collect the resulting binding batches *)
-          | _ ->
-              let values_binding_batch =
-                List.map
-                  (fun ctx_sub ->
-                    let ctx_sub = eval_let_iter' ctx_sub exp_l exp_r iterexps in
-                    List.map
-                      (fun { Il.varid = id_binding; iters = iters_binding; _ }
-                         ->
-                        Ctx.find_value_exn ctx_sub
-                          ~var:(id_binding, iters_binding))
-                      vars_binding)
-                  ctxs_sub
-              in
-              let values_binding =
-                Interp_runtime.Context.transpose_values values_binding_batch
-                |> Interp_runtime.Context.get_exn
-              in
-              (ctx, values_binding)
-        in
-        (* Finally, bind the resulting binding batches *)
-        List.fold_left2
-          (fun ctx
-               {
-                 Il.varid = id_binding;
-                 typ = typ_binding;
-                 iters = iters_binding;
-               } values_binding ->
-            let value_binding =
-              let typ =
-                Il.Typ.iterate typ_binding (iters_binding @ [ Il.List ])
-              in
-              values_binding |> Value.Make.list typ.it
-            in
-            Ctx.set_value ctx
-              ~var:(id_binding, iters_binding @ [ Il.List ])
-              ~value:value_binding)
-          ctx vars_binding values_binding
-      in
-      match iterexps with
-      | [] -> eval_let ctx exp_l exp_r
-      | iterexp_h :: iterexps_t -> (
-          let iter_h, vars_h = iterexp_h in
-          match iter_h with
-          | Il.Opt -> eval_let_opt ctx exp_l exp_r vars_h iterexps_t
-          | Il.List -> eval_let_list ctx exp_l exp_r vars_h iterexps_t)
-    in
-    let iterexps = List.rev iterexps in
-    eval_let_iter' ctx exp_l exp_r iterexps
+  let eval_let ctx =
+    let value = eval_exp ctx exp_r in
+    Ok (Expressions.assign_exp ctx ~exp:exp_l ~value)
   in
-  let ctx = eval_let_iter ctx exp_l exp_r iterexps in
+  let ctx =
+    Ctx.eval_iterations ctx ~iterexps ~f:eval_let
+    |> Interp_runtime.Context.get_exn
+  in
   eval_instrs ctx block
 
 (* Relation instruction evaluation *)
 
 and eval_rel_instr (ctx : Ctx.t) (id : id) (notexp : notexp)
     (iterexps : iterexp list) (block : block) : Sign.t =
-  let eval_rel_iter ctx id notexp iterexps =
-    let rec eval_rel_iter' ctx id notexp iterexps =
-      (* Single relation evaluation *)
-      let eval_rel ctx id notexp =
-        let mode, _, _ = Ctx.find_rel_exn ctx ~id in
-        let exps_input, exps_output =
-          Lang.Il.Mode.partition mode (Mixop.args notexp)
-        in
-        let values_input = eval_exps ctx exps_input in
-        let values_output =
-          match invoke_rel ctx id values_input with
-          | Some values_output -> values_output
-          | None -> error id.at "relation was not matched"
-        in
-        Expressions.assign_exps ctx ~exps:exps_output ~values:values_output
-      in
-      (* Relation list evaluation *)
-      let eval_rel_list ctx id notexp vars iterexps =
-        (* Discriminate between bound and binding variables *)
-        let vars_bound, vars_binding =
-          List.partition
-            (fun { Il.varid = id; iters; _ } ->
-              Ctx.has_value ctx ~var:(id, iters @ [ Il.List ]))
-            vars
-        in
-        (* Create a subcontext for each batch of bound values *)
-        let ctxs_sub =
-          Interp_runtime.Context.get_exn
-            (Ctx.for_list_iteration ctx ~vars:vars_bound)
-        in
-        let ctx, values_binding =
-          match ctxs_sub with
-          (* If the bound variable supposed to guide the iteration is already empty,
-            then the binding variables are also empty *)
-          | [] ->
-              let values_binding =
-                List.init (List.length vars_binding) (fun _ -> [])
-              in
-              (ctx, values_binding)
-          (* Otherwise, evaluate the premise for each batch of bound values,
-            and collect the resulting binding batches *)
-          | _ ->
-              let values_binding_batch =
-                List.map
-                  (fun ctx_sub ->
-                    let ctx_sub = eval_rel_iter' ctx_sub id notexp iterexps in
-                    List.map
-                      (fun { Il.varid = id_binding; iters = iters_binding; _ }
-                         ->
-                        Ctx.find_value_exn ctx_sub
-                          ~var:(id_binding, iters_binding))
-                      vars_binding)
-                  ctxs_sub
-              in
-              let values_binding =
-                Interp_runtime.Context.transpose_values values_binding_batch
-                |> Interp_runtime.Context.get_exn
-              in
-              (ctx, values_binding)
-        in
-        (* Finally, bind the resulting binding batches *)
-        List.fold_left2
-          (fun ctx
-               {
-                 Il.varid = id_binding;
-                 typ = typ_binding;
-                 iters = iters_binding;
-               } values_binding ->
-            let value_binding =
-              let typ =
-                Il.Typ.iterate typ_binding (iters_binding @ [ Il.List ])
-              in
-              values_binding |> Value.Make.list typ.it
-            in
-            Ctx.set_value ctx
-              ~var:(id_binding, iters_binding @ [ Il.List ])
-              ~value:value_binding)
-          ctx vars_binding values_binding
-      in
-      (* Optional relation evaluation *)
-      let eval_rel_opt ctx id notexp vars iterexps =
-        let vars_bound, vars_binding =
-          List.partition
-            (fun { Il.varid = id; iters; _ } ->
-              Ctx.has_value ctx ~var:(id, iters @ [ Il.Opt ]))
-            vars
-        in
-        let ctx_sub_opt =
-          Interp_runtime.Context.get_exn
-            (Ctx.for_optional_iteration ctx ~vars:vars_bound)
-        in
-        let ctx, values_binding =
-          match ctx_sub_opt with
-          | None ->
-              let values_binding =
-                List.map
-                  (fun { Il.typ = typ_binding; iters = iters_binding; _ } ->
-                    let typ =
-                      Il.Typ.iterate typ_binding (iters_binding @ [ Il.Opt ])
-                    in
-                    None |> Value.Make.opt typ.it)
-                  vars_binding
-              in
-              (ctx, values_binding)
-          | Some ctx_sub ->
-              let ctx_sub = eval_rel_iter' ctx_sub id notexp iterexps in
-              let values_binding =
-                List.map
-                  (fun {
-                         Il.varid = id_binding;
-                         typ = typ_binding;
-                         iters = iters_binding;
-                       } ->
-                    let value_binding =
-                      Ctx.find_value_exn ctx_sub ~var:(id_binding, iters_binding)
-                    in
-                    let typ =
-                      Il.Typ.iterate typ_binding (iters_binding @ [ Il.Opt ])
-                    in
-                    Some value_binding |> Value.Make.opt typ.it)
-                  vars_binding
-              in
-              (ctx, values_binding)
-        in
-        List.fold_left2
-          (fun ctx { Il.varid = id_binding; iters = iters_binding; _ }
-               value_binding ->
-            Ctx.set_value ctx
-              ~var:(id_binding, iters_binding @ [ Il.Opt ])
-              ~value:value_binding)
-          ctx vars_binding values_binding
-      in
-      match iterexps with
-      | [] -> eval_rel ctx id notexp
-      | iterexp_h :: iterexps_t -> (
-          let iter_h, vars_h = iterexp_h in
-          match iter_h with
-          | Il.Opt -> eval_rel_opt ctx id notexp vars_h iterexps_t
-          | Il.List -> eval_rel_list ctx id notexp vars_h iterexps_t)
+  let eval_rel ctx =
+    let mode, _, _ = Ctx.find_rel_exn ctx ~id in
+    let exps_input, exps_output =
+      Lang.Il.Mode.partition mode (Mixop.args notexp)
     in
-    let iterexps = List.rev iterexps in
-    eval_rel_iter' ctx id notexp iterexps
+    let values_input = eval_exps ctx exps_input in
+    let values_output =
+      match invoke_rel ctx id values_input with
+      | Some values_output -> values_output
+      | None -> error id.at "relation was not matched"
+    in
+    Ok (Expressions.assign_exps ctx ~exps:exps_output ~values:values_output)
   in
-  let ctx = eval_rel_iter ctx id notexp iterexps in
+  let ctx =
+    Ctx.eval_iterations ctx ~iterexps ~f:eval_rel
+    |> Interp_runtime.Context.get_exn
+  in
   eval_instrs ctx block
 
 (* Invoke a relation *)

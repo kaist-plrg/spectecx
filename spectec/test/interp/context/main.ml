@@ -109,7 +109,9 @@ let () =
         ]
   in
   let ctx_iteration =
-    Ctx.for_optional_iteration ctx_options ~vars |> Result.get_ok |> Option.get
+    match Ctx.expand_iteration_inputs ctx_options ~iter:Il.Opt ~vars with
+    | Ok [ ctx ] -> ctx
+    | _ -> failwith "present optional bindings"
   in
   check_value ctx_iteration (var "x") (nat 3);
   check_value ctx_iteration (var "y") (nat 4);
@@ -117,13 +119,13 @@ let () =
   let ctx_mixed =
     Ctx.set_value ctx_options ~var:(id "y", [ Il.Opt ]) ~value:(optional None)
   in
-  Ctx.for_optional_iteration ctx_mixed ~vars
+  Ctx.expand_iteration_inputs ctx_mixed ~iter:Il.Opt ~vars
   |> expect_failure "mismatch in optionality of iterated variables";
   let ctx_absent =
     Ctx.set_value ctx_mixed ~var:(id "x", [ Il.Opt ]) ~value:(optional None)
   in
   check "absent optional bindings"
-    (Ctx.for_optional_iteration ctx_absent ~vars = Ok None);
+    (Ctx.expand_iteration_inputs ctx_absent ~iter:Il.Opt ~vars = Ok []);
   let ctx_nested =
     Ctx.set_value ctx
       ~var:(id "x", [ Il.Opt; Il.List ])
@@ -133,19 +135,23 @@ let () =
            [ optional (Some (nat 5)); optional None ])
   in
   let ctxs =
-    Ctx.for_list_iteration ctx_nested ~vars:[ itervar "x" [ Il.Opt ] ]
+    Ctx.expand_iteration_inputs ctx_nested ~iter:Il.List
+      ~vars:[ itervar "x" [ Il.Opt ] ]
     |> Result.get_ok
   in
   check "nested list length" (List.length ctxs = 2);
   let ctx_first =
-    Ctx.for_optional_iteration (List.hd ctxs) ~vars:[ itervar "x" [] ]
-    |> Result.get_ok |> Option.get
+    match
+      Ctx.expand_iteration_inputs (List.hd ctxs) ~iter:Il.Opt
+        ~vars:[ itervar "x" [] ]
+    with
+    | Ok [ ctx ] -> ctx
+    | _ -> failwith "present nested optional binding"
   in
   check_value ctx_first (var "x") (nat 5);
   check "nested absence"
-    (Ctx.for_optional_iteration (List.nth ctxs 1) ~vars:[ itervar "x" [] ]
-    = Ok None);
+    (Ctx.expand_iteration_inputs (List.nth ctxs 1) ~iter:Il.Opt
+       ~vars:[ itervar "x" [] ]
+    = Ok []);
   check "nested binding preserves parent"
-    (not (Ctx.has_value ctx_nested ~var:(id "x", [ Il.Opt ])));
-  Interp_runtime.Context.transpose_values [ [ nat 1 ]; [ nat 2; nat 3 ] ]
-  |> expect_failure "cannot transpose a matrix of value batches"
+    (not (Ctx.has_value ctx_nested ~var:(id "x", [ Il.Opt ])))
