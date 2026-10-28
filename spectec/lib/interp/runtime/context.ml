@@ -252,6 +252,33 @@ struct
     in
     Ok ctxs
 
+  let expand_iteration_inputs ctx ~iter ~vars =
+    match iter with
+    | Il.Opt ->
+        let* ctx_opt = for_optional_iteration ctx ~vars in
+        Ok (Option.to_list ctx_opt)
+    | Il.List -> for_list_iteration ctx ~vars
+
+  let collect_iteration_value values ~iter ~result_typ =
+    match (iter, values) with
+    | Il.Opt, [] -> Value.Make.opt result_typ None
+    | Il.Opt, [ value ] -> Value.Make.opt result_typ (Some value)
+    | Il.Opt, _ ->
+        raise
+          (Error (no_region, "an option iteration has more than one element"))
+    | Il.List, _ -> Value.Make.list result_typ values
+
+  let collect_iteration_bindings ctxs ~iter ~vars =
+    List.map
+      (fun { Il.varid; typ; iters } ->
+        let values =
+          List.map (fun ctx -> find_value_exn ctx ~var:(varid, iters)) ctxs
+        in
+        let iters = iters @ [ iter ] in
+        let typ = (Il.Typ.iterate typ iters).it in
+        ((varid, iters), collect_iteration_value values ~iter ~result_typ:typ))
+      vars
+
   let has_determinism_checks ctx = ctx.check_determinism
   let opaque_types ctx = ctx.opaque_types
   let has_builtin ctx ~id = ctx.builtins.is_builtin id

@@ -94,6 +94,34 @@ end) : sig
   val for_list_iteration :
     t -> vars:Lang.Il.var list -> t list Common.Attempt.attempt
 
+  (** {2 Iteration}
+
+      Expansion binds input variables in one context per body evaluation.
+      Collection combines body results into option/list values or bindings. *)
+
+  (** Expand [vars] into body contexts. Mixed option presence or unequal list
+      lengths return [Error]. Empty [vars] yields one context for [Opt], none
+      for [List]. *)
+  val expand_iteration_inputs :
+    t ->
+    iter:Lang.Il.iter ->
+    vars:Lang.Il.var list ->
+    t list Common.Attempt.attempt
+
+  (** Collect body results into an option/list of complete type [result_typ].
+      Raise [Error] for multiple results under [Opt]. *)
+  val collect_iteration_value :
+    Value.t list -> iter:Lang.Il.iter -> result_typ:Lang.Il.typ' -> Value.t
+
+  (** Collect [vars] across body result contexts, appending [iter] to each
+      binding's iterations. Raise [Error] for missing bindings or multiple
+      values for an [Opt] binding. *)
+  val collect_iteration_bindings :
+    t list ->
+    iter:Lang.Il.iter ->
+    vars:Lang.Il.var list ->
+    (Var.t * Value.t) list
+
   val has_determinism_checks : t -> bool
   val opaque_types : t -> Opaque_types.t
   val has_builtin : t -> id:Lang.Il.id -> bool

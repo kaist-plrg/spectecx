@@ -24,11 +24,23 @@ module type Context = sig
   val set_values : t -> bindings:(Envs.Interp.Var.t * Lang.Il.value) list -> t
   val without_values : t -> t
 
-  val for_optional_iteration :
-    t -> vars:Lang.Il.var list -> t option Common.Attempt.attempt
+  val expand_iteration_inputs :
+    t ->
+    iter:Lang.Il.iter ->
+    vars:Lang.Il.var list ->
+    t list Common.Attempt.attempt
 
-  val for_list_iteration :
-    t -> vars:Lang.Il.var list -> t list Common.Attempt.attempt
+  val collect_iteration_value :
+    Lang.Il.value list ->
+    iter:Lang.Il.iter ->
+    result_typ:Lang.Il.typ' ->
+    Lang.Il.value
+
+  val collect_iteration_bindings :
+    t list ->
+    iter:Lang.Il.iter ->
+    vars:Lang.Il.var list ->
+    (Envs.Interp.Var.t * Lang.Il.value) list
 
   val get_exn : 'a Common.Attempt.attempt -> 'a
   val error : Common.Source.region -> string -> 'a
@@ -59,23 +71,12 @@ module Make (Ctx : Context) = struct
         let ctx = assign_exp ctx ~exp:exp_h ~value:value_h in
         assign_exp ctx ~exp:exp_t ~value:value_t
     | IterE (_, (Opt, vars)), OptV None ->
-        let bindings =
-          List.map
-            (fun { varid; typ; iters } ->
-              let typ = Il.Typ.iterate typ (iters @ [ Opt ]) in
-              ((varid, iters @ [ Opt ]), Value.Make.opt typ.it None))
-            vars
-        in
+        let bindings = Ctx.collect_iteration_bindings [] ~iter:Opt ~vars in
         Ctx.set_values ctx ~bindings
     | IterE (exp, (Opt, vars)), OptV (Some value) ->
         let ctx_inner = assign_exp ctx ~exp ~value in
         let bindings =
-          List.map
-            (fun { varid; typ; iters } ->
-              let value = Ctx.find_value_exn ctx_inner ~var:(varid, iters) in
-              let typ = Il.Typ.iterate typ (iters @ [ Opt ]) in
-              ((varid, iters @ [ Opt ]), Value.Make.opt typ.it (Some value)))
-            vars
+          Ctx.collect_iteration_bindings [ ctx_inner ] ~iter:Opt ~vars
         in
         Ctx.set_values ctx ~bindings
     | IterE (exp, (List, vars)), ListV values ->
@@ -83,18 +84,7 @@ module Make (Ctx : Context) = struct
         let ctxs =
           List.map (fun value -> assign_exp ctx_inner ~exp ~value) values
         in
-        let bindings =
-          List.map
-            (fun { varid; typ; iters } ->
-              let values =
-                List.map
-                  (fun ctx -> Ctx.find_value_exn ctx ~var:(varid, iters))
-                  ctxs
-              in
-              let typ = Il.Typ.iterate typ (iters @ [ List ]) in
-              ((varid, iters @ [ List ]), Value.Make.list typ.it values))
-            vars
-        in
+        let bindings = Ctx.collect_iteration_bindings ctxs ~iter:List ~vars in
         Ctx.set_values ctx ~bindings
     | _ ->
         let exp = Il.Expression.map_annotations (fun _ -> ()) exp in
@@ -627,23 +617,12 @@ module Make (Ctx : Context) = struct
       eval_update_path ctx value_b path value_f
     and eval_iter_exp (typ : typ') (ctx : Ctx.t) (exp : exp) (iterexp : iterexp)
         : value =
-      let eval_iter_exp_opt typ ctx exp vars =
-        let ctx_sub_opt = Ctx.for_optional_iteration ctx ~vars |> Ctx.get_exn in
-        match ctx_sub_opt with
-        | Some ctx_sub ->
-            let value = eval_exp ctx_sub exp in
-            Some value |> Value.Make.opt typ
-        | None -> None |> Value.Make.opt typ
-      in
-      let eval_iter_exp_list typ ctx exp vars =
-        let ctxs_sub = Ctx.for_list_iteration ctx ~vars |> Ctx.get_exn in
-        let values = List.map (fun ctx_sub -> eval_exp ctx_sub exp) ctxs_sub in
-        Value.Make.list typ values
-      in
       let iter, vars = iterexp in
-      match iter with
-      | Opt -> eval_iter_exp_opt typ ctx exp vars
-      | List -> eval_iter_exp_list typ ctx exp vars
+      let ctxs_sub =
+        Ctx.expand_iteration_inputs ctx ~iter ~vars |> Ctx.get_exn
+      in
+      let values = List.map (fun ctx_sub -> eval_exp ctx_sub exp) ctxs_sub in
+      Ctx.collect_iteration_value values ~iter ~result_typ:typ
     in
     eval_exp ctx exp
 

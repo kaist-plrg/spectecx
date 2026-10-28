@@ -17,17 +17,23 @@ module type Context = sig
   val set_values : t -> bindings:(Envs.Interp.Var.t * Lang.Il.value) list -> t
   val without_values : t -> t
 
-  (** Bind [vars] to their optional contents. Return [Ok None] when all options
-      are absent, or [Error] for mixed presence. Empty [vars] returns
-      [Ok (Some ctx)]. *)
-  val for_optional_iteration :
-    t -> vars:Lang.Il.var list -> t option Common.Attempt.attempt
+  val expand_iteration_inputs :
+    t ->
+    iter:Lang.Il.iter ->
+    vars:Lang.Il.var list ->
+    t list Common.Attempt.attempt
 
-  (** Bind [vars] to their list contents, returning one context per
-      corresponding position. Unequal lengths return [Error]. Empty [vars]
-      returns [Ok []]. *)
-  val for_list_iteration :
-    t -> vars:Lang.Il.var list -> t list Common.Attempt.attempt
+  val collect_iteration_value :
+    Lang.Il.value list ->
+    iter:Lang.Il.iter ->
+    result_typ:Lang.Il.typ' ->
+    Lang.Il.value
+
+  val collect_iteration_bindings :
+    t list ->
+    iter:Lang.Il.iter ->
+    vars:Lang.Il.var list ->
+    (Envs.Interp.Var.t * Lang.Il.value) list
 
   (** Raise the native interpreter's failure exception on [Error]. *)
   val get_exn : 'a Common.Attempt.attempt -> 'a
