@@ -20,7 +20,13 @@
    register_bfae
    register_mfae
    register_lfae
-   register_kfae))
+   register_kfae
+   register_tfae
+   register_trfae
+   register_tvfae
+   register_ptfae
+   register_stfae
+   register_tifae))
  (libraries
   spectec
   spectec.cli
@@ -163,5 +169,83 @@
  (name kfae)
  (package spectec-target-itpl)
  (libraries spectec-target-itpl.kfae_plugin)
+ (site
+  (spectec target_plugins)))
+
+(library
+ (name register_tfae)
+ (public_name spectec-target-itpl.tfae_plugin)
+ (modules register_tfae)
+ (libraries spectec.cli spectec-target-itpl.target))
+
+(plugin
+ (name tfae)
+ (package spectec-target-itpl)
+ (libraries spectec-target-itpl.tfae_plugin)
+ (site
+  (spectec target_plugins)))
+
+(library
+ (name register_trfae)
+ (public_name spectec-target-itpl.trfae_plugin)
+ (modules register_trfae)
+ (libraries spectec.cli spectec-target-itpl.target))
+
+(plugin
+ (name trfae)
+ (package spectec-target-itpl)
+ (libraries spectec-target-itpl.trfae_plugin)
+ (site
+  (spectec target_plugins)))
+
+(library
+ (name register_tvfae)
+ (public_name spectec-target-itpl.tvfae_plugin)
+ (modules register_tvfae)
+ (libraries spectec.cli spectec-target-itpl.target))
+
+(plugin
+ (name tvfae)
+ (package spectec-target-itpl)
+ (libraries spectec-target-itpl.tvfae_plugin)
+ (site
+  (spectec target_plugins)))
+
+(library
+ (name register_ptfae)
+ (public_name spectec-target-itpl.ptfae_plugin)
+ (modules register_ptfae)
+ (libraries spectec.cli spectec-target-itpl.target))
+
+(plugin
+ (name ptfae)
+ (package spectec-target-itpl)
+ (libraries spectec-target-itpl.ptfae_plugin)
+ (site
+  (spectec target_plugins)))
+
+(library
+ (name register_stfae)
+ (public_name spectec-target-itpl.stfae_plugin)
+ (modules register_stfae)
+ (libraries spectec.cli spectec-target-itpl.target))
+
+(plugin
+ (name stfae)
+ (package spectec-target-itpl)
+ (libraries spectec-target-itpl.stfae_plugin)
+ (site
+  (spectec target_plugins)))
+
+(library
+ (name register_tifae)
+ (public_name spectec-target-itpl.tifae_plugin)
+ (modules register_tifae)
+ (libraries spectec.cli spectec-target-itpl.target))
+
+(plugin
+ (name tifae)
+ (package spectec-target-itpl)
+ (libraries spectec-target-itpl.tifae_plugin)
  (site
   (spectec target_plugins)))

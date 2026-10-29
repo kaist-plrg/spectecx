@@ -1,0 +1,14 @@
+relation Run_prog:
+  expr ==> value
+  hint(input %0)
+
+rule Run_prog/substitution:
+  (_ID "checks") ==> (_NUM 1)
+  -- if $subst_type(FORALL (_TID "B") '.' ((_TID "A") '->' (_TID "B")), _TID "A", _TID "B") = (FORALL (_TID "B'") '.' ((_TID "B") '->' (_TID "B'")))
+  -- if $subst_type(FORALL (_TID "B") '.' (FORALL (_TID "B'") '.' ((_TID "A") '->' (_TID "B"))), _TID "A", _TID "B") = (FORALL (_TID "B''") '.' (FORALL (_TID "B'") '.' ((_TID "B") '->' (_TID "B''"))))
+  -- if $subst_type(FORALL (_TID "A") '.' (_TID "A"), _TID "A", NUM) = (FORALL (_TID "A") '.' (_TID "A"))
+  -- if $subst_type(FORALL (_TID "B") '.' (_TID "B"), _TID "A", _TID "B") = (FORALL (_TID "B") '.' (_TID "B"))
+  -- if $subst_expr(TLAMBDA (_TID "B") '.' (LAMBDA (_ID "x") ':' (_TID "A") '.' (_ID "x")), _TID "A", _TID "B") = (TLAMBDA (_TID "B'") '.' (LAMBDA (_ID "x") ':' (_TID "B") '.' (_ID "x")))
+  -- if $subst_expr(TLAMBDA (_TID "B") '.' (LAMBDA (_ID "x") ':' (FORALL (_TID "B'") '.' ((_TID "A") '->' (_TID "B"))) '.' (_ID "x")), _TID "A", _TID "B") = (TLAMBDA (_TID "B''") '.' (LAMBDA (_ID "x") ':' (FORALL (_TID "B'") '.' ((_TID "B") '->' (_TID "B''"))) '.' (_ID "x")))
+  -- if $subst_expr(TLAMBDA (_TID "A") '.' (LAMBDA (_ID "x") ':' (_TID "A") '.' (_ID "x")), _TID "A", NUM) = (TLAMBDA (_TID "A") '.' (LAMBDA (_ID "x") ':' (_TID "A") '.' (_ID "x")))
+  -- if $subst_expr(TLAMBDA (_TID "B") '.' (LAMBDA (_ID "x") ':' (_TID "B") '.' (_ID "x")), _TID "A", _TID "B") = (TLAMBDA (_TID "B") '.' (LAMBDA (_ID "x") ':' (_TID "B") '.' (_ID "x")))

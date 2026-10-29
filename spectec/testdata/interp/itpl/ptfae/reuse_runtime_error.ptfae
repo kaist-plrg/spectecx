@@ -1,0 +1,1 @@
+(tfun A -> fun (x : A) -> tfun A -> x)[num] 1[num -> num] 2

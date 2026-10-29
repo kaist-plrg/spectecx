@@ -1,0 +1,1 @@
+val x = 10 in val f = fun y -> x + y in val x = 100 in f 1

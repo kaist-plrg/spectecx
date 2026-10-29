@@ -1,0 +1,1 @@
+val id = fun x -> x in val n = id 1 in id (fun x -> x)

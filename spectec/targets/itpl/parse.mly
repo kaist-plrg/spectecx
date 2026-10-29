@@ -46,14 +46,48 @@ let conditional condition consequent alternative =
 let recursive_binding f x func_body body =
   [kw "DEF"; arg (identifier f); lparen (); arg (identifier x); rparen ();
    op "="; arg func_body; kw "IN"; arg body] |> case_v ~var:"expr"
+let num_type () = [kw "NUM"] |> case_v ~var:"type"
+let arrow_type param result =
+  [arg param; op "->"; arg result] |> case_v ~var:"type"
+let typed_function x param body =
+  [kw "LAMBDA"; arg (identifier x); op ":"; arg param; op "."; arg body] |> case_v ~var:"expr"
+let typed_recursive_binding f x param result func_body body =
+  [kw "DEF"; arg (identifier f); lparen (); arg (identifier x); op ":"; arg param;
+   rparen (); op ":"; arg result; op "="; arg func_body; kw "IN"; arg body]
+  |> case_v ~var:"expr"
+let type_identifier x = [tag "TID"; arg (text x)] |> case_v ~var:"tid"
+let type_definition a left left_type right right_type body =
+  [kw "TYPE"; arg (type_identifier a); op "="; arg (identifier left); op "@";
+   arg left_type; op "+"; arg (identifier right); op "@"; arg right_type;
+   kw "IN"; arg body] |> case_v ~var:"expr"
+let matching subject left x left_body right y right_body =
+  [arg subject; kw "MATCH"; arg (identifier left); lparen ();
+   arg (identifier x); rparen (); op "->"; arg left_body; op ",";
+   arg (identifier right); lparen (); arg (identifier y); rparen (); op "->";
+   arg right_body] |> case_v ~var:"expr"
+let forall_type a body =
+  [kw "FORALL"; arg (type_identifier a); op "."; arg body] |> case_v ~var:"type"
+let type_abstraction a body =
+  [kw "TLAMBDA"; arg (type_identifier a); op "."; arg body] |> case_v ~var:"expr"
+let type_application expr typ =
+  [arg expr; lbrack (); arg typ; rbrack ()] |> case_v ~var:"expr"
+let label x = [tag "LABEL"; arg (text x)] |> case_v ~var:"label"
+let field kind separator name value =
+  [arg (label name); op separator; arg value] |> case_v ~var:kind
+let record kind field_kind fields =
+  [lbrace (); arg (list (Lang.Il.Typ.var field_kind [] $ no_region) fields); rbrace ()]
+  |> case_v ~var:kind
+let projection expr name =
+  [arg expr; op "."; arg (label name)] |> case_v ~var:"expr"
 %}
 
 %token EOF
 %token <Bigint.t> NUM
 %token <string> ID
 %token PLUS MINUS LPAR RPAR VAL IN EQUAL DEF SEMI FUN ARROW IF0 THEN ELSE BOX BANG ASSIGN VCC
+%token COLON NUMTYPE TYPE MATCH TFUN FORALL LBRACE RBRACE LBRACK RBRACK AT DOT TOPTYPE BOTTOMTYPE COMMA
 
-%start <Lang.Il.value> ae vae f1vae fvae fae rfae bfae mfae kfae
+%start <Lang.Il.value> ae vae f1vae fvae fae rfae bfae mfae kfae tfae trfae tvfae ptfae stfae
 
 %%
 
@@ -84,6 +118,21 @@ mfae:
 kfae:
 | e=kfae_expr EOF { e }
 
+tfae:
+| e=tfae_expr EOF { e }
+
+trfae:
+| e=trfae_expr EOF { e }
+
+tvfae:
+| e=tvfae_expr EOF { e }
+
+ptfae:
+| e=ptfae_expr EOF { e }
+
+stfae:
+| e=stfae_expr EOF { e }
+
 ae_expr:
 | e=ae_atom { e }
 | left=ae_expr PLUS right=ae_atom { binary "+" left right }
@@ -107,8 +156,18 @@ vae_atom:
 | x=vae_id { identifier x }
 | LPAR e=vae_expr RPAR { e }
 
-vae_id:
+common_id:
 | x=ID { x }
+| TOPTYPE { "top" }
+| BOTTOMTYPE { "bottom" }
+| NUMTYPE { "num" }
+| TYPE { "type" }
+| MATCH { "match" }
+| TFUN { "tfun" }
+| FORALL { "forall" }
+
+vae_id:
+| x=common_id { x }
 | DEF { "def" }
 | FUN { "fun" }
 | IF0 { "if0" }
@@ -118,7 +177,7 @@ vae_id:
 | VCC { "vcc" }
 
 f1vae_id:
-| x=ID { x }
+| x=common_id { x }
 | FUN { "fun" }
 | IF0 { "if0" }
 | THEN { "then" }
@@ -127,7 +186,7 @@ f1vae_id:
 | VCC { "vcc" }
 
 fvae_id:
-| x=ID { x }
+| x=common_id { x }
 | DEF { "def" }
 | IF0 { "if0" }
 | THEN { "then" }
@@ -136,7 +195,7 @@ fvae_id:
 | VCC { "vcc" }
 
 fae_id:
-| x=ID { x }
+| x=common_id { x }
 | IF0 { "if0" }
 | THEN { "then" }
 | ELSE { "else" }
@@ -144,19 +203,19 @@ fae_id:
 | VCC { "vcc" }
 
 rfae_id:
-| x=ID { x }
+| x=common_id { x }
 | BOX { "box" }
 | VCC { "vcc" }
 
 bfae_id:
-| x=ID { x }
+| x=common_id { x }
 | IF0 { "if0" }
 | THEN { "then" }
 | ELSE { "else" }
 | VCC { "vcc" }
 
 mfae_id:
-| x=ID { x }
+| x=common_id { x }
 | IF0 { "if0" }
 | THEN { "then" }
 | ELSE { "else" }
@@ -318,7 +377,7 @@ mfae_atom:
 | LPAR e=mfae_expr RPAR { e }
 
 kfae_id:
-| x=ID { x }
+| x=common_id { x }
 | IF0 { "if0" }
 | THEN { "then" }
 | ELSE { "else" }
@@ -350,3 +409,222 @@ kfae_atom:
 integer:
 | n=NUM { n }
 | MINUS n=NUM { Bigint.neg n }
+
+typ:
+| t=typ_atom { t }
+| param=typ_atom ARROW result=typ { arrow_type param result }
+
+typ_atom:
+| NUMTYPE { num_type () }
+| LPAR t=typ RPAR { t }
+
+tfae_expr:
+| e=tfae_sum { e }
+| VAL x=fae_id EQUAL init=tfae_expr IN body=tfae_expr { binding x init body }
+| FUN LPAR x=fae_id COLON param=typ RPAR ARROW body=tfae_expr
+    { typed_function x param body }
+| DEF f=fae_id LPAR x=fae_id COLON param=typ RPAR EQUAL func_body=tfae_expr IN body=tfae_expr
+    { binding f (typed_function x param func_body) body }
+
+tfae_sum:
+| e=tfae_app { e }
+| left=tfae_sum PLUS right=tfae_app { binary "+" left right }
+| left=tfae_sum MINUS right=tfae_app { binary "-" left right }
+
+tfae_app:
+| e=tfae_atom { e }
+| MINUS n=NUM { number (Bigint.neg n) }
+| func=tfae_app argument=tfae_atom { application func argument }
+
+tfae_atom:
+| n=NUM { number n }
+| x=fae_id { identifier x }
+| LPAR e=tfae_expr RPAR { e }
+
+trfae_expr:
+| e=trfae_sum { e }
+| VAL x=rfae_id EQUAL init=trfae_expr IN body=trfae_expr { binding x init body }
+| FUN LPAR x=rfae_id COLON param=typ RPAR ARROW body=trfae_expr
+    { typed_function x param body }
+| DEF f=rfae_id LPAR x=rfae_id COLON param=typ RPAR COLON result=typ EQUAL func_body=trfae_expr IN body=trfae_expr
+    { typed_recursive_binding f x param result func_body body }
+| IF0 condition=trfae_expr THEN consequent=trfae_expr ELSE alternative=trfae_expr
+    { conditional condition consequent alternative }
+
+trfae_sum:
+| e=trfae_app { e }
+| left=trfae_sum PLUS right=trfae_app { binary "+" left right }
+| left=trfae_sum MINUS right=trfae_app { binary "-" left right }
+
+trfae_app:
+| e=trfae_atom { e }
+| MINUS n=NUM { number (Bigint.neg n) }
+| func=trfae_app argument=trfae_atom { application func argument }
+
+trfae_atom:
+| n=NUM { number n }
+| x=rfae_id { identifier x }
+| LPAR e=trfae_expr RPAR { e }
+
+tvfae_type_name:
+| x=ID { x }
+| TOPTYPE { "top" }
+| BOTTOMTYPE { "bottom" }
+| IF0 { "if0" }
+| THEN { "then" }
+| ELSE { "else" }
+| BOX { "box" }
+| VCC { "vcc" }
+| TFUN { "tfun" }
+| FORALL { "forall" }
+
+tvfae_id:
+| x=tvfae_type_name { x }
+| NUMTYPE { "num" }
+
+tvfae_typ:
+| t=tvfae_typ_atom { t }
+| param=tvfae_typ_atom ARROW result=tvfae_typ { arrow_type param result }
+
+tvfae_typ_atom:
+| NUMTYPE { num_type () }
+| a=tvfae_type_name { type_identifier a }
+| LPAR t=tvfae_typ RPAR { t }
+
+tvfae_expr:
+| e=tvfae_match { e }
+| VAL x=tvfae_id EQUAL init=tvfae_expr IN body=tvfae_expr { binding x init body }
+| FUN LPAR x=tvfae_id COLON param=tvfae_typ RPAR ARROW body=tvfae_expr
+    { typed_function x param body }
+| DEF f=tvfae_id LPAR x=tvfae_id COLON param=tvfae_typ RPAR EQUAL func_body=tvfae_expr IN body=tvfae_expr
+    { binding f (typed_function x param func_body) body }
+| TYPE a=tvfae_type_name EQUAL left=tvfae_id AT left_type=tvfae_typ PLUS right=tvfae_id AT right_type=tvfae_typ IN body=tvfae_expr
+    { type_definition a left left_type right right_type body }
+
+tvfae_match:
+| e=tvfae_sum { e }
+| subject=tvfae_match MATCH LBRACE left=tvfae_id LPAR x=tvfae_id RPAR ARROW left_body=tvfae_expr SEMI right=tvfae_id LPAR y=tvfae_id RPAR ARROW right_body=tvfae_expr RBRACE
+    { matching subject left x left_body right y right_body }
+
+tvfae_sum:
+| e=tvfae_app { e }
+| left=tvfae_sum PLUS right=tvfae_app { binary "+" left right }
+| left=tvfae_sum MINUS right=tvfae_app { binary "-" left right }
+
+tvfae_app:
+| e=tvfae_atom { e }
+| MINUS n=NUM { number (Bigint.neg n) }
+| func=tvfae_app argument=tvfae_atom { application func argument }
+
+tvfae_atom:
+| n=NUM { number n }
+| x=tvfae_id { identifier x }
+| LPAR e=tvfae_expr RPAR { e }
+
+ptfae_type_name:
+| x=ID { x }
+| TOPTYPE { "top" }
+| BOTTOMTYPE { "bottom" }
+| IF0 { "if0" }
+| THEN { "then" }
+| ELSE { "else" }
+| BOX { "box" }
+| VCC { "vcc" }
+| TYPE { "type" }
+| MATCH { "match" }
+
+ptfae_id:
+| x=ptfae_type_name { x }
+| NUMTYPE { "num" }
+
+ptfae_typ:
+| t=ptfae_typ_atom { t }
+| param=ptfae_typ_atom ARROW result=ptfae_typ { arrow_type param result }
+| FORALL a=ptfae_type_name DOT body=ptfae_typ { forall_type a body }
+
+ptfae_typ_atom:
+| NUMTYPE { num_type () }
+| a=ptfae_type_name { type_identifier a }
+| LPAR t=ptfae_typ RPAR { t }
+
+ptfae_expr:
+| e=ptfae_sum { e }
+| VAL x=ptfae_id EQUAL init=ptfae_expr IN body=ptfae_expr { binding x init body }
+| FUN LPAR x=ptfae_id COLON param=ptfae_typ RPAR ARROW body=ptfae_expr
+    { typed_function x param body }
+| DEF f=ptfae_id LPAR x=ptfae_id COLON param=ptfae_typ RPAR EQUAL func_body=ptfae_expr IN body=ptfae_expr
+    { binding f (typed_function x param func_body) body }
+| TFUN a=ptfae_type_name ARROW body=ptfae_expr { type_abstraction a body }
+
+ptfae_sum:
+| e=ptfae_app { e }
+| left=ptfae_sum PLUS right=ptfae_app { binary "+" left right }
+| left=ptfae_sum MINUS right=ptfae_app { binary "-" left right }
+
+ptfae_app:
+| e=ptfae_atom { e }
+| MINUS n=NUM { number (Bigint.neg n) }
+| func=ptfae_app argument=ptfae_atom { application func argument }
+| expr=ptfae_app LBRACK typ=ptfae_typ RBRACK { type_application expr typ }
+
+ptfae_atom:
+| n=NUM { number n }
+| x=ptfae_id { identifier x }
+| LPAR e=ptfae_expr RPAR { e }
+
+field_label:
+| x=common_id { x }
+| VAL { "val" }
+| IN { "in" }
+| DEF { "def" }
+| FUN { "fun" }
+| IF0 { "if0" }
+| THEN { "then" }
+| ELSE { "else" }
+| BOX { "box" }
+| VCC { "vcc" }
+
+stfae_typ:
+| t=stfae_typ_atom { t }
+| param=stfae_typ_atom ARROW result=stfae_typ { arrow_type param result }
+
+stfae_typ_atom:
+| NUMTYPE { num_type () }
+| TOPTYPE { [kw "TOP"] |> case_v ~var:"type" }
+| BOTTOMTYPE { [kw "BOTTOM"] |> case_v ~var:"type" }
+| LPAR t=stfae_typ RPAR { t }
+| LBRACE fields=separated_list(COMMA, stfae_typefield) RBRACE { record "type" "typefield" fields }
+
+stfae_typefield:
+| name=field_label COLON typ=stfae_typ { field "typefield" ":" name typ }
+
+stfae_expr:
+| e=stfae_sum { e }
+| VAL x=fae_id EQUAL init=stfae_expr IN body=stfae_expr { binding x init body }
+| FUN LPAR x=fae_id COLON param=stfae_typ RPAR ARROW body=stfae_expr
+    { typed_function x param body }
+| DEF f=fae_id LPAR x=fae_id COLON param=stfae_typ RPAR EQUAL func_body=stfae_expr IN body=stfae_expr
+    { binding f (typed_function x param func_body) body }
+
+stfae_sum:
+| e=stfae_app { e }
+| left=stfae_sum PLUS right=stfae_app { binary "+" left right }
+| left=stfae_sum MINUS right=stfae_app { binary "-" left right }
+
+stfae_app:
+| e=stfae_postfix { e }
+| MINUS n=NUM { number (Bigint.neg n) }
+| func=stfae_app argument=stfae_postfix { application func argument }
+
+stfae_postfix:
+| e=stfae_atom { e }
+| expr=stfae_postfix DOT name=field_label { projection expr name }
+
+stfae_atom:
+| n=NUM { number n }
+| x=fae_id { identifier x }
+| LPAR e=stfae_expr RPAR { e }
+| LBRACE fields=separated_list(COMMA, stfae_exprfield) RBRACE { record "expr" "exprfield" fields }
+
+stfae_exprfield:
+| name=field_label EQUAL expr=stfae_expr { field "exprfield" "=" name expr }

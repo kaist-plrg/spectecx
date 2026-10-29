@@ -28,7 +28,7 @@ SpecTec is a spec programming framework, originally developed for WebAssembly (W
   opam install ./spectec-target-impty.opam
   opam install ./spectec-target-itpl.opam
   ```
-  Each target package installs command plugins and default specifications. The ITPL (*Introduction to Programming Languages*) package includes the AE, VAE, F1VAE, FVAE, FAE, RFAE, BFAE, MFAE, LFAE, and KFAE targets. The `spectec` executable discovers installed target plugins at startup.
+  Each target package installs command plugins and default specifications. The ITPL (*Introduction to Programming Languages*) package includes the AE, VAE, F1VAE, FVAE, FAE, RFAE, BFAE, MFAE, LFAE, KFAE, TFAE, TRFAE, TVFAE, PTFAE, STFAE, and TIFAE targets. The `spectec` executable discovers installed target plugins at startup.
 
 For development, install every package's pinned dependency versions without installing the packages themselves:
 
@@ -107,11 +107,17 @@ The target-specific examples require the corresponding target package.
 ./spectecx mfae eval -p spectec/testdata/interp/itpl/mfae/counter.mfae --sl
 ./spectecx lfae eval -p spectec/testdata/interp/itpl/lfae/unused.lfae
 ./spectecx kfae eval -p spectec/testdata/interp/itpl/kfae/escape.kfae --sl
+./spectecx tfae typecheck -p spectec/testdata/interp/itpl/tfae/twice.tfae
+./spectecx trfae eval -p spectec/testdata/interp/itpl/trfae/sum.trfae --sl
+./spectecx tvfae typecheck -p spectec/testdata/interp/itpl/tvfae/variant.tvfae
+./spectecx ptfae typecheck -p spectec/testdata/interp/itpl/ptfae/identity.ptfae
+./spectecx stfae typecheck -p spectec/testdata/interp/itpl/stfae/width.stfae
+./spectecx tifae typecheck -p spectec/testdata/interp/itpl/tifae/identity.tifae
 ```
 
 The `p4 instantiate` command typechecks a P4 program and creates its initial objects and state. It currently supports the eBPF `CounterArray` extern, an array of counters initialized to zero.
 
-The [ITPL specifications](spectec/specs/itpl/README.md) follow the languages in chapters 6 through 17 of *Introduction to Programming Languages* by Jaemin Hong and Sukyoung Ryu, the textbook for KAIST CS320.
+The [ITPL specifications](spectec/specs/itpl/README.md) follow the languages in chapters 6 through 24 of *Introduction to Programming Languages* by Jaemin Hong and Sukyoung Ryu, the textbook for KAIST CS320.
 
 `--det` is opt-in and works with IL, SL, and PL alike. It rejects an input as soon as more than one alternative succeeds for it, even when the alternatives agree on their output, and it only checks inputs actually supplied to a run, not every input the spec could ever see. Evaluating the extra alternatives can invoke host operations (e.g. a builtin with a side effect) that are not rolled back. A resumed checkpoint must have been saved with the same `--det` setting as the run resuming it.
 

@@ -78,16 +78,18 @@ module Make (Language : Language) = struct
       |> String.concat ", "
   end
 
+  let cli_flags =
+    let open Core.Command.Let_syntax in
+    let open Core.Command.Param in
+    let%map filename =
+      flag "-p" (required string) ~doc:("FILE " ^ Language.title ^ " input")
+    in
+    { Eval.filename; expect = Spectec.Task.Positive }
+
   module Eval_cli : Cli.Task_cli.S = struct
     module Task = Eval
 
-    let flags =
-      let open Core.Command.Let_syntax in
-      let open Core.Command.Param in
-      let%map filename =
-        flag "-p" (required string) ~doc:("FILE " ^ Language.title ^ " input")
-      in
-      { Eval.filename; expect = Spectec.Task.Positive }
+    let flags = cli_flags
   end
 
   module Cli : Cli.Target_cli.S = struct
@@ -105,6 +107,66 @@ module Make (Language : Language) = struct
             ~summary:("Parse " ^ Language.title ^ " input")
             (module Eval_cli);
           Cli.Subcommand.make_batch target ~name:"batch" [ (module Eval_cli) ];
+        ]
+  end
+end
+
+module Make_typed (Language : Language) = struct
+  module Base = Make (Language)
+  module Target = Base.Target
+  module Eval = Base.Eval
+  module Eval_cli = Base.Eval_cli
+
+  module Typecheck = struct
+    include Eval
+
+    let name = "typechecker"
+
+    let collect ?dir () =
+      Eval.collect ?dir ()
+      |> List.map (fun (input : input) ->
+             if
+               Core.String.is_substring
+                 (Filename.basename input.filename)
+                 ~substring:"_runtime_error"
+             then { input with expect = Spectec.Task.Positive }
+             else input)
+
+    let parse_input ~spec input =
+      Eval.parse_input ~spec input
+      |> Result.map (fun (_, values) -> ("Check_prog", values))
+
+    let format_output values =
+      values
+      |> List.map (Format.asprintf "%a" Unparse.print_type)
+      |> String.concat ", "
+  end
+
+  module Typecheck_cli : Cli.Task_cli.S = struct
+    module Task = Typecheck
+
+    let flags = Base.cli_flags
+  end
+
+  module Cli : Cli.Target_cli.S = struct
+    module Target = Target
+
+    let command =
+      let target = (module Target : Spectec.Target.S) in
+      Core.Command.group
+        ~summary:(Language.title ^ " commands")
+        [
+          Cli.Subcommand.make_task target ~name:"typecheck"
+            ~summary:("Run " ^ Language.title ^ " typechecker")
+            (module Typecheck_cli);
+          Cli.Subcommand.make_task target ~name:"eval"
+            ~summary:("Typecheck and evaluate " ^ Language.title ^ " input")
+            (module Eval_cli);
+          Cli.Subcommand.make_parse target ~name:"parse"
+            ~summary:("Parse " ^ Language.title ^ " input")
+            (module Eval_cli);
+          Cli.Subcommand.make_batch target ~name:"batch"
+            [ (module Typecheck_cli); (module Eval_cli) ];
         ]
   end
 end

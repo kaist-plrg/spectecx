@@ -1,0 +1,1 @@
+(fun (f : {a : num, b : num} -> {result : num}) -> (f {a = 3, b = 4}).result) (fun (r : {a : num}) -> {extra = 0, result = r.a})

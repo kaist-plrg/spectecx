@@ -1,0 +1,1 @@
+(fun (r : {inner : {a : num}}) -> r.inner.a) {inner = {b = 2, a = 8}, extra = 0}

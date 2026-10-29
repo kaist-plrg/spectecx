@@ -1,0 +1,1 @@
+type Choice = Left@num + Right@num in Right 7 match { Left(x) -> x - 1; Right(y) -> y + 1 }

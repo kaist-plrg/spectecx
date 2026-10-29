@@ -84,14 +84,83 @@ KFAE requires a name and body for vcc. LFAE uses FAE syntax, and both languages 
   $ rejects lfae '1; 2'
   $ rejects lfae 'x := 1'
 
+Typed functions require parameter annotations, and TRFAE recursive definitions also require return annotations. Type names and arrow operands must be complete.
+
+  $ rejects tfae 'fun x -> x'
+  $ rejects tfae 'fun (x) -> x'
+  $ rejects tfae 'fun (x : bool) -> x'
+  $ rejects tfae 'fun (x : num ->) -> x'
+  $ rejects tfae 'fun (x : -> num) -> x'
+  $ rejects tfae 'fun (x : (num -> num) -> x'
+  $ rejects tfae 'def f(x : num) : num = x in f 1'
+  $ rejects tfae 'val x : num = 1 in x'
+  $ rejects tfae '1; 2'
+  $ rejects trfae 'fun x -> x'
+  $ rejects trfae 'def f(x : num) = x in f 1'
+  $ rejects trfae 'def f(x) : num = x in f 1'
+  $ rejects trfae 'def f(x : num) : num = x'
+  $ rejects trfae 'def f(x : num) : num -> = x in f 1'
+  $ rejects trfae 'if0 0 then 1'
+  $ rejects trfae 'if0 0 then 1 else'
+  $ rejects trfae 'x := 1'
+  $ rejects fae 'fun (x : num) -> x'
+  $ rejects rfae 'def f(x : num) : num = x in f 1'
+
+TVFAE requires exactly two constructor declarations and two delimited match cases. PTFAE requires complete type binders and applications.
+
+  $ rejects tvfae 'type T = A@num in 0'
+  $ rejects tvfae 'type T = A@num + B@num + C@num in 0'
+  $ rejects tvfae 'type num = A@num + B@num in 0'
+  $ rejects tvfae 'type T = A@ + B@num in 0'
+  $ rejects tvfae 'type T = A@num + B@num'
+  $ rejects tvfae 'type T = A@num + B@num in A 1 match { A(x) -> x }'
+  $ rejects tvfae 'type T = A@num + B@num in A 1 match { A(x) -> x; B(y) -> }'
+  $ rejects tvfae 'type T = A@num + B@num in A 1 match A(x) -> x; B(y) -> y'
+  $ rejects tvfae 'val type = 1 in type'
+  $ rejects tvfae 'def f(x : num) : num = x in f 1'
+  $ rejects ptfae 'tfun A ->'
+  $ rejects ptfae 'tfun num -> 1'
+  $ rejects ptfae 'tfun -> 1'
+  $ rejects ptfae '(tfun A -> 1)[]'
+  $ rejects ptfae '(tfun A -> 1)[num'
+  $ rejects ptfae 'fun (f : forall A A -> A) -> f'
+  $ rejects ptfae 'fun (f : forall A.) -> f'
+  $ rejects ptfae 'fun (f : forall num. num) -> f'
+  $ rejects ptfae 'val forall = 1 in forall'
+  $ rejects ptfae 'val tfun = 1 in tfun'
+  $ rejects tfae '(fun (x : num) -> x)[num]'
+  $ rejects tfae 'type T = A@num + B@num in 0'
+
+STFAE requires well-delimited records, projections, and parameter annotations. TIFAE uses unannotated FAE syntax.
+
+  $ rejects stfae '{a = 1,}'
+  $ rejects stfae '{a = 1 b = 2}'
+  $ rejects stfae '{a : num}'
+  $ rejects stfae '{a = }'
+  $ rejects stfae '{a = 1'
+  $ rejects stfae '{1 = 2}'
+  $ rejects stfae '{}.'
+  $ rejects stfae '{}.1'
+  $ rejects stfae 'fun x -> x'
+  $ rejects stfae 'fun (x : {a = num}) -> x'
+  $ rejects stfae 'fun (x : {a : num,}) -> x'
+  $ rejects stfae 'fun (x : missing) -> x'
+  $ rejects stfae 'fun (x : top ->) -> x'
+  $ rejects tifae 'fun (x : num) -> x'
+  $ rejects tifae 'def f(x : num) = x in f 1'
+  $ rejects tifae 'fun x ->'
+  $ rejects tifae '{}'
+  $ rejects tifae '1.a'
+  $ rejects tifae '(fun x -> x)[num]'
+
 Lexical errors report the line and column of the invalid character.
 
-  $ printf '1 +\n  @\n' > input.ae
+  $ printf '1 +\n  #\n' > input.ae
   $ spectec ae parse -p input.ae --color never
-  error: unexpected character '@'
+  error: unexpected character '#'
     --> input.ae:2:3
     |
-  2 |   @
+  2 |   #
     |   ^
     |
     | source: task-parse
@@ -172,3 +241,25 @@ Mutation syntax and sequencing sugar round-trip without fixing the generated par
 
   $ accepts bfae 'val b = box 1 in b := 2; !b'
   $ accepts mfae '0; __seq'
+
+The parser accepts num as an identifier in languages with term variables.
+
+  $ for target in vae f1vae fvae fae rfae bfae mfae lfae kfae tfae trfae; do
+  >   accepts "$target" 'val num = 3 in num' || exit 1
+  > done
+
+Type and polymorphism keywords remain identifiers outside their own languages.
+
+  $ for target in vae f1vae fvae fae rfae bfae mfae lfae kfae tfae trfae; do
+  >   accepts "$target" 'val type = 1 in val match = 2 in val tfun = 3 in val forall = 4 in type + match + tfun + forall' || exit 1
+  > done
+  $ accepts tvfae 'val tfun = 1 in val forall = 2 in tfun + forall'
+  $ accepts ptfae 'val type = 1 in val match = 2 in type + match'
+
+Top and bottom remain term identifiers and can name user-defined types outside STFAE.
+
+  $ for target in vae f1vae fvae fae rfae bfae mfae lfae kfae tfae trfae tvfae ptfae stfae tifae; do
+  >   accepts "$target" 'val top = 1 in val bottom = 2 in top + bottom' || exit 1
+  > done
+  $ accepts tvfae 'type top = A@num + B@num in (fun (x : top) -> x match { A(x) -> x; B(y) -> y }) (A 3)'
+  $ accepts ptfae '(tfun bottom -> fun (x : bottom) -> x)[num] 3'

@@ -1,0 +1,23 @@
+relation Run_prog:
+  expr ==> value
+  hint(input %0)
+
+rule Run_prog/checks:
+  (_ID "checks") ==> (_NUM 1)
+  -- Check_type: eps |- (_NUM 1) : TOP
+  -- Check_type: eps |- (LAMBDA (_ID "x") ':' TOP '.' (_NUM 1)) : NUM '->' TOP
+  -- Check_type: eps |- `{ [((_LABEL "a") '=' (_NUM 1))] `} : `{ eps `}
+  -- Subtype: BOTTOM '<:' (NUM '->' `{ eps `})
+  -- Subtype: (NUM '->' `{ [((_LABEL "a") ':' NUM)] `}) '<:' (BOTTOM '->' TOP)
+
+rule Run_prog/narrow:
+  (_ID "narrow") ==> (_NUM 1)
+  -- Check_type: eps |- (_NUM 1) : BOTTOM
+
+rule Run_prog/duplicate:
+  (_ID "duplicate") ==> (_NUM 1)
+  -- Subtype: `{ [((_LABEL "a") ':' NUM)] ++ [((_LABEL "a") ':' NUM)] `} '<:' TOP
+
+rule Run_prog/strict:
+  (_ID "strict") ==> (_NUM 1)
+  -- Eval_prog: `{ [((_LABEL "a") '=' (_NUM 1))] ++ [((_LABEL "b") '=' (_ID "missing"))] `} '.' (_LABEL "a") ==> v
