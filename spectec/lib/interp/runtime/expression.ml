@@ -30,9 +30,46 @@ module type Context = sig
   val for_list_iteration :
     t -> vars:Lang.Il.var list -> t list Common.Attempt.attempt
 
+  val emit_iteration :
+    t ->
+    vars:Lang.Il.var list ->
+    iter:Lang.Il.iter ->
+    value:Lang.Il.value ->
+    unit
+
   val get_exn : 'a Common.Attempt.attempt -> 'a
   val error : Common.Source.region -> string -> 'a
 end
+
+module Dispatcher = Instrumentation_dispatcher.Dispatcher
+module Value_event = Instrumentation_api.Value_event
+
+(* Each emitter returns [value], so a site reports its result in place. Sites
+   whose source list would be built only for the event check [observing]
+   first. *)
+
+let observing = Dispatcher.observes_values
+
+let derived (value : value) ~(source : value) : value =
+  if observing () then
+    Dispatcher.emit_value (Value_event.Derived { value; source });
+  value
+
+let combined (value : value) ~(sources : value list) : value =
+  if observing () then
+    Dispatcher.emit_value (Value_event.Combined { value; sources });
+  value
+
+let combined_operands (value : value) ~(left : value) ~(right : value) : value =
+  if observing () then
+    Dispatcher.emit_value
+      (Value_event.Combined { value; sources = [ left; right ] });
+  value
+
+let updated (value : value) ~(base : value) ~(element : value) : value =
+  if observing () then
+    Dispatcher.emit_value (Value_event.Updated { value; base; element });
+  value
 
 module Make (Ctx : Context) = struct
   type exp = Ctx.annotation Il.Expression.t
@@ -55,7 +92,9 @@ module Make (Ctx : Context) = struct
     | OptE (Some exp), OptV (Some value) -> assign_exp ctx ~exp ~value
     | OptE None, OptV None -> ctx
     | ConsE (exp_h, exp_t), ListV (value_h :: values_t) ->
-        let value_t = Value.Make.list value.note.typ values_t in
+        let value_t =
+          Value.Make.list value.note.typ values_t |> derived ~source:value
+        in
         let ctx = assign_exp ctx ~exp:exp_h ~value:value_h in
         assign_exp ctx ~exp:exp_t ~value:value_t
     | IterE (_, (Opt, vars)), OptV None ->
@@ -63,18 +102,23 @@ module Make (Ctx : Context) = struct
           List.map
             (fun { varid; typ; iters } ->
               let typ = Il.Typ.iterate typ (iters @ [ Opt ]) in
-              ((varid, iters @ [ Opt ]), Value.Make.opt typ.it None))
+              ( (varid, iters @ [ Opt ]),
+                Value.Make.opt typ.it None |> derived ~source:value ))
             vars
         in
         Ctx.set_values ctx ~bindings
-    | IterE (exp, (Opt, vars)), OptV (Some value) ->
-        let ctx_inner = assign_exp ctx ~exp ~value in
+    | IterE (exp, (Opt, vars)), OptV (Some value_inner) ->
+        let ctx_inner = assign_exp ctx ~exp ~value:value_inner in
         let bindings =
           List.map
             (fun { varid; typ; iters } ->
-              let value = Ctx.find_value_exn ctx_inner ~var:(varid, iters) in
+              let value_binding =
+                Ctx.find_value_exn ctx_inner ~var:(varid, iters)
+              in
               let typ = Il.Typ.iterate typ (iters @ [ Opt ]) in
-              ((varid, iters @ [ Opt ]), Value.Make.opt typ.it (Some value)))
+              ( (varid, iters @ [ Opt ]),
+                Value.Make.opt typ.it (Some value_binding)
+                |> derived ~source:value ))
             vars
         in
         Ctx.set_values ctx ~bindings
@@ -92,7 +136,8 @@ module Make (Ctx : Context) = struct
                   ctxs
               in
               let typ = Il.Typ.iterate typ (iters @ [ List ]) in
-              ((varid, iters @ [ List ]), Value.Make.list typ.it values))
+              ( (varid, iters @ [ List ]),
+                Value.Make.list typ.it values |> derived ~source:value ))
             vars
         in
         Ctx.set_values ctx ~bindings
@@ -161,7 +206,7 @@ module Make (Ctx : Context) = struct
     match typ.it with
     | NumT `IntT -> (
         match value.it with
-        | NumV (`Nat n) -> Value.int n
+        | NumV (`Nat n) -> Value.int n |> derived ~source:value
         | NumV (`Int _) -> value
         | _ -> assert false)
     | VarT { synid = tid; targs } -> (
@@ -180,7 +225,7 @@ module Make (Ctx : Context) = struct
                 (fun typ value -> upcast value ~to_typ:typ ~ctx)
                 typs values
             in
-            Value.Make.tuple typ.it values
+            Value.Make.tuple typ.it values |> derived ~source:value
         | _ -> assert false)
     | _ -> value
 
@@ -189,7 +234,8 @@ module Make (Ctx : Context) = struct
     | NumT `NatT -> (
         match value.it with
         | NumV (`Nat _) -> value
-        | NumV (`Int i) when Bigint.(i >= zero) -> Value.nat i
+        | NumV (`Int i) when Bigint.(i >= zero) ->
+            Value.nat i |> derived ~source:value
         | _ -> assert false)
     | VarT { synid = tid; targs } -> (
         let tparams, deftyp = Ctx.find_typdef_exn ctx ~id:tid in
@@ -207,7 +253,7 @@ module Make (Ctx : Context) = struct
                 (fun typ value -> downcast value ~to_typ:typ ~ctx)
                 typs values
             in
-            Value.Make.tuple typ.it values
+            Value.Make.tuple typ.it values |> derived ~source:value
         | _ -> assert false)
     | _ -> value
 
@@ -324,21 +370,37 @@ module Make (Ctx : Context) = struct
       | UpCastE (typ, exp) -> upcast (eval_exp ctx exp) ~to_typ:typ ~ctx
       | DownCastE (typ, exp) -> downcast (eval_exp ctx exp) ~to_typ:typ ~ctx
       | SubE (exp, typ_target) ->
-          Value.Make.bool typ
-            (matches_type (eval_exp ctx exp) ~typ:typ_target ~ctx)
+          let value = eval_exp ctx exp in
+          Value.Make.bool typ (matches_type value ~typ:typ_target ~ctx)
+          |> derived ~source:value
       | MatchE (exp, pattern) ->
-          Value.Make.bool typ (matches_pattern (eval_exp ctx exp) ~pattern)
-      | TupleE exps -> Value.Make.tuple typ (eval_exps ctx exps)
+          let value = eval_exp ctx exp in
+          Value.Make.bool typ (matches_pattern value ~pattern)
+          |> derived ~source:value
+      | TupleE exps ->
+          let values = eval_exps ctx exps in
+          Value.Make.tuple typ values |> combined ~sources:values
       | CaseE notexp ->
           let mixop, exps = Mixfix.split notexp in
           let values = eval_exps ctx exps in
           Value.Make.case typ (Mixfix.fill mixop values)
+          |> combined ~sources:values
       | StrE fields ->
           let atoms, exps = List.split fields in
           let values = eval_exps ctx exps in
           Value.Make.record typ (List.combine atoms values)
-      | OptE exp_opt -> Value.Make.opt typ (Option.map (eval_exp ctx) exp_opt)
-      | ListE exps -> Value.Make.list typ (eval_exps ctx exps)
+          |> combined ~sources:values
+      | OptE exp_opt ->
+          let value_opt = Option.map (eval_exp ctx) exp_opt in
+          let value = Value.Make.opt typ value_opt in
+          if observing () then
+            Dispatcher.emit_value
+              (Value_event.Combined
+                 { value; sources = Option.to_list value_opt });
+          value
+      | ListE exps ->
+          let values = eval_exps ctx exps in
+          Value.Make.list typ values |> combined ~sources:values
       | ConsE (exp_h, exp_t) -> eval_cons_exp typ ctx exp_h exp_t
       | CatE (exp_l, exp_r) -> eval_cat_exp typ ctx at exp_l exp_r
       | MemE (exp_e, exp_s) -> eval_mem_exp typ ctx exp_e exp_s
@@ -363,9 +425,10 @@ module Make (Ctx : Context) = struct
         num |> Value.Make.num typ
       in
       let value = eval_exp ctx exp in
-      match unop with
+      (match unop with
       | #Bool.unop as unop -> eval_un_bool typ unop value
-      | #Num.unop as unop -> eval_un_num typ unop value
+      | #Num.unop as unop -> eval_un_num typ unop value)
+      |> derived ~source:value
     and eval_bin_exp (typ : typ') (ctx : Ctx.t) (binop : binop) (exp_l : exp)
         (exp_r : exp) : value =
       let eval_bin_bool typ binop value_l value_r =
@@ -387,9 +450,10 @@ module Make (Ctx : Context) = struct
       in
       let value_l = eval_exp ctx exp_l in
       let value_r = eval_exp ctx exp_r in
-      match binop with
+      (match binop with
       | #Bool.binop as binop -> eval_bin_bool typ binop value_l value_r
-      | #Num.binop as binop -> eval_bin_num typ binop value_l value_r
+      | #Num.binop as binop -> eval_bin_num typ binop value_l value_r)
+      |> combined_operands ~left:value_l ~right:value_r
     and eval_cmp_exp (typ : typ') (ctx : Ctx.t) (cmpop : cmpop) (exp_l : exp)
         (exp_r : exp) : value =
       let eval_cmp_bool typ cmpop value_l value_r =
@@ -404,30 +468,35 @@ module Make (Ctx : Context) = struct
       in
       let value_l = eval_exp ctx exp_l in
       let value_r = eval_exp ctx exp_r in
-      match cmpop with
+      (match cmpop with
       | #Bool.cmpop as cmpop -> eval_cmp_bool typ cmpop value_l value_r
-      | #Num.cmpop as cmpop -> eval_cmp_num typ cmpop value_l value_r
+      | #Num.cmpop as cmpop -> eval_cmp_num typ cmpop value_l value_r)
+      |> combined_operands ~left:value_l ~right:value_r
     and eval_cons_exp (typ : typ') (ctx : Ctx.t) (exp_h : exp) (exp_t : exp) :
         value =
       let value_h = eval_exp ctx exp_h in
       let value_t = eval_exp ctx exp_t in
       let values_t = Value.get_list value_t in
       Value.Make.list typ (value_h :: values_t)
+      |> combined_operands ~left:value_h ~right:value_t
     and eval_cat_exp (typ : typ') (ctx : Ctx.t) (at : region) (exp_l : exp)
         (exp_r : exp) : value =
       let value_l = eval_exp ctx exp_l in
       let value_r = eval_exp ctx exp_r in
-      match (value_l.it, value_r.it) with
+      (match (value_l.it, value_r.it) with
       | TextV s_l, TextV s_r -> s_l ^ s_r |> Value.Make.text typ
       | ListV values_l, ListV values_r ->
           values_l @ values_r |> Value.Make.list typ
-      | _ -> error at "concatenation expects either two texts or two lists"
+      | _ -> error at "concatenation expects either two texts or two lists")
+      |> combined_operands ~left:value_l ~right:value_r
     and eval_mem_exp (typ : typ') (ctx : Ctx.t) (exp_e : exp) (exp_s : exp) :
         value =
       let value_e = eval_exp ctx exp_e in
       let value_s = eval_exp ctx exp_s in
       let values_s = Value.get_list value_s in
-      List.exists (Value.eq value_e) values_s |> Value.Make.bool typ
+      List.exists (Value.eq value_e) values_s
+      |> Value.Make.bool typ
+      |> combined_operands ~left:value_e ~right:value_s
     and eval_len_exp (typ : typ') (ctx : Ctx.t) (exp : exp) : value =
       let value = eval_exp ctx exp in
       let len =
@@ -440,7 +509,7 @@ module Make (Ctx : Context) = struct
                  "length operation expects either a text or a list, but got %s"
                  (Il.Print.string_of_value ~short:true value))
       in
-      Value.Make.nat typ len
+      Value.Make.nat typ len |> derived ~source:value
     and eval_dot_exp (ctx : Ctx.t) (exp_b : exp) (atom : atom) : value =
       let value_b = eval_exp ctx exp_b in
       let fields = Value.get_struct value_b in
@@ -451,7 +520,12 @@ module Make (Ctx : Context) = struct
       let value_b = eval_exp ctx exp_b in
       let value_i = eval_exp ctx exp_i in
       let idx = value_i |> Value.get_num |> Num.to_int |> Bigint.to_int_exn in
-      index_value value_b ~index:idx ~at:exp_b.at ~bounds_at:exp_i.at
+      let value =
+        index_value value_b ~index:idx ~at:exp_b.at ~bounds_at:exp_i.at
+      in
+      match value_b.it with
+      | TextV _ -> combined_operands value ~left:value_b ~right:value_i
+      | _ -> value
     and eval_slice_exp (typ : typ') (ctx : Ctx.t) (exp_b : exp) (exp_i : exp)
         (exp_n : exp) : value =
       let value_b = eval_exp ctx exp_b in
@@ -464,8 +538,15 @@ module Make (Ctx : Context) = struct
       let bounds_at =
         match value_b.it with TextV _ -> exp_i.at | _ -> exp_n.at
       in
-      slice_value value_b ~start:idx_l ~length:idx_n ~list_typ:typ ~at:exp_b.at
-        ~bounds_at
+      let value =
+        slice_value value_b ~start:idx_l ~length:idx_n ~list_typ:typ
+          ~at:exp_b.at ~bounds_at
+      in
+      if observing () then
+        Dispatcher.emit_value
+          (Value_event.Combined
+             { value; sources = [ value_b; value_i; value_len ] });
+      value
     and eval_upd_exp (ctx : Ctx.t) (exp_b : exp) (path : path) (exp_f : exp) :
         value =
       let rec eval_access_path ctx value_b path =
@@ -527,8 +608,11 @@ module Make (Ctx : Context) = struct
                     ^ String.sub s (idx_target + 1)
                         (String.length s - idx_target - 1)
                   in
-                  let value = Value.Make.text Il.TextT s_updated in
-                  eval_update_path ctx value_b path value
+                  let value_updated =
+                    Value.Make.text Il.TextT s_updated
+                    |> updated ~base:value ~element:value_new
+                  in
+                  eval_update_path ctx value_b path value_updated
             | ListV values
               when idx_target < 0 || idx_target >= List.length values ->
                 error exp_i.at
@@ -541,8 +625,11 @@ module Make (Ctx : Context) = struct
                       if idx = idx_target then value_new else value)
                     values
                 in
-                let value = Value.Make.list path.note values_updated in
-                eval_update_path ctx value_b path value
+                let value_updated =
+                  Value.Make.list path.note values_updated
+                  |> updated ~base:value ~element:value_new
+                in
+                eval_update_path ctx value_b path value_updated
             | _ ->
                 error path.at
                   (Format.asprintf
@@ -578,8 +665,11 @@ module Make (Ctx : Context) = struct
                     String.sub s 0 idx_l ^ s_new
                     ^ String.sub s idx_h (String.length s - idx_h)
                   in
-                  let value = Value.Make.text Il.TextT s_updated in
-                  eval_update_path ctx value_b path value
+                  let value_updated =
+                    Value.Make.text Il.TextT s_updated
+                    |> updated ~base:value ~element:value_new
+                  in
+                  eval_update_path ctx value_b path value_updated
             | ListV values when idx_l < 0 || idx_h > List.length values ->
                 error exp_n.at
                   (Format.asprintf "slice [%d, %d) out of bounds [0, %d)" idx_l
@@ -602,8 +692,11 @@ module Make (Ctx : Context) = struct
                         else value)
                       values
                   in
-                  let value = Value.Make.list path.note values_updated in
-                  eval_update_path ctx value_b path value
+                  let value_updated =
+                    Value.Make.list path.note values_updated
+                    |> updated ~base:value ~element:value_new
+                  in
+                  eval_update_path ctx value_b path value_updated
             | _ ->
                 error path.at
                   (Format.asprintf
@@ -619,8 +712,11 @@ module Make (Ctx : Context) = struct
                   else (atom_f, value_f))
                 fields
             in
-            let value = Value.Make.record path.note fields in
-            eval_update_path ctx value_b path value
+            let value_updated =
+              Value.Make.record path.note fields
+              |> updated ~base:value ~element:value_new
+            in
+            eval_update_path ctx value_b path value_updated
       in
       let value_b = eval_exp ctx exp_b in
       let value_f = eval_exp ctx exp_f in
@@ -629,16 +725,22 @@ module Make (Ctx : Context) = struct
         : value =
       let eval_iter_exp_opt typ ctx exp vars =
         let ctx_sub_opt = Ctx.for_optional_iteration ctx ~vars |> Ctx.get_exn in
-        match ctx_sub_opt with
-        | Some ctx_sub ->
-            let value = eval_exp ctx_sub exp in
-            Some value |> Value.Make.opt typ
-        | None -> None |> Value.Make.opt typ
+        let value =
+          match ctx_sub_opt with
+          | Some ctx_sub ->
+              let value = eval_exp ctx_sub exp in
+              Some value |> Value.Make.opt typ
+          | None -> None |> Value.Make.opt typ
+        in
+        Ctx.emit_iteration ctx ~vars ~iter:Opt ~value;
+        value
       in
       let eval_iter_exp_list typ ctx exp vars =
         let ctxs_sub = Ctx.for_list_iteration ctx ~vars |> Ctx.get_exn in
         let values = List.map (fun ctx_sub -> eval_exp ctx_sub exp) ctxs_sub in
-        Value.Make.list typ values
+        let value = Value.Make.list typ values in
+        Ctx.emit_iteration ctx ~vars ~iter:List ~value;
+        value
       in
       let iter, vars = iterexp in
       match iter with

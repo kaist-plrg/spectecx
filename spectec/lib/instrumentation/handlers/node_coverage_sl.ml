@@ -104,6 +104,8 @@ module M : Instrumentation_api.Handler.S = struct
             | _ -> ())
           sl_spec
 
+  let observe_value = None
+
   let handle : Instrumentation_api.Event.t -> unit = function
     | Instr { instr; at = _ } -> State.incr State.instrs_hit (instr_key instr)
     | _ -> ()

@@ -2,6 +2,7 @@ type compiled_spec = {
   spec_il : Lang.Il.spec;
   spec_sl : Lang.Sl.spec;
   spec_pl : Lang.Pl.spec;
+  henv : Hints.Henv.t;  (** The hints PL evaluation reads. *)
 }
 
 type mode = Il | Sl | Pl

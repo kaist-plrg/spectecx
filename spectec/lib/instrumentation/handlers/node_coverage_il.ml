@@ -116,6 +116,8 @@ module M : Instrumentation_api.Handler.S = struct
           il_spec
     | Instrumentation_api.Handler.SlSpec _ -> ()
 
+  let observe_value = None
+
   let handle : Instrumentation_api.Event.t -> unit = function
     | Test_start { test_case_id } -> State.set_test_case_id test_case_id
     | Test_end _ -> State.clear_test_case_id ()

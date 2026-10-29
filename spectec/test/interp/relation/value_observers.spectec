@@ -1,0 +1,61 @@
+syntax point = { X nat, Y nat }
+
+var p : point
+var n : nat
+
+dec $sum(point) : nat
+def $sum(p) = $(p.X + p.Y)
+
+relation Sum_twice:
+  point; point |- nat
+  hint(input %0 %1)
+
+rule Sum_twice:
+  p_1; p_2 |- $($sum(p_1) + $sum(p_2))
+
+relation Shift:
+  point; nat* |- point
+  hint(input %0 %1)
+
+rule Shift:
+  p; n* |- p[.X = $(p.X + |n*|)]
+
+var k : nat
+var m : nat
+
+relation Add_offset:
+  nat; nat |- nat
+  hint(input %0 %1)
+
+rule Add_offset:
+  n; m |- $(n + m)
+
+relation Offset_map:
+  nat*; nat |- nat*
+  hint(input %0 %1)
+
+rule Offset_map:
+  n*; m |- $(n + m)*
+
+relation Offset_opt:
+  nat?; nat |- nat?
+  hint(input %0 %1)
+
+rule Offset_opt:
+  n?; m |- $(n + m)?
+
+relation Offset_let:
+  nat*; nat |- nat*
+  hint(input %0 %1)
+
+rule Offset_let:
+  n*; m |- k*
+  -- (if k = $(n + m))*
+
+relation Offset_rel:
+  nat*; nat |- nat*
+  hint(input %0 %1)
+
+rule Offset_rel:
+  n*; m |- k*
+  -- (Add_offset: n; m |- k)*

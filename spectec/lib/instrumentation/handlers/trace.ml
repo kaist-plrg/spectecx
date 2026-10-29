@@ -55,6 +55,8 @@ module M : Instrumentation_api.Handler.S = struct
         (fun v -> Format.fprintf !fmt "%s%s\n%!" prefix (summarize_value v))
         values
 
+  let observe_value = None
+
   let handle : Instrumentation_api.Event.t -> unit = function
     | Test_start _ -> ()
     | Test_end _ -> State.reset ()

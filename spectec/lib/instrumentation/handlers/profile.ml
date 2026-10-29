@@ -51,6 +51,7 @@ module M : Instrumentation_api.Handler.S = struct
 
   let static_dependencies = []
   let init ~spec:_ = State.reset ()
+  let observe_value = None
 
   let handle : Instrumentation_api.Event.t -> unit = function
     | Rel_enter { id; at = _; inputs = _ } ->

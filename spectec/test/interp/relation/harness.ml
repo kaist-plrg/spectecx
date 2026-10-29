@@ -6,6 +6,7 @@ type compiled_spec = {
   spec_il : Lang.Il.spec;
   spec_sl : Lang.Sl.spec;
   spec_pl : Lang.Pl.spec;
+  henv : Hints.Henv.t;
 }
 
 type mode = Il | Sl | Pl
@@ -52,7 +53,7 @@ let compile_source ~filename contents =
         in
         let spec_sl = Spectec.structure spec_il in
         let spec_pl = spec_sl |> Spectec.annotate ~henv |> Spectec.shorten in
-        Ok { spec_il; spec_sl; spec_pl })
+        Ok { spec_il; spec_sl; spec_pl; henv })
   in
   match result with
   | Ok spec when Diagnostic.Bag.is_empty diagnostics -> spec

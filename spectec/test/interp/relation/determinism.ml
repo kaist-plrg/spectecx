@@ -49,6 +49,7 @@ let check_undeclared_builtin () =
   (* Elaboration requires declarations, so remove them from the compiled forms. *)
   let spec : H.compiled_spec =
     {
+      spec with
       spec_il =
         List.filter
           (fun (def : Lang.Il.def) ->
