@@ -99,24 +99,30 @@ let eval_task_with_instrumentation (type i)
     ?(config = Instrumentation.Config.default) ?(check_determinism = false)
     ~(mode : Interp_mode.t) ~spec_il (input : i) =
   Interp.with_target_state (module T.Target) @@ fun target_state ->
+  let instrumented_spec, eval =
+    match mode with
+    | Il ->
+        ( Instrumentation.Static.IlSpec spec_il,
+          fun relation values ->
+            Interp.eval_il ~check_determinism target_state spec_il relation
+              values
+            |> Result.map snd )
+    | Sl ->
+        let spec_sl = structure spec_il in
+        ( Instrumentation.Static.SlSpec spec_sl,
+          fun relation values ->
+            Interp.eval_sl ~check_determinism target_state spec_sl relation
+              values
+            |> Result.map snd )
+    | Pl henv ->
+        let spec_sl = structure spec_il in
+        let spec_pl = Pass.annotate ~henv spec_sl |> Pass.shorten in
+        ( Instrumentation.Static.SlSpec spec_sl,
+          fun relation values ->
+            Interp.eval_pl ~check_determinism target_state spec_pl relation
+              values
+            |> Result.map snd )
+  in
+  Instrumentation.with_instrumentation config instrumented_spec @@ fun () ->
   let* relation, values = T.parse_input ~spec:spec_il input in
-  (match mode with
-  | Il ->
-      Instrumentation.with_instrumentation config
-        (Instrumentation.Static.IlSpec spec_il) (fun () ->
-          Interp.eval_il ~check_determinism target_state spec_il relation values
-          |> Result.map snd)
-  | Sl ->
-      let spec_sl = structure spec_il in
-      Instrumentation.with_instrumentation config
-        (Instrumentation.Static.SlSpec spec_sl) (fun () ->
-          Interp.eval_sl ~check_determinism target_state spec_sl relation values
-          |> Result.map snd)
-  | Pl henv ->
-      let spec_sl = structure spec_il in
-      let spec_pl = Pass.annotate ~henv spec_sl |> Pass.shorten in
-      Instrumentation.with_instrumentation config
-        (Instrumentation.Static.SlSpec spec_sl) (fun () ->
-          Interp.eval_pl ~check_determinism target_state spec_pl relation values
-          |> Result.map snd))
-  |> Result.map_error (fun e -> Error.InterpError e)
+  eval relation values |> Result.map_error (fun e -> Error.InterpError e)

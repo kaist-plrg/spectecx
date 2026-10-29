@@ -260,10 +260,72 @@ let observer_failure_finishes_handlers () =
         |> values_exn ~name ~mode_name))
     modes
 
+(* Emits [Created] for each argument with its own source label, as a decoder
+   that labels its input does. *)
+let seed labeled_values =
+  List.map
+    (fun (source, value) ->
+      Instrumentation.Dispatcher.emit_value
+        (Created { value; origin = Instrumentation.Origin.make ~source });
+      value)
+    labeled_values
+
+let decoded_values_reach_observers () =
+  let name = "values created while decoding reach observers" in
+  List.iter
+    (fun mode ->
+      let input =
+        {
+          relation = "Shift";
+          decode =
+            (fun () ->
+              Ok (seed [ ("point", point 1 2); ("lengths", nats [ 5 ]) ]));
+        }
+      in
+      let created =
+        recorded_events ~name ~mode input
+        |> List.filter (function Value_event.Created _ -> true | _ -> false)
+      in
+      if List.length created <> 2 then
+        fail_check ~name ~mode_name:(fst mode)
+          "decoder events did not reach the observer")
+    modes
+
+let decode_failures_finish_handlers () =
+  let name = "decoding failures finish handlers" in
+  List.iter
+    (fun (mode_name, mode) ->
+      let finished = ref 0 in
+      let config =
+        [
+          handler_config ~name:"counter"
+            ~finish:(fun () -> incr finished)
+            ignore;
+        ]
+      in
+      (match
+         evaluate ~config mode
+           { relation = "Shift"; decode = (fun () -> Error "malformed") }
+       with
+      | Error (Spectec.Error.TaskParseError (_, "malformed")) -> ()
+      | _ -> fail_check ~name ~mode_name "the parse error was not returned");
+      (match
+         evaluate ~config mode
+           { relation = "Shift"; decode = (fun () -> raise Exit) }
+       with
+      | exception Exit -> ()
+      | _ -> fail_check ~name ~mode_name "the decoder exception was lost");
+      if !finished <> 2 then
+        fail_check ~name ~mode_name
+          "the handler was not finished after each run")
+    modes
+
 let run () =
   observers_preserve_results ();
   composed_observers_receive_events_in_order ();
   cache_hits_are_reported ();
   expression_events_reach_every_mode ();
   iteration_events_include_body_results ();
-  observer_failure_finishes_handlers ()
+  observer_failure_finishes_handlers ();
+  decoded_values_reach_observers ();
+  decode_failures_finish_handlers ()

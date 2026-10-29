@@ -49,7 +49,9 @@ module type S = sig
   val unparse : spec:Il.spec -> Il.Value.t list -> string
 
   (** Parse input into relation name and IL values. The relation name is invoked
-      for the input. *)
+      for the input. A decoder may label the values it creates with
+      [Instrumentation.Value_event.Created], which reaches value observers when
+      the run is instrumented. *)
   val parse_input : spec:Il.spec -> input -> (string * Il.Value.t list) result
 
   (** Get source identifier for tracing/errors (e.g., filename, test name) *)
