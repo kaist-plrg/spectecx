@@ -59,3 +59,42 @@ relation Offset_rel:
 rule Offset_rel:
   n*; m |- k*
   -- (Add_offset: n; m |- k)*
+
+syntax pair = (nat, nat)
+
+syntax shape =
+  | SQUARE nat
+  | RECT nat nat
+
+syntax holder = { POINTS point*, PAIR pair, SHAPE shape, MAYBE nat? }
+
+var h : holder
+var q : point
+
+relation Second_y:
+  holder |- nat
+  hint(input %0)
+
+rule Second_y:
+  h |- h.POINTS[1].Y
+
+dec $copy(point) : point
+def $copy(p) = {X p.X, Y p.Y}
+
+relation Copy_both:
+  point; point |- nat
+  hint(input %0 %1)
+
+rule Copy_both:
+  p_1; p_2 |- $(q_1.X + q_2.Y)
+  -- if q_1 = $copy(p_1)
+  -- if q_2 = $copy(p_2)
+
+builtin dec $wrap(nat) : point
+
+relation Wrapped_sum:
+  nat; nat |- nat
+  hint(input %0 %1)
+
+rule Wrapped_sum:
+  n; m |- $($wrap(n).X + m)

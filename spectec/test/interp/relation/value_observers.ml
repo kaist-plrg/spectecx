@@ -20,6 +20,15 @@ type input = { relation : string; decode : unit -> (V.t list, string) result }
 module Target : Spectec.Target.S = struct
   include H.Pure_target
 
+  (* [$wrap] builds every value of its result, so the interpreter reports none
+     of them. *)
+  let builtins =
+    [
+      ( "wrap",
+        Interp.Builtins.Define.T0.a1 Interp.Builtins.Arg.nat (fun ~at:_ n ->
+            Ok (V.record "point" [ field "X" (V.nat n); field "Y" (nat 0) ])) );
+    ]
+
   let name = "value-observers"
   let spec_dir = "."
 end
@@ -320,6 +329,258 @@ let decode_failures_finish_handlers () =
           "the handler was not finished after each run")
     modes
 
+module Origin = Instrumentation.Origin
+module Origin_tracking = Instrumentation.Origin_tracking
+
+let rendered_origins tracker values =
+  List.concat_map (fun value -> Origin_tracking.origins tracker ~value) values
+  |> List.map Origin.to_string
+  |> List.sort_uniq String.compare
+
+let evaluate_tracked ~name ~tracker (mode_name, mode) input =
+  evaluate ~config:[ Origin_tracking.handler_config tracker ] mode input
+  |> values_exn ~name ~mode_name
+
+let check_origins ~name ~mode_name ~expected actual =
+  if actual <> expected then
+    fail_check ~name ~mode_name
+      (Printf.sprintf "expected origins [%s] but got [%s]"
+         (String.concat "; " expected)
+         (String.concat "; " actual))
+
+let labeled_input relation labeled_values =
+  { relation; decode = (fun () -> Ok (seed (labeled_values ()))) }
+
+let holder () =
+  let typ name = Lang.Il.Typ.var name [] $ Common.Source.no_region in
+  V.record "holder"
+    [
+      field "POINTS" (V.list (typ "point") [ point 1 2; point 3 4 ]);
+      field "PAIR" (V.tuple [ nat 5; nat 6 ]);
+      field "SHAPE"
+        (Lang.Il.Case.case_v ~var:"shape"
+           Lang.Il.Case.[ kw "RECT"; arg (nat 7); arg (nat 8) ]);
+      field "MAYBE"
+        (V.opt (Lang.Il.Typ.nat $ Common.Source.no_region) (Some (nat 9)));
+    ]
+
+let find_field (value : V.t) name =
+  match value.it with
+  | StructV fields ->
+      List.find
+        (fun ((atom : Lang.Il.atom), _) ->
+          Lang.Xl.Atom.to_string atom.it = name)
+        fields
+      |> snd
+  | _ -> failwith "expected a struct"
+
+let updated_fields_keep_origins () =
+  let name = "field updates preserve base and replacement origins" in
+  List.iter
+    (fun mode ->
+      let mode_name = fst mode in
+      let tracker = Origin_tracking.make () in
+      let result =
+        labeled_input "Shift" (fun () ->
+            [ ("point", point 1 2); ("lengths", nats [ 5; 6 ]) ])
+        |> evaluate_tracked ~name ~tracker mode
+      in
+      match result with
+      | [ value ] ->
+          rendered_origins tracker [ value ]
+          |> check_origins ~name ~mode_name
+               ~expected:
+                 [ "lengths"; "lengths[0]"; "lengths[1]"; "point"; "point.X" ];
+          rendered_origins tracker [ find_field value "X" ]
+          |> check_origins ~name ~mode_name
+               ~expected:[ "lengths"; "lengths[0]"; "lengths[1]"; "point.X" ];
+          rendered_origins tracker [ find_field value "Y" ]
+          |> check_origins ~name ~mode_name ~expected:[ "point.Y" ]
+      | _ -> fail_check ~name ~mode_name "expected one updated record")
+    modes
+
+let origins_follow_input_structure () =
+  let name = "origins follow struct, list, tuple, case and option paths" in
+  List.iter
+    (fun mode ->
+      let mode_name = fst mode in
+      let tracker = Origin_tracking.make () in
+      let decoded = ref None in
+      let input =
+        labeled_input "Second_y" (fun () ->
+            let value = holder () in
+            decoded := Some value;
+            [ ("holder", value) ])
+      in
+      evaluate_tracked ~name ~tracker mode input
+      |> rendered_origins tracker
+      |> check_origins ~name ~mode_name ~expected:[ "holder.POINTS[1].Y" ];
+      let holder = Option.get !decoded in
+      let nested =
+        match
+          ( (find_field holder "PAIR").it,
+            (find_field holder "SHAPE").it,
+            (find_field holder "MAYBE").it )
+        with
+        | TupleV [ _; second ], CaseV valuecase, OptV (Some content) ->
+            [ second; List.nth (Lang.Il.Mixfix.args valuecase) 1; content ]
+        | _ -> failwith "unexpected holder layout"
+      in
+      rendered_origins tracker nested
+      |> check_origins ~name ~mode_name
+           ~expected:[ "holder.MAYBE?"; "holder.PAIR.1"; "holder.SHAPE#1" ])
+    modes
+
+let origins_combine_through_calls () =
+  let name = "results report the input fields they are computed from" in
+  List.iter
+    (fun mode ->
+      let mode_name = fst mode in
+      let tracker = Origin_tracking.make () in
+      let input relation =
+        labeled_input relation (fun () ->
+            [ ("left", point 1 2); ("right", point 3 4) ])
+      in
+      evaluate_tracked ~name ~tracker mode (input "Sum_twice")
+      |> rendered_origins tracker
+      |> check_origins ~name ~mode_name
+           ~expected:[ "left.X"; "left.Y"; "right.X"; "right.Y" ];
+      evaluate_tracked ~name ~tracker mode (input "Copy_both")
+      |> rendered_origins tracker
+      |> check_origins ~name ~mode_name ~expected:[ "left.X"; "right.Y" ])
+    modes
+
+let cache_hits_keep_current_origins () =
+  let name = "a cached call reports the origins of its current arguments" in
+  List.iter
+    (fun mode ->
+      let mode_name = fst mode in
+      List.iter
+        (fun relation ->
+          let tracker = Origin_tracking.make () in
+          let origins =
+            labeled_input relation (fun () ->
+                [ ("left", point 1 2); ("right", point 1 2) ])
+            |> evaluate_tracked ~name ~tracker mode
+            |> rendered_origins tracker
+          in
+          if
+            not
+              (List.exists (String.starts_with ~prefix:"right") origins
+              && List.exists (String.starts_with ~prefix:"left") origins)
+          then
+            fail_check ~name ~mode_name
+              (Printf.sprintf "%s reported [%s]" relation
+                 (String.concat "; " origins)))
+        [ "Sum_twice"; "Copy_both" ])
+    modes
+
+let has_only_sources ~prefix origins =
+  origins <> [] && List.for_all (String.starts_with ~prefix) origins
+
+let repeated_runs_do_not_share_origins () =
+  let name = "a new run does not report origins of an earlier run" in
+  List.iter
+    (fun mode ->
+      let mode_name = fst mode in
+      let tracker = Origin_tracking.make () in
+      let run prefix =
+        labeled_input "Sum_twice" (fun () ->
+            [ (prefix ^ "-left", point 1 2); (prefix ^ "-right", point 3 4) ])
+        |> evaluate_tracked ~name ~tracker mode
+        |> rendered_origins tracker
+      in
+      ignore (run "first");
+      let origins = run "second" in
+      if not (has_only_sources ~prefix:"second-" origins) then
+        fail_check ~name ~mode_name
+          ("second run reported " ^ String.concat "; " origins))
+    modes
+
+let batch_test_cases_do_not_share_origins () =
+  let name = "a batch test case does not report origins of an earlier one" in
+  List.iter
+    (fun (mode_name, mode) ->
+      let tracker = Origin_tracking.make () in
+      let input prefix =
+        labeled_input "Sum_twice" (fun () ->
+            [ (prefix ^ "-left", point 1 2); (prefix ^ "-right", point 3 4) ])
+      in
+      let results =
+        Batch.run_batch_with_outcomes
+          (module Task)
+          ~config:[ Origin_tracking.handler_config tracker ]
+          ~ansi:Spectec.Diagnostic.Ansi.plain ~mode ~spec_il:spec.spec_il
+          [ input "first"; input "second" ]
+      in
+      match List.rev results with
+      | { outcome = Spectec.Task.Pass values; _ } :: _ ->
+          let origins = rendered_origins tracker values in
+          if not (has_only_sources ~prefix:"second-" origins) then
+            fail_check ~name ~mode_name
+              ("second test case reported " ^ String.concat "; " origins)
+      | _ -> fail_check ~name ~mode_name "the second test case did not pass")
+    modes
+
+let check_all checks =
+  match
+    List.filter_map
+      (fun check ->
+        match check () with
+        | () -> None
+        | exception Failure message -> Some message)
+      checks
+  with
+  | [] -> ()
+  | failures -> failwith (String.concat "\n" failures)
+
+let builtin_results_report_their_arguments () =
+  let name = "parts of a builtin result report the builtin's arguments" in
+  check_all
+    (List.map
+       (fun mode () ->
+         let tracker = Origin_tracking.make () in
+         labeled_input "Wrapped_sum" (fun () ->
+             [ ("count", nat 3); ("offset", nat 4) ])
+         |> evaluate_tracked ~name ~tracker mode
+         |> rendered_origins tracker
+         |> check_origins ~name ~mode_name:(fst mode)
+              ~expected:[ "count"; "offset" ])
+       modes)
+
+let iteration_results_report_body_inputs () =
+  let name = "an iteration result reports the inputs its body reads" in
+  check_all
+    (List.concat_map
+       (fun mode ->
+         List.map
+           (fun relation () ->
+             let tracker = Origin_tracking.make () in
+             labeled_input relation (fun () ->
+                 [ ("numbers", nats [ 1; 2 ]); ("offset", nat 10) ])
+             |> evaluate_tracked ~name ~tracker mode
+             |> rendered_origins tracker
+             |> check_origins
+                  ~name:(name ^ ", " ^ relation)
+                  ~mode_name:(fst mode)
+                  ~expected:[ "numbers"; "numbers[0]"; "numbers[1]"; "offset" ])
+           [ "Offset_map"; "Offset_let"; "Offset_rel" ]
+         @ List.map
+             (fun (content, expected) () ->
+               let tracker = Origin_tracking.make () in
+               let typ = Lang.Il.Typ.nat $ Common.Source.no_region in
+               labeled_input "Offset_opt" (fun () ->
+                   [
+                     ("maybe", V.opt typ (Option.map nat content));
+                     ("offset", nat 10);
+                   ])
+               |> evaluate_tracked ~name ~tracker mode
+               |> rendered_origins tracker
+               |> check_origins ~name:(name ^ ", Offset_opt")
+                    ~mode_name:(fst mode) ~expected)
+             [ (Some 1, [ "maybe"; "maybe?"; "offset" ]); (None, [ "maybe" ]) ])
+       modes)
+
 let run () =
   observers_preserve_results ();
   composed_observers_receive_events_in_order ();
@@ -328,4 +589,15 @@ let run () =
   iteration_events_include_body_results ();
   observer_failure_finishes_handlers ();
   decoded_values_reach_observers ();
-  decode_failures_finish_handlers ()
+  decode_failures_finish_handlers ();
+  updated_fields_keep_origins ();
+  origins_follow_input_structure ();
+  origins_combine_through_calls ();
+  cache_hits_keep_current_origins ();
+  repeated_runs_do_not_share_origins ();
+  batch_test_cases_do_not_share_origins ();
+  check_all
+    [
+      builtin_results_report_their_arguments;
+      iteration_results_report_body_inputs;
+    ]

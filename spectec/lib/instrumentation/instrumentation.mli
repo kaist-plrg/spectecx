@@ -15,6 +15,11 @@ module Node_coverage_sl = Instrumentation_handlers.Node_coverage_sl
 module Profile = Instrumentation_handlers.Profile
 module Trace = Instrumentation_handlers.Trace
 
+(** A library handler without CLI flags. Add its
+    {!Origin_tracking.handler_config} to a {!Config.t} and read origins after
+    the run. *)
+module Origin_tracking = Instrumentation_handlers.Origin_tracking
+
 module Handler : sig
   include module type of Instrumentation_api.Handler
   module Spec = Instrumentation_spec.Spec

@@ -12,6 +12,7 @@ module Node_coverage_sl = Instrumentation_handlers.Node_coverage_sl
 module Profile = Instrumentation_handlers.Profile
 module Trace = Instrumentation_handlers.Trace
 module Tree = Instrumentation_handlers.Tree
+module Origin_tracking = Instrumentation_handlers.Origin_tracking
 module Run_config = Instrumentation_config.Config
 module Exn = Instrumentation_common.Exn
 
