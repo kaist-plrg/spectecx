@@ -15,6 +15,7 @@
 
 {
 open Lexing
+open Common.Source
 open Context
 open Lang
 open Il
@@ -38,14 +39,10 @@ let debug_print fmt =
 let debug_token lexeme =
   debug_print "%s" lexeme
 
-let current_line  = ref 1 
-let current_fname = ref ""
-let line_start    = ref 1
-
 type lexer_state =
   (* Nothing to recall from the previous tokens *)
   | SRegular
-  | SRangle of Source.info
+  | SRangle of Lexing.position
   | SPragma
   (* We have seen a template *)
   | STemplate
@@ -55,44 +52,28 @@ type lexer_state =
    * depending on what kind of identifier this is *)
   | SIdent of string * lexer_state
     let lexer_state = ref SRegular
-    
+
 let reset () =
   Context.reset ();
-  lexer_state := SRegular;
-  current_line := 1;
-  current_fname := "";
-  line_start := 1
+  lexer_state := SRegular
 
-let line_number () = !current_line
-let filename () = !current_fname
-let start_of_line () = !line_start
+let set_line lexbuf line =
+  let position = lexbuf.lex_curr_p in
+  lexbuf.lex_curr_p <- { position with pos_lnum = line }
 
-let set_line n =
-  current_line := n
-
-let set_start_of_line c =
-  line_start := c
-
-let set_filename s =
-  current_fname := s
+let set_start_of_line lexbuf bol =
+  let position = lexbuf.lex_curr_p in
+  lexbuf.lex_curr_p <- { position with pos_bol = bol }
 
 let set_lexer_debug_channel ch = set_debug_channel ch
-let newline lexbuf =
-  current_line := line_number() + 1 ;
-  set_start_of_line (lexeme_end lexbuf)
 
-let info lexbuf : Source.info =
-  let f = filename () in
-  let c1 = lexeme_start lexbuf in
-  let c2 = lexeme_end lexbuf in
-  let c = start_of_line () in
-  let l = line_number() in
-  Source.I 
-    { filename = f;
-      line_start = l;
-      line_end = None;
-      col_start = c1 - c;
-      col_end = c2 - c }
+let at lexbuf =
+  region_of_positions (lexeme_start_p lexbuf, lexeme_end_p lexbuf)
+
+let follows_position position_left position_right : bool =
+  position_left.pos_fname = position_right.pos_fname
+  && position_left.pos_lnum = position_right.pos_lnum
+  && position_left.pos_cnum = position_right.pos_cnum
 
 let sanitize s =
   String.concat "" (String.split_on_char '_' s)
@@ -102,38 +83,36 @@ let strip_prefix s =
   assert (length > 2);
   String.sub s 2 (length - 2)
 
-let parse_int n _info =
+let parse_int at n =
   let i = Bigint.of_string (sanitize n) in
-  NumV (`Int i) |> make_val (NumT `IntT)
+  NumV (`Int i) |> make_val (NumT `IntT) <<<| at
 
-let parse_width_int s n _info =
+let parse_width_int at s n =
+  (* [s] contains the decimal width followed by "w" or "s". *)
   let l_s = String.length s in
   let width = String.sub s 0 (l_s - 1) in
   let sign = String.sub s (l_s - 1) 1 in
+  let pos column = { at.left with column } in
+  let column = at.left.column in
+  let width_at = { left = at.left; right = pos (column + l_s - 1) } in
+  let sign_at = { left = pos (column + l_s - 1); right = pos (column + l_s) } in
+  let value_at = { left = pos (column + l_s); right = at.right } in
   let i = Bigint.of_string (sanitize n) in
   let w = Bigint.of_string width in
   match sign with
     | "s" ->
       if (int_of_string width < 2)
       then raise (Error "signed integers must have width at least 2")
-      else 
-        let value_width =
-          NumV (`Nat w) |> make_val (NumT `NatT)
-        in
-        let value_int =
-          NumV (`Int i) |> make_val (NumT `IntT)
-        in
-        [ arg value_width; kw "S"; arg value_int ]
-        |> case_v ~var:"number"
+      else
+        let value_width = NumV (`Nat w) |> make_val (NumT `NatT) <<<| width_at in
+        let value_int = NumV (`Int i) |> make_val (NumT `IntT) <<<| value_at in
+        [ arg value_width; kw ~at:sign_at "S"; arg value_int ]
+        |> case_v ~var:"number" <<<| at
     | "w" ->
-      let value_width =
-        NumV (`Nat w) |> make_val (NumT `NatT)
-      in
-      let value_int =
-        NumV (`Int i) |> make_val (NumT `IntT)
-      in
-      [ arg value_width; kw "W"; arg value_int ]
-      |> case_v ~var:"number"
+      let value_width = NumV (`Nat w) |> make_val (NumT `NatT) <<<| width_at in
+      let value_int = NumV (`Int i) |> make_val (NumT `IntT) <<<| value_at in
+      [ arg value_width; kw ~at:sign_at "W"; arg value_int ]
+      |> case_v ~var:"number" <<<| at
     | _ ->
       raise (Error "Illegal integer constant")
 }
@@ -151,18 +130,23 @@ let whitespace = [ ' ' '\t' '\012' '\r' ]
 rule tokenize = parse
   | "/*"
       { debug_token "/*";
-        match multiline_comment None lexbuf with 
+        match multiline_comment None lexbuf with
        | None -> tokenize lexbuf
-       | Some info -> PRAGMA_END (info) }
+       | Some _info -> PRAGMA_END }
   | "//"
-      { singleline_comment lexbuf; tokenize lexbuf }
+      { singleline_comment lexbuf; PRAGMA_END }
   | '\n'
-      { debug_token "⏎\n"; newline lexbuf; PRAGMA_END (info lexbuf) }
+      { debug_token "⏎\n"; Lexing.new_line lexbuf; PRAGMA_END }
   | '"'
-      { let str, end_info = (string lexbuf) in
+      { let start_p = lexeme_start_p lexbuf in
+        let start_region = at lexbuf in
+        let str, end_region = (string lexbuf) in
         debug_token ("\"" ^ str ^ "\"");
-        end_info |> ignore;
-        let value = text str in
+        let inner_region =
+          { left = start_region.right; right = end_region.left }
+        in
+        let value = text str <<<| inner_region in
+        lexbuf.lex_start_p <- start_p;
         STRING_LITERAL value
       }
   | whitespace
@@ -170,309 +154,313 @@ rule tokenize = parse
   | '#'
       { debug_token ""; preprocessor lexbuf ; tokenize lexbuf }
   | "@pragma"
-      { debug_token "@pragma"; PRAGMA (info lexbuf) }
+      { debug_token "@pragma"; PRAGMA }
   | hex_number as n
-      { debug_token n; NUMBER_INT (parse_int n (info lexbuf), n) }
+      { debug_token n; NUMBER_INT (parse_int (at lexbuf) n, n) }
   | dec_number as n
-      { debug_token n; NUMBER_INT (parse_int (strip_prefix n) (info lexbuf), n) }
+      { debug_token n; NUMBER_INT (parse_int (at lexbuf) (strip_prefix n), n) }
   | oct_number as n
-      { debug_token n; NUMBER_INT (parse_int n (info lexbuf), n) }
+      { debug_token n; NUMBER_INT (parse_int (at lexbuf) n, n) }
   | bin_number as n
-      { debug_token n; NUMBER_INT (parse_int n (info lexbuf), n) }
+      { debug_token n; NUMBER_INT (parse_int (at lexbuf) n, n) }
   | int as n
-      { debug_token n; NUMBER_INT (parse_int n (info lexbuf), n) }
+      { debug_token n; NUMBER_INT (parse_int (at lexbuf) n, n) }
   | (sign as s) (hex_number as n)
-      { NUMBER (parse_width_int s n (info lexbuf), n) }
+      { NUMBER (parse_width_int (at lexbuf) s n, n) }
   | (sign as s) (dec_number as n)
-      { NUMBER (parse_width_int s (strip_prefix n) (info lexbuf), n) }
+      { NUMBER (parse_width_int (at lexbuf) s (strip_prefix n), n) }
   | (sign as s) (oct_number as n)
-      { NUMBER (parse_width_int s n (info lexbuf), n) }
+      { NUMBER (parse_width_int (at lexbuf) s n, n) }
   | (sign as s) (bin_number as n)
-      { NUMBER (parse_width_int s n (info lexbuf), n) }
+      { NUMBER (parse_width_int (at lexbuf) s n, n) }
   | (sign as s) (int as n)
-      { NUMBER (parse_width_int s n (info lexbuf), n) }
+      { NUMBER (parse_width_int (at lexbuf) s n, n) }
   | "abstract"
-      { debug_token "abstract"; ABSTRACT (info lexbuf) }
+      { debug_token "abstract"; ABSTRACT }
   | "action"
-      { debug_token "action"; ACTION (info lexbuf) }
+      { debug_token "action"; ACTION }
   | "actions"
-      { debug_token "actions"; ACTIONS (info lexbuf) }
+      { debug_token "actions"; ACTIONS }
   | "apply"
-      { debug_token "apply"; APPLY (info lexbuf) }
+      { debug_token "apply"; APPLY }
   | "bool"
-      { debug_token "bool"; BOOL (info lexbuf) }
+      { debug_token "bool"; BOOL }
   | "bit"
-      { debug_token "bit"; BIT (info lexbuf) }
+      { debug_token "bit"; BIT }
   | "break"
-      { debug_token "break"; BREAK (info lexbuf) }
+      { debug_token "break"; BREAK }
   | "const"
-      { debug_token "const"; CONST (info lexbuf) }
+      { debug_token "const"; CONST }
   | "continue"
-      { debug_token "continue"; CONTINUE (info lexbuf) }
+      { debug_token "continue"; CONTINUE }
   | "control"
-      { debug_token "control"; CONTROL (info lexbuf) }
+      { debug_token "control"; CONTROL }
   | "default"
-      { debug_token "default"; DEFAULT (info lexbuf) }
+      { debug_token "default"; DEFAULT }
   | "else"
-      { debug_token "else"; ELSE (info lexbuf) }
+      { debug_token "else"; ELSE }
   | "entries"
-      { debug_token "entries"; ENTRIES (info lexbuf) }
+      { debug_token "entries"; ENTRIES }
   | "enum"
-      { debug_token "enum"; ENUM (info lexbuf) }
+      { debug_token "enum"; ENUM }
   | "error"
-      { debug_token "error"; ERROR (info lexbuf) }
+      { debug_token "error"; ERROR }
   | "exit"
-      { debug_token "exit"; EXIT (info lexbuf) }
+      { debug_token "exit"; EXIT }
   | "extern"
-      { debug_token "extern"; EXTERN (info lexbuf) }
+      { debug_token "extern"; EXTERN }
   | "header"
-      { debug_token "header"; HEADER (info lexbuf) }
+      { debug_token "header"; HEADER }
   | "header_union"
-      { debug_token "header_union"; HEADER_UNION (info lexbuf) }
+      { debug_token "header_union"; HEADER_UNION }
   | "true"
-      { debug_token "true"; TRUE (info lexbuf) }
+      { debug_token "true"; TRUE }
   | "false"
-      { debug_token "false"; FALSE (info lexbuf) }
+      { debug_token "false"; FALSE }
   | "for"
-      { debug_token "for"; FOR (info lexbuf) }
+      { debug_token "for"; FOR }
   | "if"
-      { debug_token "if"; IF (info lexbuf) }
+      { debug_token "if"; IF }
   | "in"
-      { debug_token "in"; IN (info lexbuf) }
+      { debug_token "in"; IN }
   | "inout"
-      { debug_token "inout"; INOUT (info lexbuf) }
+      { debug_token "inout"; INOUT }
   | "int"
-      { debug_token "int"; INT (info lexbuf) }
+      { debug_token "int"; INT }
   | "key"
-      { debug_token "key"; KEY (info lexbuf) }
+      { debug_token "key"; KEY }
   | "list"
-      { debug_token "list"; LIST (info lexbuf) }
+      { debug_token "list"; LIST }
   | "match_kind"
-      { debug_token "match_kind"; MATCH_KIND (info lexbuf) }
+      { debug_token "match_kind"; MATCH_KIND }
   | "out"
-      { debug_token "out"; OUT (info lexbuf) }
+      { debug_token "out"; OUT }
   | "parser"
-      { debug_token "parser"; PARSER (info lexbuf) }
+      { debug_token "parser"; PARSER }
   | "package"
-      { debug_token "package"; PACKAGE (info lexbuf) }
-  | "pragma" 
-      { debug_token "pragma"; PRAGMA (info lexbuf) }
+      { debug_token "package"; PACKAGE }
+  | "pragma"
+      { debug_token "pragma"; PRAGMA }
   | "priority"
-      { debug_token "priority"; PRIORITY (info lexbuf) }
+      { debug_token "priority"; PRIORITY }
   | "return"
-      { debug_token "return"; RETURN (info lexbuf) }
+      { debug_token "return"; RETURN }
   | "select"
-      { debug_token "select"; SELECT (info lexbuf) }
+      { debug_token "select"; SELECT }
   | "state"
-      { debug_token "state"; STATE (info lexbuf) }
+      { debug_token "state"; STATE }
   | "string"
-      { debug_token "string"; STRING (info lexbuf) }
+      { debug_token "string"; STRING }
   | "struct"
-      { debug_token "struct"; STRUCT (info lexbuf) }
+      { debug_token "struct"; STRUCT }
   | "switch"
-      { debug_token "switch"; SWITCH (info lexbuf) }
+      { debug_token "switch"; SWITCH }
   | "table"
-      { debug_token "table"; TABLE (info lexbuf) }
+      { debug_token "table"; TABLE }
   | "this"
-      { debug_token "this"; THIS (info lexbuf) }  
+      { debug_token "this"; THIS }
   | "transition"
-      { debug_token "transition"; TRANSITION (info lexbuf) }
+      { debug_token "transition"; TRANSITION }
   | "tuple"
-      { debug_token "tuple"; TUPLE (info lexbuf) }
+      { debug_token "tuple"; TUPLE }
   | "typedef"
-      { debug_token "typedef"; TYPEDEF (info lexbuf) }
+      { debug_token "typedef"; TYPEDEF }
   | "type"
-      { debug_token "type"; TYPE (info lexbuf) }
+      { debug_token "type"; TYPE }
   | "value_set"
-      { debug_token "value_set"; VALUE_SET (info lexbuf) }
+      { debug_token "value_set"; VALUE_SET }
   | "varbit"
-      { debug_token "varbit"; VARBIT (info lexbuf) }
+      { debug_token "varbit"; VARBIT }
   | "void"
-      { debug_token "void"; VOID (info lexbuf) }
+      { debug_token "void"; VOID }
   | "_"
-      { debug_token "_"; DONTCARE (info lexbuf) }
+      { debug_token "_"; DONTCARE }
   | name
       { let s = Lexing.lexeme lexbuf in
         debug_token s;
-        let value = text s in
+        let value = text s <<<| at lexbuf in
         NAME value }
   | "<="
-      { debug_token "<="; LE (info lexbuf) }
+      { debug_token "<="; LE }
   | ">="
-      { debug_token ">="; GE (info lexbuf) }
+      { debug_token ">="; GE }
   | "<<"
-      { debug_token "<<"; SHL (info lexbuf) }
+      { debug_token "<<"; SHL }
   | "&&"
-      { debug_token "&&"; AND (info lexbuf) }
+      { debug_token "&&"; AND }
   | "||"
-      { debug_token "||"; OR (info lexbuf) }
+      { debug_token "||"; OR }
   | "!="
-      { debug_token "!="; NE (info lexbuf) }
+      { debug_token "!="; NE }
   | "=="
-      { debug_token "=="; EQ (info lexbuf) }
+      { debug_token "=="; EQ }
   | "+"
-      { debug_token "+"; PLUS (info lexbuf) }
+      { debug_token "+"; PLUS }
   | "-"
-      { debug_token "-"; MINUS (info lexbuf) }
+      { debug_token "-"; MINUS }
   | "|+|"
-      { debug_token "|+|"; PLUS_SAT (info lexbuf) }
+      { debug_token "|+|"; PLUS_SAT }
   | "|-|"
-      { debug_token "|-|"; MINUS_SAT (info lexbuf) }
+      { debug_token "|-|"; MINUS_SAT }
   | "*"
-      { debug_token "*"; MUL (info lexbuf) }
+      { debug_token "*"; MUL }
   | "{#}"
-      { debug_token "{#}"; INVALID (info lexbuf) }
+      { debug_token "{#}"; INVALID }
   | "/"
-      { debug_token "/"; DIV (info lexbuf) }
+      { debug_token "/"; DIV }
   | "%"
-      { debug_token "%"; MOD (info lexbuf) }
+      { debug_token "%"; MOD }
   | "|"
-      { debug_token "|"; BIT_OR (info lexbuf) }
+      { debug_token "|"; BIT_OR }
   | "&"
-      { debug_token "&"; BIT_AND (info lexbuf) }
+      { debug_token "&"; BIT_AND }
   | "^"
-      { debug_token "^"; BIT_XOR (info lexbuf) }
+      { debug_token "^"; BIT_XOR }
   | "~"
-      { debug_token "~"; COMPLEMENT (info lexbuf) }
+      { debug_token "~"; COMPLEMENT }
   | "["
-      { debug_token "["; L_BRACKET (info lexbuf) }
+      { debug_token "["; L_BRACKET }
   | "]"
-      { debug_token "]"; R_BRACKET (info lexbuf) }
+      { debug_token "]"; R_BRACKET }
   | "{"
-      { debug_token "{"; L_BRACE (info lexbuf) }
+      { debug_token "{"; L_BRACE }
   | "}"
-      { debug_token "}"; R_BRACE (info lexbuf) }
+      { debug_token "}"; R_BRACE }
   | "<"
-      { debug_token "<"; L_ANGLE (info lexbuf) }
+      { debug_token "<"; L_ANGLE }
   | ">"
-      { debug_token ">"; R_ANGLE (info lexbuf) }
+      { debug_token ">"; R_ANGLE }
   | "("
-      { debug_token "("; L_PAREN (info lexbuf) }
+      { debug_token "("; L_PAREN }
   | ")"
-      { debug_token ")"; R_PAREN (info lexbuf) }
+      { debug_token ")"; R_PAREN }
   | "!"
-      { debug_token "!"; NOT (info lexbuf) }
+      { debug_token "!"; NOT }
   | ":"
-      { debug_token ":"; COLON (info lexbuf) }
+      { debug_token ":"; COLON }
   | ","
-      { debug_token ","; COMMA (info lexbuf) }
+      { debug_token ","; COMMA }
   | "?"
-      { debug_token "?"; QUESTION (info lexbuf) }
+      { debug_token "?"; QUESTION }
   | "."
-      { debug_token "."; DOT (info lexbuf) }
+      { debug_token "."; DOT }
   | "="
-      { debug_token "="; ASSIGN (info lexbuf) }
+      { debug_token "="; ASSIGN }
   | ";"
-      { debug_token ";"; SEMICOLON (info lexbuf) }
+      { debug_token ";"; SEMICOLON }
   | "@"
-      { debug_token "@"; AT (info lexbuf) }
+      { debug_token "@"; AT }
   | "++"
-      { debug_token "++"; PLUSPLUS (info lexbuf) }
+      { debug_token "++"; PLUSPLUS }
   | "&&&"
-      { debug_token "&&&"; MASK (info lexbuf) }
+      { debug_token "&&&"; MASK }
   | "..."
-      { debug_token "..."; DOTS (info lexbuf) }
+      { debug_token "..."; DOTS }
   | ".."
-      { debug_token ".."; RANGE (info lexbuf) }
+      { debug_token ".."; RANGE }
   | "+="
-      { debug_token "+="; PLUS_ASSIGN (info lexbuf) }
+      { debug_token "+="; PLUS_ASSIGN }
   | "|+|="
-      { debug_token "|+|="; PLUS_SAT_ASSIGN (info lexbuf) }
+      { debug_token "|+|="; PLUS_SAT_ASSIGN }
   | "-="
-      { debug_token "-="; MINUS_ASSIGN (info lexbuf) }
+      { debug_token "-="; MINUS_ASSIGN }
   | "|-|="
-      { debug_token "|-|="; MINUS_SAT_ASSIGN (info lexbuf) }
+      { debug_token "|-|="; MINUS_SAT_ASSIGN }
   | "*="
-      { debug_token "*="; MUL_ASSIGN (info lexbuf) }
+      { debug_token "*="; MUL_ASSIGN }
   | "/="
-      { debug_token "/="; DIV_ASSIGN (info lexbuf) } 
+      { debug_token "/="; DIV_ASSIGN }
   | "%="
-      { debug_token "%="; MOD_ASSIGN (info lexbuf) }
+      { debug_token "%="; MOD_ASSIGN }
   | "<<="
-      { debug_token "<<="; SHL_ASSIGN (info lexbuf) }
+      { debug_token "<<="; SHL_ASSIGN }
   | ">>="
-      { debug_token ">>="; SHR_ASSIGN (info lexbuf) }
+      { debug_token ">>="; SHR_ASSIGN }
   | "&="
-      { debug_token "&="; BIT_AND_ASSIGN (info lexbuf) }
+      { debug_token "&="; BIT_AND_ASSIGN }
   | "^="
-      { debug_token "^="; BIT_XOR_ASSIGN (info lexbuf) }
+      { debug_token "^="; BIT_XOR_ASSIGN }
   | "|="
-      { debug_token "|="; BIT_OR_ASSIGN (info lexbuf) }
+      { debug_token "|="; BIT_OR_ASSIGN }
   | eof
-      { debug_token "EOF"; END (info lexbuf) }
+      { debug_token "EOF"; END }
   | _
       { let s = lexeme lexbuf in
         debug_token s;
-        let value = text s in
+        let value = text s <<<| at lexbuf in
         UNEXPECTED_TOKEN value }
-      
+
 and string = parse
   | eof
       { raise (Error "File ended while reading a string literal") }
   | "\\\""
-      { let rest, end_info = (string lexbuf) in
-        ("\"" ^ rest, end_info) }
+      { let rest, end_region = (string lexbuf) in
+        ("\"" ^ rest, end_region) }
   | '\\' 'n'
-      { let rest, end_info = (string lexbuf) in
-        ("\n" ^ rest, end_info) }
+      { let rest, end_region = (string lexbuf) in
+        ("\n" ^ rest, end_region) }
   | '\\' '\\'
-      { let rest, end_info = (string lexbuf) in
-        ("\\" ^ rest, end_info) }
+      { let rest, end_region = (string lexbuf) in
+        ("\\" ^ rest, end_region) }
+  | '\n'
+      { Lexing.new_line lexbuf;
+        let rest, end_region = (string lexbuf) in
+        ("\n" ^ rest, end_region) }
   | '\\' _ as c
       { raise (Error ("Escape sequences not yet supported: \\" ^ c)) }
   | '"'
-      { ("", info lexbuf) }
+      { ("", at lexbuf) }
   | _ as chr
-      { let rest, end_info = (string lexbuf) in
-        ((String.make 1 chr) ^ rest, end_info) }
-    
+      { let rest, end_region = (string lexbuf) in
+        ((String.make 1 chr) ^ rest, end_region) }
+
 (* Preprocessor annotations indicate line and filename *)
 and preprocessor = parse
   | ' '
       { preprocessor lexbuf }
   | int
       { let line = int_of_string (lexeme lexbuf) in
-        set_line line ; preprocessor lexbuf }
+        set_line lexbuf line; preprocessor lexbuf }
   | '"'
       { preprocessor_string lexbuf }
   | '\n'
-      { set_start_of_line (lexeme_end lexbuf) }
+      { set_start_of_line lexbuf (lexeme_end lexbuf) }
   | _
       { preprocessor lexbuf }
-      
+
 and preprocessor_string = parse
   | [^ '"'] * '"'
-    { let filename = lexeme lexbuf in 
+    { let filename = lexeme lexbuf in
       let filename = String.sub filename 0 (String.length filename - 1) in
-      set_filename filename;
+      Lexing.set_filename lexbuf filename;
       preprocessor_column lexbuf }
-      
+
 (* Once a filename has been recognized, ignore the rest of the line *)
 and preprocessor_column = parse
-  | ' ' 
+  | ' '
       { preprocessor_column lexbuf }
   | '\n'
-      { set_start_of_line (lexeme_end lexbuf) }
+      { set_start_of_line lexbuf (lexeme_end lexbuf) }
   | eof
       { () }
   | _
       { preprocessor_column lexbuf }
-      
+
 (* Multi-line comment terminated by "*/" *)
 and multiline_comment opt = parse
   | "*/"   { opt }
   | eof    { failwith "unterminated comment" }
-  | '\n'   { newline lexbuf; multiline_comment (Some(info lexbuf)) lexbuf }
+  | '\n'   { Lexing.new_line lexbuf; multiline_comment (Some(at lexbuf)) lexbuf }
   | _      { multiline_comment opt lexbuf }
-      
+
 (* Single-line comment terminated by a newline *)
 and singleline_comment = parse
-  | '\n'   { newline lexbuf }
+  | '\n'   { Lexing.new_line lexbuf }
   | eof    { () }
   | _      { singleline_comment lexbuf }
-      
+
 {
-let rec lexer (lexbuf:lexbuf): token = 
+let rec lexer (lexbuf:lexbuf): token =
    match !lexer_state with
     | SIdent(id, next) ->
       begin match get_kind id with
@@ -489,22 +477,22 @@ let rec lexer (lexbuf:lexbuf): token =
         lexer_state := next;
         IDENTIFIER
       end
-    | SRangle info1 -> 
+    | SRangle endp1 ->
       begin match tokenize lexbuf with
-      | R_ANGLE info2 when Source.follows info1 info2 -> 
+      | R_ANGLE when follows_position endp1 lexbuf.lex_start_p ->
         lexer_state := SRegular;
-        R_ANGLE_SHIFT info2
-      | PRAGMA _ as token ->
+        R_ANGLE_SHIFT
+      | PRAGMA as token ->
         lexer_state := SPragma;
         token
-      | PRAGMA_END _ -> 
+      | PRAGMA_END ->
         lexer_state := SRegular;
         lexer lexbuf
       | NAME value as token ->
         let text = get_text value in
         lexer_state := SIdent (text, SRegular);
-        token          
-      | token -> 
+        token
+      | token ->
         lexer_state := SRegular;
         token
       end
@@ -514,13 +502,13 @@ let rec lexer (lexbuf:lexbuf): token =
         let text = get_text value in
         lexer_state := SIdent (text, SRegular);
         token
-      | PRAGMA _ as token ->
+      | PRAGMA as token ->
         lexer_state := SPragma;
         token
-      | PRAGMA_END _ ->
+      | PRAGMA_END ->
         lexer lexbuf
-      | R_ANGLE info as token -> 
-        lexer_state := SRangle info;
+      | R_ANGLE as token ->
+        lexer_state := SRangle lexbuf.lex_curr_p;
         token
       | token ->
         lexer_state := SRegular;
@@ -528,25 +516,25 @@ let rec lexer (lexbuf:lexbuf): token =
        end
     | STemplate ->
       begin match tokenize lexbuf with
-      | L_ANGLE info -> L_ANGLE_ARGS info
+      | L_ANGLE -> L_ANGLE_ARGS
       | NAME value as token ->
         let text = get_text value in
         lexer_state := SIdent (text, SRegular);
         token
-      | PRAGMA _ as token ->
+      | PRAGMA as token ->
         lexer_state := SPragma;
         token
-      | PRAGMA_END _ -> lexer lexbuf
-      | R_ANGLE info as token -> 
-        lexer_state := SRangle info;
+      | PRAGMA_END -> lexer lexbuf
+      | R_ANGLE as token ->
+        lexer_state := SRangle lexbuf.lex_curr_p;
         token
       | token ->
         lexer_state := SRegular;
         token
        end
-    | SPragma -> 
+    | SPragma ->
       begin match tokenize lexbuf with
-      | PRAGMA_END _info as token -> 
+      | PRAGMA_END as token ->
          lexer_state := SRegular;
          token
       | NAME value as token ->
@@ -556,5 +544,3 @@ let rec lexer (lexbuf:lexbuf): token =
       | token -> token
       end
 }
-
-

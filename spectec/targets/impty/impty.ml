@@ -1,8 +1,10 @@
 (** impty target — typed imperative language.
 
-    Two specs share one parser:
-    - [specs/impty/base] — imperative core (arithmetic, conditionals, loops).
-    - [specs/impty/closure] — adds function values and call expressions. *)
+    Three specs share one parser, which accepts the union of their syntax:
+    - [specs/impty/base] provides arithmetic, conditionals, and loops.
+    - [specs/impty/closure] adds function values and call expressions.
+    - [specs/impty/recursion] adds conditional expressions and recursive
+      function declarations. *)
 
 let collect_files_recursive ~suffix dir =
   let rec gather acc path =

@@ -1,10 +1,11 @@
-let resolve_ansi : Cli_args.color -> Spectec.Diagnostic.Ansi.t = function
+let resolve_ansi ~(out : Unix.file_descr) :
+    Cli_args.color -> Spectec.Diagnostic.Ansi.t = function
   | Always -> Spectec.Diagnostic.Ansi.color
   | Never -> Spectec.Diagnostic.Ansi.plain
-  | Auto -> Spectec.Diagnostic.Ansi.auto ~tty:(Unix.isatty Unix.stderr)
+  | Auto -> Spectec.Diagnostic.Ansi.auto ~tty:(Unix.isatty out)
 
 let guard ?(suppress_trace = false) ~color ~on_ok f =
-  let ansi = resolve_ansi color in
+  let ansi = resolve_ansi ~out:Unix.stderr color in
   let result, bag = Spectec.with_diagnostics f in
   if not (Spectec.Diagnostic.Bag.is_empty bag) then
     Printf.eprintf "%s\n%!"
@@ -16,7 +17,7 @@ let guard_unit ?suppress_trace ~color f =
   guard ?suppress_trace ~color ~on_ok:ignore f
 
 let guard_errors_only ~color f =
-  let ansi = resolve_ansi color in
+  let ansi = resolve_ansi ~out:Unix.stderr color in
   let result, _bag = Spectec.with_warnings f in
   match result with
   | Ok () -> ()

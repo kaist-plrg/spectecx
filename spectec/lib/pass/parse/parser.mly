@@ -7,20 +7,7 @@ open Diagnostic
 
 (* Position handling *)
 
-let position_to_pos position =
-  {
-    file = position.Lexing.pos_fname;
-    line = position.Lexing.pos_lnum;
-    column = position.Lexing.pos_cnum - position.Lexing.pos_bol
-  }
-
-let positions_to_region position_left position_right =
-  {
-    left = position_to_pos position_left;
-    right = position_to_pos position_right
-  }
-
-let at (position_left, position_right) = positions_to_region position_left position_right
+let at = region_of_positions
 let (@@@) it pos = it $ at pos
 
 let keyword sloc s =

@@ -8,8 +8,9 @@ let preprocess (includes : string list) (filename : string) =
 let lex (filename : string) (file : string) =
   try
     let () = Lexer.reset () in
-    let () = Lexer.set_filename filename in
-    Lexing.from_string file
+    let lexbuf = Lexing.from_string file in
+    Lexing.set_filename lexbuf filename;
+    lexbuf
   with Lexer.Error s -> Format.asprintf "lexer error: %s" s |> error_no_region
 
 let parse (lexbuf : Lexing.lexbuf) =
@@ -20,9 +21,9 @@ let parse (lexbuf : Lexing.lexbuf) =
     | _ -> Parser_debug.debug_parse Lexer.lexer lexbuf
   with
   | Parser.Error ->
-      let info = Lexer.info lexbuf in
+      let at = Lexer.at lexbuf in
       let msg = Format.asprintf "syntax error" in
-      error (Source.to_region info) msg
+      error at msg
   | e -> raise e
 
 let parse_string (filename : string) (str : string) : Il.value =
