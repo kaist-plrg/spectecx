@@ -437,3 +437,58 @@ P4:
     │ └─main  17:10-17:14
     └─atom ;  17:14-17:15
   
+
+Pragmas stop before trailing comments. Multiline strings retain their delimiters, and sized integers retain separate width, sign, and value regions:
+
+  $ cat > regions.p4 <<'EOF'
+  > @pragma name "first
+  > second" // note
+  > const bit<8> n = 8w42;
+  > EOF
+  $ spectec p4 parse -t --spec-dir $SPEC_DIR_P4 -p regions.p4 --color never > regions.tree 2>/dev/null
+  $ sed '/^$/d' regions.tree
+  p4program % %  1:1-3:23
+  ├─p4program _EMPTY  1:1
+  │ └─atom _EMPTY  (no region)
+  └─constantDeclaration % CONST % % % ;  1:1-3:23
+    ├─annotation @ PRAGMA % %  1:1-2:8
+    │ ├─atom @  1:1-1:2
+    │ ├─atom PRAGMA  1:2-1:8
+    │ ├─identifier _ID %  1:9-1:13
+    │ │ ├─atom _ID  (no region)
+    │ │ └─name  1:9-1:13
+    │ └─annotationBody % %  1:14-2:8
+    │   ├─annotationBody _EMPTY  1:13
+    │   │ └─atom _EMPTY  (no region)
+    │   └─stringLiteral " % "  1:14-2:8
+    │     ├─atom "  1:14-1:15
+    │     ├─first\nsecond  1:15-2:7
+    │     └─atom "  2:7-2:8
+    ├─atom CONST  3:1-3:6
+    ├─baseType BIT <%>  3:7-3:13
+    │ ├─atom BIT  3:7-3:10
+    │ ├─atom <  3:10-3:11
+    │ ├─8  3:11-3:12
+    │ └─atom >  3:12-3:13
+    ├─identifier _ID %  3:14-3:15
+    │ ├─atom _ID  (no region)
+    │ └─n  3:14-3:15
+    ├─initializer = %  3:16-3:22
+    │ ├─atom =  3:16-3:17
+    │ └─number % W %  3:18-3:22
+    │   ├─8  3:18-3:19
+    │   ├─atom W  3:19-3:20
+    │   └─42  3:20-3:22
+    └─atom ;  3:22-3:23
+
+Tree and roundtrip output are mutually exclusive:
+
+  $ spectec impty parse --spec $SPEC_IMPTY -p $CORPUS_IMPTY/base/loop.imp --color never -r -t > flags.out 2>&1
+  [1]
+  $ sed '/^$/d;s/ *$//' flags.out
+  Error parsing command line:
+    Cannot pass more than one of these:
+      -t
+      -r
+  For usage information, run
+    spectec impty parse -help
