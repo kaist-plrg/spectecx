@@ -1,0 +1,18 @@
+var n : nat
+
+builtin dec $digits(nat, nat, nat, nat, nat) : nat
+builtin dec $reverse<X>(X, X, X) : X*
+
+relation Digits:
+  nat; nat; nat; nat; nat |- nat
+  hint(input %0 %1 %2 %3 %4)
+
+rule Digits:
+  n_1; n_2; n_3; n_4; n_5 |- $digits(n_1, n_2, n_3, n_4, n_5)
+
+relation Reverse:
+  nat; nat; nat |- nat*
+  hint(input %0 %1 %2)
+
+rule Reverse:
+  n_1; n_2; n_3 |- $reverse<nat>(n_1, n_2, n_3)

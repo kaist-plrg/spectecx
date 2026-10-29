@@ -20,6 +20,15 @@ module T0 : sig
     'c Arg.t ->
     (at:region -> 'a -> 'b -> 'c -> (Value.t, Error.t) result) ->
     t
+
+  val a5 :
+    'a Arg.t ->
+    'b Arg.t ->
+    'c Arg.t ->
+    'd Arg.t ->
+    'e Arg.t ->
+    (at:region -> 'a -> 'b -> 'c -> 'd -> 'e -> (Value.t, Error.t) result) ->
+    t
 end
 
 (* Builtins with one type argument *)
@@ -32,6 +41,13 @@ module T1 : sig
     'a Arg.t ->
     'b Arg.t ->
     (at:region -> targ -> 'a -> 'b -> (Value.t, Error.t) result) ->
+    t
+
+  val a3 :
+    'a Arg.t ->
+    'b Arg.t ->
+    'c Arg.t ->
+    (at:region -> targ -> 'a -> 'b -> 'c -> (Value.t, Error.t) result) ->
     t
 end
 
