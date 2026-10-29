@@ -252,6 +252,68 @@ struct
     in
     Ok ctxs
 
+  let expand_iteration_inputs ctx ~iter ~vars =
+    match iter with
+    | Il.Opt ->
+        let* ctx_opt = for_optional_iteration ctx ~vars in
+        Ok (Option.to_list ctx_opt)
+    | Il.List -> for_list_iteration ctx ~vars
+
+  let collect_iteration_value values ~iter ~result_typ =
+    match (iter, values) with
+    | Il.Opt, [] -> Value.Make.opt result_typ None
+    | Il.Opt, [ value ] -> Value.Make.opt result_typ (Some value)
+    | Il.Opt, _ ->
+        raise
+          (Error (no_region, "an option iteration has more than one element"))
+    | Il.List, _ -> Value.Make.list result_typ values
+
+  let collect_iteration_bindings ctxs ~iter ~vars =
+    List.map
+      (fun { Il.varid; typ; iters } ->
+        let values =
+          List.map (fun ctx -> find_value_exn ctx ~var:(varid, iters)) ctxs
+        in
+        let iters = iters @ [ iter ] in
+        let typ = (Il.Typ.iterate typ iters).it in
+        ((varid, iters), collect_iteration_value values ~iter ~result_typ:typ))
+      vars
+
+  let iteration_outputs ctx ~iterexp:(iter, vars) ~f =
+    let vars_input, vars_output =
+      List.partition
+        (fun { Il.varid; iters; _ } ->
+          has_value ctx ~var:(varid, iters @ [ iter ]))
+        vars
+    in
+    let* ctxs = expand_iteration_inputs ctx ~iter ~vars:vars_input in
+    let* ctxs_output_rev =
+      List.fold_left
+        (fun ctxs_output_rev ctx ->
+          let* ctxs_output_rev = ctxs_output_rev in
+          let* ctx_output = f ctx in
+          Ok (ctx_output :: ctxs_output_rev))
+        (Ok []) ctxs
+    in
+    let ctxs_output = List.rev ctxs_output_rev in
+    Ok (collect_iteration_bindings ctxs_output ~iter ~vars:vars_output)
+
+  let eval_iterations ctx ~iterexps ~f =
+    let iterate body iterexp ctx =
+      let* bindings = iteration_outputs ctx ~iterexp ~f:body in
+      Ok (set_values ctx ~bindings)
+    in
+    List.fold_left iterate f iterexps ctx
+
+  let for_all_body_contexts ctx ~iterexps ~f =
+    let iterate body (iter, vars) ctx =
+      let* ctxs = expand_iteration_inputs ctx ~iter ~vars in
+      List.fold_left
+        (fun holds ctx -> match holds with Ok true -> body ctx | _ -> holds)
+        (Ok true) ctxs
+    in
+    List.fold_left iterate (fun ctx -> Ok (f ctx)) iterexps ctx
+
   let has_determinism_checks ctx = ctx.check_determinism
   let opaque_types ctx = ctx.opaque_types
   let has_builtin ctx ~id = ctx.builtins.is_builtin id

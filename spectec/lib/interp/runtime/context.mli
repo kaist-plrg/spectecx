@@ -5,11 +5,6 @@ module Typdef = Envs.Il.Typdef
 
 exception Error of Common.Source.region * string
 
-(** Return the values at each corresponding position, or [Error] for unequal
-    input lengths. An empty input produces [Ok []]. *)
-val transpose_values :
-  Value.t list list -> Value.t list list Common.Attempt.attempt
-
 (** Raise [Error] with the combined failure regions and messages on failure. *)
 val get_exn : 'a Common.Attempt.attempt -> 'a
 
@@ -82,17 +77,51 @@ end) : sig
   val fold_local_typdefs :
     t -> init:'a -> f:('a -> TId.t -> Typdef.t -> 'a) -> 'a
 
-  (** Bind [vars] to their optional contents. Return [Ok None] when all options
-      are absent, or [Error] for mixed presence. Empty [vars] returns
-      [Ok (Some ctx)]. *)
-  val for_optional_iteration :
-    t -> vars:Lang.Il.var list -> t option Common.Attempt.attempt
+  (** {2 Iteration}
 
-  (** Bind [vars] to their list contents, returning one context per
-      corresponding position. Unequal lengths return [Error]. Empty [vars]
-      returns [Ok []]. *)
-  val for_list_iteration :
-    t -> vars:Lang.Il.var list -> t list Common.Attempt.attempt
+      Expansion binds input variables in one context per body evaluation.
+      Collection combines body results into option/list values or bindings.
+      Nested [iterexps] are ordered innermost first. *)
+
+  (** Expand [vars] into body contexts. Mixed option presence or unequal list
+      lengths return [Error]. Empty [vars] yields one context for [Opt], none
+      for [List]. *)
+  val expand_iteration_inputs :
+    t ->
+    iter:Lang.Il.iter ->
+    vars:Lang.Il.var list ->
+    t list Common.Attempt.attempt
+
+  (** Collect body results into an option/list of complete type [result_typ].
+      Raise [Error] for multiple results under [Opt]. *)
+  val collect_iteration_value :
+    Value.t list -> iter:Lang.Il.iter -> result_typ:Lang.Il.typ' -> Value.t
+
+  (** Collect [vars] across body result contexts, appending [iter] to each
+      binding's iterations. Raise [Error] for missing bindings or multiple
+      values for an [Opt] binding. *)
+  val collect_iteration_bindings :
+    t list ->
+    iter:Lang.Il.iter ->
+    vars:Lang.Il.var list ->
+    (Var.t * Value.t) list
+
+  (** Evaluate body [f] under [iterexps]. Existing iterated bindings supply
+      inputs. Collect and bind the remaining variables as outputs. Stop at the
+      first [Error]. Empty [iterexps] applies [f] directly. *)
+  val eval_iterations :
+    t ->
+    iterexps:Lang.Il.iterexp list ->
+    f:(t -> t Common.Attempt.attempt) ->
+    t Common.Attempt.attempt
+
+  (** Test [f] in every body context, stopping at [false] or an input mismatch.
+      No body contexts yields [Ok true]. Empty [iterexps] tests [f] directly. *)
+  val for_all_body_contexts :
+    t ->
+    iterexps:Lang.Il.iterexp list ->
+    f:(t -> bool) ->
+    bool Common.Attempt.attempt
 
   val has_determinism_checks : t -> bool
   val opaque_types : t -> Opaque_types.t

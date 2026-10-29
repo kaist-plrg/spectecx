@@ -16,3 +16,51 @@ relation Add_each:
 rule Add_each:
   x*; y* |- z*
   -- (Add: x; y |- z)*
+
+relation Add_nested:
+  (nat*)*; (nat*)* |- (nat*)*
+  hint(input %0 %1)
+
+rule Add_nested:
+  (x*)*; (y*)* |- (z*)*
+  -- (Add: x; y |- z)**
+
+relation Increment_each:
+  nat* |- nat*
+  hint(input %0)
+
+rule Increment_each:
+  x* |- y*
+  -- (if y = $(x + 1))*
+
+relation Is_positive:
+  |- nat
+  hint(input %0)
+
+rule Is_positive:
+  |- x
+  -- if $(x > 0)
+
+relation Require_positive_each:
+  nat* |- nat*
+  hint(input %0)
+
+rule Require_positive_each:
+  x* |- x*
+  -- (if $(x > 0))*
+
+relation Require_positive_nested:
+  (nat*)* |- (nat*)*
+  hint(input %0)
+
+rule Require_positive_nested:
+  (x*)* |- (x*)*
+  -- (if $(x > 0))**
+
+relation Assert_positive_each:
+  nat* |- nat*
+  hint(input %0)
+
+rule Assert_positive_each:
+  x* |- x*
+  -- (Is_positive: |- x)*
