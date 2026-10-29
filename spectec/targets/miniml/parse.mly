@@ -8,13 +8,13 @@ open Common.Source
 let at = region_of_positions
 
 let v_id (s : string) : value = text s
-let v_op (s : string) : value = [ kw s ] |> case_v ~var:"op"
+let v_op at (s : string) : value = [ kw ~at s ] |> case_v ~var:"op" <<<| at
 
 let mk (c: string) (vl: value list) : value =
   (kw c :: List.map arg vl) |> case_v ~var:"expr"
 
 let mk_cst at n = mk "Ecst" [int n <<<| at] <<<| at
-let mk_op at o = mk "Eop" [v_op o <<<| at] <<<| at
+let mk_op at o = mk "Eop" [v_op at o] <<<| at
 let mk_var x = mk "Evar" [x]
 let mk_app e1 e2 = mk "Eapp" [e1; e2]
 let mk_let x e1 e2 = mk "Elet" [x; e1; e2]
