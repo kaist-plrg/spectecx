@@ -15,4 +15,12 @@ val emit : Instrumentation_api.Event.t -> unit
     whose payload is expensive to construct and read only by handlers. *)
 val emit_on_demand : (unit -> Instrumentation_api.Event.t) -> unit
 
+(** Whether an active handler subscribes to value events. Emitters check this
+    before building a {!Instrumentation_api.Value_event.t}. *)
+val observes_values : unit -> bool
+
+(** Deliver a value event to the value observers of the active handlers, in
+    configured order. No-op when no session is active. *)
+val emit_value : Instrumentation_api.Value_event.t -> unit
+
 val finish : unit -> unit

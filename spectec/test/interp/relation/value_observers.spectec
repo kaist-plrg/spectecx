@@ -1,0 +1,100 @@
+syntax point = { X nat, Y nat }
+
+var p : point
+var n : nat
+
+dec $sum(point) : nat
+def $sum(p) = $(p.X + p.Y)
+
+relation Sum_twice:
+  point; point |- nat
+  hint(input %0 %1)
+
+rule Sum_twice:
+  p_1; p_2 |- $($sum(p_1) + $sum(p_2))
+
+relation Shift:
+  point; nat* |- point
+  hint(input %0 %1)
+
+rule Shift:
+  p; n* |- p[.X = $(p.X + |n*|)]
+
+var k : nat
+var m : nat
+
+relation Add_offset:
+  nat; nat |- nat
+  hint(input %0 %1)
+
+rule Add_offset:
+  n; m |- $(n + m)
+
+relation Offset_map:
+  nat*; nat |- nat*
+  hint(input %0 %1)
+
+rule Offset_map:
+  n*; m |- $(n + m)*
+
+relation Offset_opt:
+  nat?; nat |- nat?
+  hint(input %0 %1)
+
+rule Offset_opt:
+  n?; m |- $(n + m)?
+
+relation Offset_let:
+  nat*; nat |- nat*
+  hint(input %0 %1)
+
+rule Offset_let:
+  n*; m |- k*
+  -- (if k = $(n + m))*
+
+relation Offset_rel:
+  nat*; nat |- nat*
+  hint(input %0 %1)
+
+rule Offset_rel:
+  n*; m |- k*
+  -- (Add_offset: n; m |- k)*
+
+syntax pair = (nat, nat)
+
+syntax shape =
+  | SQUARE nat
+  | RECT nat nat
+
+syntax holder = { POINTS point*, PAIR pair, SHAPE shape, MAYBE nat? }
+
+var h : holder
+var q : point
+
+relation Second_y:
+  holder |- nat
+  hint(input %0)
+
+rule Second_y:
+  h |- h.POINTS[1].Y
+
+dec $copy(point) : point
+def $copy(p) = {X p.X, Y p.Y}
+
+relation Copy_both:
+  point; point |- nat
+  hint(input %0 %1)
+
+rule Copy_both:
+  p_1; p_2 |- $(q_1.X + q_2.Y)
+  -- if q_1 = $copy(p_1)
+  -- if q_2 = $copy(p_2)
+
+builtin dec $wrap(nat) : point
+
+relation Wrapped_sum:
+  nat; nat |- nat
+  hint(input %0 %1)
+
+rule Wrapped_sum:
+  n; m |- $($wrap(n).X + m)

@@ -19,6 +19,12 @@ module type S = sig
 
   val init : spec:spec -> unit
   val handle : Event.t -> unit
+
+  (** Receives {!Value_event.t}s between [init] and [finish]. The dispatcher
+      calls the observers of all active handlers in configured order. [None]
+      subscribes to nothing. *)
+  val observe_value : (Value_event.t -> unit) option
+
   val finish : unit -> unit
 end
 

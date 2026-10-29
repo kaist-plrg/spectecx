@@ -262,4 +262,22 @@ struct
 
   let memoize_rel ctx ~id ~values ~f =
     Cache.with_rel_cache ctx.cache (id.it, values) f
+
+  let emit_iteration ctx ~vars ~iter ~value =
+    if Instrumentation_dispatcher.Dispatcher.observes_values () then
+      let ranged =
+        List.map
+          (fun { Il.varid; iters; _ } ->
+            find_value_exn ctx ~var:(varid, iters @ [ iter ]))
+          vars
+      in
+      let produced =
+        match value.it with
+        | Il.ListV values -> values
+        | Il.OptV value_opt -> Option.to_list value_opt
+        | _ -> []
+      in
+      let sources = ranged @ produced in
+      Instrumentation_dispatcher.Dispatcher.emit_value
+        (Instrumentation_api.Value_event.Combined { value; sources })
 end

@@ -29,12 +29,24 @@ module type Context = sig
   val for_list_iteration :
     t -> vars:Lang.Il.var list -> t list Common.Attempt.attempt
 
+  (** Report [value], built by an iteration of kind [iter] over [vars], to value
+      observers as combined from the lists or options bound to [vars] and from
+      the elements or content of [value]. *)
+  val emit_iteration :
+    t ->
+    vars:Lang.Il.var list ->
+    iter:Lang.Il.iter ->
+    value:Lang.Il.value ->
+    unit
+
   (** Raise the native interpreter's failure exception on [Error]. *)
   val get_exn : 'a Common.Attempt.attempt -> 'a
 
   val error : Common.Source.region -> string -> 'a
 end
 
+(** The evaluator reports the values it builds to value observers, as listed in
+    {!Instrumentation_api.Value_event}. *)
 module Make (Ctx : Context) : sig
   type exp = Ctx.annotation Lang.Il.Expression.t
   type arg = Ctx.annotation Lang.Il.Expression.arg

@@ -77,6 +77,8 @@ module M : Instrumentation_api.Handler.S = struct
             | _ -> ())
           sl_spec
 
+  let observe_value = None
+
   let handle : Instrumentation_api.Event.t -> unit = function
     | Rule_exit { id; rule_id; at = _; success } ->
         if success then State.incr State.rules_hit (id, rule_id)

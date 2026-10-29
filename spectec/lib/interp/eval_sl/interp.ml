@@ -337,6 +337,8 @@ and eval_let_instr (ctx : Ctx.t) (exp_l : exp) (exp_r : exp)
         List.fold_left2
           (fun ctx { Il.varid = id_binding; iters = iters_binding; _ }
                value_binding ->
+            Ctx.emit_iteration ctx ~vars:vars_bound ~iter:Il.Opt
+              ~value:value_binding;
             Ctx.set_value ctx
               ~var:(id_binding, iters_binding @ [ Il.Opt ])
               ~value:value_binding)
@@ -399,6 +401,8 @@ and eval_let_instr (ctx : Ctx.t) (exp_l : exp) (exp_r : exp)
               in
               values_binding |> Value.Make.list typ.it
             in
+            Ctx.emit_iteration ctx ~vars:vars_bound ~iter:Il.List
+              ~value:value_binding;
             Ctx.set_value ctx
               ~var:(id_binding, iters_binding @ [ Il.List ])
               ~value:value_binding)
@@ -496,6 +500,8 @@ and eval_rel_instr (ctx : Ctx.t) (id : id) (notexp : notexp)
               in
               values_binding |> Value.Make.list typ.it
             in
+            Ctx.emit_iteration ctx ~vars:vars_bound ~iter:Il.List
+              ~value:value_binding;
             Ctx.set_value ctx
               ~var:(id_binding, iters_binding @ [ Il.List ])
               ~value:value_binding)
@@ -549,6 +555,8 @@ and eval_rel_instr (ctx : Ctx.t) (id : id) (notexp : notexp)
         List.fold_left2
           (fun ctx { Il.varid = id_binding; iters = iters_binding; _ }
                value_binding ->
+            Ctx.emit_iteration ctx ~vars:vars_bound ~iter:Il.Opt
+              ~value:value_binding;
             Ctx.set_value ctx
               ~var:(id_binding, iters_binding @ [ Il.Opt ])
               ~value:value_binding)
@@ -612,8 +620,18 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
       | None -> Error ()
     in
     match Ctx.memoize_rel ctx ~id ~values:values_input ~f:invoke with
-    | Ok values_output -> Some values_output
-    | Error _ -> None
+    | Ok values_output, cached ->
+        if Instrumentation.Dispatcher.observes_values () then
+          Instrumentation.Dispatcher.emit_value
+            (Instrumentation.Value_event.Invoked
+               {
+                 callee = Rel id.it;
+                 inputs = values_input;
+                 outputs = values_output;
+                 cached;
+               });
+        Some values_output
+    | Error _, _ -> None
   in
   Instrumentation.Dispatcher.emit_on_demand (fun () ->
       let outs =
@@ -730,15 +748,25 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
           match value.it with Lang.Il.FuncV _ -> true | _ -> false)
         values
     in
-    let value_output_result =
+    let value_output_result, cached =
       (* Cache keys omit type arguments and local function definitions. *)
       if
         targs <> [] || Ctx.has_local_func ctx ~id
         || has_function_arguments values_input
-      then invoke ()
+      then (invoke (), false)
       else Ctx.memoize_func ctx ~id ~values:values_input ~f:invoke
     in
-    value_output_result |> Result.get_ok
+    let value_output = Result.get_ok value_output_result in
+    if Instrumentation.Dispatcher.observes_values () then
+      Instrumentation.Dispatcher.emit_value
+        (Instrumentation.Value_event.Invoked
+           {
+             callee = Func id.it;
+             inputs = values_input;
+             outputs = [ value_output ];
+             cached;
+           });
+    value_output
   in
   let result = invoke_func' () in
   Instrumentation.Dispatcher.emit
