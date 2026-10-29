@@ -30,12 +30,35 @@ Applications with a function-valued left operand round-trip without losing requi
   $ spectec miniml parse --spec $SPEC -p $CORPUS/beta2.ml --color never -r
   (fun x -> + (x, x)) 21
 
-Operator atoms carry the regions of their source tokens:
+Operator atoms carry their source regions, and applications include grouping delimiters:
 
-  $ echo '+ - ifz fst snd' > operators.ml
-  $ spectec miniml parse --spec $SPEC -p operators.ml --color never -t | sed -En '/atom (ADD|SUB|IFZ|FST|SND) /s/.*atom /atom /p'
-  atom ADD  1:1-1:2
-  atom SUB  1:3-1:4
-  atom IFZ  1:5-1:8
-  atom FST  1:9-1:12
-  atom SND  1:13-1:16
+  $ echo '(+) (-) (ifz) (fst) (snd)' > operators.ml
+  $ spectec miniml parse --spec $SPEC -p operators.ml --color never -t | sed '/^$/d'
+  expr Eapp % %  1:1-1:26
+  ├─atom Eapp  (no region)
+  ├─expr Eapp % %  1:1-1:20
+  │ ├─atom Eapp  (no region)
+  │ ├─expr Eapp % %  1:1-1:14
+  │ │ ├─atom Eapp  (no region)
+  │ │ ├─expr Eapp % %  1:1-1:8
+  │ │ │ ├─atom Eapp  (no region)
+  │ │ │ ├─expr Eop %  1:2-1:3
+  │ │ │ │ ├─atom Eop  (no region)
+  │ │ │ │ └─op ADD  1:2-1:3
+  │ │ │ │   └─atom ADD  1:2-1:3
+  │ │ │ └─expr Eop %  1:6-1:7
+  │ │ │   ├─atom Eop  (no region)
+  │ │ │   └─op SUB  1:6-1:7
+  │ │ │     └─atom SUB  1:6-1:7
+  │ │ └─expr Eop %  1:10-1:13
+  │ │   ├─atom Eop  (no region)
+  │ │   └─op IFZ  1:10-1:13
+  │ │     └─atom IFZ  1:10-1:13
+  │ └─expr Eop %  1:16-1:19
+  │   ├─atom Eop  (no region)
+  │   └─op FST  1:16-1:19
+  │     └─atom FST  1:16-1:19
+  └─expr Eop %  1:22-1:25
+    ├─atom Eop  (no region)
+    └─op SND  1:22-1:25
+      └─atom SND  1:22-1:25

@@ -41,13 +41,14 @@ prog:
 ;
 
 expr:
-| e=atom { e }
-| e=atom el=atom+
-  { List.fold_left
-      (fun e1 e2 -> mk_app e1 e2 <<<| over_region [e1.at; e2.at])
-      e el }
+| e=application { e }
 | LET x=id EQUAL e1=expr IN e2=expr { mk_let x e1 e2 <<<| at $sloc }
 | FUN x=id ARROW e=expr { mk_fun x e <<<| at $sloc }
+;
+
+application:
+| e=atom { e }
+| e1=application e2=atom { mk_app e1 e2 <<<| at $sloc }
 ;
 
 atom:
