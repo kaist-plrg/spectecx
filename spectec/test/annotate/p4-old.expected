@@ -7781,49 +7781,35 @@ xref:Decl_ok[Decl_ok: ``p' TC~0~ ⊢ declaration +:+ % %``]
        ........ Let ``typedefDeclarationIR`` be ``annotationList +TYPEDEF+ typeIR nameIR +;+``.
        ........ Result in ``TC~1~`` and ``typedefDeclarationIR``.
     ..... Else:
-     ...... Try:
-      ....... {empty}
-       ........ Let xref:Decl_ok[``+GLOBAL+ TC~0~ ⊢ derivedTypeDeclaration +:+ TC~1~ declarationIR``].
-       ........ Let!~type~ ``derivedTypeDeclarationIR`` be ``declarationIR``.
+     ...... Let xref:Decl_ok[``+GLOBAL+ TC~0~ ⊢ derivedTypeDeclaration +:+ TC~1~ declarationIR``].
+     ...... Let!~type~ ``derivedTypeDeclarationIR`` be ``declarationIR``.
 
-       ........ Let ``set<tid>`` be ``xref:dom_map[$dom_map<tid, typeDefIR>(TC~1~.+GLOBAL+.+TDENV+)]``.
-       ........ Let ``set<tid>'`` be ``xref:dom_map[$dom_map<tid, typeDefIR>(TC~0~.+GLOBAL+.+TDENV+)]``.
-       ........ Let ``+{+tid'^{asterisk}^+}+`` be ``xref:diff_set[$diff_set<tid>(set<tid>, set<tid>')]``.
-       ........ Let!~type~ ``tid`` be ``tid'^{asterisk}^``.
+     ...... Let ``set<tid>`` be ``xref:dom_map[$dom_map<tid, typeDefIR>(TC~1~.+GLOBAL+.+TDENV+)]``.
+     ...... Let ``set<tid>'`` be ``xref:dom_map[$dom_map<tid, typeDefIR>(TC~0~.+GLOBAL+.+TDENV+)]``.
+     ...... Let ``+{+tid'^{asterisk}^+}+`` be ``xref:diff_set[$diff_set<tid>(set<tid>, set<tid>')]``.
+     ...... Let!~type~ ``tid`` be ``tid'^{asterisk}^``.
 
-       ........ Let ``typeDefIR`` be xref:option_get[*!*] ``xref:find_type[$find_type(+GLOBAL+, TC~1~, tid)]``.
-       ........ Let!~type~ ``typeIR`` be ``typeDefIR``.
+     ...... Let ``typeDefIR`` be xref:option_get[*!*] ``xref:find_type[$find_type(+GLOBAL+, TC~1~, tid)]``.
+     ...... If let ``typeIR`` be ``typeDefIR``:
+      ....... Let ``nameIR`` be ``xref:name[$name(name)]``.
+      ....... Let ``typeIR~typedef~`` be ``+TYPEDEF+ nameIR typeIR``.
+      ....... Let ``bound''''''''''''''''`` be ``xref:bound[$bound(+GLOBAL+, TC~0~)]``.
+      ....... If xref:TypeDef_wf[``bound'''''''''''''''' ⊢ typeIR~typedef~``] holds:
+       ........ Let ``TC~2~`` be ``xref:add_type[$add_type(+GLOBAL+, TC~0~, nameIR, typeIR~typedef~)]``.
+       ........ Let ``typedefDeclarationIR`` be ``annotationList +TYPEDEF+ derivedTypeDeclarationIR nameIR +;+``.
+       ........ Result in ``TC~1~`` and ``typedefDeclarationIR``.
+     ...... Else:
+      ....... Check that ``tid''^{asterisk}^`` is an empty list.
 
-       ........ Let ``nameIR`` be ``xref:name[$name(name)]``.
-       ........ Let ``typeIR~typedef~`` be ``+TYPEDEF+ nameIR typeIR``.
-       ........ Let ``bound''''''''''''''''`` be ``xref:bound[$bound(+GLOBAL+, TC~0~)]``.
-       ........ If xref:TypeDef_wf[``bound'''''''''''''''' ⊢ typeIR~typedef~``] holds:
-        ......... Let ``TC~2~`` be ``xref:add_type[$add_type(+GLOBAL+, TC~0~, nameIR, typeIR~typedef~)]``.
-        ......... Let ``typedefDeclarationIR`` be ``annotationList +TYPEDEF+ derivedTypeDeclarationIR nameIR +;+``.
-        ......... Result in ``TC~1~`` and ``typedefDeclarationIR``.
-      ....... {empty}
-       ........ Let xref:Decl_ok[``+GLOBAL+ TC~0~ ⊢ derivedTypeDeclaration +:+ TC~1~ declarationIR``].
-       ........ Let!~type~ ``derivedTypeDeclarationIR`` be ``declarationIR``.
+      ....... Check that ``tid'''^{asterisk}^`` is an empty list.
 
-       ........ Let ``set<tid>''`` be ``xref:dom_map[$dom_map<tid, typeDefIR>(TC~1~.+GLOBAL+.+TDENV+)]``.
-       ........ Let ``set<tid>'''`` be ``xref:dom_map[$dom_map<tid, typeDefIR>(TC~0~.+GLOBAL+.+TDENV+)]``.
-       ........ Let ``+{+tid'^{asterisk}^+}+`` be ``xref:diff_set[$diff_set<tid>(set<tid>'', set<tid>''')]``.
-       ........ Let!~type~ ``tid`` be ``tid'^{asterisk}^``.
-
-       ........ Let ``typeDefIR`` be xref:option_get[*!*] ``xref:find_type[$find_type(+GLOBAL+, TC~1~, tid)]``.
-       ........ Let!~type~ ``typeIR +<+tid''^{asterisk}^ +,+ tid'''^{asterisk}^+>+`` be ``typeDefIR``.
-
-       ........ Check that ``tid''^{asterisk}^`` is an empty list.
-
-       ........ Check that ``tid'''^{asterisk}^`` is an empty list.
-
-       ........ Let ``nameIR`` be ``xref:name[$name(name)]``.
-       ........ Let ``typeIR~typedef~`` be ``+TYPEDEF+ nameIR typeIR +<+· +,+ ·+>+ +<+·+>+``.
-       ........ Let ``bound'''''''''''''''''`` be ``xref:bound[$bound(+GLOBAL+, TC~0~)]``.
-       ........ If xref:TypeDef_wf[``bound''''''''''''''''' ⊢ typeIR~typedef~``] holds:
-        ......... Let ``TC~2~`` be ``xref:add_type[$add_type(+GLOBAL+, TC~0~, nameIR, typeIR~typedef~)]``.
-        ......... Let ``typedefDeclarationIR`` be ``annotationList +TYPEDEF+ derivedTypeDeclarationIR nameIR +;+``.
-        ......... Result in ``TC~1~`` and ``typedefDeclarationIR``.
+      ....... Let ``nameIR`` be ``xref:name[$name(name)]``.
+      ....... Let ``typeIR~typedef~`` be ``+TYPEDEF+ nameIR typeIR +<+· +,+ ·+>+ +<+·+>+``.
+      ....... Let ``bound'''''''''''''''''`` be ``xref:bound[$bound(+GLOBAL+, TC~0~)]``.
+      ....... If xref:TypeDef_wf[``bound''''''''''''''''' ⊢ typeIR~typedef~``] holds:
+       ........ Let ``TC~2~`` be ``xref:add_type[$add_type(+GLOBAL+, TC~0~, nameIR, typeIR~typedef~)]``.
+       ........ Let ``typedefDeclarationIR`` be ``annotationList +TYPEDEF+ derivedTypeDeclarationIR nameIR +;+``.
+       ........ Result in ``TC~1~`` and ``typedefDeclarationIR``.
    .... Else:
     ..... Let xref:Type_ok[``+GLOBAL+ TC~0~ ⊢ type +:+ typeIR +#+ tid^{asterisk}^``].
     ..... Check that ``tid^{asterisk}^`` is an empty list.
@@ -10943,16 +10929,13 @@ xref:ControlLocalDecl_inst[ControlLocalDecl_inst: ``Ci~0'~ sto~0'~ ⊢ controlLo
 . Else if let ``variableDeclarationIR`` be ``controlLocalDeclarationIR``:
  .. Result in ``Ci~0'~``, ``sto~0'~``, and ``variableDeclarationIR``.
 . Else if let ``actionDeclarationIR`` be ``controlLocalDeclarationIR``:
+ .. Let xref:Decl_inst[``+BLOCK+ Ci~0'~ sto~0'~ ⊢ actionDeclarationIR ⟹ Ci~1~ sto~1~ declarationIR^?^``].
+ .. Let!~type~ ``actionDeclarationIR~inst~^?^`` be ``declarationIR^?^``.
+
  .. Try:
   ... {empty}
-   .... Let xref:Decl_inst[``+BLOCK+ Ci~0'~ sto~0'~ ⊢ actionDeclarationIR ⟹ Ci~1~ sto~1~ declarationIR^?^``].
-   .... Let!~type~ ``actionDeclarationIR~inst~^?^`` be ``declarationIR^?^``.
-
    .... Result in ``Ci~1~``, ``sto~1~``, and ``actionDeclarationIR~inst~^?^``.
   ... {empty}
-   .... Let xref:Decl_inst[``+BLOCK+ Ci~0'~ sto~0'~ ⊢ actionDeclarationIR ⟹ Ci~1~ sto~1~ declarationIR^?^``].
-   .... Let!~type~ ``actionDeclarationIR~inst~^?^`` be ``declarationIR^?^``.
-
    .... Result in ``Ci~1~``, ``sto~1~``, and ``actionDeclarationIR~inst~^?^``.
 . Else:
  .. Let ``Ci~inner~`` be ``xref:enter_path[$enter_path(Ci~0'~, nameIR)]``.
@@ -11123,33 +11106,21 @@ xref:Decl_inst[Decl_inst: ``p' Ci~0~ sto' ⊢ declarationIR ⟹ % % %``]
      ...... Let ``Ci~1~`` be ``xref:add_typedef_inst[$add_typedef_inst(+GLOBAL+, Ci~0~, nameIR, typeIR~typedef~)]``.
      ...... Result in ``Ci~1~``, ``sto'``, and ``·``.
     ..... Else:
-     ...... Try:
-      ....... {empty}
-       ........ Let <<Decl_inst,``+GLOBAL+ Ci~0~ xref:empty_sto[$empty_sto] ⊢ derivedTypeDeclarationIR ⟹ Ci~local~ ++_++ ++_++^?^``>>.
-       ........ Let ``set<tid>`` be ``xref:dom_map[$dom_map<tid, typeDefIR>(Ci~local~.+GLOBAL+.+TDENV+)]``.
-       ........ Let ``set<tid>'`` be ``xref:dom_map[$dom_map<tid, typeDefIR>(Ci~0~.+GLOBAL+.+TDENV+)]``.
-       ........ Let ``+{+tid^{asterisk}^+}+`` be ``xref:diff_set[$diff_set<tid>(set<tid>, set<tid>')]``.
-       ........ Let!~type~ ``tid~newtype~`` be ``tid^{asterisk}^``.
+     ...... Let <<Decl_inst,``+GLOBAL+ Ci~0~ xref:empty_sto[$empty_sto] ⊢ derivedTypeDeclarationIR ⟹ Ci~local~ ++_++ ++_++^?^``>>.
+     ...... Let ``set<tid>`` be ``xref:dom_map[$dom_map<tid, typeDefIR>(Ci~local~.+GLOBAL+.+TDENV+)]``.
+     ...... Let ``set<tid>'`` be ``xref:dom_map[$dom_map<tid, typeDefIR>(Ci~0~.+GLOBAL+.+TDENV+)]``.
+     ...... Let ``+{+tid^{asterisk}^+}+`` be ``xref:diff_set[$diff_set<tid>(set<tid>, set<tid>')]``.
+     ...... Let!~type~ ``tid~newtype~`` be ``tid^{asterisk}^``.
 
-       ........ Let ``typeDefIR`` be xref:option_get[*!*] ``xref:find_typedef_inst[$find_typedef_inst(+GLOBAL+, Ci~local~, +.+ tid~newtype~)]``.
-       ........ Let!~type~ ``monoTypeDefIR`` be ``typeDefIR``.
-
-       ........ Let ``typeIR~typedef~`` be ``+TYPEDEF+ nameIR monoTypeDefIR``.
-       ........ Let ``Ci~1~`` be ``xref:add_typedef_inst[$add_typedef_inst(+GLOBAL+, Ci~0~, nameIR, typeIR~typedef~)]``.
-       ........ Result in ``Ci~1~``, ``sto'``, and ``·``.
-      ....... {empty}
-       ........ Let <<Decl_inst,``+GLOBAL+ Ci~0~ xref:empty_sto[$empty_sto] ⊢ derivedTypeDeclarationIR ⟹ Ci~local~ ++_++ ++_++^?^``>>.
-       ........ Let ``set<tid>''`` be ``xref:dom_map[$dom_map<tid, typeDefIR>(Ci~local~.+GLOBAL+.+TDENV+)]``.
-       ........ Let ``set<tid>'''`` be ``xref:dom_map[$dom_map<tid, typeDefIR>(Ci~0~.+GLOBAL+.+TDENV+)]``.
-       ........ Let ``+{+tid^{asterisk}^+}+`` be ``xref:diff_set[$diff_set<tid>(set<tid>'', set<tid>''')]``.
-       ........ Let!~type~ ``tid~newtype~`` be ``tid^{asterisk}^``.
-
-       ........ Let ``typeDefIR`` be xref:option_get[*!*] ``xref:find_typedef_inst[$find_typedef_inst(+GLOBAL+, Ci~local~, +.+ tid~newtype~)]``.
-       ........ Let!~type~ ``polyTypeDefIR`` be ``typeDefIR``.
-
-       ........ Let ``typeIR~typedef~`` be ``+TYPEDEF+ nameIR polyTypeDefIR +<+·+>+``.
-       ........ Let ``Ci~1~`` be ``xref:add_typedef_inst[$add_typedef_inst(+GLOBAL+, Ci~0~, nameIR, typeIR~typedef~)]``.
-       ........ Result in ``Ci~1~``, ``sto'``, and ``·``.
+     ...... Let ``typeDefIR`` be xref:option_get[*!*] ``xref:find_typedef_inst[$find_typedef_inst(+GLOBAL+, Ci~local~, +.+ tid~newtype~)]``.
+     ...... If let ``monoTypeDefIR`` be ``typeDefIR``:
+      ....... Let ``typeIR~typedef~`` be ``+TYPEDEF+ nameIR monoTypeDefIR``.
+      ....... Let ``Ci~1~`` be ``xref:add_typedef_inst[$add_typedef_inst(+GLOBAL+, Ci~0~, nameIR, typeIR~typedef~)]``.
+      ....... Result in ``Ci~1~``, ``sto'``, and ``·``.
+     ...... Else:
+      ....... Let ``typeIR~typedef~`` be ``+TYPEDEF+ nameIR polyTypeDefIR +<+·+>+``.
+      ....... Let ``Ci~1~`` be ``xref:add_typedef_inst[$add_typedef_inst(+GLOBAL+, Ci~0~, nameIR, typeIR~typedef~)]``.
+      ....... Result in ``Ci~1~``, ``sto'``, and ``·``.
    .... Else:
     ..... Let ``typeIR~newtype~`` be ``+TYPE+ nameIR typeIR``.
     ..... Let ``Ci~1~`` be ``xref:add_typedef_inst[$add_typedef_inst(+GLOBAL+, Ci~0~, nameIR, typeIR~newtype~)]``.

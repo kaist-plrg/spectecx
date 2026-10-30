@@ -178,11 +178,6 @@ module Bind = struct
     in
     RelBind (id, expunits_l, expunits_r)
 
-  (* Collapsing two bindings,
-     if two bindings have syntactically equal right-hand sides,
-     and the left-hand sides are equal up to renaming,
-     then we can collapse them into a single binding *)
-
   let rec collapse_exp (rename : Renamer.t) (exp : exp) (exp_target : exp) :
       Renamer.t option =
     match (exp.it, exp_target.it) with
@@ -264,9 +259,9 @@ module Bind = struct
         collapse_expunit Renamer.Rename.empty expunit_l expunit_target_l
     | ( RelBind (id, expunits_l, expunits_r),
         RelBind (id_target, expunits_target_l, expunits_target_r) )
-      when Sl.Eq.eq_id id id_target && eq_expunits expunits_r expunits_target_r
+      when Sl.Eq.eq_id id id_target && eq_expunits expunits_l expunits_target_l
       ->
-        collapse_expunits Renamer.Rename.empty expunits_l expunits_target_l
+        collapse_expunits Renamer.Rename.empty expunits_r expunits_target_r
     | _ -> None
 end
 

@@ -7511,14 +7511,14 @@ xref:Parameter_ok[Parameter_ok]:
  .. {empty}
   ... Let!~type~ ``+=+ expression~init~`` be ``initializerOpt``.
 
-  ... Try:
-   .... {empty}
-    ..... Let ``typeIR`` and fresh type variables ``typeId~fresh~^{asterisk}^`` be the result of xref:Type_ok[typing ``type``, under context ``TC~0~`` at ``p``].
-    ..... Let ``bound'`` be xref:bound[bound type variables from the ``p`` layer of ``TC~0~``].
-    ..... Let ``B`` be xref:union_set[the union of the sets ``bound'`` and ``+{+typeId~fresh~^{asterisk}^+}+``].
-    ..... If xref:Type_wf[``typeIR`` is a well-formed type, with bound type variables ``B``]:
-     ...... Let ``typedExpressionIR~init~`` be the result of xref:Expr_ok[typing ``expression~init~``, under context ``TC~0~`` at ``p``].
-     ...... Let ``typeIR~init~`` be xref:type_of_typedExpressionIR[the type of ``typedExpressionIR~init~``].
+  ... Let ``typeIR`` and fresh type variables ``typeId~fresh~^{asterisk}^`` be the result of xref:Type_ok[typing ``type``, under context ``TC~0~`` at ``p``].
+  ... Let ``bound'`` be xref:bound[bound type variables from the ``p`` layer of ``TC~0~``].
+  ... Let ``B`` be xref:union_set[the union of the sets ``bound'`` and ``+{+typeId~fresh~^{asterisk}^+}+``].
+  ... If xref:Type_wf[``typeIR`` is a well-formed type, with bound type variables ``B``]:
+   .... Let ``typedExpressionIR~init~`` be the result of xref:Expr_ok[typing ``expression~init~``, under context ``TC~0~`` at ``p``].
+   .... Let ``typeIR~init~`` be xref:type_of_typedExpressionIR[the type of ``typedExpressionIR~init~``].
+   .... Try:
+    ..... {empty}
      ...... Check that ``+CTK+`` is equal to xref:ctk_of_typedExpressionIR[the compile-time known-ness of ``typedExpressionIR~init~``].
 
      ...... Let ``typedExpressionIR~init_cast~`` be xref:option_get[*!*] xref:cast_unary[``typedExpressionIR~init~`` implicitly cast to ``typeIR``].
@@ -7527,13 +7527,7 @@ xref:Parameter_ok[Parameter_ok]:
      ...... Let ``parameterIR`` be ``annotationList direction typeIR nameIR parameterInitializerIR``.
      ...... Let ``TC~1~`` be xref:add_parameter_t[``parameterIR`` added to the ``p`` layer of ``TC~0~``].
      ...... Result in context ``TC~1~``, ``parameterIR``, and fresh type variables ``typeId~fresh~^{asterisk}^``.
-   .... {empty}
-    ..... Let ``typeIR`` and fresh type variables ``typeId~fresh~^{asterisk}^`` be the result of xref:Type_ok[typing ``type``, under context ``TC~0~`` at ``p``].
-    ..... Let ``bound''`` be xref:bound[bound type variables from the ``p`` layer of ``TC~0~``].
-    ..... Let ``B`` be xref:union_set[the union of the sets ``bound''`` and ``+{+typeId~fresh~^{asterisk}^+}+``].
-    ..... If xref:Type_wf[``typeIR`` is a well-formed type, with bound type variables ``B``]:
-     ...... Let ``typedExpressionIR~init~`` be the result of xref:Expr_ok[typing ``expression~init~``, under context ``TC~0~`` at ``p``].
-     ...... Let ``typeIR~init~`` be xref:type_of_typedExpressionIR[the type of ``typedExpressionIR~init~``].
+    ..... {empty}
      ...... Check that ``+LCTK+`` is equal to xref:ctk_of_typedExpressionIR[the compile-time known-ness of ``typedExpressionIR~init~``].
 
      ...... Let ``typedExpressionIR~init_cast~`` be xref:option_get[*!*] xref:cast_unary[``typedExpressionIR~init~`` implicitly cast to ``typeIR``].
@@ -8604,49 +8598,35 @@ xref:Decl_ok[Decl_ok]:
      ...... Let ``typedefDeclarationIR`` be ``annotationList +TYPEDEF+ typeIR nameIR +;+``.
      ...... Result in context ``TC~1~`` and ``typedefDeclarationIR``.
   ... Else:
-   .... Try:
-    ..... {empty}
-     ...... Let context ``TC~1~`` and ``declarationIR`` be the result of xref:Decl_ok[typing ``derivedTypeDeclaration`` under context ``TC~0~``].
-     ...... Let!~type~ ``derivedTypeDeclarationIR`` be ``declarationIR``.
+   .... Let context ``TC~1~`` and ``declarationIR`` be the result of xref:Decl_ok[typing ``derivedTypeDeclaration`` under context ``TC~0~``].
+   .... Let!~type~ ``derivedTypeDeclarationIR`` be ``declarationIR``.
 
-     ...... Let ``set<typeId>`` be xref:dom_map[the domain of the map ``TC~1~.+GLOBAL+.+TYPE+``].
-     ...... Let ``set<typeId>'`` be xref:dom_map[the domain of the map ``TC~0~.+GLOBAL+.+TYPE+``].
-     ...... Let ``+{+typeId'^{asterisk}^+}+`` be xref:diff_set[the difference of the sets ``set<typeId>`` and ``set<typeId>'``].
-     ...... Let!~type~ ``typeId`` be ``typeId'^{asterisk}^``.
+   .... Let ``set<typeId>`` be xref:dom_map[the domain of the map ``TC~1~.+GLOBAL+.+TYPE+``].
+   .... Let ``set<typeId>'`` be xref:dom_map[the domain of the map ``TC~0~.+GLOBAL+.+TYPE+``].
+   .... Let ``+{+typeId'^{asterisk}^+}+`` be xref:diff_set[the difference of the sets ``set<typeId>`` and ``set<typeId>'``].
+   .... Let!~type~ ``typeId`` be ``typeId'^{asterisk}^``.
 
-     ...... Let ``typeDefIR`` be xref:option_get[*!*] xref:find_typeDef_t[the type definition of ``typeId`` from the ``+GLOBAL+`` layer of ``TC~1~``].
-     ...... Check that xref:is_monomorphic_typeDefIR[``typeDefIR`` is monomorphic].
+   .... Let ``typeDefIR`` be xref:option_get[*!*] xref:find_typeDef_t[the type definition of ``typeId`` from the ``+GLOBAL+`` layer of ``TC~1~``].
+   .... If xref:is_monomorphic_typeDefIR[``typeDefIR`` is monomorphic]:
+    ..... Let ``typeIR`` be xref:typeIR_of_typeDefIR[the underlying type of ``typeDefIR``].
+    ..... Let ``nameIR`` be xref:name[the name of ``name``].
+    ..... Let ``typedefTypeIR`` be ``+TYPEDEF+ nameIR typeIR``.
+    ..... Let ``bound'''''''''`` be xref:bound[bound type variables from the ``+GLOBAL+`` layer of ``TC~0~``].
+    ..... If xref:TypeDef_wf[``typedefTypeIR`` is a well-formed type definition, with bound type variables ``bound'''''''''``]:
+     ...... Let ``TC~2~`` be xref:add_typeDef_t[``TC~0~`` where ``nameIR`` to ``typedefTypeIR`` is added to the ``+GLOBAL+`` layer].
+     ...... Let ``typedefDeclarationIR`` be ``annotationList +TYPEDEF+ derivedTypeDeclarationIR nameIR +;+``.
+     ...... Result in context ``TC~1~`` and ``typedefDeclarationIR``.
+   .... Else:
+    ..... Check that ( ``·``, ``·`` ) is equal to xref:typeParameterListIR_of_typeDefIR[the type parameters of ``typeDefIR``].
 
-     ...... Let ``typeIR`` be xref:typeIR_of_typeDefIR[the underlying type of ``typeDefIR``].
-     ...... Let ``nameIR`` be xref:name[the name of ``name``].
-     ...... Let ``typedefTypeIR`` be ``+TYPEDEF+ nameIR typeIR``.
-     ...... Let ``bound'''''''''`` be xref:bound[bound type variables from the ``+GLOBAL+`` layer of ``TC~0~``].
-     ...... If xref:TypeDef_wf[``typedefTypeIR`` is a well-formed type definition, with bound type variables ``bound'''''''''``]:
-      ....... Let ``TC~2~`` be xref:add_typeDef_t[``TC~0~`` where ``nameIR`` to ``typedefTypeIR`` is added to the ``+GLOBAL+`` layer].
-      ....... Let ``typedefDeclarationIR`` be ``annotationList +TYPEDEF+ derivedTypeDeclarationIR nameIR +;+``.
-      ....... Result in context ``TC~1~`` and ``typedefDeclarationIR``.
-    ..... {empty}
-     ...... Let context ``TC~1~`` and ``declarationIR`` be the result of xref:Decl_ok[typing ``derivedTypeDeclaration`` under context ``TC~0~``].
-     ...... Let!~type~ ``derivedTypeDeclarationIR`` be ``declarationIR``.
-
-     ...... Let ``set<typeId>''`` be xref:dom_map[the domain of the map ``TC~1~.+GLOBAL+.+TYPE+``].
-     ...... Let ``set<typeId>'''`` be xref:dom_map[the domain of the map ``TC~0~.+GLOBAL+.+TYPE+``].
-     ...... Let ``+{+typeId'^{asterisk}^+}+`` be xref:diff_set[the difference of the sets ``set<typeId>''`` and ``set<typeId>'''``].
-     ...... Let!~type~ ``typeId`` be ``typeId'^{asterisk}^``.
-
-     ...... Let ``typeDefIR`` be xref:option_get[*!*] xref:find_typeDef_t[the type definition of ``typeId`` from the ``+GLOBAL+`` layer of ``TC~1~``].
-     ...... Check that xref:is_monomorphic_typeDefIR[``typeDefIR`` is not monomorphic].
-
-     ...... Check that ( ``·``, ``·`` ) is equal to xref:typeParameterListIR_of_typeDefIR[the type parameters of ``typeDefIR``].
-
-     ...... Let ``nameIR`` be xref:name[the name of ``name``].
-     ...... Let ``typeIR`` be xref:specialize_typeDefIR[``typeDefIR`` specialized by ``·``].
-     ...... Let ``typedefTypeIR`` be ``+TYPEDEF+ nameIR typeIR``.
-     ...... Let ``bound''''''''''`` be xref:bound[bound type variables from the ``+GLOBAL+`` layer of ``TC~0~``].
-     ...... If xref:TypeDef_wf[``typedefTypeIR`` is a well-formed type definition, with bound type variables ``bound''''''''''``]:
-      ....... Let ``TC~2~`` be xref:add_typeDef_t[``TC~0~`` where ``nameIR`` to ``typedefTypeIR`` is added to the ``+GLOBAL+`` layer].
-      ....... Let ``typedefDeclarationIR`` be ``annotationList +TYPEDEF+ derivedTypeDeclarationIR nameIR +;+``.
-      ....... Result in context ``TC~1~`` and ``typedefDeclarationIR``.
+    ..... Let ``nameIR`` be xref:name[the name of ``name``].
+    ..... Let ``typeIR`` be xref:specialize_typeDefIR[``typeDefIR`` specialized by ``·``].
+    ..... Let ``typedefTypeIR`` be ``+TYPEDEF+ nameIR typeIR``.
+    ..... Let ``bound''''''''''`` be xref:bound[bound type variables from the ``+GLOBAL+`` layer of ``TC~0~``].
+    ..... If xref:TypeDef_wf[``typedefTypeIR`` is a well-formed type definition, with bound type variables ``bound''''''''''``]:
+     ...... Let ``TC~2~`` be xref:add_typeDef_t[``TC~0~`` where ``nameIR`` to ``typedefTypeIR`` is added to the ``+GLOBAL+`` layer].
+     ...... Let ``typedefDeclarationIR`` be ``annotationList +TYPEDEF+ derivedTypeDeclarationIR nameIR +;+``.
+     ...... Result in context ``TC~1~`` and ``typedefDeclarationIR``.
  .. Else:
   ... Let ``B`` be xref:bound[bound type variables from the ``+GLOBAL+`` layer of ``TC~0~``].
   ... Let ``typeIR`` and fresh type variables ``typeId^{asterisk}^`` be the result of xref:Type_ok[typing ``type``, under context ``TC~0~`` at ``+GLOBAL+``].
@@ -11589,14 +11569,12 @@ xref:Expr_inst[Expr_inst]:
  .. Let!~type~ ``typedExpressionIR~base~ +[+typedExpressionIR~hi~ +:+ typedExpressionIR~lo~+]+`` be ``sliceAccessExpressionIR``.
 
  .. Let store ``STO~1~`` and ``value~base~`` be the result of xref:Expr_inst[compile-time evaluation of ``typedExpressionIR~base~``, under context ``IC`` and store ``STO'`` at ``p``].
+ .. Let store ``STO~2~`` and ``value~hi~`` be the result of xref:Expr_inst[compile-time evaluation of ``typedExpressionIR~hi~``, under context ``IC`` and store ``STO~1~`` at ``p``].
+ .. Let store ``STO~3~`` and ``value~lo~`` be the result of xref:Expr_inst[compile-time evaluation of ``typedExpressionIR~lo~``, under context ``IC`` and store ``STO~2~`` at ``p``].
  .. Try:
   ... {empty}
-   .... Let store ``STO~2~`` and ``value~hi~`` be the result of xref:Expr_inst[compile-time evaluation of ``typedExpressionIR~hi~``, under context ``IC`` and store ``STO~1~`` at ``p``].
-   .... Let store ``STO~3~`` and ``value~lo~`` be the result of xref:Expr_inst[compile-time evaluation of ``typedExpressionIR~lo~``, under context ``IC`` and store ``STO~2~`` at ``p``].
    .... Result in store ``STO~3~`` and <<bitacc_range_op,``value~base~`` ``+[+`` ``value~hi~`` ``+:+`` ``value~lo~`` ``+]+``>>.
   ... {empty}
-   .... Let store ``STO~2~`` and ``value~l~`` be the result of xref:Expr_inst[compile-time evaluation of ``typedExpressionIR~hi~``, under context ``IC`` and store ``STO~1~`` at ``p``].
-   .... Let store ``STO~3~`` and ``value~w~`` be the result of xref:Expr_inst[compile-time evaluation of ``typedExpressionIR~lo~``, under context ``IC`` and store ``STO~2~`` at ``p``].
    .... Result in store ``STO~3~`` and <<bitacc_offset_op,``value~base~`` ``+[+`` %1 + : %2 ``+]+``>>.
 . Else if let ``callExpressionIR`` be ``expressionIR``:
  .. If let ``prefixedNameIR +<+typeArgumentListIR+>+ +(+argumentListIR+)+`` be ``callExpressionIR``:
@@ -12209,37 +12187,25 @@ xref:Decl_inst[Decl_inst]:
    .... Let ``IC~1~`` be xref:add_typeDef_i[``IC~0~`` where ``nameIR`` to ``aliasTypeDefIR`` is added to the ``+GLOBAL+`` layer].
    .... Result in context ``IC~1~`` and store ``STO'``.
   ... Else:
-   .... Try:
-    ..... {empty}
-     ...... Let context ``IC~local~`` and store ``++_++`` be the result of xref:Decl_inst[loading ``derivedTypeDeclarationIR``, under context ``IC~0~``, and store an empty store].
-     ...... Let ``set<typeId>`` be xref:dom_map[the domain of the map ``IC~local~.+GLOBAL+.+TYPE+``].
-     ...... Let ``set<typeId>'`` be xref:dom_map[the domain of the map ``IC~0~.+GLOBAL+.+TYPE+``].
-     ...... Let ``+{+typeId^{asterisk}^+}+`` be xref:diff_set[the difference of the sets ``set<typeId>`` and ``set<typeId>'``].
-     ...... Let!~type~ ``typeId~newtype~`` be ``typeId^{asterisk}^``.
+   .... Let context ``IC~local~`` and store ``++_++`` be the result of xref:Decl_inst[loading ``derivedTypeDeclarationIR``, under context ``IC~0~``, and store an empty store].
+   .... Let ``set<typeId>`` be xref:dom_map[the domain of the map ``IC~local~.+GLOBAL+.+TYPE+``].
+   .... Let ``set<typeId>'`` be xref:dom_map[the domain of the map ``IC~0~.+GLOBAL+.+TYPE+``].
+   .... Let ``+{+typeId^{asterisk}^+}+`` be xref:diff_set[the difference of the sets ``set<typeId>`` and ``set<typeId>'``].
+   .... Let!~type~ ``typeId~newtype~`` be ``typeId^{asterisk}^``.
 
-     ...... Let ``typeDefIR`` be xref:option_get[*!*] xref:find_typeDef_i[the type definition of ``+.+ typeId~newtype~`` from the ``+GLOBAL+`` layer of ``IC~local~``].
-     ...... Check that xref:is_monomorphic_typeDefIR[``typeDefIR`` is monomorphic].
+   .... Let ``typeDefIR`` be xref:option_get[*!*] xref:find_typeDef_i[the type definition of ``+.+ typeId~newtype~`` from the ``+GLOBAL+`` layer of ``IC~local~``].
+   .... If xref:is_monomorphic_typeDefIR[``typeDefIR`` is monomorphic]:
+    ..... Let ``typeIR`` be xref:typeIR_of_typeDefIR[the underlying type of ``typeDefIR``].
+    ..... Let ``aliasTypeDefIR`` be ``+TYPEDEF+ nameIR typeIR``.
+    ..... Let ``IC~1~`` be xref:add_typeDef_i[``IC~0~`` where ``nameIR`` to ``aliasTypeDefIR`` is added to the ``+GLOBAL+`` layer].
+    ..... Result in context ``IC~1~`` and store ``STO'``.
+   .... Else:
+    ..... Check that ( ``·``, ``·`` ) is equal to xref:typeParameterListIR_of_typeDefIR[the type parameters of ``typeDefIR``].
 
-     ...... Let ``typeIR`` be xref:typeIR_of_typeDefIR[the underlying type of ``typeDefIR``].
-     ...... Let ``aliasTypeDefIR`` be ``+TYPEDEF+ nameIR typeIR``.
-     ...... Let ``IC~1~`` be xref:add_typeDef_i[``IC~0~`` where ``nameIR`` to ``aliasTypeDefIR`` is added to the ``+GLOBAL+`` layer].
-     ...... Result in context ``IC~1~`` and store ``STO'``.
-    ..... {empty}
-     ...... Let context ``IC~local~`` and store ``++_++`` be the result of xref:Decl_inst[loading ``derivedTypeDeclarationIR``, under context ``IC~0~``, and store an empty store].
-     ...... Let ``set<typeId>''`` be xref:dom_map[the domain of the map ``IC~local~.+GLOBAL+.+TYPE+``].
-     ...... Let ``set<typeId>'''`` be xref:dom_map[the domain of the map ``IC~0~.+GLOBAL+.+TYPE+``].
-     ...... Let ``+{+typeId^{asterisk}^+}+`` be xref:diff_set[the difference of the sets ``set<typeId>''`` and ``set<typeId>'''``].
-     ...... Let!~type~ ``typeId~newtype~`` be ``typeId^{asterisk}^``.
-
-     ...... Let ``typeDefIR`` be xref:option_get[*!*] xref:find_typeDef_i[the type definition of ``+.+ typeId~newtype~`` from the ``+GLOBAL+`` layer of ``IC~local~``].
-     ...... Check that xref:is_monomorphic_typeDefIR[``typeDefIR`` is not monomorphic].
-
-     ...... Check that ( ``·``, ``·`` ) is equal to xref:typeParameterListIR_of_typeDefIR[the type parameters of ``typeDefIR``].
-
-     ...... Let ``typeIR`` be xref:specialize_typeDefIR[``typeDefIR`` specialized by ``·``].
-     ...... Let ``typedefTypeIR`` be ``+TYPEDEF+ nameIR typeIR``.
-     ...... Let ``IC~1~`` be xref:add_typeDef_i[``IC~0~`` where ``nameIR`` to ``typedefTypeIR`` is added to the ``+GLOBAL+`` layer].
-     ...... Result in context ``IC~1~`` and store ``STO'``.
+    ..... Let ``typeIR`` be xref:specialize_typeDefIR[``typeDefIR`` specialized by ``·``].
+    ..... Let ``typedefTypeIR`` be ``+TYPEDEF+ nameIR typeIR``.
+    ..... Let ``IC~1~`` be xref:add_typeDef_i[``IC~0~`` where ``nameIR`` to ``typedefTypeIR`` is added to the ``+GLOBAL+`` layer].
+    ..... Result in context ``IC~1~`` and store ``STO'``.
  .. Else:
   ... Let ``aliasTypeDefIR`` be ``+TYPE+ nameIR typeIR``.
   ... Let ``IC~1~`` be xref:add_typeDef_i[``IC~0~`` where ``nameIR`` to ``aliasTypeDefIR`` is added to the ``+GLOBAL+`` layer].
