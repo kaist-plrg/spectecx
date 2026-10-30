@@ -26,3 +26,40 @@ rule Describe/LargeOdd:
   -- Positive: |- n
   -- if $(n \ 2 =/= 0)
   -- if $(n >= 10)
+
+var a : nat
+var b : nat
+var c : nat
+var d : nat
+
+relation Double: nat ==> nat
+  hint(input %0)
+
+rule Double:
+  a ==> $(a + a)
+
+relation Size: nat nat ==> text
+  hint(input %0 %1)
+
+rule Size/Small:
+  a b ==> "small"
+  -- Double: $(a + b) ==> c
+  -- if $(c < 10)
+
+rule Size/Large:
+  a b ==> "large"
+  -- Double: $(a + b) ==> d
+  -- if $(d >= 10)
+
+relation Pick: nat nat ==> nat
+  hint(input %0 %1)
+
+rule Pick/Left:
+  a b ==> c
+  -- Double: a ==> c
+  -- if $(c < 10)
+
+rule Pick/Right:
+  a b ==> c
+  -- Double: b ==> c
+  -- if $(c >= 10)

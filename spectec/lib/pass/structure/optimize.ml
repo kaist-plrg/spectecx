@@ -263,9 +263,9 @@ module Bind = struct
         collapse_expunit Renamer.Rename.empty expunit_l expunit_target_l
     | ( RelBind (id, expunits_l, expunits_r),
         RelBind (id_target, expunits_target_l, expunits_target_r) )
-      when Sl.Eq.eq_id id id_target && eq_expunits expunits_r expunits_target_r
+      when Sl.Eq.eq_id id id_target && eq_expunits expunits_l expunits_target_l
       ->
-        collapse_expunits Renamer.Rename.empty expunits_l expunits_target_l
+        collapse_expunits Renamer.Rename.empty expunits_r expunits_target_r
     | _ -> None
 end
 
