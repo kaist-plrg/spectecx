@@ -7,4 +7,5 @@ let () =
   Nested_call_expansion.run ();
   Expressions.run ();
   Builtin_arities.run ();
-  Determinism.run ()
+  Determinism.run ();
+  Structuring.run ()

@@ -1,0 +1,28 @@
+var n : nat
+
+relation Positive: |- nat
+  hint(input %0)
+
+rule Positive:
+  |- n
+  -- if $(n > 0)
+
+relation Describe: nat ==> text
+  hint(input %0)
+
+rule Describe/Even:
+  n ==> "even"
+  -- Positive: |- n
+  -- if $(n \ 2 = 0)
+
+rule Describe/SmallOdd:
+  n ==> "small odd"
+  -- Positive: |- n
+  -- if $(n \ 2 =/= 0)
+  -- if $(n < 10)
+
+rule Describe/LargeOdd:
+  n ==> "large odd"
+  -- Positive: |- n
+  -- if $(n \ 2 =/= 0)
+  -- if $(n >= 10)
