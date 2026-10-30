@@ -47,7 +47,7 @@ and eval_instr (ctx : Ctx.t) (instr : instr) : Sign.t =
     let value = eval_exp ctx exp in
     print_endline
     @@ F.sprintf "%s: %s"
-         (Location.to_string exp.at ^ ":")
+         (Location.to_string exp.at)
          (Il.Print.string_of_exp exp);
     print_endline @@ Il.Print.string_of_value value
   in
@@ -88,7 +88,7 @@ and eval_instrs_unique (ctx : Ctx.t) (instrs : instr list) : Sign.t =
             error instr.at
               (F.asprintf
                  "this alternative applies, and so does the alternative at %s"
-                 (Location.to_string at_applied ^ ":")))
+                 (Location.to_string at_applied)))
       None instrs
   in
   match applied with Some (sign, _) -> sign | None -> Sign.Cont

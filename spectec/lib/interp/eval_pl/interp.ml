@@ -46,9 +46,7 @@ and eval_instr (ctx : Ctx.t) (instr : instr) : Ctx.t * Sign.t =
   let eval_debug_instr ctx exp =
     let value = eval_exp ctx exp in
     print_endline
-    @@ F.sprintf "%s: %s"
-         (Location.to_string exp.at ^ ":")
-         (Print.string_of_exp exp);
+    @@ F.sprintf "%s: %s" (Location.to_string exp.at) (Print.string_of_exp exp);
     print_endline @@ Il.Print.string_of_value value;
     (ctx, Sign.Cont)
   in
@@ -106,7 +104,7 @@ and eval_try_instr_unique (ctx : Ctx.t) (arms : instr list list) :
         | _, Some (_, at_applied) ->
             error (at_of_arm arm)
               (F.asprintf "this arm applies, and so does the arm at %s"
-                 (Location.to_string at_applied ^ ":")))
+                 (Location.to_string at_applied)))
       None arms
   in
   match applied with Some (result, _) -> result | None -> (ctx, Sign.Cont)
