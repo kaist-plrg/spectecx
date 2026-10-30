@@ -164,18 +164,18 @@ module Bind = struct
 
   let init_rel_bind (rtenv : RTEnv.t) (id : id) (notexp : notexp)
       (iterexps : iterexp list) : t =
-    let exps_l, exps_r =
+    let exps_input, exps_output =
       let exps = Il.Mixfix.args notexp in
       let reltyp = RTEnv.find id rtenv in
       Il.Mode.partition reltyp.it exps
     in
-    let expunits_l =
-      List.map (fun exp_l -> init_expunit exp_l iterexps) exps_l
+    let expunits_input =
+      List.map (fun exp -> init_expunit exp iterexps) exps_input
     in
-    let expunits_r =
-      List.map (fun exp_r -> init_expunit exp_r iterexps) exps_r
+    let expunits_output =
+      List.map (fun exp -> init_expunit exp iterexps) exps_output
     in
-    RelBind (id, expunits_l, expunits_r)
+    RelBind (id, expunits_input, expunits_output)
 
   (* Collapsing two bindings,
      if two bindings have syntactically equal right-hand sides,
@@ -261,11 +261,12 @@ module Bind = struct
         LetBind (expunit_target_l, expunit_target_r) )
       when eq_expunit expunit_r expunit_target_r ->
         collapse_expunit Renamer.Rename.empty expunit_l expunit_target_l
-    | ( RelBind (id, expunits_l, expunits_r),
-        RelBind (id_target, expunits_target_l, expunits_target_r) )
-      when Sl.Eq.eq_id id id_target && eq_expunits expunits_l expunits_target_l
-      ->
-        collapse_expunits Renamer.Rename.empty expunits_r expunits_target_r
+    | ( RelBind (id, expunits_input, expunits_output),
+        RelBind (id_target, expunits_target_input, expunits_target_output) )
+      when Sl.Eq.eq_id id id_target
+           && eq_expunits expunits_input expunits_target_input ->
+        collapse_expunits Renamer.Rename.empty expunits_output
+          expunits_target_output
     | _ -> None
 end
 
