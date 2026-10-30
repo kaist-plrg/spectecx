@@ -1,4 +1,5 @@
 open Common.Source
+module Location = Common.Location
 open Lang.Pl
 open Error
 module F = Format
@@ -10,7 +11,7 @@ let run_relation ~check_determinism ~opaque_types (builtins : Builtins.t)
     Interp.context_of_spec spec ~builtins ~cache ~check_determinism
       ~opaque_types
   in
-  let mode, _, _ = Ctx.find_rel_exn ctx ~id:(rid $ no_region) in
+  let mode, _, _ = Ctx.find_rel_exn ctx ~id:(rid $ Location.Unknown) in
   let typs =
     List.map
       (fun (exp : Lang.Pl.exp) -> exp.note.typ $ exp.at)
@@ -23,17 +24,17 @@ let run_relation ~check_determinism ~opaque_types (builtins : Builtins.t)
    with
   | Ok () -> ()
   | Error message ->
-      Error.error no_region ("relation " ^ rid ^ " input: " ^ message));
-  match Interp.invoke_rel ctx (rid $ no_region) values with
+      Error.error Location.Unknown ("relation " ^ rid ^ " input: " ^ message));
+  match Interp.invoke_rel ctx (rid $ Location.Unknown) values with
   | Some values -> (ctx, values)
-  | None -> error no_region "relation was not matched"
+  | None -> error Location.Unknown "relation was not matched"
 
 let run_relation_fresh ~check_determinism ~opaque_types builtins cache spec rid
     values =
   Interp_runtime.Cache.clear cache;
   run_relation ~check_determinism ~opaque_types builtins cache spec rid values
 
-type error = region * string
+type error = Location.t * string
 
 let run ?(check_determinism = false) (module T : Target.S) (spec : spec)
     (rid : string) (values : value list) : (Ctx.t * value list, error) result =
@@ -46,7 +47,7 @@ let run ?(check_determinism = false) (module T : Target.S) (spec : spec)
     let opaque_types =
       match Opaque_types.make T.opaque_types with
       | Ok types -> types
-      | Error message -> Error.error no_region message
+      | Error message -> Error.error Location.Unknown message
     in
     run_relation_fresh ~check_determinism ~opaque_types builtins cache spec rid
       values

@@ -1,5 +1,6 @@
 open Common.Domain
 open Common.Source
+module Location = Common.Location
 open Lang.Il.Expression
 open Lang.Il
 open Diagnostic
@@ -117,8 +118,8 @@ let rec analyze_prem (dctx : Dctx.t) (prem : prem) :
   | IterPr (prem, (iter, [])) -> analyze_iter_prem dctx prem.at prem iter
   | DebugPr exp -> analyze_debug_prem dctx prem.at exp
 
-and analyze_rule_prem (dctx : Dctx.t) (at : region) (id : id) (notexp : notexp)
-    : Dctx.t * VEnv.t * prem * prem list =
+and analyze_rule_prem (dctx : Dctx.t) (at : Location.t) (id : id)
+    (notexp : notexp) : Dctx.t * VEnv.t * prem * prem list =
   let mixop, exps = Mixop.split notexp in
   let reltyp = Dctx.find_reltyp dctx id in
   let exps_input, exps_output = Mode.partition reltyp.it exps in
@@ -131,7 +132,7 @@ and analyze_rule_prem (dctx : Dctx.t) (at : region) (id : id) (notexp : notexp)
   let prem = RelPr { relid = id; notexp } $$ (at, None) in
   (dctx, venv, prem, sideconditions)
 
-and analyze_if_eq_prem (dctx : Dctx.t) (at : region) (note : typ')
+and analyze_if_eq_prem (dctx : Dctx.t) (at : Location.t) (note : typ')
     (optyp : optyp) (exp_l : exp) (exp_r : exp) :
     Dctx.t * VEnv.t * prem' * prem list =
   let binds_l = Collectbind.collect_exp dctx exp_l in
@@ -161,7 +162,7 @@ and analyze_if_eq_prem (dctx : Dctx.t) (at : region) (note : typ')
            bound, or as a binder when one side is. With new variables on both \
            sides it fits neither."
 
-and analyze_if_prem (dctx : Dctx.t) (at : region) (exp : exp) :
+and analyze_if_prem (dctx : Dctx.t) (at : Location.t) (exp : exp) :
     Dctx.t * VEnv.t * prem * prem list =
   match exp.it with
   | CmpE (`EqOp, optyp, exp_l, exp_r) ->
@@ -175,7 +176,7 @@ and analyze_if_prem (dctx : Dctx.t) (at : region) (exp : exp) :
       let prem = IfPr { cond = exp; role = Condition } $$ (at, None) in
       (dctx, VEnv.empty, prem, [])
 
-and analyze_rel_assert_prem (dctx : Dctx.t) (at : region) (call : relcall)
+and analyze_rel_assert_prem (dctx : Dctx.t) (at : Location.t) (call : relcall)
     (expect : bool) : Dctx.t * VEnv.t * prem * prem list =
   analyze_exps_as_bound dctx (Mixop.args call.notexp);
   let prem = RelAssertPr { call; expect } $$ (at, None) in
@@ -199,8 +200,8 @@ and analyze_let_prem (dctx : Dctx.t) (exp_l : exp) (binds_l : BEnv.t)
   let prem = LetPr (exp_l, exp_r) in
   (dctx, venv, prem, prems)
 
-and analyze_iter_prem (dctx : Dctx.t) (at : region) (prem : prem) (iter : iter)
-    : Dctx.t * VEnv.t * prem * prem list =
+and analyze_iter_prem (dctx : Dctx.t) (at : Location.t) (prem : prem)
+    (iter : iter) : Dctx.t * VEnv.t * prem * prem list =
   let dctx, venv, prem, prems = analyze_prem dctx prem in
   let venv = VEnv.map (Typ.add_iter iter) venv in
   let prems =
@@ -209,7 +210,7 @@ and analyze_iter_prem (dctx : Dctx.t) (at : region) (prem : prem) (iter : iter)
   let prem = IterPr (prem, (iter, [])) $$ (at, None) in
   (dctx, venv, prem, prems)
 
-and analyze_debug_prem (dctx : Dctx.t) (at : region) (exp : exp) :
+and analyze_debug_prem (dctx : Dctx.t) (at : Location.t) (exp : exp) :
     Dctx.t * VEnv.t * prem * prem list =
   analyze_exp_as_bound dctx exp;
   let prem = DebugPr exp $$ (at, None) in

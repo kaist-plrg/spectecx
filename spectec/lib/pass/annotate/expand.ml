@@ -32,6 +32,7 @@
 
 open Common.Domain
 open Common.Source
+module Location = Common.Location
 open Lang
 open Lang.Sl
 module Mixfix = Il.Mixfix
@@ -383,7 +384,8 @@ let replace_call_exp ~(lift : lift) ?(iter_locals = IdSet.empty)
       ([], var_base) iterexps
   in
   let wrap_in_let body =
-    LetI (Il.Var.as_exp var_base, exp_orig, iterexps_let, [ body ]) $ no_region
+    LetI (Il.Var.as_exp var_base, exp_orig, iterexps_let, [ body ])
+    $ Location.Unknown
   in
   Some (wrap_in_let, exp, ids_used)
 

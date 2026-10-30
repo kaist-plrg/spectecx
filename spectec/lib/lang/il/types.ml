@@ -160,7 +160,7 @@ module Expression = struct
 
   (** Replace annotations throughout an expression, including expressions in paths
       and arguments. The callback receives each original expression. Syntax,
-      types and source regions are preserved. Callback order among
+      types and source locations are preserved. Callback order among
       sibling expressions is unspecified. *)
   let map_annotations annotate exp =
     let rec map_exp (exp : _ t) =

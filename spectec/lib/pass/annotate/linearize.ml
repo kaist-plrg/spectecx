@@ -1,4 +1,5 @@
 open Common.Source
+module Location = Common.Location
 module Sl = Lang.Sl
 
 let rec linearize_instr (instr : Sl.instr) : Ll.block =
@@ -44,7 +45,7 @@ and linearize_block (block : Sl.block) : Ll.block =
   match List.map linearize_instr block with
   | [] -> []
   | [ arm ] -> arm
-  | arms -> [ Ll.TryI arms $ no_region ]
+  | arms -> [ Ll.TryI arms $ Location.Unknown ]
 
 and linearize_guard (g : Sl.guard) : Ll.guard =
   match g with
@@ -56,7 +57,7 @@ and linearize_guard (g : Sl.guard) : Ll.guard =
 
 let linearize_elseblock (elseblock : Sl.elseblock) : Ll.block =
   let block_ll = linearize_block elseblock in
-  [ Ll.OtherwiseI block_ll $ no_region ]
+  [ Ll.OtherwiseI block_ll $ Location.Unknown ]
 
 let linearize_elseblock_opt (elseblock_opt : Sl.elseblock option) : Ll.block =
   match elseblock_opt with

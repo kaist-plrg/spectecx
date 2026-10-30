@@ -2,6 +2,7 @@
 open Lang.Il.Value
 open Lang.Il.Case
 open Common.Source
+module Location = Common.Location
 
 let number n = [tag "NUM"; arg (int n)] |> case_v ~var:"expr"
 let identifier x = [tag "ID"; arg (text x)] |> case_v ~var:"id"
@@ -20,7 +21,7 @@ let function_binding f x body =
   in
   [arg (identifier f); atom Lang.Xl.Atom.Arrow; arg definition] |> case_v ~var:"fbinding"
 let program bindings expr =
-  [tag "PROGRAM"; arg (list (Lang.Il.Typ.var "fbinding" [] $ no_region) bindings); arg expr]
+  [tag "PROGRAM"; arg (list (Lang.Il.Typ.var "fbinding" [] $ Location.Unknown) bindings); arg expr]
   |> case_v ~var:"prog"
 let function_expr x body =
   [kw "LAMBDA"; arg (identifier x); op "."; arg body] |> case_v ~var:"expr"
@@ -75,7 +76,7 @@ let label x = [tag "LABEL"; arg (text x)] |> case_v ~var:"label"
 let field kind separator name value =
   [arg (label name); op separator; arg value] |> case_v ~var:kind
 let record kind field_kind fields =
-  [lbrace (); arg (list (Lang.Il.Typ.var field_kind [] $ no_region) fields); rbrace ()]
+  [lbrace (); arg (list (Lang.Il.Typ.var field_kind [] $ Location.Unknown) fields); rbrace ()]
   |> case_v ~var:kind
 let projection expr name =
   [arg expr; op "."; arg (label name)] |> case_v ~var:"expr"

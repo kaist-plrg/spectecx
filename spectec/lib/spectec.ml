@@ -72,7 +72,7 @@ let shorten spec_pl = Pass.shorten spec_pl
 let validate_config config ~(mode : Interp_mode.request) =
   Instrumentation.Config.validate_mode config ~mode
   |> Result.map_error (fun msg ->
-         Error.ConfigError (Common.Source.no_region, msg))
+         Error.ConfigError (Common.Location.Unknown, msg))
 
 (* --- Unified interpreter entry point --- *)
 

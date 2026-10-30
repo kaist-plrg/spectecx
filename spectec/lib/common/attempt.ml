@@ -1,9 +1,7 @@
-open Source
-
 (* Backtracking *)
 
 (* [Guard] marks an applicability-guard failure: the rule did not apply. *)
-type failtrace = { region : region; message : string; kind : kind }
+type failtrace = { location : Location.t; message : string; kind : kind }
 and kind = Failed of failtrace list | Guard
 
 type 'a attempt = ('a, failtrace list) result
@@ -16,17 +14,17 @@ let rec depth (failtrace : failtrace) : int =
   | Guard -> 1
 
 (* Constructors *)
-let fail (at : region) (msg : string) : 'a attempt =
-  Error [ { region = at; message = msg; kind = Failed [] } ]
+let fail (at : Location.t) (msg : string) : 'a attempt =
+  Error [ { location = at; message = msg; kind = Failed [] } ]
 
-let fail_guard (at : region) (msg : string) : 'a attempt =
-  Error [ { region = at; message = msg; kind = Guard } ]
+let fail_guard (at : Location.t) (msg : string) : 'a attempt =
+  Error [ { location = at; message = msg; kind = Guard } ]
 
 (* Fail with no messages *)
 let fail_silent : 'a attempt = Error []
 
 (* Fail if condition is not met *)
-let guard (cond : bool) (at : region) (msg : string) : unit attempt =
+let guard (cond : bool) (at : Location.t) (msg : string) : unit attempt =
   if cond then Ok () else fail at msg
 
 (* Monadic bind *)
@@ -50,25 +48,23 @@ let nest at msg attempt =
   match attempt with
   | Ok a -> Ok a
   | Error failtraces ->
-      Error [ { region = at; message = msg; kind = Failed failtraces } ]
+      Error [ { location = at; message = msg; kind = Failed failtraces } ]
 
-(* Extract region from failtraces *)
+(* Extract location from failtraces *)
 
-let rec region_of_failtrace failtrace =
-  if failtrace.region <> no_region then failtrace.region
-  else
-    match failtrace.kind with
-    | Failed failtraces -> region_of_failtraces failtraces
-    | Guard -> no_region
+let rec location_of_failtrace failtrace =
+  match (failtrace.location, failtrace.kind) with
+  | Location.Unknown, Failed failtraces -> location_of_failtraces failtraces
+  | location, _ -> location
 
-and region_of_failtraces failtraces =
+and location_of_failtraces failtraces =
   match failtraces with
-  | [] -> no_region
-  | [ failtrace ] -> region_of_failtrace failtrace
-  | failtrace :: _ -> region_of_failtrace failtrace
+  | [] -> Location.Unknown
+  | [ failtrace ] -> location_of_failtrace failtrace
+  | failtrace :: _ -> location_of_failtrace failtrace
 
 let compare_failtrace failtrace_l failtrace_r =
-  compare_region failtrace_l.region failtrace_r.region
+  Location.compare failtrace_l.location failtrace_r.location
 
 (* A rule attempt that failed only its applicability guard did not apply. *)
 let is_guard_failure (failtrace : failtrace) : bool =

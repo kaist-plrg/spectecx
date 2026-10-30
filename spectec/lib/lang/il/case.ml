@@ -1,7 +1,8 @@
 open Types
 open Common.Source
+module Location = Common.Location
 
-let atom ?(at = no_region) (a : Xl.Atom.t) : value Mixfix.mixeme =
+let atom ?(at = Location.Unknown) (a : Xl.Atom.t) : value Mixfix.mixeme =
   Mixfix.Atom (a $ at)
 
 let arg (v : value) : value Mixfix.mixeme = Mixfix.Arg v

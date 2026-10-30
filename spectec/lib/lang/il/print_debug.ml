@@ -3,6 +3,7 @@ open Types.Expression
 open Types
 open Common.Print
 open Common.Source
+module Location = Common.Location
 
 (* Numbers *)
 
@@ -286,7 +287,7 @@ and string_of_targs targs =
 
 and string_of_rule rule =
   let { ruleid; concl; prems } = rule.it in
-  ";; " ^ string_of_region rule.at ^ "\n   rule " ^ string_of_ruleid ruleid
+  ";; " ^ Location.to_string rule.at ^ ":\n   rule " ^ string_of_ruleid ruleid
   ^ ": " ^ string_of_notexp concl ^ string_of_prems prems
 
 and string_of_rules rules =
@@ -297,8 +298,10 @@ and string_of_rules rules =
 
 and string_of_clause idx clause =
   let { args; body; prems } = clause.it in
-  ";; " ^ string_of_region clause.at ^ "\n   clause " ^ string_of_int idx
-  ^ string_of_args args ^ " = " ^ string_of_exp body ^ string_of_prems prems
+  ";; "
+  ^ Location.to_string clause.at
+  ^ ":\n   clause " ^ string_of_int idx ^ string_of_args args ^ " = "
+  ^ string_of_exp body ^ string_of_prems prems
 
 and string_of_clauses clauses =
   String.concat ""
@@ -341,7 +344,7 @@ and string_of_hints hints = String.concat "" (List.map string_of_hint hints)
 (* Definitions *)
 
 let rec string_of_def def =
-  ";; " ^ string_of_region def.at ^ "\n"
+  ";; " ^ Location.to_string def.at ^ ":\n"
   ^
   match def.it with
   | TypD { synid = id; deftyp = { it = OpaqueT; _ }; _ } ->

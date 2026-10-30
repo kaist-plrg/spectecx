@@ -100,7 +100,7 @@ let make_parse (module Tgt : Spectec.Target.S) ~name ~summary
           if eq then Ok unparsed
           else
             Error
-              (Error.RoundtripError (Common.Source.no_region, "Roundtrip failed"))
+              (Error.RoundtripError (Common.Location.Unknown, "Roundtrip failed"))
       | `Tree ->
           let ansi = resolve_ansi ~out:Unix.stdout color in
           let style part s =
@@ -110,8 +110,8 @@ let make_parse (module Tgt : Spectec.Target.S) ~name ~summary
               | Type -> [ Cyan ]
               | Mixop | Atom -> [ Blue ]
               | Leaf -> [ Yellow ]
-              | Region -> [ Dim ]
-              | No_region -> [ Red ]
+              | Location -> [ Dim ]
+              | No_location -> [ Red ]
             in
             style ansi styles s
           in

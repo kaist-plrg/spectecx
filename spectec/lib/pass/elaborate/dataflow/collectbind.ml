@@ -1,4 +1,5 @@
 open Common.Source
+module Location = Common.Location
 open Lang.Il.Expression
 open Lang.Il
 open Diagnostic
@@ -9,7 +10,7 @@ module Mixop = Lang.Il.Mixfix
    while enforcing the invariant that binding identifiers
    can only occur in invertible constructs *)
 
-let collect_noninvertible (at : region) (construct : string)
+let collect_noninvertible (at : Location.t) (construct : string)
     (benv : Bind.BEnv.t) : unit =
   if not (Bind.BEnv.is_empty benv) then
     error at

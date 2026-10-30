@@ -18,9 +18,9 @@ let state n = V.opaque typdef_state n
 let nat n = V.nat (Bigint.of_int n)
 
 let box saved =
-  let typ = Lang.Il.Typ.var "state" [] $ Common.Source.no_region in
+  let typ = Lang.Il.Typ.var "state" [] $ Common.Location.Unknown in
   let field name value =
-    (Lang.Xl.Atom.keyword name $ Common.Source.no_region, value)
+    (Lang.Xl.Atom.keyword name $ Common.Location.Unknown, value)
   in
   V.record "box"
     [
@@ -60,7 +60,7 @@ module Target : Interp.Target.S = struct
       );
       ( "wrong_box",
         B.Define.T0.a0 (fun ~at:_ ->
-            let typ = Lang.Il.Typ.var "state" [] $ Common.Source.no_region in
+            let typ = Lang.Il.Typ.var "state" [] $ Common.Location.Unknown in
             Ok
               (V.tuple
                  [ nat 0; V.list typ [ V.opaque typdef_conflicting "wrong" ] ]))
@@ -108,7 +108,7 @@ let run () =
     ~relation:"Roundtrip"
     ~args:(fun () -> [ nat 3 ])
     (H.returns (fun () ->
-         let typ = Lang.Il.Typ.var "state" [] $ Common.Source.no_region in
+         let typ = Lang.Il.Typ.var "state" [] $ Common.Location.Unknown in
          [ nat 4; V.list typ [ state 4 ]; V.opt typ (Some (state 4)) ]));
   H.check spec
     ~target:(module Target)

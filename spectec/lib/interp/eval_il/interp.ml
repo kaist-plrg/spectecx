@@ -1,4 +1,5 @@
 open Common.Source
+module Location = Common.Location
 open Lang.Il
 open Envs.Make
 module Typ = Envs.Il.Typ
@@ -22,7 +23,8 @@ let is_fallback_clause (clause : clause) : bool =
 
 let describe_rule (id_rel : id) (rule : rule) : string =
   let ({ ruleid = id_rule; _ } : rule') = rule.it in
-  if id_rule.it = "" then F.asprintf "the rule at %s" (string_of_region rule.at)
+  if id_rule.it = "" then
+    F.asprintf "the rule at %s" (Location.to_string rule.at ^ ":")
   else F.asprintf "rule %s/%s" id_rel.it id_rule.it
 
 module Expressions = Interp_runtime.Expression.Make (struct
@@ -86,7 +88,9 @@ and eval_prem (ctx : Ctx.t) (prem : prem) : Ctx.t attempt =
   let eval_debug_prem ctx exp =
     let value = eval_exp ctx exp in
     print_endline
-    @@ F.sprintf "%s: %s" (string_of_region exp.at) (Print.string_of_exp exp);
+    @@ F.sprintf "%s: %s"
+         (Location.to_string exp.at ^ ":")
+         (Print.string_of_exp exp);
     print_endline @@ Print.string_of_value value;
     Ok ctx
   in

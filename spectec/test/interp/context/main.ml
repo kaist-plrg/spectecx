@@ -1,4 +1,5 @@
 open Common.Source
+module Location = Common.Location
 module Il = Lang.Il
 module Value = Il.Value
 
@@ -12,11 +13,11 @@ end
 
 module Ctx = Interp_runtime.Context.Make (Func) (Rel)
 
-let id name = name $ no_region
+let id name = name $ Location.Unknown
 let var name = (id name, [])
 let nat n = Value.nat (Bigint.of_int n)
-let typ_nat = Il.Typ.nat $ no_region
-let typdef = ([], Il.PlainT typ_nat $ no_region)
+let typ_nat = Il.Typ.nat $ Location.Unknown
+let typdef = ([], Il.PlainT typ_nat $ Location.Unknown)
 let itervar name iters : Il.var = { varid = id name; typ = typ_nat; iters }
 let check name condition = if not condition then failwith name
 
@@ -131,7 +132,7 @@ let () =
       ~var:(id "x", [ Il.Opt; Il.List ])
       ~value:
         (Value.list
-           (Il.Typ.opt typ_nat $ no_region)
+           (Il.Typ.opt typ_nat $ Location.Unknown)
            [ optional (Some (nat 5)); optional None ])
   in
   let ctxs =

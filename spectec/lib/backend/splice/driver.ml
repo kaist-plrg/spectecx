@@ -4,7 +4,7 @@
     [(input, output)] file pairs. For each input file it walks the file once,
     replacing every recognised [${name: ids}] anchor with rendered text, and
     writes the result to the output path. Unrecognised anchor names produce a
-    diagnostic with file:line region. After all files are processed, [run]
+    diagnostic with file:line location. After all files are processed, [run]
     returns a {!Report.t} listing every key registered in a store but never
     referenced by any anchor. *)
 
@@ -36,14 +36,14 @@ let build_stores ~spec_el ~spec_pl ~(source_entries : Anchor.Source.entry list)
   !stores
 
 let render_anchor_body ~(frame : Anchor.frame) ~(sto : Store.t)
-    (keys : string list) ~(region : Common.Source.region) : string =
+    (keys : string list) ~(location : Common.Location.t) : string =
   let resolved =
     List.filter_map
       (fun key ->
         match Store.find_opt sto key with
         | Some text -> Some (key, text)
         | None ->
-            Diag.warn region "splice"
+            Diag.warn location "splice"
               (Printf.sprintf "%s splice key not found: %s" frame.name key);
             None)
       keys
@@ -64,12 +64,12 @@ let render_anchor_body ~(frame : Anchor.frame) ~(sto : Store.t)
   headers ^ frame.prefix ^ body ^ frame.suffix
 
 let render_anchor ~(stored : stored) (keys : string list)
-    ~(region : Common.Source.region) : string =
+    ~(location : Common.Location.t) : string =
   match stored with
   | Source_store (entry, sto) ->
-      render_anchor_body ~frame:entry.frame ~sto keys ~region
+      render_anchor_body ~frame:entry.frame ~sto keys ~location
   | Prose_store (entry, sto) ->
-      render_anchor_body ~frame:entry.frame ~sto keys ~region
+      render_anchor_body ~frame:entry.frame ~sto keys ~location
 
 let splice_string ~(stores : stored StringMap.t) ~file (content : string) :
     string =
@@ -79,14 +79,14 @@ let splice_string ~(stores : stored StringMap.t) ~file (content : string) :
     if Cursor.eos cur then ()
     else (
       (match Parser.parse_anchor_open cur with
-      | Some (name, region) -> (
+      | Some (name, location) -> (
           match StringMap.find_opt name stores with
           | Some stored ->
               Parser.parse_space cur;
               let keys = Parser.parse_ids cur in
-              Buffer.add_string buf (render_anchor ~stored keys ~region)
+              Buffer.add_string buf (render_anchor ~stored keys ~location)
           | None ->
-              Diag.warn region "splice"
+              Diag.warn location "splice"
                 (Printf.sprintf "unknown splice anchor: %s" name);
               Buffer.add_string buf ("${" ^ name ^ ":"))
       | None ->

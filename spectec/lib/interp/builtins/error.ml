@@ -1,20 +1,23 @@
-open Common.Source
+module Location = Common.Location
 open Lang.Il
 
 type t =
-  | TypeError of region * string * value
-  | ArityError of region * string
-  | RuntimeError of region * string
-  | MissingImplError of region * string
+  | TypeError of Location.t * string * value
+  | ArityError of Location.t * string
+  | RuntimeError of Location.t * string
+  | MissingImplError of Location.t * string
 
 type 'a result = ('a, t) Stdlib.result
 
-let runtime (r : region) (msg : string) : t = RuntimeError (r, msg)
-let arity (r : region) (msg : string) : t = ArityError (r, msg)
-let type_err (r : region) (msg : string) (v : value) : t = TypeError (r, msg, v)
-let missing_impl (r : region) (msg : string) : t = MissingImplError (r, msg)
+let runtime (r : Location.t) (msg : string) : t = RuntimeError (r, msg)
+let arity (r : Location.t) (msg : string) : t = ArityError (r, msg)
 
-let region_and_message = function
+let type_err (r : Location.t) (msg : string) (v : value) : t =
+  TypeError (r, msg, v)
+
+let missing_impl (r : Location.t) (msg : string) : t = MissingImplError (r, msg)
+
+let location_and_message = function
   | TypeError (at, expected, got) ->
       ( at,
         Printf.sprintf "Type error: expected %s, got %s" expected
@@ -25,5 +28,5 @@ let region_and_message = function
       (at, Printf.sprintf "Missing builtin implementation: %s" msg)
 
 let to_diagnostic (err : t) : Diag.t =
-  let at, message = region_and_message err in
+  let at, message = location_and_message err in
   Diag.error ~source:"builtins" at message

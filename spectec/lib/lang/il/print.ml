@@ -3,6 +3,7 @@ open Types.Expression
 open Types
 open Common.Print
 open Common.Source
+module Location = Common.Location
 
 (* Numbers *)
 
@@ -297,7 +298,7 @@ and string_of_targs targs =
 
 and string_of_rule rule =
   let { ruleid; concl; prems } = rule.it in
-  ";; " ^ string_of_region rule.at ^ "\n   rule " ^ string_of_ruleid ruleid
+  ";; " ^ Location.to_string rule.at ^ ":\n   rule " ^ string_of_ruleid ruleid
   ^ ": " ^ string_of_notexp concl ^ string_of_prems prems
 
 and string_of_rules rules =
@@ -308,8 +309,10 @@ and string_of_rules rules =
 
 and string_of_clause idx clause =
   let { args; body; prems } = clause.it in
-  ";; " ^ string_of_region clause.at ^ "\n   clause " ^ string_of_int idx
-  ^ string_of_args args ^ " = " ^ string_of_exp body ^ string_of_prems prems
+  ";; "
+  ^ Location.to_string clause.at
+  ^ ":\n   clause " ^ string_of_int idx ^ string_of_args args ^ " = "
+  ^ string_of_exp body ^ string_of_prems prems
 
 and string_of_clauses clauses =
   String.concat ""
@@ -352,7 +355,7 @@ and string_of_hints hints = String.concat "" (List.map string_of_hint hints)
 (* Definitions *)
 
 let rec string_of_def def =
-  ";; " ^ string_of_region def.at ^ "\n"
+  ";; " ^ Location.to_string def.at ^ ":\n"
   ^
   match def.it with
   | TypD { synid = id; deftyp = { it = OpaqueT; _ }; _ } ->
@@ -379,7 +382,7 @@ let string_of_spec spec = string_of_defs spec
 
 (* Values as an indented tree *)
 
-type tree_part = Type | Mixop | Atom | Leaf | Region | No_region
+type tree_part = Type | Mixop | Atom | Leaf | Location | No_location
 
 let string_of_value_tree ?(style = fun _ s -> s) value =
   let buf = Buffer.create 1024 in
@@ -388,9 +391,11 @@ let string_of_value_tree ?(style = fun _ s -> s) value =
     if len >= 2 && s.[0] = '`' && s.[len - 1] = '`' then String.sub s 1 (len - 2)
     else s
   in
-  let string_of_at at =
-    if at = no_region then style No_region "(no region)"
-    else style Region (string_of_range at.left at.right)
+  let string_of_at (at : Location.t) =
+    match at with
+    | Location.Span { left; right; _ } ->
+        style Location (Location.string_of_range left right)
+    | Location.Unknown | Location.File _ -> style No_location "(no region)"
   in
   let add_line prefix label at =
     Buffer.add_string buf (prefix ^ label ^ "  " ^ string_of_at at ^ "\n")

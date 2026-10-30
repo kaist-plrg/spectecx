@@ -1,11 +1,11 @@
-open Common.Source
+module Location = Common.Location
 
 module Ctx : sig
   type t
 end
 
 type error =
-  | Plain of region * string
+  | Plain of Location.t * string
   | Backtrack of Common.Attempt.failtrace list
 
 val error_to_diagnostic : error -> Diag.t

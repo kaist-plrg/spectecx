@@ -2,8 +2,8 @@
 
     Walks each input file once, replacing every recognised [${name: ids}] anchor
     with rendered text, and writes the result to the matching output path.
-    Unrecognised anchor names emit a diagnostic with a file:line region instead
-    of leaking through. *)
+    Unrecognised anchor names emit a diagnostic with a file:line location
+    instead of leaking through. *)
 
 (** Run the driver over [filenames] (input/output pairs), substituting
     [${name: ids}] anchors using [source_entries] (extracted from the elaborated

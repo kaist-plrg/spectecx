@@ -1,5 +1,3 @@
-open Source
-
-exception Disallowed of { loc : region; msg : string }
+exception Disallowed of { loc : Location.t; msg : string }
 
 let disallowed loc msg = raise (Disallowed { loc; msg })

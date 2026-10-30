@@ -3,9 +3,10 @@ module Var = Envs.Interp.Var
 module Value = Lang.Il.Value
 module Typdef = Envs.Il.Typdef
 
-exception Error of Common.Source.region * string
+exception Error of Common.Location.t * string
 
-(** Raise [Error] with the combined failure regions and messages on failure. *)
+(** Raise [Error] with the combined failure locations and messages on failure.
+*)
 val get_exn : 'a Common.Attempt.attempt -> 'a
 
 module Make (Func : sig

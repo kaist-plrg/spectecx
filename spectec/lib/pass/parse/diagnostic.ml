@@ -1,4 +1,4 @@
-open Common.Source
+module Location = Common.Location
 
 type error = Diag.t
 type 'a result = ('a, error) Stdlib.result
@@ -60,10 +60,10 @@ let string_of_code = function
 
 let render_code (c : code) : string = "parse/" ^ string_of_code c
 
-let related_of_pairs (pairs : (region * string) list) : Diag.related list =
-  List.map (fun (region, message) -> { Diag.region; message }) pairs
+let related_of_pairs (pairs : (Location.t * string) list) : Diag.related list =
+  List.map (fun (location, message) -> { Diag.location; message }) pairs
 
-let error ?code ?detail ?(related = []) (at : region) (msg : string) =
+let error ?code ?detail ?(related = []) (at : Location.t) (msg : string) =
   let d =
     Diag.error
       ?code:(Option.map render_code code)

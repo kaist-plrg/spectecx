@@ -1,4 +1,4 @@
-open Common.Source
+module Location = Common.Location
 module Lsp = Linol_eio
 
 type encoding = [ `UTF8 | `UTF16 ]
@@ -37,13 +37,18 @@ let character ~encoding ~line column =
       in
       count 0 0
 
-let position ~encoding ~text (pos : pos) =
+let position ~encoding ~text (pos : Location.pos) =
   let number = max 0 (pos.line - 1) in
   let contents = Option.value (line ~text number) ~default:"" in
   Lsp.Position.create ~line:number
     ~character:(character ~encoding ~line:contents pos.column)
 
-let range ~encoding ~text (region : region) =
-  Lsp.Range.create
-    ~start:(position ~encoding ~text region.left)
-    ~end_:(position ~encoding ~text region.right)
+let range ~encoding ~text (location : Location.t) =
+  match location with
+  | Location.Span { left; right; _ } ->
+      Lsp.Range.create
+        ~start:(position ~encoding ~text left)
+        ~end_:(position ~encoding ~text right)
+  | Location.Unknown | Location.File _ ->
+      let start = Lsp.Position.create ~line:0 ~character:0 in
+      Lsp.Range.create ~start ~end_:start

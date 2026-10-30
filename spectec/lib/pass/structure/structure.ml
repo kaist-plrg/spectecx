@@ -1,4 +1,5 @@
 open Common.Source
+module Location = Common.Location
 open Common.Domain
 open Lang
 open Lang.Il.Expression
@@ -76,12 +77,12 @@ let partition_else_paths (paths : (prem list * 'a) list) :
 let struct_rule_path ((prems, exps_output) : prem list * exp list) :
     Ol.Ast.instr list =
   let at =
-    (* if exps_output is empty, use last prem's region *)
+    (* if exps_output is empty, use last prem's location *)
     if exps_output = [] then
       match List.rev prems with
       | prem_last :: _ -> prem_last.at
-      | [] -> no_region
-    else exps_output |> List.map at |> over_region
+      | [] -> Location.Unknown
+    else exps_output |> List.map at |> Location.cover
   in
   let instr_ret = Ol.Ast.ResultI exps_output $ at in
   let prems =
@@ -133,7 +134,7 @@ let rec struct_def (rtenv : RTEnv.t) (tdenv : TDEnv.t) (def : def) : Sl.def =
 
 (* Structuring relation definitions *)
 
-and struct_rel_def (rtenv : RTEnv.t) (tdenv : TDEnv.t) (at : region)
+and struct_rel_def (rtenv : RTEnv.t) (tdenv : TDEnv.t) (at : Location.t)
     (id_rel : id) (reltyp : reltyp) (rules : rule list) : Sl.def =
   let exps_input, paths = Antiunify.antiunify_rules reltyp.it rules in
   let block_paths, else_path_opt = partition_else_paths paths in
@@ -170,13 +171,13 @@ and struct_rel_def (rtenv : RTEnv.t) (tdenv : TDEnv.t) (at : region)
 
 (* Structuring builtin declaration definitions *)
 
-and struct_builtin_dec_def (at : region) (id_dec : id) (tparams : tparam list)
-    (params : param list) (typ : typ) : Sl.def =
+and struct_builtin_dec_def (at : Location.t) (id_dec : id)
+    (tparams : tparam list) (params : param list) (typ : typ) : Sl.def =
   Sl.BuiltinDecD (id_dec, tparams, args_input_of_params params, typ) $ at
 
 (* Structuring declaration definitions *)
 
-and struct_dec_def (rtenv : RTEnv.t) (tdenv : TDEnv.t) (at : region)
+and struct_dec_def (rtenv : RTEnv.t) (tdenv : TDEnv.t) (at : Location.t)
     (id_dec : id) (tparams : tparam list) (params : param list)
     (clauses : clause list) : Sl.def =
   let args_input, paths =

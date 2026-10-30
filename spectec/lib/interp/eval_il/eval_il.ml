@@ -2,6 +2,7 @@ open Lang.Il
 module F = Format
 open Attempt
 open Common.Source
+module Location = Common.Location
 
 let run_relation ~(check_determinism : bool) ~opaque_types
     (builtins : Builtins.t) (cache : Interp_runtime.Cache.t) (spec : spec)
@@ -10,7 +11,7 @@ let run_relation ~(check_determinism : bool) ~opaque_types
     Interp.context_of_spec spec ~builtins ~cache ~check_determinism
       ~opaque_types
   in
-  let reltyp, _ = Ctx.find_rel_exn ctx ~id:(rid $ no_region) in
+  let reltyp, _ = Ctx.find_rel_exn ctx ~id:(rid $ Location.Unknown) in
   let typs = Mode.inputs reltyp.it in
   (match
      Value_typecheck.check_values ~opaque_types:(Ctx.opaque_types ctx)
@@ -19,8 +20,8 @@ let run_relation ~(check_determinism : bool) ~opaque_types
    with
   | Ok () -> ()
   | Error message ->
-      Error.error no_region ("relation " ^ rid ^ " input: " ^ message));
-  let+ values = Interp.invoke_rel ctx (rid $ no_region) values in
+      Error.error Location.Unknown ("relation " ^ rid ^ " input: " ^ message));
+  let+ values = Interp.invoke_rel ctx (rid $ Location.Unknown) values in
   (ctx, values)
 
 let run_relation_fresh ~(check_determinism : bool) ~opaque_types
@@ -29,7 +30,7 @@ let run_relation_fresh ~(check_determinism : bool) ~opaque_types
   Interp_runtime.Cache.clear cache;
   run_relation ~check_determinism ~opaque_types builtins cache spec rid values
 
-type error = Plain of region * string | Backtrack of failtrace list
+type error = Plain of Location.t * string | Backtrack of failtrace list
 
 let run ?(check_determinism = false) (module T : Target.S) (spec : spec)
     (rid : string) (values : value list) : (Ctx.t * value list, error) result =
@@ -42,7 +43,7 @@ let run ?(check_determinism = false) (module T : Target.S) (spec : spec)
     let opaque_types =
       match Opaque_types.make T.opaque_types with
       | Ok types -> types
-      | Error message -> Error.error no_region message
+      | Error message -> Error.error Location.Unknown message
     in
     run_relation_fresh ~check_determinism ~opaque_types builtins cache spec rid
       values

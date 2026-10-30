@@ -1,7 +1,7 @@
 (** Parser errors. *)
 
-open Common.Source
+module Location = Common.Location
 
-exception ImptyParseError of region * string
+exception ImptyParseError of Location.t * string
 
-let error (at : region) (msg : string) = raise (ImptyParseError (at, msg))
+let error (at : Location.t) (msg : string) = raise (ImptyParseError (at, msg))

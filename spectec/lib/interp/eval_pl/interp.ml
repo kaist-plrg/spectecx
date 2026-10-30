@@ -1,4 +1,5 @@
 open Common.Source
+module Location = Common.Location
 module Il = Lang.Il
 module Mixop = Lang.Il.Mixfix
 module Value = Lang.Il.Value
@@ -45,7 +46,9 @@ and eval_instr (ctx : Ctx.t) (instr : instr) : Ctx.t * Sign.t =
   let eval_debug_instr ctx exp =
     let value = eval_exp ctx exp in
     print_endline
-    @@ F.sprintf "%s: %s" (string_of_region exp.at) (Print.string_of_exp exp);
+    @@ F.sprintf "%s: %s"
+         (Location.to_string exp.at ^ ":")
+         (Print.string_of_exp exp);
     print_endline @@ Il.Print.string_of_value value;
     (ctx, Sign.Cont)
   in
@@ -92,7 +95,7 @@ and eval_try_instr (ctx : Ctx.t) (arms : instr list list) : Ctx.t * Sign.t =
 and eval_try_instr_unique (ctx : Ctx.t) (arms : instr list list) :
     Ctx.t * Sign.t =
   let at_of_arm arm =
-    match arm with instr :: _ -> instr.node.at | [] -> no_region
+    match arm with instr :: _ -> instr.node.at | [] -> Location.Unknown
   in
   let applied =
     List.fold_left
@@ -103,7 +106,7 @@ and eval_try_instr_unique (ctx : Ctx.t) (arms : instr list list) :
         | _, Some (_, at_applied) ->
             error (at_of_arm arm)
               (F.asprintf "this arm applies, and so does the arm at %s"
-                 (string_of_region at_applied)))
+                 (Location.to_string at_applied ^ ":")))
       None arms
   in
   match applied with Some (result, _) -> result | None -> (ctx, Sign.Cont)
@@ -233,7 +236,7 @@ and eval_case_instr (ctx : Ctx.t) (exp : exp) (cases : case list) :
          (ctx, None, [])
     |> fun (ctx, block_match, values_cond) ->
     let value_cond =
-      let typ_inner = Il.BoolT $ no_region in
+      let typ_inner = Il.BoolT $ Location.Unknown in
       values_cond |> List.rev |> Value.list typ_inner
     in
     (ctx, block_match, value_cond)
@@ -471,7 +474,7 @@ let mode_of_relsig (mixop : mixop) (inputs : int list) (exps : exp list) :
     else if List.mem idx inputs then
       match exps with
       | exp :: exps_rest -> Lang.Il.Mode.In exp :: tag (idx + 1) exps_rest
-      | [] -> error no_region "relation input arity mismatch"
+      | [] -> error Location.Unknown "relation input arity mismatch"
     else Lang.Il.Mode.Out () :: tag (idx + 1) exps
   in
   Mixop.fill mixop (tag 0 exps)

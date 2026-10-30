@@ -4,7 +4,7 @@ module V = Lang.Il.Value
 module B = Interp.Builtins
 
 let ( $ ) = Common.Source.( $ )
-let at = Common.Source.no_region
+let at = Common.Location.Unknown
 
 let unwrap = function
   | Ok value -> value
@@ -50,7 +50,7 @@ let expected_state size =
       ]
   with
   | Ok state -> state
-  | Error error -> failwith (snd (B.Error.region_and_message error))
+  | Error error -> failwith (snd (B.Error.location_and_message error))
 
 let object_state_opt (object_value : V.t) =
   match object_value.it with
@@ -66,7 +66,7 @@ let object_state_opt (object_value : V.t) =
 let check_store mode expected = function
   | [ _global; store ] ->
       let objects =
-        B.Arg.map Common.Source.no_region store
+        B.Arg.map Common.Location.Unknown store
         |> Result.get_ok |> B.Arg.VMap.bindings
       in
       if List.length objects <> List.length expected then
@@ -94,7 +94,7 @@ let run spec_il mode filename =
 let check_nested_store mode = function
   | [ _global; store ] ->
       let objects =
-        B.Arg.map Common.Source.no_region store
+        B.Arg.map Common.Location.Unknown store
         |> Result.get_ok |> B.Arg.VMap.bindings
       in
       let states =
@@ -123,9 +123,11 @@ let check_field_location () =
     | _ -> []
   in
   let check (field : V.t) =
-    if Filename.basename field.at.left.file <> "included-field-fragment.p4" then
-      failwith
-        ("incorrect field location: " ^ Common.Source.string_of_region field.at)
+    match Common.Location.file field.at with
+    | Some file when Filename.basename file = "included-field-fragment.p4" -> ()
+    | _ ->
+        failwith
+          ("incorrect field location: " ^ Common.Location.to_string field.at)
   in
   match fields program with
   | [ field_list; field ] -> List.iter check [ field_list; field ]

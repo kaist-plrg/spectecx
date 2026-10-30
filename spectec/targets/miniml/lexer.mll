@@ -1,9 +1,9 @@
 {
   open Lexing
   open Parse
-  open Common.Source
 
-  let region lb = region_of_positions (lexeme_start_p lb, lexeme_end_p lb)
+  let location lb =
+    Common.Location.of_lexing (lexeme_start_p lb, lexeme_end_p lb)
 }
 
 let digit = ['0'-'9']
@@ -47,7 +47,7 @@ rule token = parse
 | "->"
   { ARROW }
 | _ as c
-  { Error.error (region lexbuf) (Printf.sprintf "lexical error: %c" c) }
+  { Error.error (location lexbuf) (Printf.sprintf "lexical error: %c" c) }
 | eof
   { EOF }
 
@@ -57,7 +57,7 @@ rule token = parse
     set_filename lb filename;
     try Ok (Parse.prog token lb) with
     | Parsing.Parse_error ->
-      Error (Spectec.Error.TaskParseError (region lb, "syntax error"))
+      Error (Spectec.Error.TaskParseError (location lb, "syntax error"))
     | Error.MinimlParseError (at, msg) ->
       Error (Spectec.Error.TaskParseError (at, msg))
 

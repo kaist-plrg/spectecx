@@ -3,6 +3,7 @@
     the two share a parser and CLI surface. *)
 
 open Common.Source
+module Location = Common.Location
 module Sl = Lang.Sl
 open Util
 
@@ -20,7 +21,7 @@ let fmt = ref Format.std_formatter
 (* Runtime state - changes during execution *)
 module State = struct
   let sl_spec : Sl.spec ref = ref []
-  let instrs_hit : (region * string, int) Hashtbl.t = Hashtbl.create 256
+  let instrs_hit : (Location.t * string, int) Hashtbl.t = Hashtbl.create 256
   let total_instrs = ref 0
 
   let reset () =
@@ -66,7 +67,7 @@ let instr_header instr =
   | Sl.DebugI (exp, _) ->
       Format.sprintf "Debug: %s" (Sl.Print.string_of_exp exp)
 
-(* Create a unique key for an instruction using region + content header *)
+(* Create a unique key for an instruction using location + content header *)
 let instr_key instr =
   let content = instr_header instr |> normalize_whitespace in
   (instr.at, content)
@@ -217,7 +218,7 @@ end
 
 (* Result type for programmatic access *)
 type result = {
-  instrs_hit : ((region * string) * int) list; (* key * count *)
+  instrs_hit : ((Location.t * string) * int) list; (* key * count *)
   total_instrs : int;
 }
 

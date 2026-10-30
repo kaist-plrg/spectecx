@@ -5,7 +5,7 @@
     is allocated at the top of that function, advanced forward, and discarded at
     the end. No caller of [Driver] observes the mutation. *)
 
-open Common.Source
+module Location = Common.Location
 
 type t = { file : string; s : string; mutable i : int }
 
@@ -39,8 +39,8 @@ let pos cur =
       col := 0)
     else incr col
   done;
-  { file = cur.file; line = !line; column = !col }
+  { Location.line = !line; column = !col }
 
-let region cur =
+let location cur =
   let p = pos cur in
-  { left = p; right = p }
+  Location.Span { file = cur.file; left = p; right = p }

@@ -1,63 +1,6 @@
-(* Positions and regions *)
-
-type pos = { file : string; line : int; column : int }
-type region = { left : pos; right : pos }
-
-(* Compare regions for sorting *)
-
-let compare_region region_l region_r =
-  if region_l.left.file = region_r.left.file then
-    if region_l.left.line = region_r.left.line then
-      compare region_l.left.column region_r.left.column
-    else compare region_l.left.line region_r.left.line
-  else compare region_l.left.file region_r.left.file
-
-let no_pos = { file = ""; line = 0; column = 0 }
-let no_region = { left = no_pos; right = no_pos }
-let pos_of_file file = { no_pos with file }
-let region_of_file file = { left = pos_of_file file; right = pos_of_file file }
-let before_region region = { left = region.left; right = region.left }
-let after_region region = { left = region.right; right = region.right }
-
-let over_region = function
-  | [] -> no_region
-  | region :: regions ->
-      List.fold_left
-        (fun region_over region ->
-          {
-            left = min region_over.left region.left;
-            right = max region_over.right region.right;
-          })
-        region regions
-
-let pos_of_position (position : Lexing.position) =
-  {
-    file = position.pos_fname;
-    line = position.pos_lnum;
-    column = position.pos_cnum - position.pos_bol;
-  }
-
-let region_of_positions
-    ((position_left, position_right) : Lexing.position * Lexing.position) =
-  {
-    left = pos_of_position position_left;
-    right = pos_of_position position_right;
-  }
-
-let string_of_pos pos =
-  if pos.line = -1 then Printf.sprintf "0x%x" pos.column
-  else string_of_int pos.line ^ ":" ^ string_of_int (pos.column + 1)
-
-let string_of_range left right =
-  string_of_pos left ^ if left = right then "" else "-" ^ string_of_pos right
-
-let string_of_region region =
-  if region = region_of_file region.left.file then region.left.file
-  else region.left.file ^ ":" ^ string_of_range region.left region.right ^ ":"
-
 (* Phrases *)
 
-type ('a, 'b) info = { it : 'a; note : 'b; at : region }
+type ('a, 'b) info = { it : 'a; note : 'b; at : Location.t }
 type ('a, 'b) note_phrase = ('a, 'b) info
 type 'a phrase = ('a, unit) info
 

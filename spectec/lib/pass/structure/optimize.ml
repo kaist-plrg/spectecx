@@ -1,4 +1,5 @@
 open Common.Source
+module Location = Common.Location
 open Common.Domain
 open Lang
 open Lang.Xl
@@ -675,7 +676,7 @@ let overlap_guard (tdenv : TDEnv.t) (exp : exp) (guard_a : guard)
    This handles if statements that are not categorized as case analysis,
    either because the condition itself is complex or because it is iterated *)
 
-let rec merge_identical_if (tdenv : TDEnv.t) (at : region)
+let rec merge_identical_if (tdenv : TDEnv.t) (at : Location.t)
     (exp_cond_target : exp) (iterexps_target : iterexp list)
     (instrs_then_target : instr list) (instrs : instr list) : instr list option
     =
@@ -753,7 +754,7 @@ let rec merge_if (tdenv : TDEnv.t) (instrs : instr list) : instr list =
 
 (* [4-2] Merge consecutive relation assertions with the same call *)
 
-let rec merge_identical_rel_assert (at : region) (call_target : relcall)
+let rec merge_identical_rel_assert (at : Location.t) (call_target : relcall)
     (iterexps_target : iterexp list) (instrs_then_target : instr list)
     (instrs : instr list) : instr list option =
   merge_identical_rel_assert' call_target iterexps_target [] instrs
@@ -857,7 +858,7 @@ let rec merge_rel_assert (instrs : instr list) : instr list =
 
 (* [4-2-a] if-and-if to case analysis *)
 
-let casify_if_if (tdenv : TDEnv.t) (at : region) (exp_cond_target : exp)
+let casify_if_if (tdenv : TDEnv.t) (at : Location.t) (exp_cond_target : exp)
     (instrs_then_target : instr list) (exp_cond : exp)
     (instrs_then : instr list) : instr option =
   let overlap_exp_cond = overlap_exp tdenv exp_cond_target exp_cond in
@@ -908,7 +909,7 @@ and merge_if_case' (tdenv : TDEnv.t) (exp : exp) (cases : case list)
             instrs_then_target
       | _ -> None)
 
-let casify_if_case (tdenv : TDEnv.t) (at : region) (exp_cond_target : exp)
+let casify_if_case (tdenv : TDEnv.t) (at : Location.t) (exp_cond_target : exp)
     (instrs_then_target : instr list) (exp : exp) (cases : case list)
     (total : bool) : instr option =
   let cases_opt =
@@ -955,7 +956,7 @@ and merge_case_if' (tdenv : TDEnv.t) (exp_target : exp)
             total_target guard instrs
       | _ -> None)
 
-let casify_case_if (tdenv : TDEnv.t) (at : region) (exp_target : exp)
+let casify_case_if (tdenv : TDEnv.t) (at : Location.t) (exp_target : exp)
     (cases_target : case list) (total_target : bool) (exp_cond : exp)
     (instrs_then : instr list) : instr option =
   let cases_opt =
@@ -984,7 +985,7 @@ let merge_case_case (tdenv : TDEnv.t) (exp_target : exp)
       (Some cases_target) cases
   else None
 
-let casify_case_case (tdenv : TDEnv.t) (at : region) (exp_target : exp)
+let casify_case_case (tdenv : TDEnv.t) (at : Location.t) (exp_target : exp)
     (cases_target : case list) (total_target : bool) (exp : exp)
     (cases : case list) : instr option =
   let cases_opt =
@@ -998,14 +999,15 @@ let casify_case_case (tdenv : TDEnv.t) (at : region) (exp_target : exp)
 
 (* [4-2-a/b] Casifying from an if statement *)
 
-let rec casify_from_if (tdenv : TDEnv.t) (at : region) (exp_cond_target : exp)
-    (iterexps_target : iterexp list) (instrs_then_target : instr list)
-    (instrs : instr list) : instr list option =
+let rec casify_from_if (tdenv : TDEnv.t) (at : Location.t)
+    (exp_cond_target : exp) (iterexps_target : iterexp list)
+    (instrs_then_target : instr list) (instrs : instr list) : instr list option
+    =
   match iterexps_target with
   | [] -> casify_from_if' tdenv at exp_cond_target instrs_then_target [] instrs
   | _ -> None
 
-and casify_from_if' (tdenv : TDEnv.t) (at : region) (exp_cond_target : exp)
+and casify_from_if' (tdenv : TDEnv.t) (at : Location.t) (exp_cond_target : exp)
     (instrs_then_target : instr list) (instrs_leftover : instr list)
     (instrs : instr list) : instr list option =
   match instrs with
@@ -1035,12 +1037,12 @@ and casify_from_if' (tdenv : TDEnv.t) (at : region) (exp_cond_target : exp)
 
 (* [4-2-c] Casifying from a case statement *)
 
-let rec casify_from_case (tdenv : TDEnv.t) (at : region) (exp_target : exp)
+let rec casify_from_case (tdenv : TDEnv.t) (at : Location.t) (exp_target : exp)
     (cases_target : case list) (total_target : bool) (instrs : instr list) :
     instr list option =
   casify_from_case' tdenv at exp_target cases_target total_target [] instrs
 
-and casify_from_case' (tdenv : TDEnv.t) (at : region) (exp_target : exp)
+and casify_from_case' (tdenv : TDEnv.t) (at : Location.t) (exp_target : exp)
     (cases_target : case list) (total_target : bool)
     (instrs_leftover : instr list) (instrs : instr list) : instr list option =
   match instrs with

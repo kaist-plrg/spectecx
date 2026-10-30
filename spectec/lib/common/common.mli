@@ -1,3 +1,4 @@
+module Location : module type of Location
 module Source : module type of Source
 module Domain : module type of Domain
 module InternalError : module type of Internal_error

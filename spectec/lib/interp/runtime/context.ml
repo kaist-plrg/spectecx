@@ -1,5 +1,6 @@
 open Common.Domain
 open Common.Source
+module Location = Common.Location
 open Common.Attempt
 module Il = Lang.Il
 module Var = Envs.Interp.Var
@@ -10,7 +11,7 @@ module VEnv = Envs.Interp.VEnv
 module IdHashtbl = Envs.Make.IdHashtbl
 module FIdMap = Envs.Make.FIdMap
 
-exception Error of region * string
+exception Error of Location.t * string
 
 let error_undef at kind id =
   raise (Error (at, Format.asprintf "%s `%s` is undefined" kind id))
@@ -26,7 +27,7 @@ let transpose_values value_matrix =
       let* () =
         guard
           (List.for_all (fun row -> List.length row = width) rows)
-          no_region "cannot transpose a matrix of value batches"
+          Location.Unknown "cannot transpose a matrix of value batches"
       in
       let columns_rev =
         List.fold_left
@@ -40,7 +41,7 @@ let transpose_values value_matrix =
 let get_exn = function
   | Ok value -> value
   | Result.Error failtraces ->
-      let at = region_of_failtraces failtraces in
+      let at = location_of_failtraces failtraces in
       let message =
         List.map (fun trace -> trace.message) failtraces |> String.concat "\n"
       in
@@ -229,7 +230,7 @@ struct
       in
       Ok (Some (set_values ctx ~bindings))
     else if List.for_all Option.is_none values then Ok None
-    else fail no_region "mismatch in optionality of iterated variables"
+    else fail Location.Unknown "mismatch in optionality of iterated variables"
 
   let for_list_iteration ctx ~vars =
     let* values_batch =
@@ -265,7 +266,8 @@ struct
     | Il.Opt, [ value ] -> Value.Make.opt result_typ (Some value)
     | Il.Opt, _ ->
         raise
-          (Error (no_region, "an option iteration has more than one element"))
+          (Error
+             (Location.Unknown, "an option iteration has more than one element"))
     | Il.List, _ -> Value.Make.list result_typ values
 
   let collect_iteration_bindings ctxs ~iter ~vars =

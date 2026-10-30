@@ -1,15 +1,12 @@
 {
 open Lexing
 open Parse
-open Common.Source
+module Location = Common.Location
 
-exception Parse_error of region * string
+exception Parse_error of Location.t * string
 
-let position p =
-  { file = p.pos_fname; line = p.pos_lnum; column = p.pos_cnum - p.pos_bol }
-
-let region lexbuf =
-  { left = position (lexeme_start_p lexbuf); right = position (lexeme_end_p lexbuf) }
+let location lexbuf =
+  Common.Location.of_lexing (lexeme_start_p lexbuf, lexeme_end_p lexbuf)
 }
 
 let digit = ['0'-'9']
@@ -55,14 +52,14 @@ rule token = parse
 | '.' { DOT }
 | ',' { COMMA }
 | eof { EOF }
-| _ as c { raise (Parse_error (region lexbuf, Printf.sprintf "unexpected character %C" c)) }
+| _ as c { raise (Parse_error (location lexbuf, Printf.sprintf "unexpected character %C" c)) }
 
 {
 let parse parser ~filename lexbuf =
   set_filename lexbuf filename;
   try Ok (parser token lexbuf) with
   | Parsing.Parse_error ->
-      Error (Spectec.Error.TaskParseError (region lexbuf, "syntax error"))
+      Error (Spectec.Error.TaskParseError (location lexbuf, "syntax error"))
   | Parse_error (at, message) ->
       Error (Spectec.Error.TaskParseError (at, message))
 
