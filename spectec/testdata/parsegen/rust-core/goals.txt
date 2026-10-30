@@ -1,0 +1,57 @@
+# Goals for the grammar-driven parser on the Rust core calculus.
+#
+# Each line: FILE EXPECT, where EXPECT is one of
+#   accept          the grammar derives the file
+#   accept unique   ... in exactly one way (one parse tree)
+#   reject          the grammar does not derive the file
+#   reject L:C      ... and every parse stops at the token at line L, column C
+#
+# The 8 listings must parse, each in exactly one way: the grammar's
+# precedence and follow hints must resolve every ambiguity, as rustc does.
+listings/100051.rs                         accept unique
+listings/104005.rs                         accept unique
+listings/112417.rs                         accept unique
+listings/118876.rs                         accept unique
+listings/98117.rs                          accept unique
+listings/98543.rs                          accept unique
+listings/99158-guarded.rs                  accept unique
+listings/99158-simplified.rs               accept unique
+#
+# Controls, so that "accept" means something. The first 14 are the Rust
+# constructs outside the BNF that bnf_check.py rejected (syntax-review 2.1);
+# the next 4 check the lexical choices made in the test (lifetime vs
+# identifier, comma separators) and are not valid Rust either.
+controls/reject-named-field-struct.rs      reject
+controls/reject-binary-plus.rs             reject
+controls/reject-mut-self.rs                reject
+controls/reject-struct-where.rs            reject
+controls/reject-typed-closure-param.rs     reject
+controls/reject-maybe-sized.rs             reject
+controls/reject-mid-path-turbofish.rs      reject
+controls/reject-inherent-impl.rs           reject
+controls/reject-if.rs                      reject
+controls/reject-loop-stmt-no-semi.rs       reject
+controls/reject-return.rs                  reject
+controls/reject-let-no-init.rs             reject
+controls/reject-unsafe-fn-ptr.rs           reject
+controls/reject-dyn-two-traits.rs          reject
+controls/reject-ident-as-lifetime.rs       reject
+controls/reject-lifetime-as-type.rs        reject
+controls/reject-missing-comma.rs           reject
+controls/reject-comma-between-items.rs     reject
+#
+# Valid Rust inside the BNF. The last 7 check that the precedence and follow
+# hints do not reject what rustc accepts: only a field access by name is
+# kept from being called (a.0(x) and a.g()(x) are calls), and a closure may
+# still be borrowed or called once parenthesized.
+controls/accept-hrtb-where.rs              accept unique
+controls/accept-impl-trait-closure.rs      accept unique
+controls/accept-array-closure.rs           accept unique
+controls/accept-qualified-path-loop.rs     accept unique
+controls/accept-call-method-result.rs      accept unique
+controls/accept-call-tuple-field.rs        accept unique
+controls/accept-call-paren-field.rs        accept unique
+controls/accept-borrow-closure.rs          accept unique
+controls/accept-borrow-field.rs            accept unique
+controls/accept-closure-call-paren.rs      accept unique
+controls/accept-closure-body-postfix.rs    accept unique

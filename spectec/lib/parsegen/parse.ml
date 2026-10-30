@@ -73,6 +73,25 @@ let check_no_postfix (grammar : Grammar.t) =
              syntax.name.it))
     grammar
 
+(* An iteration needs more than one token of lookahead to end; Earley parses
+   it. *)
+let check_no_iteration (grammar : Grammar.t) =
+  List.iter
+    (fun (syntax : Grammar.syntax) ->
+      if
+        List.exists
+          (fun (prod : Grammar.production) ->
+            List.exists
+              (function Mixfix.Arg (Grammar.Iter _) -> true | _ -> false)
+              prod.notation)
+          syntax.productions
+      then
+        failwith
+          (Printf.sprintf
+             "Parse: iterations in %s are not supported; use Parsegen.Earley"
+             syntax.name.it))
+    grammar
+
 let compile (grammar : Grammar.t) : table =
   let operator_of (syntax : Grammar.syntax) prod =
     Grammar.operator_atom prod
@@ -155,7 +174,8 @@ let rec starts_with state seen (terminal : Terminal.t)
       terminal_is_primitive prim terminal
   | Some (Mixfix.Arg (Grammar.Nonterminal sub)) ->
       syntax_starts_with state seen sub.it terminal
-  | None -> false
+  (* Rejected up front by [check_no_iteration]. *)
+  | Some (Mixfix.Arg (Grammar.Iter _)) | None -> false
 
 (* What can start a syntax: one of its primaries or a prefix operator. Infixes
    lead with the syntax itself, so they never start it. *)
@@ -238,6 +258,8 @@ and parse_production state compiled operand_rank (prod : Grammar.production) =
           (if sub.it = compiled.name then
              parse_phrase state compiled operand_rank
            else parse_phrase state (find_syntax state sub.it) 0)
+    | Mixfix.Arg (Grammar.Iter _) ->
+        failwith "Parse: iteration reached despite check_no_iteration"
   in
   List.filter_map parse_mixeme prod.notation |> value_of_production prod
 
@@ -255,6 +277,7 @@ and extend_infix state compiled min_rank left =
 let run (classify : 'tok token_classifier) (grammar : Grammar.t)
     (start : string) (tokens : 'tok list) : Il.value =
   check_no_postfix grammar;
+  check_no_iteration grammar;
   let state = { toks = tokens; classify; table = compile grammar } in
   let value = parse_phrase state (find_syntax state start) 0 in
   match state.toks with

@@ -14,5 +14,5 @@ exception Error of string
 (** [run print_terminal grammar start value] renders [value] as an instance of
     syntax [start]. Raises {!Error} when [value] matches no production of the
     syntax it reaches, and [Failure] when [value] is not a case value or the
-    grammar references a syntax that does not exist. *)
+    grammar references a syntax that does not exist or has an iteration. *)
 val run : terminal_printer -> Grammar.t -> string -> Il.value -> string

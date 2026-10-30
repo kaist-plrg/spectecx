@@ -1,0 +1,39 @@
+PASS  listings/100051.rs                       accept unique
+PASS  listings/104005.rs                       accept unique
+PASS  listings/112417.rs                       accept unique
+PASS  listings/118876.rs                       accept unique
+PASS  listings/98117.rs                        accept unique
+PASS  listings/98543.rs                        accept unique
+PASS  listings/99158-guarded.rs                accept unique
+PASS  listings/99158-simplified.rs             accept unique
+PASS  controls/reject-named-field-struct.rs    reject
+PASS  controls/reject-binary-plus.rs           reject
+PASS  controls/reject-mut-self.rs              reject
+PASS  controls/reject-struct-where.rs          reject
+PASS  controls/reject-typed-closure-param.rs   reject
+PASS  controls/reject-maybe-sized.rs           reject
+PASS  controls/reject-mid-path-turbofish.rs    reject
+PASS  controls/reject-inherent-impl.rs         reject
+PASS  controls/reject-if.rs                    reject
+PASS  controls/reject-loop-stmt-no-semi.rs     reject
+PASS  controls/reject-return.rs                reject
+PASS  controls/reject-let-no-init.rs           reject
+PASS  controls/reject-unsafe-fn-ptr.rs         reject
+PASS  controls/reject-dyn-two-traits.rs        reject
+PASS  controls/reject-ident-as-lifetime.rs     reject
+PASS  controls/reject-lifetime-as-type.rs      reject
+PASS  controls/reject-missing-comma.rs         reject
+PASS  controls/reject-comma-between-items.rs   reject
+PASS  controls/accept-hrtb-where.rs            accept unique
+PASS  controls/accept-impl-trait-closure.rs    accept unique
+PASS  controls/accept-array-closure.rs         accept unique
+PASS  controls/accept-qualified-path-loop.rs   accept unique
+PASS  controls/accept-call-method-result.rs    accept unique
+PASS  controls/accept-call-tuple-field.rs      accept unique
+PASS  controls/accept-call-paren-field.rs      accept unique
+PASS  controls/accept-borrow-closure.rs        accept unique
+PASS  controls/accept-borrow-field.rs          accept unique
+PASS  controls/accept-closure-call-paren.rs    accept unique
+PASS  controls/accept-closure-body-postfix.rs  accept unique
+
+37/37 goals met

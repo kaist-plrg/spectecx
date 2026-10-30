@@ -2089,6 +2089,15 @@ let validate_hint (subject : Hints.Registry.subject) (hint : hint) : unit =
                      "hint \"%s\" payload malformed: expected a single \
                       operator or keyword atom, like '&&' or 'AND'"
                      tag))
+        | Hints.Registry.Follow -> (
+            match Hints.Follow.parse hint.hintexp with
+            | Some _ -> ()
+            | None ->
+                warn at
+                  (Format.asprintf
+                     "hint \"%s\" payload malformed: expected a single atom, \
+                      like `( or ';'"
+                     tag))
         | Hints.Registry.Fields -> (
             match Hints.Fields.parse hint.hintexp with
             | Some _ -> ()

@@ -3,8 +3,12 @@
 type primitive = Num of Xl.Num.typ | Bool | Text
 
 (** What fills an [Il.Mixfix.Arg] position: a reference to another syntax
-    ([Nonterminal]) or a primitive terminal. *)
-type arg = Nonterminal of Il.id | Primitive of primitive
+    ([Nonterminal]), a primitive terminal, or an iteration of either ([x*],
+    [x?]). *)
+type arg =
+  | Nonterminal of Il.id
+  | Primitive of primitive
+  | Iter of arg * Il.iter
 
 (** Whether the production is left- and/or right-recursive in its own syntax. *)
 type recursion = Neither | Left | Right | Both
@@ -21,6 +25,9 @@ type production = {
   notation : arg Il.Mixfix.t;
   recursion : recursion;
   precedence : precedence option;
+  not_followed_by : Xl.Atom.t option;
+      (** From [hint(not_followed_by a)]: the production never ends right before
+          [a]. *)
   construction : construction;
   origin : Il.id;
 }
@@ -41,6 +48,12 @@ val operator_atom : production -> Xl.Atom.t option
     [atom] within [syntax], counted along the [tighter_than] chain (0 = loosest
     bind). *)
 val rank : syntax -> Xl.Atom.t -> int
+
+(** [production_rank syntax prod] is [prod]'s precedence height: one above the
+    production its [tighter_than] names, or 0 without one. Unlike {!rank}, this
+    also places a production that has no operator atom of its own, such as a
+    call [e ( e* )]. *)
+val production_rank : syntax -> production -> int
 
 (** What a lexer token denotes: a fixed atom, or a primitive carrying its IL
     value. The parser reads tokens into terminals. The printer writes terminals
