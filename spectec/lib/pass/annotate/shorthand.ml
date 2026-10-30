@@ -1,7 +1,7 @@
 (** Shorthand pass: rewrites PL [LetI]/[IfI]/[CaseI] sequences into [CheckLetI]
     / [DestructI] / [OptionGetI] after annotation. *)
 
-open Common.Source
+open Common.Annotated
 open Lang.Il.Expression
 module Pl = Lang.Pl
 

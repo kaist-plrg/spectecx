@@ -4,7 +4,7 @@
     structure. Common specializations: [unit t] (mixop only), [typ t], [exp t],
     [value t]. *)
 
-type atom = Xl.Atom.t Common.Source.phrase
+type atom = Xl.Atom.t Common.Annotated.located
 type 'a mixeme = Arg of 'a | Atom of atom
 type 'a t = 'a mixeme list
 type mixop = unit t

@@ -1,10 +1,10 @@
 include Lang.Sl
-open Common.Source
+open Common.Annotated
 
 (* Intermediate representation of SL instructions,
    for the optimization pass *)
 
-type instr = instr' phrase
+type instr = instr' located
 
 and instr' =
   | RelI of { call : relcall; iterexps : iterexp list; block : instr list }

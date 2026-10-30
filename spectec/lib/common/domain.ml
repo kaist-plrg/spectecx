@@ -1,4 +1,4 @@
-open Source
+open Annotated
 
 (* Value identifiers *)
 
@@ -58,7 +58,7 @@ end
 (* Variable identifiers *)
 
 module Id = struct
-  type t = string phrase
+  type t = string located
 
   let to_string t = t.it
   let compare t_a t_b = String.compare t_a.it t_b.it

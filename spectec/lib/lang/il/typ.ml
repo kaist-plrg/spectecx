@@ -1,5 +1,5 @@
 open Types
-open Common.Source
+open Common.Annotated
 module Location = Common.Location
 
 type t = typ

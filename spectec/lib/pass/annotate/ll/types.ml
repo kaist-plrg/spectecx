@@ -1,4 +1,4 @@
-open Common.Source
+open Common.Annotated
 module Sl = Lang.Sl
 
 [@@@ocamlformat "disable"]
@@ -32,7 +32,7 @@ and guard =
 
 (* Instructions *)
 
-and instr = instr' phrase
+and instr = instr' located
 and instr' =
   | RelI of { call : relcall; iterexps : iterexp list }
   | RelAssertI of { call : relcall; expect : bool; iterexps : iterexp list; block : block; phantom : phantom option }
@@ -50,7 +50,7 @@ and elseblock = instr list
 
 (* Definitions *)
 
-type def = def' phrase
+type def = def' located
 and def' =
   | TypD of id * tparam list * deftyp
   | RelD of id * (mixop * int list) * exp list * block * elseblock option

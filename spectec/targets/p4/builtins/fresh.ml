@@ -1,6 +1,6 @@
 module Il = Lang.Il
 open Il
-open Common.Source
+open Common.Annotated
 module Location = Common.Location
 open Builtins
 open Error

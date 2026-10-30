@@ -1,4 +1,4 @@
-open Common.Source
+open Common.Annotated
 
 [@@@ocamlformat "disable"]
 
@@ -62,7 +62,7 @@ type relcall = { relid : id; notexp : notexp }
 
 (* Parameters *)
 
-type param = param' phrase
+type param = param' located
 and param' =
   | ExpP of typ * exp
   | DefP of id
@@ -83,7 +83,7 @@ and guard =
 
 (* Instructions *)
 
-and instr = (instr' phrase) Annot.t
+and instr = (instr' located) Annot.t
 and instr' =
   | RelI of { call : relcall; iterexps : iterexp list }
   | RelAssertI of { call : relcall; expect : bool; iterexps : iterexp list; block : instr list; phantom : phantom option }
@@ -110,7 +110,7 @@ and elseblock = instr list
 
 (* Definitions *)
 
-type def = (def' phrase) Annot.t
+type def = (def' located) Annot.t
 and def' =
   | TypD of id * tparam list * deftyp
   | RelD of id * (mixop * int list) * exp list * block * elseblock option

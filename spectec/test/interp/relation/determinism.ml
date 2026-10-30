@@ -3,7 +3,7 @@ module H = Harness
 module V = Lang.Il.Value
 module Typ = Lang.Il.Typ
 
-let ( $ ) = Common.Source.( $ )
+let ( $ ) = Common.Annotated.( $ )
 let nat n = V.nat (Bigint.of_int n)
 let nats ns = V.list (Typ.nat $ Location.Unknown) (List.map nat ns)
 let spec = H.compile_file "determinism.spectec"

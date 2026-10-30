@@ -1,16 +1,16 @@
 (** Alter-kind hint payloads: a textual notation with `%N` and `%` holes that
     the renderer substitutes with rendered argument text. *)
 
-open Common.Source
+open Common.Annotated
 open Xl
 
 type hole = [ `Next | `Num of int ]
 
 type t =
   | TextH of string
-  | AtomH of Atom.t phrase
+  | AtomH of Atom.t located
   | SeqH of t list
-  | BrackH of Atom.t phrase * t * Atom.t phrase
+  | BrackH of Atom.t located * t * Atom.t located
   | HoleH of hole
   | FuseH of t * t
   | OtherH of El.exp
@@ -25,7 +25,7 @@ val to_string : t -> string
     leave text as-is and print atoms / exps via their standard formatters. *)
 val alternate :
   ?base_text:(string -> string) ->
-  ?base_atom:(Atom.t phrase -> string) ->
+  ?base_atom:(Atom.t located -> string) ->
   ?base_exp:(El.exp -> string) ->
   t ->
   ('a -> string) ->

@@ -2,7 +2,7 @@
     keyed by relation id. *)
 
 open Lang
-open Common.Source
+open Common.Annotated
 
 (* Source *)
 

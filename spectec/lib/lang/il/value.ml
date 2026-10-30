@@ -1,5 +1,5 @@
 open Types
-open Common.Source
+open Common.Annotated
 module Location = Common.Location
 
 type t = value
@@ -96,14 +96,14 @@ module MakeWithVid (VidProvider : VidProvider) = struct
     | StructV fields ->
         List.fold_left
           (fun hash (atom, v) ->
-            hash +! (hash_atom atom.Common.Source.it +! v.note.vhash))
+            hash +! (hash_atom atom.Common.Annotated.it +! v.note.vhash))
           3 fields
     | CaseV vc ->
         List.fold_left
           (fun h p ->
             match p with
             | Mixfix.Arg v -> h +! v.note.vhash
-            | Mixfix.Atom atom -> h +! 1 +! hash_atom atom.Common.Source.it)
+            | Mixfix.Atom atom -> h +! 1 +! hash_atom atom.Common.Annotated.it)
           4 vc
     | TupleV values ->
         List.fold_left (fun hash v -> hash +! v.note.vhash) 5 values
@@ -111,7 +111,7 @@ module MakeWithVid (VidProvider : VidProvider) = struct
     | OptV (Some v) -> 7 +! v.note.vhash
     | ListV values ->
         List.fold_left (fun hash v -> hash +! v.note.vhash) 8 values
-    | FuncV id -> 9 +! Hashtbl.hash id.Common.Source.it
+    | FuncV id -> 9 +! Hashtbl.hash id.Common.Annotated.it
     | OpaqueV value -> 10 +! Opaque.hash value
 
   let with_fresh_vid (typ : typ') (vhash : int) : vnote =
@@ -203,7 +203,7 @@ let flatten_case_v (value : t) : string * string list * t list =
       let shape, values = Mixfix.split valuecase in
       let atoms =
         Mixfix.atoms shape
-        |> List.map (fun a -> Xl.Atom.to_string a.Common.Source.it)
+        |> List.map (fun a -> Xl.Atom.to_string a.Common.Annotated.it)
       in
       (synid.it, atoms, values)
   | _ -> failwith "Expected a CaseV value"

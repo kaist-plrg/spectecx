@@ -4,7 +4,7 @@
  * The UID mapping is shared across all handlers that need to reference premises.
  *)
 
-open Common.Source
+open Common.Annotated
 module Location = Common.Location
 module Il = Lang.Il
 open Static

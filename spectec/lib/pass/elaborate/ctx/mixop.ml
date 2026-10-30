@@ -1,11 +1,11 @@
-open Common.Source
+open Common.Annotated
 module Atom = Xl.Atom
 
 (* Elaboration-time mixop: a tree representation used while building up
    mixfix operators from the EL surface syntax. Converted to the flat IL
    [Il.Mixfix.mixop] form via [to_il] at the end of elaboration. *)
 
-type atom = Atom.t phrase
+type atom = Atom.t located
 
 type t =
   | Arg

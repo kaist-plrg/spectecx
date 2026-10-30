@@ -1,4 +1,4 @@
-open Common.Source
+open Common.Annotated
 module Location = Common.Location
 module Il = Lang.Il
 module Mixop = Lang.Il.Mixfix

@@ -6,7 +6,9 @@ module V = Lang.Il.Value
 let nat n = V.nat (Bigint.of_int n)
 
 let nats ns =
-  V.list Common.Source.(Lang.Il.Typ.nat $ Location.Unknown) (List.map ns ~f:nat)
+  V.list
+    Common.Annotated.(Lang.Il.Typ.nat $ Location.Unknown)
+    (List.map ns ~f:nat)
 
 let spec = H.compile_file "expressions.spectec"
 

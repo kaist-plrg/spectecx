@@ -1,4 +1,4 @@
-open Common.Source
+open Common.Annotated
 module Sl = Lang.Sl
 module Il = Lang.Il
 open Il.Expression
@@ -6,10 +6,11 @@ module Expand = Expand
 module Linearize = Linearize
 module Shorthand = Shorthand
 
-let wrap_instr (instr' : Pl.instr' phrase) (hints : Pl.Annot.hints) : Pl.instr =
+let wrap_instr (instr' : Pl.instr' located) (hints : Pl.Annot.hints) : Pl.instr
+    =
   { node = instr'; hints }
 
-let wrap_def (def' : Pl.def' phrase) (hints : Pl.Annot.hints) : Pl.def =
+let wrap_def (def' : Pl.def' located) (hints : Pl.Annot.hints) : Pl.def =
   { node = def'; hints }
 
 let bare_instr instr' = wrap_instr instr' Pl.Annot.empty

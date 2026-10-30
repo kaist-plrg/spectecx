@@ -2,7 +2,7 @@
     reports at finish. [Summary] lists only uncovered premises; [Full] emits a
     GCOV-style annotated spec with per-premise counts. *)
 
-open Common.Source
+open Common.Annotated
 module Location = Common.Location
 open Lang.Il
 open Util

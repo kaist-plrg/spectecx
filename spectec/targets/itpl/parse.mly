@@ -1,7 +1,7 @@
 %{
 open Lang.Il.Value
 open Lang.Il.Case
-open Common.Source
+open Common.Annotated
 module Location = Common.Location
 
 let number n = [tag "NUM"; arg (int n)] |> case_v ~var:"expr"

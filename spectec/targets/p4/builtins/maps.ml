@@ -1,6 +1,6 @@
 open Lang.Xl
 open Lang.Il
-open Common.Source
+open Common.Annotated
 module Location = Common.Location
 open Builtins
 open Atom

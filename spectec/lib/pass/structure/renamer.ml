@@ -1,5 +1,5 @@
 open Common.Domain
-open Common.Source
+open Common.Annotated
 module Il = Lang.Il
 open Il.Expression
 open Ol.Ast

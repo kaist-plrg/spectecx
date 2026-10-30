@@ -1,5 +1,5 @@
 module Location = Location
-module Source = Source
+module Annotated = Annotated
 module Domain = Domain
 module InternalError = Internal_error
 module Error = Error

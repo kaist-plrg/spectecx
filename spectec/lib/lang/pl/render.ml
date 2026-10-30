@@ -1,7 +1,7 @@
 (** AsciiDoc prose renderer for PL. The splice frame is the splicer's
     responsibility; this module only emits inner fragments. *)
 
-open Common.Source
+open Common.Annotated
 open Il.Expression
 open Types
 open Annot

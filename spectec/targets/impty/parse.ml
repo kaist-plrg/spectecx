@@ -4,7 +4,7 @@
     to match the surface syntax in [specs/impty/*/spec.spectec]. Precedence is
     encoded by the call structure of [parse_expr] and friends. *)
 
-open Common.Source
+open Common.Annotated
 module Location = Common.Location
 open Lang.Il
 open Lang.Il.Value
@@ -103,7 +103,7 @@ let left_assoc ~op_token ~op_atom ~var ~next c =
 (* ----------------------------------------------------------------- *)
 
 (* Tags such as [_ID] have no source token, so they carry no location. *)
-let v_id (x : string phrase) : value =
+let v_id (x : string located) : value =
   [ tag "ID"; arg (text x.it <<<| x.at) ] |> case_v ~var:"id" <<<| x.at
 
 let v_lit_num (at : Location.t) (n : int) : value =

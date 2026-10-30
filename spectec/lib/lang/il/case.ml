@@ -1,5 +1,5 @@
 open Types
-open Common.Source
+open Common.Annotated
 module Location = Common.Location
 
 let atom ?(at = Location.Unknown) (a : Xl.Atom.t) : value Mixfix.mixeme =

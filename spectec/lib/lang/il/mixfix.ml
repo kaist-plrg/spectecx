@@ -1,6 +1,6 @@
-open Common.Source
+open Common.Annotated
 
-type atom = Xl.Atom.t phrase
+type atom = Xl.Atom.t located
 type 'a mixeme = Arg of 'a | Atom of atom
 type 'a t = 'a mixeme list
 type mixop = unit t

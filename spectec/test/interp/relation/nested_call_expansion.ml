@@ -4,7 +4,7 @@ module H = Harness
 module V = Lang.Il.Value
 module Typ = Lang.Il.Typ
 
-let ( $ ) = Common.Source.( $ )
+let ( $ ) = Common.Annotated.( $ )
 let nat_type = Typ.nat $ Location.Unknown
 let nat_opt_type = Typ.opt nat_type $ Location.Unknown
 let nat n = V.nat (Bigint.of_int n)

@@ -3,7 +3,7 @@ module Ebpf = P4.Builtins.Ebpf
 module V = Lang.Il.Value
 module B = Interp.Builtins
 
-let ( $ ) = Common.Source.( $ )
+let ( $ ) = Common.Annotated.( $ )
 let at = Common.Location.Unknown
 
 let unwrap = function

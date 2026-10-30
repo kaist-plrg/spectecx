@@ -1,7 +1,7 @@
 (** [${syntax: ids}] — collects every EL syntax definition, keyed by type id. *)
 
 open Lang
-open Common.Source
+open Common.Annotated
 
 let key_of_def (def : El.def) : (string * El.def) option =
   match def.it with TypD (id, _, _, _) -> Some (id.it, def) | _ -> None

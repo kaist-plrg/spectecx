@@ -1,5 +1,5 @@
 open Common.Domain
-open Common.Source
+open Common.Annotated
 open Lang.Il
 open Envs.Make
 open Ctx

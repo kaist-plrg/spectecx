@@ -2,7 +2,7 @@ open Xl
 open Types.Expression
 open Types
 open Common.Print
-open Common.Source
+open Common.Annotated
 module Location = Common.Location
 
 (* Numbers *)

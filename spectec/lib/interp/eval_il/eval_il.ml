@@ -1,7 +1,7 @@
 open Lang.Il
 module F = Format
 open Attempt
-open Common.Source
+open Common.Annotated
 module Location = Common.Location
 
 let run_relation ~(check_determinism : bool) ~opaque_types

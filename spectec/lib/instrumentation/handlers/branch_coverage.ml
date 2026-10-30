@@ -2,7 +2,7 @@
     which ones execute. [Summary] reports only uncovered branches; [Full] emits
     every relation and function with coverage annotations. *)
 
-open Common.Source
+open Common.Annotated
 module Il = Lang.Il
 module Sl = Lang.Sl
 open Util

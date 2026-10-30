@@ -3,7 +3,7 @@ module V = Lang.Il.Value
 module B = Interp.Builtins
 module O = Lang.Il.Opaque
 
-let ( $ ) = Common.Source.( $ )
+let ( $ ) = Common.Annotated.( $ )
 
 let typdef_state =
   O.make_typdef ~name:"state" ~compare:Int.compare ~hash:Hashtbl.hash

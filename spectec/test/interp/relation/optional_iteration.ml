@@ -4,7 +4,7 @@ module H = Harness
 module V = Lang.Il.Value
 module Typ = Lang.Il.Typ
 
-let ( $ ) = Common.Source.( $ )
+let ( $ ) = Common.Annotated.( $ )
 let nat n = V.nat (Bigint.of_int n)
 let nat_opt n = V.opt (Typ.nat $ Location.Unknown) (Option.map n ~f:nat)
 let spec = H.compile_file "optional_iteration.spectec"

@@ -3,7 +3,7 @@ module V = Lang.Il.Value
 module B = Interp.Builtins
 module O = Lang.Il.Opaque
 
-let ( $ ) = Common.Source.( $ )
+let ( $ ) = Common.Annotated.( $ )
 let nat n = V.nat (Bigint.of_int n)
 
 let field name value =

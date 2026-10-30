@@ -1,7 +1,7 @@
 open Types.Expression
 open Types
 open Common.Domain
-open Common.Source
+open Common.Annotated
 
 (* Identifier set *)
 

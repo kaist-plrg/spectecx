@@ -17,7 +17,7 @@ module Il = Lang.Il
 module El = Lang.El
 module Ansi = Diag.Ansi
 open Util
-open Common.Source
+open Common.Annotated
 
 type level = Rule | Conclusion | Premise
 type config = { level : level; output : Instrumentation_api.Output.t }

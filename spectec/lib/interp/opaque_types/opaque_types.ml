@@ -1,4 +1,4 @@
-open Common.Source
+open Common.Annotated
 open Lang.Il
 module StringMap = Map.Make (String)
 

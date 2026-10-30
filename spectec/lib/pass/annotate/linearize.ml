@@ -1,4 +1,4 @@
-open Common.Source
+open Common.Annotated
 module Location = Common.Location
 module Sl = Lang.Sl
 

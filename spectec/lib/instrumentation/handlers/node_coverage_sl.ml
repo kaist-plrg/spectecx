@@ -2,7 +2,7 @@
     instructions. [level] and [config] are type-aliased to the IL handler's so
     the two share a parser and CLI surface. *)
 
-open Common.Source
+open Common.Annotated
 module Location = Common.Location
 module Sl = Lang.Sl
 open Util

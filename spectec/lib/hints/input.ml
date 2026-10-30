@@ -24,7 +24,7 @@ let combine (hint : t) (items_input : 'a list) (items_output : 'a list) :
 (* Parsing *)
 
 let parse (hintexp : El.exp) : t option =
-  let open Common.Source in
+  let open Common.Annotated in
   let collect_hole (exp : El.exp) =
     match exp.it with El.HoleE (`Num input) -> Some input | _ -> None
   in
