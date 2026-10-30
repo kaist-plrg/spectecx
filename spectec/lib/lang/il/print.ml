@@ -395,7 +395,7 @@ let string_of_value_tree ?(style = fun _ s -> s) value =
     match at with
     | Location.Span { left; right; _ } ->
         style Location (Location.string_of_range left right)
-    | Location.Unknown | Location.File _ -> style No_location "(no region)"
+    | Location.Unknown | Location.File _ -> style No_location "(no location)"
   in
   let add_line prefix label at =
     Buffer.add_string buf (prefix ^ label ^ "  " ^ string_of_at at ^ "\n")

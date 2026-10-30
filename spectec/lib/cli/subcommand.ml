@@ -73,7 +73,7 @@ let make_parse (module Tgt : Spectec.Target.S) ~name ~summary
         [
           flag "-r" (no_arg_some `Roundtrip) ~doc:" roundtrip parse/unparse";
           flag "-t" (no_arg_some `Tree)
-            ~doc:" print the parsed values as a tree with regions";
+            ~doc:" print the parsed values as a tree with locations";
         ]
     and color = Cli_args.Output.color_flag in
     fun () ->
