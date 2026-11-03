@@ -1,4 +1,5 @@
-open Common.Source
+open Common.Annotated
+module Location = Common.Location
 open Il.Expression
 open Types
 
@@ -348,7 +349,7 @@ and string_of_elseblock_opt ?(level = 0) ?(index = 0) elseblock_opt =
 (* Definitions *)
 
 let rec string_of_def def =
-  ";; " ^ string_of_region def.at ^ "\n"
+  ";; " ^ Location.to_string def.at ^ ":\n"
   ^
   match def.it with
   | TypD (id, _, { it = Il.OpaqueT; _ }) ->

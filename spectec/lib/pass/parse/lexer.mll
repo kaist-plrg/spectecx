@@ -1,24 +1,15 @@
 {
-module Source = Common.Source
 open Lang.Xl
 open Parser
 open Diagnostic
 
 (* Error handling *)
 
-let convert_pos pos =
-  Source.{
-    file = pos.Lexing.pos_fname;
-    line = pos.Lexing.pos_lnum;
-    column = pos.Lexing.pos_cnum - pos.Lexing.pos_bol
-  }
+let location lexbuf =
+  Common.Location.of_lexing
+    (Lexing.lexeme_start_p lexbuf, Lexing.lexeme_end_p lexbuf)
 
-let region lexbuf =
-  let left = convert_pos (Lexing.lexeme_start_p lexbuf) in
-  let right = convert_pos (Lexing.lexeme_end_p lexbuf) in
-  Source.{ left; right }
-
-let error ?code ?detail ?related lexbuf msg = error ?code ?detail ?related (region lexbuf) msg
+let error ?code ?detail ?related lexbuf msg = error ?code ?detail ?related (location lexbuf) msg
 let error_nest ?code ?detail ?related start lexbuf msg =
   lexbuf.Lexing.lex_start_p <- start;
   error ?code ?detail ?related lexbuf msg

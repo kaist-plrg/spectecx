@@ -1,12 +1,12 @@
+module Location = Common.Location
 open Core
 module H = Harness
 module V = Lang.Il.Value
 module Typ = Lang.Il.Typ
 
-let ( $ ) = Common.Source.( $ )
-let no_region = Common.Source.no_region
-let nat_type = Typ.nat $ no_region
-let nat_opt_type = Typ.opt nat_type $ no_region
+let ( $ ) = Common.Annotated.( $ )
+let nat_type = Typ.nat $ Location.Unknown
+let nat_opt_type = Typ.opt nat_type $ Location.Unknown
 let nat n = V.nat (Bigint.of_int n)
 let nat_opt n = V.opt nat_type (Option.map n ~f:nat)
 let nat_opts ns = V.list nat_opt_type (List.map ns ~f:nat_opt)

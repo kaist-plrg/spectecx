@@ -1,11 +1,11 @@
-open Common.Source
+module Location = Common.Location
 
-exception InterpError of region * string
+exception InterpError of Location.t * string
 
 (* Error *)
 
-let error (at : region) (msg : string) = raise (InterpError (at, msg))
-let warn (at : region) (msg : string) = Diag.warn at "pl-interp" msg
+let error (at : Location.t) (msg : string) = raise (InterpError (at, msg))
+let warn (at : Location.t) (msg : string) = Diag.warn at "pl-interp" msg
 
 (* Builtin errors *)
 
@@ -30,10 +30,10 @@ let unwrap_builtin (result : 'a Builtins.result) : 'a =
 
 (* Check *)
 
-let check (b : bool) (at : region) (msg : string) : unit =
+let check (b : bool) (at : Location.t) (msg : string) : unit =
   if not b then error at msg
 
-let guard (b : bool) (at : region) (msg : string) : unit =
+let guard (b : bool) (at : Location.t) (msg : string) : unit =
   if not b then warn at msg
 
-type error = region * string
+type error = Location.t * string

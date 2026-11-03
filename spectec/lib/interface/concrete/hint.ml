@@ -1,5 +1,5 @@
 open Lang.Il
-open Common.Source
+open Common.Annotated
 module SMap = Map.Make (String)
 
 type hmap = (nottyp * Lang.El.exp) list SMap.t

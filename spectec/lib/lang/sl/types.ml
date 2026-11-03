@@ -1,4 +1,4 @@
-open Common.Source
+open Common.Annotated
 
 [@@@ocamlformat "disable"]
 
@@ -129,7 +129,7 @@ and guard =
 
 (* Instructions *)
 
-and instr = instr' phrase
+and instr = instr' located
 and instr' =
   | RelI of { call : relcall; iterexps : iterexp list; block : instr list }
   | RelAssertI of {
@@ -152,7 +152,7 @@ and elseblock = instr list
 
 (* Definitions *)
 
-type def = def' phrase
+type def = def' located
 and def' =
   (* `syntax` id `<` list(tparam, `,`) `>` `=` deftyp *)
   | TypD of id * tparam list * deftyp

@@ -105,7 +105,7 @@ module Checkpoint = struct
     else
       Error
         (Error.ConfigError
-           ( Common.Source.no_region,
+           ( Common.Location.Unknown,
              Printf.sprintf
                "Checkpoint determinism checking is %s. Resume with the same \
                 setting."
@@ -169,7 +169,7 @@ module Checkpoint = struct
     else if checkpoint1.check_determinism <> checkpoint2.check_determinism then
       Error
         (Error.ConfigError
-           ( Common.Source.no_region,
+           ( Common.Location.Unknown,
              "Cannot merge checkpoints with different determinism settings" ))
     else
       let completed_inputs =

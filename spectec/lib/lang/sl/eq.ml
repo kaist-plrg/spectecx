@@ -1,4 +1,4 @@
-open Common.Source
+open Common.Annotated
 open Types
 
 (* Identifiers *)

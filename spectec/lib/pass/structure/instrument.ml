@@ -1,7 +1,7 @@
 open Lang
 open Ol.Ast
 module TDEnv = Envs.Il.TDEnv
-open Common.Source
+open Common.Annotated
 
 (* Insert phantom instructions at dangling else branches,
    with the path condition necessary to reach the else branch

@@ -5,9 +5,9 @@
   open Context
   open Extract
 
-  let at = Common.Source.region_of_positions
+  let at = Common.Location.of_lexing
 
-  (* The region of characters [l, r) of a single-line token at [loc] *)
+  (* The location of characters [l, r) of a single-line token at [loc] *)
   let at_chars (position_left, _) l r =
     let shift n =
       { position_left with Lexing.pos_cnum = position_left.Lexing.pos_cnum + n }
@@ -29,24 +29,26 @@
   let at_pragma ((position_left, position_right) as loc) =
     if position_right.Lexing.pos_cnum - position_left.Lexing.pos_cnum = 7
     then (at_chars loc 0 1, at_chars loc 1 7)
-    else (Common.Source.no_region, at loc)
+    else (Common.Location.Unknown, at loc)
 
   (* Empty leading nonterminals can move Menhir's start position before
      the first source token. Use the first leading value that spans text,
      and retain Menhir's end position. *)
   let at_v (position_left, position_right) (leading : value list) =
-    let region = at (position_left, position_right) in
+    let location = at (position_left, position_right) in
     let nonempty (v : value) =
-      let open Common.Source in
-      v.at.left <> v.at.right && v.at <> no_region
+      match v.at with
+      | Common.Location.Span { left; right; _ } -> left <> right
+      | Common.Location.Unknown | Common.Location.File _ -> false
     in
-    match List.find_opt nonempty leading with
-    | Some v -> { region with left = v.at.left }
-    | None -> region
+    match (List.find_opt nonempty leading, location) with
+    | Some { at = Common.Location.Span { file; left; _ }; _ }, Common.Location.Span span ->
+        Common.Location.Span { span with file; left }
+    | _ -> location
 
-  let case var region mixemes = mixemes |> case_v ~var <<<| region
+  let case var location mixemes = mixemes |> case_v ~var <<<| location
 
-  (* Atoms without a source token, or with a computed region, use the
+  (* Atoms without a source token, or with a computed location, use the
      corresponding [Case] constructors directly. *)
   let kw loc id = Case.kw ~at:(at loc) id
   let op loc s = Case.op ~at:(at loc) s

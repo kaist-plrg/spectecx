@@ -1,5 +1,5 @@
 open Xl
-open Common.Source
+open Common.Annotated
 
 [@@@ocamlformat "disable"]
 [@@@warning "-30"]  (* Several AST records intentionally share semantic field names. *)
@@ -14,12 +14,12 @@ type text = string
 
 (* Identifiers *)
 
-type id = id' phrase
+type id = id' located
 and id' = string
 
 (* Atoms *)
 
-type atom = atom' phrase
+type atom = atom' located
 and atom' = Atom.t
 
 (* Mixfix operators *)
@@ -38,7 +38,7 @@ type hint = { hintid : id; hintexp : El.exp }
 
 (* Types *)
 
-type typ = typ' phrase
+type typ = typ' located
 and typ' =
   | BoolT                   (* `bool` *)
   | NumT of Num.typ         (* numtyp *)
@@ -50,20 +50,20 @@ and typ' =
 
 (* Type arguments *)
 
-and targ = targ' phrase
+and targ = targ' located
 and targ' = typ'
 
 (* Variables *)
 
 type var = { varid : id; typ : typ; iters : iter list }
 
-type nottyp = nottyp' phrase
+type nottyp = nottyp' located
 and nottyp' = typ Mixfix.t
 
-and reltyp = reltyp' phrase
+and reltyp = reltyp' located
 and reltyp' = (typ, typ) Mode.t
 
-and deftyp = deftyp' phrase
+and deftyp = deftyp' located
 and deftyp' =
   | OpaqueT
   | PlainT of typ
@@ -71,7 +71,7 @@ and deftyp' =
   | VariantT of typcase list
 
 and typfield = atom * typ
-and typorigin = typorigin' Common.Source.phrase
+and typorigin = typorigin' Common.Annotated.located
 and typorigin' = { synid : id; targs : targ list }
 and typcase = { notation : nottyp; origin : typorigin; hints : hint list }
 
@@ -80,7 +80,7 @@ and typcase = { notation : nottyp; origin : typorigin; hints : hint list }
 type vid = int
 and vnote = { vid : vid; vhash : int; typ : typ' }
 
-and value = (value', vnote) note_phrase
+and value = (value', vnote) annotated
 and value' =
   | BoolV of bool
   | NumV of Num.t
@@ -116,7 +116,7 @@ type pattern =
 module Expression = struct
   type 'ann note = { typ : typ'; annot : 'ann }
 
-  type 'ann t = ('ann node, 'ann note) note_phrase
+  type 'ann t = ('ann node, 'ann note) annotated
   and 'ann node =
     | BoolE of bool                            (* bool *)
     | NumE of num                              (* num *)
@@ -146,21 +146,21 @@ module Expression = struct
     | IterE of 'ann t * iterexp                (* exp iterexp *)
 
   and 'ann notation = 'ann t Mixfix.t
-  and 'ann path = ('ann path_node, typ') note_phrase
+  and 'ann path = ('ann path_node, typ') annotated
   and 'ann path_node =
     | RootP                                    (*  *)
     | IdxP of 'ann path * 'ann t               (* path `[` exp `]` *)
     | SliceP of 'ann path * 'ann t * 'ann t    (* path `[` exp `:` exp `]` *)
     | DotP of 'ann path * atom                 (* path `.` atom *)
 
-  and 'ann arg = 'ann arg_node phrase
+  and 'ann arg = 'ann arg_node located
   and 'ann arg_node =
     | ExpA of 'ann t                           (* exp *)
     | DefA of id                               (* `$`id *)
 
   (** Replace annotations throughout an expression, including expressions in paths
       and arguments. The callback receives each original expression. Syntax,
-      types, source regions, and provenance are preserved. Callback order among
+      types and source locations are preserved. Callback order among
       sibling expressions is unspecified. *)
   let map_annotations annotate exp =
     let rec map_exp (exp : _ t) =
@@ -228,7 +228,7 @@ type path' = unit Expression.path_node
 type arg = unit Expression.arg
 type arg' = unit Expression.arg_node
 
-type param = param' phrase
+type param = param' located
 and param' =
   (* typ *)
   | ExpP of typ
@@ -237,24 +237,24 @@ and param' =
 
 (* Type parameters *)
 
-and tparam = tparam' phrase
+and tparam = tparam' located
 and tparam' = id'
 
 (* Rules *)
 
-and rule = rule' phrase
+and rule = rule' located
 and rule' = { ruleid : id; concl : notexp; prems : prem list }
 
 (* Clauses *)
 
-and clause = clause' phrase
+and clause = clause' located
 and clause' = { args : arg list; body : exp; prems : prem list }
 
 (* Premises *)
 
 and relcall = { relid : id; notexp : notexp }
 
-and prem = (prem', prem_prov) phrase_prov
+and prem = (prem', prem_prov option) annotated
 and prem_prov =
   | Source of El.prem  (* lowered from this EL premise *)
   | Synthesized        (* introduced by elaboration; no EL source *)
@@ -274,7 +274,7 @@ and if_role =
 
 (* Definitions *)
 
-type def = def' phrase
+type def = def' located
 and def' =
   (* `syntax` id `<` list(tparam, `,`) `>` `=` deftyp *)
   | TypD of { synid : id; tparams : tparam list; deftyp : deftyp }

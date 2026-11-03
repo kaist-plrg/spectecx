@@ -1,4 +1,4 @@
-open Common.Source
+open Common.Annotated
 
 type primitive = Num of Xl.Num.typ | Bool | Text
 type arg = Nonterminal of Il.id | Primitive of primitive

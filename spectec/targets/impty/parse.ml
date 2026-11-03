@@ -4,7 +4,8 @@
     to match the surface syntax in [specs/impty/*/spec.spectec]. Precedence is
     encoded by the call structure of [parse_expr] and friends. *)
 
-open Common.Source
+open Common.Annotated
+module Location = Common.Location
 open Lang.Il
 open Lang.Il.Value
 open Lang.Il.Case
@@ -14,16 +15,16 @@ open Lang.Il.Case
 (* ----------------------------------------------------------------- *)
 
 (* The cursor never advances past Eof; the trailing Eof token gives a stable
-   region for error reporting at end of file. *)
+   location for error reporting at end of file. *)
 module Cursor = struct
   type t = {
-    mutable tokens : (Lexer.token * region) list;
-    mutable last : region;
+    mutable tokens : (Lexer.token * Location.t) list;
+    mutable last : Location.t;
   }
 
-  let make tokens = { tokens; last = no_region }
+  let make tokens = { tokens; last = Location.Unknown }
   let peek c = match c.tokens with [] -> assert false | (t, _) :: _ -> t
-  let region c = match c.tokens with [] -> assert false | (_, at) :: _ -> at
+  let location c = match c.tokens with [] -> assert false | (_, at) :: _ -> at
   let peek2 c = match c.tokens with _ :: (t, _) :: _ -> t | _ -> Lexer.Eof
 
   let advance c =
@@ -35,17 +36,17 @@ module Cursor = struct
     | [] -> assert false
 
   let advance_at c =
-    let at = region c in
+    let at = location c in
     advance c;
     at
 
-  let since c left = { left = left.left; right = c.last.right }
+  let since c left = Location.cover [ left; c.last ]
 
   let expect_at c expected =
     let tok = peek c in
     if tok = expected then advance_at c
     else
-      Error.error (region c)
+      Error.error (location c)
         (Printf.sprintf "expected %s, got %s"
            (Lexer.string_of_token expected)
            (Lexer.string_of_token tok))
@@ -55,11 +56,11 @@ module Cursor = struct
   let expect_ident c =
     match peek c with
     | Lexer.Ident s ->
-        let at = region c in
+        let at = location c in
         advance c;
         s $ at
     | tok ->
-        Error.error (region c)
+        Error.error (location c)
           (Printf.sprintf "expected identifier, got %s"
              (Lexer.string_of_token tok))
 end
@@ -84,7 +85,7 @@ let surrounded_at ~left ~right p c =
    repeated [op_token]s, building [next op next op ... op next] as a chain
    of binary case_v values under [var]. *)
 let left_assoc ~op_token ~op_atom ~var ~next c =
-  let start = Cursor.region c in
+  let start = Cursor.location c in
   let lhs = next c in
   let rec loop acc =
     if Cursor.peek c = op_token then
@@ -101,15 +102,15 @@ let left_assoc ~op_token ~op_atom ~var ~next c =
 (* IL value constructors                                              *)
 (* ----------------------------------------------------------------- *)
 
-(* Tags such as [_ID] have no source token, so they carry no region. *)
-let v_id (x : string phrase) : value =
+(* Tags such as [_ID] have no source token, so they carry no location. *)
+let v_id (x : string located) : value =
   [ tag "ID"; arg (text x.it <<<| x.at) ] |> case_v ~var:"id" <<<| x.at
 
-let v_lit_num (at : region) (n : int) : value =
+let v_lit_num (at : Location.t) (n : int) : value =
   [ tag "NUM"; arg (int (Bigint.of_int n) <<<| at) ]
   |> case_v ~var:"literal" <<<| at
 
-let v_lit_bool (at : region) (b : bool) : value =
+let v_lit_bool (at : Location.t) (b : bool) : value =
   [ tag "BOOL"; arg (bool b <<<| at) ] |> case_v ~var:"literal" <<<| at
 
 (* ----------------------------------------------------------------- *)
@@ -119,7 +120,7 @@ let v_lit_bool (at : region) (b : bool) : value =
 (* Function-type arrow is right-associative: `int -> int -> int` parses as
    `int -> (int -> int)`. *)
 let rec parse_type c : value =
-  let start = Cursor.region c in
+  let start = Cursor.location c in
   let lhs = parse_type_atom c in
   if Cursor.peek c = Lexer.Arrow then
     let arrow_at = Cursor.advance_at c in
@@ -129,7 +130,7 @@ let rec parse_type c : value =
   else lhs
 
 and parse_type_atom c : value =
-  let at = Cursor.region c in
+  let at = Cursor.location c in
   match Cursor.peek c with
   | Lexer.KwInt ->
       Cursor.advance c;
@@ -140,7 +141,7 @@ and parse_type_atom c : value =
   | Lexer.Lparen ->
       surrounded ~left:Lexer.Lparen ~right:Lexer.Rparen parse_type c
   | tok ->
-      Error.error (Cursor.region c)
+      Error.error (Cursor.location c)
         (Printf.sprintf "expected type, got %s" (Lexer.string_of_token tok))
 
 (* ----------------------------------------------------------------- *)
@@ -153,7 +154,7 @@ and parse_type_atom c : value =
 let rec parse_expr c : value = parse_ternary c
 
 and parse_ternary c : value =
-  let start = Cursor.region c in
+  let start = Cursor.location c in
   let cond = parse_and c in
   if Cursor.peek c = Lexer.Question then
     let question_at = Cursor.advance_at c in
@@ -181,7 +182,7 @@ and parse_add c =
 
 and parse_unary c : value =
   if Cursor.peek c = Lexer.Bang then (
-    let at = Cursor.region c in
+    let at = Cursor.location c in
     Cursor.advance c;
     let e = parse_unary c in
     [ op ~at "!"; arg e ] |> case_v ~var:"expr" <<<| Cursor.since c at)
@@ -189,7 +190,7 @@ and parse_unary c : value =
 
 (* A primary may be followed by zero or more `(expr)` applications. *)
 and parse_postfix c : value =
-  let start = Cursor.region c in
+  let start = Cursor.location c in
   let base = parse_primary c in
   let rec loop acc =
     if Cursor.peek c = Lexer.Lparen then
@@ -206,7 +207,7 @@ and parse_postfix c : value =
   loop base
 
 and parse_primary c : value =
-  let at = Cursor.region c in
+  let at = Cursor.location c in
   match Cursor.peek c with
   | Lexer.Num n ->
       Cursor.advance c;
@@ -250,7 +251,7 @@ and parse_primary c : value =
       ]
       |> case_v ~var:"expr" <<<| Cursor.since c at
   | tok ->
-      Error.error (Cursor.region c)
+      Error.error (Cursor.location c)
         (Printf.sprintf "expected expression, got %s"
            (Lexer.string_of_token tok))
 
@@ -264,7 +265,7 @@ and parse_stmt c =
     ~next:parse_stmt_atom c
 
 and parse_stmt_atom c : value =
-  let at = Cursor.region c in
+  let at = Cursor.location c in
   match Cursor.peek c with
   | Lexer.KwSkip ->
       Cursor.advance c;
@@ -339,14 +340,14 @@ and parse_stmt_atom c : value =
       [ arg (v_id id_str); op ~at:eq_at "="; arg rhs ]
       |> case_v ~var:"command" <<<| Cursor.since c at
   | tok ->
-      Error.error (Cursor.region c)
+      Error.error (Cursor.location c)
         (Printf.sprintf "expected a command, got %s"
            (Lexer.string_of_token tok))
 
 (* Surface form `T id = e`.  No trailing `;` is consumed: that `;` is the
    stmt-sequence separator parsed by [parse_stmt]. *)
 and parse_var_decl c : value =
-  let at = Cursor.region c in
+  let at = Cursor.location c in
   let t = parse_type c in
   let id_str = Cursor.expect_ident c in
   let eq_at = Cursor.expect_at c Lexer.Eq in
@@ -370,7 +371,7 @@ let parse_to_eof ~filename (parse : Cursor.t -> value) (source : string) : value
   (match Cursor.peek cursor with
   | Lexer.Eof -> ()
   | tok ->
-      Error.error (Cursor.region cursor)
+      Error.error (Cursor.location cursor)
         (Printf.sprintf "unexpected trailing token %s"
            (Lexer.string_of_token tok)));
   result

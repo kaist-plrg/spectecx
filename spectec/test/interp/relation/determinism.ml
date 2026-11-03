@@ -1,11 +1,11 @@
+module Location = Common.Location
 module H = Harness
 module V = Lang.Il.Value
 module Typ = Lang.Il.Typ
 
-let ( $ ) = Common.Source.( $ )
-let no_region = Common.Source.no_region
+let ( $ ) = Common.Annotated.( $ )
 let nat n = V.nat (Bigint.of_int n)
-let nats ns = V.list (Typ.nat $ no_region) (List.map nat ns)
+let nats ns = V.list (Typ.nat $ Location.Unknown) (List.map nat ns)
 let spec = H.compile_file "determinism.spectec"
 
 let first_match ?modes ~name ~relation n expectation =
@@ -27,7 +27,7 @@ let checked_list ?modes ~name ~relation ns expectation =
     expectation
 
 (* The IL diagnostic names the rules or the clauses that overlap, while the SL
-   and PL diagnostics point at the source regions the alternatives start at. *)
+   and PL diagnostics point at the source locations the alternatives start at. *)
 
 let overlapping ~name ~relation n ~il =
   checked ~modes:[ H.Il ] ~name ~relation n (H.fails_with il);

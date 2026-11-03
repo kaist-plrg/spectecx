@@ -3,7 +3,7 @@
     Produces a stream of tokens over the input string. Whitespace and comments
     (// to EOL, /* ... */) are skipped. *)
 
-open Common.Source
+module Location = Common.Location
 
 type token =
   | KwInt
@@ -94,10 +94,10 @@ let advance st =
     else st.col <- st.col + 1;
     st.pos <- st.pos + 1)
 
-let current_pos st : pos =
-  { file = st.filename; line = st.line; column = st.col - 1 }
+let current_pos st : Location.pos = { line = st.line; column = st.col - 1 }
 
-let region_from start_pos end_pos = { left = start_pos; right = end_pos }
+let location_from st left right =
+  Location.Span { file = st.filename; left; right }
 
 (* Skip whitespace and comments. Returns when next char is start of a token. *)
 let rec skip_trivia st =
@@ -120,7 +120,7 @@ let rec skip_trivia st =
             match (peek st, peek2 st) with
             | None, _ ->
                 Error.error
-                  (region_from (current_pos st) (current_pos st))
+                  (location_from st (current_pos st) (current_pos st))
                   "unterminated block comment"
             | Some '*', Some '/' ->
                 advance st;
@@ -173,8 +173,8 @@ let lex_ident st =
   let lexeme = String.sub st.source start (st.pos - start) in
   match keyword_of lexeme with Some kw -> kw | None -> Ident lexeme
 
-(* Lex one token, paired with its source region. *)
-let next st : token * region =
+(* Lex one token, paired with its source location. *)
+let next st : token * Location.t =
   skip_trivia st;
   let left = current_pos st in
   let tok =
@@ -219,7 +219,7 @@ let next st : token * region =
             advance st;
             Leq
         | _ ->
-            let here = region_from left (current_pos st) in
+            let here = location_from st left (current_pos st) in
             Error.error here "expected '<=' (bare '<' is not used)")
     | Some '&' -> (
         match peek2 st with
@@ -228,7 +228,7 @@ let next st : token * region =
             advance st;
             And
         | _ ->
-            let here = region_from left (current_pos st) in
+            let here = location_from st left (current_pos st) in
             Error.error here "expected '&&'")
     | Some '-' -> (
         match peek2 st with
@@ -240,17 +240,17 @@ let next st : token * region =
             advance st;
             match lex_number st with Num n -> Num (-n) | tok -> tok)
         | _ ->
-            let here = region_from left (current_pos st) in
+            let here = location_from st left (current_pos st) in
             Error.error here "expected '->' or a negative number")
     | Some c ->
-        let here = region_from left (current_pos st) in
+        let here = location_from st left (current_pos st) in
         Error.error here (Printf.sprintf "unexpected character %C" c)
   in
   let right = current_pos st in
-  (tok, region_from left right)
+  (tok, location_from st left right)
 
 (* Tokenize the entire input. *)
-let tokenize ~filename (source : string) : (token * region) list =
+let tokenize ~filename (source : string) : (token * Location.t) list =
   let st = make ~filename source in
   let rec loop acc =
     let tok, at = next st in

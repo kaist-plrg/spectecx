@@ -12,9 +12,13 @@ val character : encoding:encoding -> line:string -> int -> int
     column, to an editor position, with a zero-based line and a column measured
     in the selected encoding's units. *)
 val position :
-  encoding:encoding -> text:string -> Common.Source.pos -> Linol_eio.Position.t
+  encoding:encoding ->
+  text:string ->
+  Common.Location.pos ->
+  Linol_eio.Position.t
 
-(** Convert a source region to an editor range, applying {!position} to each
-    endpoint. *)
+(** Convert a source location to an editor range, applying {!position} to each
+    endpoint of a span. A location without a span becomes the empty range at the
+    start of the file. *)
 val range :
-  encoding:encoding -> text:string -> Common.Source.region -> Linol_eio.Range.t
+  encoding:encoding -> text:string -> Common.Location.t -> Linol_eio.Range.t

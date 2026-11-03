@@ -1,4 +1,4 @@
-open Common.Source
+module Location = Common.Location
 module Lsp = Linol_eio
 
 let severity : Spectec.Diagnostic.severity -> Lsp.DiagnosticSeverity.t =
@@ -12,21 +12,22 @@ let of_diagnostic ~encoding ~sources (d : Spectec.Diagnostic.t) :
     Lsp.Diagnostic.t =
   let open Spectec.Diagnostic in
   let text =
-    Option.value (Sources.text sources d.region.left.file) ~default:""
+    Option.bind (Location.file d.location) (Sources.text sources)
+    |> Option.value ~default:""
   in
   Lsp.Diagnostic.create
-    ~range:(Convert.range ~encoding ~text d.region)
+    ~range:(Convert.range ~encoding ~text d.location)
     ~severity:(severity d.severity) ~source:d.source
     ?code:(Option.map (fun c -> `String c) d.code)
     ~message:(`String d.message) ()
 
 let unreadable file message : Spectec.Diagnostic.t =
-  Spectec.Diagnostic.error ~source:"io" (region_of_file file)
+  Spectec.Diagnostic.error ~source:"io" (Location.File file)
     (Printf.sprintf "cannot read spec file %s: %s" (Filename.basename file)
        message)
 
 let internal_error ~open_path exn : Spectec.Diagnostic.t =
-  Spectec.Diagnostic.error ~source:"internal" (region_of_file open_path)
+  Spectec.Diagnostic.error ~source:"internal" (Location.File open_path)
     ("internal error: " ^ Printexc.to_string exn)
 
 let analyze (sources : Sources.t) =
@@ -54,17 +55,19 @@ let analyze (sources : Sources.t) =
     in
     [ internal_error ~open_path exn ]
 
+let file_of (d : Spectec.Diagnostic.t) =
+  Option.value (Location.file d.location) ~default:""
+
 let diagnostics ~encoding ~sources diagnostics =
   let files =
-    List.map (fun (d : Spectec.Diagnostic.t) -> d.region.left.file) diagnostics
-    |> List.sort_uniq Spectec.compare_spec_files
+    List.map file_of diagnostics |> List.sort_uniq Spectec.compare_spec_files
   in
   List.map
     (fun file ->
       ( file,
         List.filter_map
           (fun (d : Spectec.Diagnostic.t) ->
-            if String.equal d.region.left.file file then
+            if String.equal (file_of d) file then
               Some (of_diagnostic ~encoding ~sources d)
             else None)
           diagnostics ))

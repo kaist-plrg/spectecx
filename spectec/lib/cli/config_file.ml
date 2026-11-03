@@ -36,7 +36,7 @@ let finalize ~target { spec_files; spec_dir; batch_dir } =
   | _ :: _, Some _ ->
       Error
         (Spectec.Error.ConfigError
-           ( Common.Source.no_region,
+           ( Common.Location.Unknown,
              Printf.sprintf
                "%s sets both '%s.spec' and '%s.spec_dir'; use one or the other"
                default_filename target target ))

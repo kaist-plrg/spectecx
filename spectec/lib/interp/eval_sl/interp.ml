@@ -1,4 +1,5 @@
-open Common.Source
+open Common.Annotated
+module Location = Common.Location
 module Il = Lang.Il
 module Mixop = Lang.Il.Mixfix
 module Value = Lang.Il.Value
@@ -45,7 +46,9 @@ and eval_instr (ctx : Ctx.t) (instr : instr) : Sign.t =
   let eval_debug_instr ctx exp =
     let value = eval_exp ctx exp in
     print_endline
-    @@ F.sprintf "%s: %s" (string_of_region exp.at) (Il.Print.string_of_exp exp);
+    @@ F.sprintf "%s: %s"
+         (Location.to_string exp.at)
+         (Il.Print.string_of_exp exp);
     print_endline @@ Il.Print.string_of_value value
   in
   match instr.it with
@@ -85,7 +88,7 @@ and eval_instrs_unique (ctx : Ctx.t) (instrs : instr list) : Sign.t =
             error instr.at
               (F.asprintf
                  "this alternative applies, and so does the alternative at %s"
-                 (string_of_region at_applied)))
+                 (Location.to_string at_applied)))
       None instrs
   in
   match applied with Some (sign, _) -> sign | None -> Sign.Cont
@@ -147,7 +150,7 @@ and eval_case_instr (ctx : Ctx.t) (exp : exp) (cases : case list) : Sign.t =
          (None, [])
     |> fun (block_match, values_cond) ->
     let value_cond =
-      let typ_inner = Il.BoolT $ no_region in
+      let typ_inner = Il.BoolT $ Location.Unknown in
       values_cond |> List.rev |> Value.list typ_inner
     in
     (block_match, value_cond)

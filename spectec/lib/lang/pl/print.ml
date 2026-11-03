@@ -1,7 +1,7 @@
 open Il.Expression
 open Types
 open Annot
-open Common.Source
+open Common.Annotated
 
 (* Leaf types *)
 

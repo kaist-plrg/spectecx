@@ -24,8 +24,8 @@ val starts_with : t -> string -> bool
     [true]. Otherwise leave the cursor unchanged and return [false]. *)
 val consume : t -> string -> bool
 
-(** Zero-width region anchored at the current position. *)
-val region : t -> Common.Source.region
+(** Zero-width location anchored at the current position. *)
+val location : t -> Common.Location.t
 
 (** Current line/column position. *)
-val pos : t -> Common.Source.pos
+val pos : t -> Common.Location.pos

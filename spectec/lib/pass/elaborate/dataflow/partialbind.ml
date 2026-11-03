@@ -1,5 +1,5 @@
 open Common.Domain
-open Common.Source
+open Common.Annotated
 open Lang.Il.Expression
 open Lang.Il
 open Envs.Make
@@ -96,10 +96,11 @@ let gen_prem_bound (dctx : Dctx.t) (to_ : To.t) (exp_from : exp)
         $$ (exp_from.at, { typ = BoolT; annot = () })
   in
   let sidecondition =
-    IfPr { cond = exp_cond; role = Condition } $ exp_from.at
+    IfPr { cond = exp_cond; role = Condition } $$ (exp_from.at, None)
   in
   List.fold_left
-    (fun sidecondition iter -> IterPr (sidecondition, (iter, [])) $ exp_from.at)
+    (fun sidecondition iter ->
+      IterPr (sidecondition, (iter, [])) $$ (exp_from.at, None))
     sidecondition iters
 
 let gen_prem_bind_match (to_ : To.t) (pattern : pattern) (exp_from : exp)
@@ -110,15 +111,15 @@ let gen_prem_bind_match (to_ : To.t) (pattern : pattern) (exp_from : exp)
       MatchE (exp_to, pattern) $$ (exp_from.at, { typ = BoolT; annot = () })
     in
     let sidecondition_guard_match =
-      IfPr { cond = exp_guard_match; role = Condition } $ exp_from.at
+      IfPr { cond = exp_guard_match; role = Condition } $$ (exp_from.at, None)
     in
-    let prem_bind = LetPr (exp_from, exp_to) $ exp_from.at in
+    let prem_bind = LetPr (exp_from, exp_to) $$ (exp_from.at, None) in
     [ sidecondition_guard_match; prem_bind ]
   in
   List.map
     (fun prem ->
       List.fold_left
-        (fun prem iter -> IterPr (prem, (iter, [])) $ exp_from.at)
+        (fun prem iter -> IterPr (prem, (iter, [])) $$ (exp_from.at, None))
         prem iters)
     prems
 
@@ -130,19 +131,19 @@ let gen_prem_bind_sub (to_ : To.t) (typ_sub : typ) (exp_sub : exp)
       SubE (exp_to, typ_sub) $$ (exp_from.at, { typ = BoolT; annot = () })
     in
     let sidecondition_guard_sub =
-      IfPr { cond = exp_guard_sub; role = Condition } $ exp_from.at
+      IfPr { cond = exp_guard_sub; role = Condition } $$ (exp_from.at, None)
     in
     let exp_downcast =
       DownCastE (typ_sub, exp_to)
       $$ (exp_from.at, { typ = typ_sub.it; annot = () })
     in
-    let prem_bind = LetPr (exp_sub, exp_downcast) $ exp_from.at in
+    let prem_bind = LetPr (exp_sub, exp_downcast) $$ (exp_from.at, None) in
     [ sidecondition_guard_sub; prem_bind ]
   in
   List.map
     (fun prem ->
       List.fold_left
-        (fun prem iter -> IterPr (prem, (iter, [])) $ exp_from.at)
+        (fun prem iter -> IterPr (prem, (iter, [])) $$ (exp_from.at, None))
         prem iters)
     prems
 

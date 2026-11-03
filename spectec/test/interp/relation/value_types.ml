@@ -3,14 +3,14 @@ module V = Lang.Il.Value
 module B = Interp.Builtins
 module O = Lang.Il.Opaque
 
-let ( $ ) = Common.Source.( $ )
+let ( $ ) = Common.Annotated.( $ )
 let nat n = V.nat (Bigint.of_int n)
 
 let field name value =
-  (Lang.Xl.Atom.keyword name $ Common.Source.no_region, value)
+  (Lang.Xl.Atom.keyword name $ Common.Location.Unknown, value)
 
 let box saved =
-  let typ = Lang.Il.Typ.var "number" [] $ Common.Source.no_region in
+  let typ = Lang.Il.Typ.var "number" [] $ Common.Location.Unknown in
   V.record "box"
     [
       field "CURRENT" (nat 3);

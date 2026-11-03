@@ -29,22 +29,21 @@ let parse_id (cur : Cursor.t) : string option =
   done;
   if cur.i = start then None else Some (String.sub cur.s start (cur.i - start))
 
-let parse_anchor_open (cur : Cursor.t) : (string * Common.Source.region) option
-    =
+let parse_anchor_open (cur : Cursor.t) : (string * Common.Location.t) option =
   if not (Cursor.starts_with cur "${") then None
   else
-    let region_left = (Cursor.pos cur : Common.Source.pos) in
     let i_save = cur.i in
     Cursor.adv cur;
     Cursor.adv cur;
+    let left = Cursor.pos cur in
     match parse_id cur with
     | None ->
         cur.i <- i_save;
         None
     | Some name ->
+        let right = Cursor.pos cur in
         if Cursor.consume cur ":" then
-          let region_right = (Cursor.pos cur : Common.Source.pos) in
-          Some (name, Common.Source.{ left = region_left; right = region_right })
+          Some (name, Common.Location.Span { file = cur.file; left; right })
         else (
           cur.i <- i_save;
           None)

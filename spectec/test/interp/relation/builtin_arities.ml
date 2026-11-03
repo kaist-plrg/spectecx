@@ -1,3 +1,4 @@
+module Location = Common.Location
 module H = Harness
 module V = Lang.Il.Value
 module B = Interp.Builtins
@@ -5,7 +6,7 @@ module B = Interp.Builtins
 let nat n = V.nat (Bigint.of_int n)
 
 let nats ns =
-  V.list Common.Source.(Lang.Il.Typ.nat $ no_region) (List.map nat ns)
+  V.list Common.Annotated.(Lang.Il.Typ.nat $ Location.Unknown) (List.map nat ns)
 
 module Target : Interp.Target.S = struct
   include H.Pure_target

@@ -1,4 +1,4 @@
-open Common.Source
+open Common.Annotated
 
 let strip_var_suffix id =
   let rec is_sub id idx =

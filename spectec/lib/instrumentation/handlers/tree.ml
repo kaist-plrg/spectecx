@@ -17,7 +17,7 @@ module Il = Lang.Il
 module El = Lang.El
 module Ansi = Diag.Ansi
 open Util
-open Common.Source
+open Common.Annotated
 
 type level = Rule | Conclusion | Premise
 type config = { level : level; output : Instrumentation_api.Output.t }
@@ -152,7 +152,7 @@ module State = struct
 end
 
 let is_authored_prem prem =
-  match prov prem with Some Il.Synthesized -> false | _ -> true
+  match prem.note with Some Il.Synthesized -> false | _ -> true
 
 (* === Rendering ===================================================== *)
 
@@ -221,7 +221,7 @@ let render_prem ~binding_env entry =
     | Some (_, v) -> Some (render_value v)
     | None -> Some (dim "?")
   in
-  match prov entry.prem with
+  match entry.prem.note with
   | Some (Il.Source el_prem) -> El.Unparse.string_of_prem ~values el_prem
   | _ -> Il.Print.string_of_prem entry.prem
 

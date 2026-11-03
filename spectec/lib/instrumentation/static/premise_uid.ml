@@ -4,7 +4,8 @@
  * The UID mapping is shared across all handlers that need to reference premises.
  *)
 
-open Common.Source
+open Common.Annotated
+module Location = Common.Location
 module Il = Lang.Il
 open Static
 
@@ -27,15 +28,15 @@ let normalize_whitespace s =
 let truncate max_len s =
   if String.length s > max_len then String.sub s 0 (max_len - 3) ^ "..." else s
 
-(* Create a unique key for a premise using region + content prefix *)
+(* Create a unique key for a premise using location + content prefix *)
 let prem_key prem =
   let content = Il.Print.string_of_prem prem |> normalize_whitespace in
   (prem.at, truncate 30 content)
 
 (* Shared state for premise UID mapping *)
 module State = struct
-  let prem_to_uid : (region * string, int) Hashtbl.t = Hashtbl.create 256
-  let uid_to_prem : (int, region * string) Hashtbl.t = Hashtbl.create 256
+  let prem_to_uid : (Location.t * string, int) Hashtbl.t = Hashtbl.create 256
+  let uid_to_prem : (int, Location.t * string) Hashtbl.t = Hashtbl.create 256
   let next_uid = ref 0
 
   let reset () =
@@ -116,7 +117,7 @@ let restore (prem_to_uid_list, uid_to_prem_list) =
 (* Implement Static.S signature *)
 module Premise_uid : Static.S = struct
   type export_data =
-    ((region * string) * int) list * (int * (region * string)) list
+    ((Location.t * string) * int) list * (int * (Location.t * string)) list
 
   let name = "premise_uid"
   let init = init

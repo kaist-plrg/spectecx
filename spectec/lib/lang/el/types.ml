@@ -1,4 +1,4 @@
-open Common.Source
+open Common.Annotated
 open Xl
 
 [@@@ocamlformat "disable"]
@@ -13,12 +13,12 @@ type text = string
 
 (* Identifiers *)
 
-type id = id' phrase
+type id = id' located
 and id' = string
 
 (* Atoms *)
 
-type atom = Atom.t phrase
+type atom = Atom.t located
 
 (* Iterators *)
 
@@ -32,7 +32,7 @@ and typ =
   | PlainT of plaintyp
   | NotationT of nottyp
 
-and plaintyp = plaintyp' phrase
+and plaintyp = plaintyp' located
 and plaintyp' =
   | BoolT                       (* `bool` *)
   | NumT of Num.typ             (* numtyp *)
@@ -42,14 +42,14 @@ and plaintyp' =
   | TupleT of plaintyp list     (* `(` list(plaintyp, `,`) `)` *)
   | IterT of plaintyp * iter    (* plaintyp iter *)
 
-and nottyp = nottyp' phrase
+and nottyp = nottyp' located
 and nottyp' =
   | AtomT of atom                  (* atom *)
   | SeqT of typ list               (* list(typ, ` `) *)
   | InfixT of typ * atom * typ     (* typ atom typ *)
   | BrackT of atom * typ * atom    (* ``[({` typ `})]` *)
 
-and deftyp = deftyp' phrase
+and deftyp = deftyp' located
 and deftyp' =
   | OpaqueTD
   | PlainTD of plaintyp         (* plaintyp *)
@@ -68,7 +68,7 @@ and cmpop = [ Bool.cmpop | Num.cmpop ]
 
 (* Expressions *)
 
-and exp = exp' phrase
+and exp = exp' located
 and exp' =
   | BoolE of bool                       (* bool *)
   | NumE of numop * num                 (* num *)
@@ -107,7 +107,7 @@ and exp' =
 
 (* Paths *)
 
-and path = path' phrase
+and path = path' located
 and path' =
   | RootP                        (*  *)
   | IdxP of path * exp           (* path `[` exp `]` *)
@@ -116,7 +116,7 @@ and path' =
 
 (* Parameters *)
 
-and param = param' phrase
+and param = param' located
 and param' =
   (* plaintyp *)
   | ExpP of plaintyp
@@ -125,24 +125,24 @@ and param' =
 
 (* Type parameters *)
 
-and tparam = tparam' phrase
+and tparam = tparam' located
 and tparam' = id'
 
 (* Arguments *)
 
-and arg = arg' phrase
+and arg = arg' located
 and arg' =
   | ExpA of exp   (* exp *)
   | DefA of id    (* `$`id *)
 
 (* Type arguments *)
 
-and targ = targ' phrase
+and targ = targ' located
 and targ' = plaintyp'
 
 (* Premises *)
 
-and prem = prem' phrase
+and prem = prem' located
 and prem' =
   | VarPr of id * plaintyp         (* id `:` plaintyp *)
   | RulePr of id * exp             (* id `:` exp *)
@@ -158,7 +158,7 @@ and hint = { hintid : id; hintexp : exp }
 
 (* Definitions *)
 
-type def = def' phrase
+type def = def' located
 and def' =
   (* `syntax` list(id `<` list(tparam, `,`) `>`, `,`) *)
   | SynD of (id * tparam list) list

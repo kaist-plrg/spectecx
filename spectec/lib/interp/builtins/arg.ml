@@ -1,11 +1,12 @@
 open Lang.Il
-open Common.Source
+open Common.Annotated
+module Location = Common.Location
 open Error
 open Mixfix
 
 let ( let* ) = Result.bind
 
-type 'a t = region -> Value.t -> 'a result
+type 'a t = Location.t -> Value.t -> 'a result
 
 let value : Value.t t = fun _at v -> Ok v
 

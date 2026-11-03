@@ -5,25 +5,26 @@
 
 open Core
 open Test_lib
-module Source = Common.Source
+module Annotated = Common.Annotated
 module El = Lang.El
 module Il = Lang.Il
 
 let recover (prems : Il.prem list) : El.prem list =
   List.filter_map prems ~f:(fun prem ->
-      match Source.prov prem with Some (Il.Source el) -> Some el | _ -> None)
+      match prem.note with Some (Il.Source el) -> Some el | _ -> None)
 
 let authored_rule_premises (spec : El.spec) relid : El.prem list list =
   List.filter_map spec ~f:(fun def ->
-      match Source.it def with
-      | El.RuleD (id, _, _, prems) when String.equal (Source.it id) relid ->
+      match Annotated.it def with
+      | El.RuleD (id, _, _, prems) when String.equal (Annotated.it id) relid ->
           Some prems
       | _ -> None)
 
 let authored_clause_premises (spec : El.spec) defid : El.prem list list =
   List.filter_map spec ~f:(fun def ->
-      match Source.it def with
-      | El.DefD (id, _, _, _, prems) when String.equal (Source.it id) defid ->
+      match Annotated.it def with
+      | El.DefD (id, _, _, _, prems) when String.equal (Annotated.it id) defid
+        ->
           Some prems
       | _ -> None)
 
@@ -60,14 +61,15 @@ type tally = {
 }
 
 let check_def (spec : El.spec) (tally : tally) (def : Il.def) : tally =
-  match Source.it def with
+  match Annotated.it def with
   | Il.RelD { relid; rules; _ } ->
-      let authored = authored_rule_premises spec (Source.it relid) in
+      let authored = authored_rule_premises spec (Annotated.it relid) in
       let failures =
         List.filter_mapi rules ~f:(fun i rule ->
-            let { Il.ruleid; prems; _ } = Source.it rule in
+            let { Il.ruleid; prems; _ } = Annotated.it rule in
             find_mismatch
-              ~label:(sprintf "%s/%s" (Source.it relid) (Source.it ruleid))
+              ~label:
+                (sprintf "%s/%s" (Annotated.it relid) (Annotated.it ruleid))
               ~authored:(List.nth authored i) ~recovered:(recover prems))
       in
       {
@@ -76,12 +78,12 @@ let check_def (spec : El.spec) (tally : tally) (def : Il.def) : tally =
         failures = tally.failures @ failures;
       }
   | Il.DecD { defid; clauses; _ } ->
-      let authored = authored_clause_premises spec (Source.it defid) in
+      let authored = authored_clause_premises spec (Annotated.it defid) in
       let failures =
         List.filter_mapi clauses ~f:(fun i clause ->
-            let { Il.prems; _ } = Source.it clause in
+            let { Il.prems; _ } = Annotated.it clause in
             find_mismatch
-              ~label:(sprintf "%s clause %d" (Source.it defid) i)
+              ~label:(sprintf "%s clause %d" (Annotated.it defid) i)
               ~authored:(List.nth authored i) ~recovered:(recover prems))
       in
       {

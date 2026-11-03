@@ -15,7 +15,7 @@
 
 {
 open Lexing
-open Common.Source
+module Location = Common.Location
 open Context
 open Lang
 open Il
@@ -68,7 +68,7 @@ let set_start_of_line lexbuf bol =
 let set_lexer_debug_channel ch = set_debug_channel ch
 
 let at lexbuf =
-  region_of_positions (lexeme_start_p lexbuf, lexeme_end_p lexbuf)
+  Location.of_lexing (lexeme_start_p lexbuf, lexeme_end_p lexbuf)
 
 let follows_position position_left position_right : bool =
   position_left.pos_fname = position_right.pos_fname
@@ -92,11 +92,17 @@ let parse_width_int at s n =
   let l_s = String.length s in
   let width = String.sub s 0 (l_s - 1) in
   let sign = String.sub s (l_s - 1) 1 in
-  let pos column = { at.left with column } in
-  let column = at.left.column in
-  let width_at = { left = at.left; right = pos (column + l_s - 1) } in
-  let sign_at = { left = pos (column + l_s - 1); right = pos (column + l_s) } in
-  let value_at = { left = pos (column + l_s); right = at.right } in
+  let width_at, sign_at, value_at =
+    match at with
+    | Location.Span { file; left; right } ->
+      let pos column = { left with column } in
+      let column = left.column in
+      ( Location.Span { file; left; right = pos (column + l_s - 1) },
+        Location.Span
+          { file; left = pos (column + l_s - 1); right = pos (column + l_s) },
+        Location.Span { file; left = pos (column + l_s); right } )
+    | Location.Unknown | Location.File _ -> (at, at, at)
+  in
   let i = Bigint.of_string (sanitize n) in
   let w = Bigint.of_string width in
   match sign with
@@ -139,13 +145,16 @@ rule tokenize = parse
       { debug_token "⏎\n"; Lexing.new_line lexbuf; PRAGMA_END }
   | '"'
       { let start_p = lexeme_start_p lexbuf in
-        let start_region = at lexbuf in
-        let str, end_region = (string lexbuf) in
+        let start_location = at lexbuf in
+        let str, end_location = (string lexbuf) in
         debug_token ("\"" ^ str ^ "\"");
-        let inner_region =
-          { left = start_region.right; right = end_region.left }
+        let inner_location =
+          match (start_location, end_location) with
+          | Location.Span { file; right = left; _ }, Location.Span { left = right; _ } ->
+            Location.Span { file; left; right }
+          | _ -> start_location
         in
-        let value = text str <<<| inner_region in
+        let value = text str <<<| inner_location in
         lexbuf.lex_start_p <- start_p;
         STRING_LITERAL value
       }
@@ -394,25 +403,25 @@ and string = parse
   | eof
       { raise (Error "File ended while reading a string literal") }
   | "\\\""
-      { let rest, end_region = (string lexbuf) in
-        ("\"" ^ rest, end_region) }
+      { let rest, end_location = (string lexbuf) in
+        ("\"" ^ rest, end_location) }
   | '\\' 'n'
-      { let rest, end_region = (string lexbuf) in
-        ("\n" ^ rest, end_region) }
+      { let rest, end_location = (string lexbuf) in
+        ("\n" ^ rest, end_location) }
   | '\\' '\\'
-      { let rest, end_region = (string lexbuf) in
-        ("\\" ^ rest, end_region) }
+      { let rest, end_location = (string lexbuf) in
+        ("\\" ^ rest, end_location) }
   | '\n'
       { Lexing.new_line lexbuf;
-        let rest, end_region = (string lexbuf) in
-        ("\n" ^ rest, end_region) }
+        let rest, end_location = (string lexbuf) in
+        ("\n" ^ rest, end_location) }
   | '\\' _ as c
       { raise (Error ("Escape sequences not yet supported: \\" ^ c)) }
   | '"'
       { ("", at lexbuf) }
   | _ as chr
-      { let rest, end_region = (string lexbuf) in
-        ((String.make 1 chr) ^ rest, end_region) }
+      { let rest, end_location = (string lexbuf) in
+        ((String.make 1 chr) ^ rest, end_location) }
 
 (* Preprocessor annotations indicate line and filename *)
 and preprocessor = parse

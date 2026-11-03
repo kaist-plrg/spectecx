@@ -1,6 +1,7 @@
 module Il = Lang.Il
 open Il
-open Common.Source
+open Common.Annotated
+module Location = Common.Location
 open Builtins
 open Error
 
@@ -23,7 +24,7 @@ end
 let fresh_tid ~at : Value.t result =
   at |> ignore;
   let tid = GlobalTidProvider.fresh () in
-  let typ = VarT { synid = "tid" $ no_region; targs = [] } in
+  let typ = VarT { synid = "tid" $ Location.Unknown; targs = [] } in
   Ok (Il.Value.Make.text typ tid)
 
 let builtins = [ ("fresh_typeId", Define.T0.a0 fresh_tid) ]

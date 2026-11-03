@@ -24,7 +24,7 @@ execution. hello.imp declares a variable through the overlapping decl-init case:
       | source: il-interp
   [1]
   $ spectec impty typecheck --spec $BASE_SPEC --spec $OVERLAY -p $PROG --color never --det --sl --profile.output profile.json
-  error: this alternative applies, and so does the alternative at ../../specs/impty/base/spec.spectec:109:26-109:40:
+  error: this alternative applies, and so does the alternative at ../../specs/impty/base/spec.spectec:109:26-109:40
     --> determinism-overlay.spectec:7:26
     |
   7 |   tenv |- (t x '=' e) -| (x -> t)::tenv
@@ -33,7 +33,7 @@ execution. hello.imp declares a variable through the overlapping decl-init case:
     | source: sl-interp
   [1]
   $ spectec impty typecheck --spec $BASE_SPEC --spec $OVERLAY -p $PROG --color never --det --pl
-  error: this arm applies, and so does the arm at ../../specs/impty/base/spec.spectec:109:26-109:40:
+  error: this arm applies, and so does the arm at ../../specs/impty/base/spec.spectec:109:26-109:40
     --> determinism-overlay.spectec:7:26
     |
   7 |   tenv |- (t x '=' e) -| (x -> t)::tenv
@@ -57,7 +57,7 @@ A task's --batch-dir also enables checking:
   $ spectec impty eval -p $PROG --spec $BASE_SPEC --spec $OVERLAY --batch-dir corpus --color never --det --sl
   >>> Running evaluator on corpus/hello.imp
   Failed: corpus/hello.imp
-  error: this alternative applies, and so does the alternative at ../../specs/impty/base/spec.spectec:109:26-109:40:
+  error: this alternative applies, and so does the alternative at ../../specs/impty/base/spec.spectec:109:26-109:40
     --> determinism-overlay.spectec:7:26
     |
   7 |   tenv |- (t x '=' e) -| (x -> t)::tenv

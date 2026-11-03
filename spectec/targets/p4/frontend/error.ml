@@ -1,8 +1,10 @@
-open Common.Source
+module Location = Common.Location
 
-exception P4ParseError of region * string
+exception P4ParseError of Location.t * string
 
 (* P4 Parsing errors *)
 
-let error (at : region) (msg : string) = raise (P4ParseError (at, msg))
-let error_no_region (msg : string) = raise (P4ParseError (no_region, msg))
+let error (at : Location.t) (msg : string) = raise (P4ParseError (at, msg))
+
+let error_no_location (msg : string) =
+  raise (P4ParseError (Location.Unknown, msg))

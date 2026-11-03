@@ -1,5 +1,4 @@
 open Diagnostic
-module Source = Common.Source
 
 let ( let* ) = Result.bind
 
@@ -10,7 +9,7 @@ let with_lexbuf name lexbuf start =
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = name };
   try start Lexer.token lexbuf
   with Parser.Error ->
-    error ~code:Unexpected_token (Lexer.region lexbuf)
+    error ~code:Unexpected_token (Lexer.location lexbuf)
       "syntax error: unexpected token"
 
 let rec map_in_order f = function
@@ -36,7 +35,7 @@ let read_source filename : spec_source result =
         contents = In_channel.with_open_bin filename In_channel.input_all;
       }
   with Sys_error msg ->
-    Error (Diag.error ~source:"io" (Source.region_of_file filename) msg)
+    Error (Diag.error ~source:"io" (Common.Location.File filename) msg)
 
 let parse_files filenames : Lang.El.spec result =
   let* sources = map_in_order read_source filenames in

@@ -8,9 +8,9 @@
 val parse_space : Cursor.t -> unit
 
 (** Attempt to lex an anchor opener [${name:]. On success, advance past the
-    opener and return the anchor name plus the region it spanned. On failure,
+    opener and return the anchor name plus the name's location. On failure,
     leave the cursor unchanged. *)
-val parse_anchor_open : Cursor.t -> (string * Common.Source.region) option
+val parse_anchor_open : Cursor.t -> (string * Common.Location.t) option
 
 (** Consume the keys list and the closing [}]. Whitespace between keys is
     skipped. *)

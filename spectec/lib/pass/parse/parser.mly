@@ -1,5 +1,6 @@
 %{
-open Common.Source
+open Common.Annotated
+module Location = Common.Location
 open Lang
 open Xl
 open El
@@ -7,7 +8,7 @@ open Diagnostic
 
 (* Position handling *)
 
-let at = region_of_positions
+let at = Location.of_lexing
 let (@@@) it pos = it $ at pos
 
 let keyword sloc s =

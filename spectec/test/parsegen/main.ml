@@ -65,7 +65,7 @@ let print_terminal : Grammar.Terminal.t -> string = function
 
 let lex (source : string) : Lexer.token list =
   Lexer.tokenize ~filename source
-  |> List.filter_map (fun (token, _region) ->
+  |> List.filter_map (fun (token, _location) ->
          match token with Lexer.Eof -> None | token -> Some token)
 
 let show_value = Lang.Il.Print_debug.string_of_value

@@ -1,4 +1,5 @@
-open Common.Source
+open Common.Annotated
+module Location = Common.Location
 open Lang.Xl
 module Il = Lang.Il
 module Value = Il.Value
@@ -43,7 +44,7 @@ module type Context = sig
     (Envs.Interp.Var.t * Lang.Il.value) list
 
   val get_exn : 'a Common.Attempt.attempt -> 'a
-  val error : Common.Source.region -> string -> 'a
+  val error : Common.Location.t -> string -> 'a
 end
 
 module Make (Ctx : Context) = struct
@@ -97,7 +98,7 @@ module Make (Ctx : Context) = struct
       Ctx.t =
     if List.length exps <> List.length values then
       error
-        (over_region (List.map at exps))
+        (Location.cover (List.map at exps))
         (Format.asprintf
            "mismatch in number of expressions and values while assigning, \
             expected %d value(s) but got %d"
@@ -125,7 +126,7 @@ module Make (Ctx : Context) = struct
       ~(values : value list) : Ctx.t =
     if List.length args <> List.length values then
       error
-        (over_region (List.map at args))
+        (Location.cover (List.map at args))
         (Format.asprintf
            "mismatch in number of arguments and values while assigning, \
             expected %d value(s) but got %d"
@@ -403,7 +404,7 @@ module Make (Ctx : Context) = struct
       let value_t = eval_exp ctx exp_t in
       let values_t = Value.get_list value_t in
       Value.Make.list typ (value_h :: values_t)
-    and eval_cat_exp (typ : typ') (ctx : Ctx.t) (at : region) (exp_l : exp)
+    and eval_cat_exp (typ : typ') (ctx : Ctx.t) (at : Location.t) (exp_l : exp)
         (exp_r : exp) : value =
       let value_l = eval_exp ctx exp_l in
       let value_r = eval_exp ctx exp_r in

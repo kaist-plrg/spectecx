@@ -3,8 +3,8 @@ module Ebpf = P4.Builtins.Ebpf
 module V = Lang.Il.Value
 module B = Interp.Builtins
 
-let ( $ ) = Common.Source.( $ )
-let at = Common.Source.no_region
+let ( $ ) = Common.Annotated.( $ )
+let at = Common.Location.Unknown
 
 let unwrap = function
   | Ok value -> value
@@ -50,7 +50,7 @@ let expected_state size =
       ]
   with
   | Ok state -> state
-  | Error error -> failwith (snd (B.Error.region_and_message error))
+  | Error error -> failwith (snd (B.Error.location_and_message error))
 
 let object_state_opt (object_value : V.t) =
   match object_value.it with
@@ -66,7 +66,7 @@ let object_state_opt (object_value : V.t) =
 let check_store mode expected = function
   | [ _global; store ] ->
       let objects =
-        B.Arg.map Common.Source.no_region store
+        B.Arg.map Common.Location.Unknown store
         |> Result.get_ok |> B.Arg.VMap.bindings
       in
       if List.length objects <> List.length expected then
@@ -94,7 +94,7 @@ let run spec_il mode filename =
 let check_nested_store mode = function
   | [ _global; store ] ->
       let objects =
-        B.Arg.map Common.Source.no_region store
+        B.Arg.map Common.Location.Unknown store
         |> Result.get_ok |> B.Arg.VMap.bindings
       in
       let states =
@@ -106,7 +106,35 @@ let check_nested_store mode = function
         failwith (mode ^ ": nested constructor state was lost")
   | _ -> failwith (mode ^ ": expected global context and store")
 
+let check_field_location () =
+  let program = P4.Frontend.parse_file [] "included-field.p4" |> unwrap in
+  let rec fields (value : V.t) =
+    match value.it with
+    | Lang.Il.CaseV notation ->
+        let children = Lang.Il.Mixfix.args notation in
+        let nested = List.concat_map fields children in
+        if
+          V.id_of_case_v value = "typeField"
+          || (V.id_of_case_v value = "typeFieldList" && children <> [])
+        then value :: nested
+        else nested
+    | Lang.Il.ListV values -> List.concat_map fields values
+    | Lang.Il.OptV (Some value) -> fields value
+    | _ -> []
+  in
+  let check (field : V.t) =
+    match Common.Location.file field.at with
+    | Some file when Filename.basename file = "included-field-fragment.p4" -> ()
+    | _ ->
+        failwith
+          ("incorrect field location: " ^ Common.Location.to_string field.at)
+  in
+  match fields program with
+  | [ field_list; field ] -> List.iter check [ field_list; field ]
+  | _ -> failwith "expected one included field and its list"
+
 let () =
+  check_field_location ();
   let spec_il, henv = compile () in
   List.iter
     (fun (name, mode) ->

@@ -30,7 +30,7 @@ let unparse_roundtrip filenames =
   else
     Error
       (Error.RoundtripError
-         ( Common.Source.no_region,
+         ( Common.Location.Unknown,
            "pretty-printed output did not reparse to the same AST" ))
 
 let unparse_command =

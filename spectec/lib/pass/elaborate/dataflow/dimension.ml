@@ -1,5 +1,5 @@
 open Common.Domain
-open Common.Source
+open Common.Annotated
 open Lang
 open Il.Expression
 open Il
@@ -236,29 +236,31 @@ and annotate_args (bounds : VEnv.t) (args : arg list) : VEnv.t * arg list =
 
 and annotate_prem (binds : VEnv.t) (bounds : VEnv.t) (prem : prem) :
     VEnv.t * prem =
-  let at = prem.at in
+  let at, note = (prem.at, prem.note) in
   match prem.it with
   | RelPr { relid; notexp } ->
       let mixop, exps = Mixop.split notexp in
       let occurs, exps = annotate_exps bounds exps in
       let notexp = Mixop.fill mixop exps in
-      let prem = RelPr { relid; notexp } $ at in
+      let prem = RelPr { relid; notexp } $$ (at, note) in
       (occurs, prem)
   | IfPr { cond; role } ->
       let occurs, cond = annotate_exp bounds cond in
-      let prem = IfPr { cond; role } $ at in
+      let prem = IfPr { cond; role } $$ (at, note) in
       (occurs, prem)
   | RelAssertPr { call = { relid; notexp }; expect } ->
       let mixop, exps = Mixop.split notexp in
       let occurs, exps = annotate_exps bounds exps in
       let notexp = Mixop.fill mixop exps in
-      let prem = RelAssertPr { call = { relid; notexp }; expect } $ at in
+      let prem =
+        RelAssertPr { call = { relid; notexp }; expect } $$ (at, note)
+      in
       (occurs, prem)
   | ElsePr -> (empty, prem)
   | LetPr (exp_l, exp_r) ->
       let occurs_l, exp_l = annotate_exp bounds exp_l in
       let occurs_r, exp_r = annotate_exp bounds exp_r in
-      let prem = LetPr (exp_l, exp_r) $ at in
+      let prem = LetPr (exp_l, exp_r) $$ (at, note) in
       let occurs = union occurs_l occurs_r in
       (occurs, prem)
   | IterPr (_, (_, _ :: _)) -> assert false
@@ -293,7 +295,7 @@ and annotate_prem (binds : VEnv.t) (bounds : VEnv.t) (prem : prem) :
                every variable inside is newly bound rather than already bound, \
                so there is no loop variable."
       | _ ->
-          let prem = IterPr (prem, (iter, itervars)) $ at in
+          let prem = IterPr (prem, (iter, itervars)) $$ (at, note) in
           let occurs =
             List.fold_left
               (fun occurs { varid; typ; iters } ->
@@ -303,7 +305,7 @@ and annotate_prem (binds : VEnv.t) (bounds : VEnv.t) (prem : prem) :
           (occurs, prem))
   | DebugPr exp ->
       let occurs, exp = annotate_exp bounds exp in
-      let prem = DebugPr exp $ at in
+      let prem = DebugPr exp $$ (at, note) in
       (occurs, prem)
 
 and annotate_prems (binds : VEnv.t) (bounds : VEnv.t) (prems : prem list) :

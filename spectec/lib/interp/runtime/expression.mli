@@ -38,7 +38,7 @@ module type Context = sig
   (** Raise the native interpreter's failure exception on [Error]. *)
   val get_exn : 'a Common.Attempt.attempt -> 'a
 
-  val error : Common.Source.region -> string -> 'a
+  val error : Common.Location.t -> string -> 'a
 end
 
 module Make (Ctx : Context) : sig

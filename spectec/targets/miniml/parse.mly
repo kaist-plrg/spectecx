@@ -3,9 +3,8 @@
 open Lang.Il
 open Lang.Il.Value
 open Lang.Il.Case
-open Common.Source
 
-let at = region_of_positions
+let at = Common.Location.of_lexing
 
 let v_id (s : string) : value = text s
 let v_op at (s : string) : value = [ kw ~at s ] |> case_v ~var:"op" <<<| at

@@ -4,26 +4,26 @@
     passes (parse, elaborate, interpret). Both the CLI and a future LSP server
     render diagnostics from this representation. *)
 
-open Common.Source
+module Location = Common.Location
 
 (** {1 Core types} *)
 
 type severity = Error | Warning | Info | Hint
-type related = { region : region; message : string }
-type fix = { message : string; edits : (region * string) list }
+type related = { location : Location.t; message : string }
+type fix = { message : string; edits : (Location.t * string) list }
 
 (** Structured backtracking context. Replaces the rendering role of
     {!Attempt.failtrace} — [failtrace] stays for internal control flow in the
     elaborator. *)
 type trace_node = {
-  region : region;
+  location : Location.t;
   message : string;
   children : trace_node list;
 }
 
 type t = {
   severity : severity;
-  region : region;
+  location : Location.t;
   code : string option;
   message : string;
   detail : string option;
@@ -43,15 +43,15 @@ val error :
   ?fixes:fix list ->
   ?trace:trace_node list ->
   source:string ->
-  region ->
+  Location.t ->
   string ->
   t
 
 val warning :
-  ?code:string -> ?detail:string -> source:string -> region -> string -> t
+  ?code:string -> ?detail:string -> source:string -> Location.t -> string -> t
 
-val info : source:string -> region -> string -> t
-val hint : source:string -> region -> string -> t
+val info : source:string -> Location.t -> string -> t
+val hint : source:string -> Location.t -> string -> t
 
 (** {1 Bridge from [Attempt.failtrace]} *)
 
@@ -66,8 +66,8 @@ val of_failtraces :
 (** {1 Plain text rendering} *)
 
 (** Plain text rendering matching the legacy format:
-    [<region>Warning:<source>:<message>] for warnings,
-    [<region>Error: <message>] for errors. *)
+    [<location>Warning:<source>:<message>] for warnings,
+    [<location>Error: <message>] for errors. *)
 val to_string : t -> string
 
 (** {1 Collection} *)
@@ -83,7 +83,7 @@ module Bag : sig
   val of_list : diagnostic list -> t
   val to_list : t -> diagnostic list
 
-  (** Sorted by region (file, line, column). *)
+  (** Sorted by location (file, line, column). *)
   val to_sorted_list : t -> diagnostic list
 
   val is_empty : t -> bool
@@ -121,4 +121,4 @@ end
     [warn at source msg] is shorthand for emitting a warning into the global
     sink — used by passes that want to record a warning without threading a sink
     through every call. *)
-val warn : region -> string -> string -> unit
+val warn : Location.t -> string -> string -> unit

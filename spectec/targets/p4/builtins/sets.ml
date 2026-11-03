@@ -1,6 +1,7 @@
 open Lang.Xl
 open Lang.Il
-open Common.Source
+open Common.Annotated
+module Location = Common.Location
 open Builtins
 open Atom
 open Mixfix
@@ -17,7 +18,11 @@ let value_of_set (typ_key : typ) (set : set) : value =
   let value_elements = VSet.elements set |> Value.list typ_key in
   let value =
     let typ = Typ.var "set" [ typ_key ] in
-    [ Atom (LBrace $ no_region); Arg value_elements; Atom (RBrace $ no_region) ]
+    [
+      Atom (LBrace $ Location.Unknown);
+      Arg value_elements;
+      Atom (RBrace $ Location.Unknown);
+    ]
     |> Value.Make.case typ
   in
   value

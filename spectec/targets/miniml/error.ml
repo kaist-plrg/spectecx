@@ -1,5 +1,5 @@
-open Common.Source
+module Location = Common.Location
 
-exception MinimlParseError of region * string
+exception MinimlParseError of Location.t * string
 
-let error (at : region) (msg : string) = raise (MinimlParseError (at, msg))
+let error (at : Location.t) (msg : string) = raise (MinimlParseError (at, msg))

@@ -4,7 +4,7 @@
     [?related] arguments attach extra fields; sites that do not need them omit
     the labels. The payload is the lib value type {!Diag.t} directly. *)
 
-open Common.Source
+module Location = Common.Location
 
 (** {1 Diagnostic payload} *)
 
@@ -57,8 +57,8 @@ type code =
 val error :
   ?code:code ->
   ?detail:string ->
-  ?related:(region * string) list ->
-  region ->
+  ?related:(Location.t * string) list ->
+  Location.t ->
   string ->
   'a
 

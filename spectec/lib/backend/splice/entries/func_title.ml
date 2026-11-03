@@ -5,7 +5,7 @@
     available. The prose side mirrors the split. *)
 
 open Lang
-open Common.Source
+open Common.Annotated
 
 (* Source *)
 

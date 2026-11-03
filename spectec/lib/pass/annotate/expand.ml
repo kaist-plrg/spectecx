@@ -31,7 +31,8 @@
         ... unions_set( bound* ) ... *)
 
 open Common.Domain
-open Common.Source
+open Common.Annotated
+module Location = Common.Location
 open Lang
 open Lang.Sl
 module Mixfix = Il.Mixfix
@@ -96,7 +97,7 @@ module Transform = struct
       (exp * iter_state) option =
     let rec transform_exp acc (exp : exp) : (exp * iter_state) option =
       let acc = f_update_acc acc exp in
-      let { it; at; note; _ } = exp in
+      let { it; at; note } = exp in
       let rebuild it' state = (it' $$ (at, note), state) in
       let try_children () =
         match it with
@@ -261,7 +262,7 @@ module Transform = struct
     and transform_args acc (args : arg list) : (arg list * iter_state) option =
       transform_list (transform_arg acc) Vars.free_arg args
     and transform_path acc (path : path) : (path * iter_state) option =
-      let { it; at; note; _ } = path in
+      let { it; at; note } = path in
       let rebuild it' state = (it' $$ (at, note), state) in
       match it with
       | RootP -> None
@@ -383,7 +384,8 @@ let replace_call_exp ~(lift : lift) ?(iter_locals = IdSet.empty)
       ([], var_base) iterexps
   in
   let wrap_in_let body =
-    LetI (Il.Var.as_exp var_base, exp_orig, iterexps_let, [ body ]) $ no_region
+    LetI (Il.Var.as_exp var_base, exp_orig, iterexps_let, [ body ])
+    $ Location.Unknown
   in
   Some (wrap_in_let, exp, ids_used)
 

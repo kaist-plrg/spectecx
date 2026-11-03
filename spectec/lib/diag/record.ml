@@ -1,4 +1,4 @@
-open Common.Source
+module Location = Common.Location
 
 (* Core types *)
 
@@ -7,18 +7,18 @@ type severity = Error | Warning | Info | Hint
 let severity_rank = function Error -> 0 | Warning -> 1 | Info -> 2 | Hint -> 3
 let compare_severity a b = Int.compare (severity_rank a) (severity_rank b)
 
-type related = { region : region; message : string }
-type fix = { message : string; edits : (region * string) list }
+type related = { location : Location.t; message : string }
+type fix = { message : string; edits : (Location.t * string) list }
 
 type trace_node = {
-  region : region;
+  location : Location.t;
   message : string;
   children : trace_node list;
 }
 
 type t = {
   severity : severity;
-  region : region;
+  location : Location.t;
   code : string option;
   message : string;
   detail : string option;
@@ -31,10 +31,10 @@ type t = {
 (* Smart constructors *)
 
 let error ?code ?detail ?(related = []) ?(fixes = []) ?(trace = []) ~source
-    region message =
+    location message =
   {
     severity = Error;
-    region;
+    location;
     code;
     message;
     detail;
@@ -44,10 +44,10 @@ let error ?code ?detail ?(related = []) ?(fixes = []) ?(trace = []) ~source
     source;
   }
 
-let warning ?code ?detail ~source region message =
+let warning ?code ?detail ~source location message =
   {
     severity = Warning;
-    region;
+    location;
     code;
     message;
     detail;
@@ -57,10 +57,10 @@ let warning ?code ?detail ~source region message =
     source;
   }
 
-let info ~source region message =
+let info ~source location message =
   {
     severity = Info;
-    region;
+    location;
     code = None;
     message;
     detail = None;
@@ -70,10 +70,10 @@ let info ~source region message =
     source;
   }
 
-let hint ~source region message =
+let hint ~source location message =
   {
     severity = Hint;
-    region;
+    location;
     code = None;
     message;
     detail = None;
@@ -90,7 +90,7 @@ let rec trace_of_failtrace (failtrace : Common.Attempt.failtrace) =
     match failtrace.kind with Common.Attempt.Failed cs -> cs | Guard -> []
   in
   {
-    region = failtrace.region;
+    location = failtrace.location;
     message = failtrace.message;
     children = List.map trace_of_failtrace children;
   }
@@ -99,7 +99,7 @@ let traces_of_failtraces = List.map trace_of_failtrace
 
 let of_failtraces ~source ~fallback (failtraces : Common.Attempt.failtrace list)
     : t =
-  let at = Common.Attempt.region_of_failtraces failtraces in
+  let at = Common.Attempt.location_of_failtraces failtraces in
   let message, trace =
     match failtraces with
     | [] -> (fallback, [])
@@ -113,7 +113,11 @@ let of_failtraces ~source ~fallback (failtraces : Common.Attempt.failtrace list)
 (* Plain text rendering *)
 
 let to_string d =
-  let prefix = if d.region = no_region then "" else string_of_region d.region in
+  let prefix =
+    match d.location with
+    | Location.Unknown -> ""
+    | location -> Location.to_string location ^ ":"
+  in
   match d.severity with
   | Warning -> prefix ^ "Warning:" ^ d.source ^ ":" ^ d.message
   | Error -> prefix ^ "Error: " ^ d.message
@@ -141,7 +145,7 @@ module Bag = struct
     List.rev ds
     |> List.sort (fun a b ->
            match compare_severity a.severity b.severity with
-           | 0 -> compare_region a.region b.region
+           | 0 -> Location.compare a.location b.location
            | c -> c)
 
   let is_empty = function [] -> true | _ -> false
@@ -177,5 +181,5 @@ end
 (* Convenience: emit a warning into the global sink. Used by passes that just
    want to record a warning without threading a sink through every call. *)
 
-let warn (at : region) (source : string) (msg : string) =
+let warn (at : Location.t) (source : string) (msg : string) =
   Sink.emit (Sink.global ()) (warning ~source at msg)

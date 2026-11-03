@@ -6,7 +6,7 @@
     [DecD]. *)
 
 open Lang
-open Common.Source
+open Common.Annotated
 
 let source_extract (spec_el : El.spec) : (string * string) list =
   spec_el

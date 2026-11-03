@@ -1,5 +1,6 @@
 open Types
-open Common.Source
+open Common.Annotated
+module Location = Common.Location
 
 type t = typ
 type t' = typ'
@@ -13,7 +14,7 @@ let text = TextT
 let func = FuncT
 
 let var (tid : id') (targs : t list) : t' =
-  VarT { synid = tid $ no_region; targs }
+  VarT { synid = tid $ Location.Unknown; targs }
 
 let tuple (typs : t list) : t' = TupleT typs
 let opt (typ : t) : t' = IterT { typ; iter = Opt }

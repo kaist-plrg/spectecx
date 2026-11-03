@@ -1,13 +1,13 @@
-open Common.Source
+open Common.Annotated
 open Xl
 
 type hole = [ `Next | `Num of int ]
 
 type t =
   | TextH of string
-  | AtomH of Atom.t phrase
+  | AtomH of Atom.t located
   | SeqH of t list
-  | BrackH of Atom.t phrase * t * Atom.t phrase
+  | BrackH of Atom.t located * t * Atom.t located
   | HoleH of hole
   | FuseH of t * t
   | OtherH of El.exp
@@ -36,7 +36,7 @@ let rec parse (exp : El.exp) : t =
   | _ -> OtherH exp
 
 let rec alternate ?(base_text : string -> string = fun x -> x)
-    ?(base_atom : Atom.t phrase -> string = fun a -> Atom.to_string a.it)
+    ?(base_atom : Atom.t located -> string = fun a -> Atom.to_string a.it)
     ?(base_exp : El.exp -> string = El.Print.string_of_exp) (hint : t)
     (print : 'a -> string) (items : 'a list) : string =
   let _, result =
@@ -45,7 +45,7 @@ let rec alternate ?(base_text : string -> string = fun x -> x)
   result
 
 and alternate' ?(base_text : string -> string = fun x -> x)
-    ?(base_atom : Atom.t phrase -> string = fun a -> Atom.to_string a.it)
+    ?(base_atom : Atom.t located -> string = fun a -> Atom.to_string a.it)
     ?(base_exp : El.exp -> string = El.Print.string_of_exp) (hint : t)
     (print : 'a -> string) (items : 'a list) (cursor : int) : int * string =
   match hint with

@@ -1,16 +1,16 @@
+module Location = Common.Location
 open Core
 module H = Harness
 module V = Lang.Il.Value
 module Typ = Lang.Il.Typ
 
-let ( $ ) = Common.Source.( $ )
-let no_region = Common.Source.no_region
-let nat_type = Typ.nat $ no_region
+let ( $ ) = Common.Annotated.( $ )
+let nat_type = Typ.nat $ Location.Unknown
 let nat n = V.nat (Bigint.of_int n)
 let nats ns = V.list nat_type (List.map ns ~f:nat)
 
 let nat_lists nss =
-  V.list (Typ.list nat_type $ no_region) (List.map nss ~f:nats)
+  V.list (Typ.list nat_type $ Location.Unknown) (List.map nss ~f:nats)
 
 let spec = H.compile_file "iteration.spectec"
 

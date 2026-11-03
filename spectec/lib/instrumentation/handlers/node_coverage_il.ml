@@ -2,7 +2,8 @@
     reports at finish. [Summary] lists only uncovered premises; [Full] emits a
     GCOV-style annotated spec with per-premise counts. *)
 
-open Common.Source
+open Common.Annotated
+module Location = Common.Location
 open Lang.Il
 open Util
 open Instrumentation_static.Premise_uid
@@ -19,11 +20,16 @@ let fmt = ref Format.std_formatter
 (* Runtime state - changes during execution *)
 module State = struct
   let il_spec : spec ref = ref []
-  let prems_attempted : (region * string, int) Hashtbl.t = Hashtbl.create 256
-  let prems_succeeded : (region * string, int) Hashtbl.t = Hashtbl.create 256
-  let prems_failed : (region * string, int) Hashtbl.t = Hashtbl.create 256
 
-  let prem_to_test : (region * string, string list) Hashtbl.t =
+  let prems_attempted : (Location.t * string, int) Hashtbl.t =
+    Hashtbl.create 256
+
+  let prems_succeeded : (Location.t * string, int) Hashtbl.t =
+    Hashtbl.create 256
+
+  let prems_failed : (Location.t * string, int) Hashtbl.t = Hashtbl.create 256
+
+  let prem_to_test : (Location.t * string, string list) Hashtbl.t =
     Hashtbl.create 256
 
   let current_test_case_id : string option ref = ref None
@@ -142,7 +148,7 @@ module M : Instrumentation_api.Handler.S = struct
 
   (* --- Output: Summary mode (stats + uncovered only) --- *)
 
-  let is_if_prem_key ((_, content) : region * string) : bool =
+  let is_if_prem_key ((_, content) : Location.t * string) : bool =
     String.length content >= 3 && String.sub content 0 3 = "if "
 
   let print_stats () =
@@ -331,11 +337,11 @@ end
 
 (* Result type for programmatic access *)
 type result = {
-  prems_attempted : ((region * string) * int) list; (* key * count *)
-  prems_succeeded : ((region * string) * int) list; (* key * count *)
-  prem_to_uid : ((region * string) * int) list; (* key * uid *)
-  uid_to_prem : (int * (region * string)) list; (* uid * key *)
-  prem_to_test : ((region * string) * string list) list;
+  prems_attempted : ((Location.t * string) * int) list; (* key * count *)
+  prems_succeeded : ((Location.t * string) * int) list; (* key * count *)
+  prem_to_uid : ((Location.t * string) * int) list; (* key * uid *)
+  uid_to_prem : (int * (Location.t * string)) list; (* uid * key *)
+  prem_to_test : ((Location.t * string) * string list) list;
       (* key * test_case_ids *)
   total_prems : int;
 }

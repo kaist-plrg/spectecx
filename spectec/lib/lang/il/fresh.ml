@@ -1,5 +1,6 @@
 open Common.Domain
-open Common.Source
+open Common.Annotated
+module Location = Common.Location
 open Types.Expression
 open Types
 
@@ -17,7 +18,7 @@ let fresh_id (ids : IdSet.t) (id : Id.t) : Id.t =
   in
   fresh_id' id
 
-let rec fresh_var_from_typ (at : region) (typ : typ) : var =
+let rec fresh_var_from_typ (at : Location.t) (typ : typ) : var =
   match typ.it with
   | IterT { typ; iter } ->
       let var = fresh_var_from_typ at typ in

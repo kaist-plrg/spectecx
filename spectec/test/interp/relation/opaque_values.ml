@@ -53,18 +53,18 @@ let run () =
   let states = Arg.VSet.of_list [ state; equal_state; updated_state; key ] in
   require "opaque set keys" (Arg.VSet.cardinal states = 3);
   require "native packet state extraction"
-    (Arg.opaque typdef_packet Common.Source.no_region state = Ok payload);
+    (Arg.opaque typdef_packet Common.Location.Unknown state = Ok payload);
   require "native verification key extraction"
-    (Arg.opaque typdef_key Common.Source.no_region key = Ok "verification key");
+    (Arg.opaque typdef_key Common.Location.Unknown key = Ok "verification key");
   require "opaque extraction preserves the native payload"
-    (match Arg.opaque typdef_packet Common.Source.no_region state with
+    (match Arg.opaque typdef_packet Common.Location.Unknown state with
     | Ok actual -> actual == payload
     | Error _ -> false);
   require "opaque extraction rejects another type definition with the same name"
     (Result.is_error
-       (Arg.opaque typdef_packet Common.Source.no_region incompatible));
+       (Arg.opaque typdef_packet Common.Location.Unknown incompatible));
   require "opaque extraction rejects ordinary values"
     (Result.is_error
-       (Arg.opaque typdef_packet Common.Source.no_region (V.text "packet")));
+       (Arg.opaque typdef_packet Common.Location.Unknown (V.text "packet")));
   require "opaque printing hides the payload"
     (V.to_string state = "<opaque packetState>")

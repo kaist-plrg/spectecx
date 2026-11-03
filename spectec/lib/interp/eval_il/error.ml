@@ -1,12 +1,12 @@
-open Common.Source
+module Location = Common.Location
 
-exception InterpError of region * string
+exception InterpError of Location.t * string
 exception BacktrackError of Common.Attempt.failtrace list
 
 (* Interpreter errors *)
 
-let error (at : region) (msg : string) = raise (InterpError (at, msg))
-let warn (at : region) (msg : string) = Diag.warn at "il-interp" msg
+let error (at : Location.t) (msg : string) = raise (InterpError (at, msg))
+let warn (at : Location.t) (msg : string) = Diag.warn at "il-interp" msg
 
 (* Builtin errors *)
 
@@ -35,8 +35,8 @@ let unwrap_builtin (result : 'a Builtins.result) : 'a =
    message, so it is rendered only when a check fails. *)
 let null_ppf = Format.make_formatter (fun _ _ _ -> ()) ignore
 
-let checkf (b : bool) (at : region) fmt =
+let checkf (b : bool) (at : Location.t) fmt =
   if b then Format.ifprintf null_ppf fmt else Format.kasprintf (error at) fmt
 
-let check_warnf (b : bool) (at : region) fmt =
+let check_warnf (b : bool) (at : Location.t) fmt =
   if b then Format.ifprintf null_ppf fmt else Format.kasprintf (warn at) fmt
