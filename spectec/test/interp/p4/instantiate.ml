@@ -106,7 +106,33 @@ let check_nested_store mode = function
         failwith (mode ^ ": nested constructor state was lost")
   | _ -> failwith (mode ^ ": expected global context and store")
 
+let check_field_location () =
+  let program = P4.Frontend.parse_file [] "included-field.p4" |> unwrap in
+  let rec fields (value : V.t) =
+    match value.it with
+    | Lang.Il.CaseV notation ->
+        let children = Lang.Il.Mixfix.args notation in
+        let nested = List.concat_map fields children in
+        if
+          V.id_of_case_v value = "typeField"
+          || (V.id_of_case_v value = "typeFieldList" && children <> [])
+        then value :: nested
+        else nested
+    | Lang.Il.ListV values -> List.concat_map fields values
+    | Lang.Il.OptV (Some value) -> fields value
+    | _ -> []
+  in
+  let check (field : V.t) =
+    if Filename.basename field.at.left.file <> "included-field-fragment.p4" then
+      failwith
+        ("incorrect field location: " ^ Common.Source.string_of_region field.at)
+  in
+  match fields program with
+  | [ field_list; field ] -> List.iter check [ field_list; field ]
+  | _ -> failwith "expected one included field and its list"
+
 let () =
+  check_field_location ();
   let spec_il, henv = compile () in
   List.iter
     (fun (name, mode) ->
