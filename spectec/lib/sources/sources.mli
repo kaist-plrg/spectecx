@@ -29,5 +29,6 @@ val load : buffers:Spectec.spec_source list -> string -> t
 
 val equal : t -> t -> bool
 
-(** Look up text by the exact filename recorded in [contents]. *)
-val text : t -> string -> string option
+(** [find_text_opt contents ~file] is the text of the source in [contents] whose
+    filename is exactly [file]. *)
+val find_text_opt : Spectec.spec_source list -> file:string -> string option

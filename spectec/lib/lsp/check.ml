@@ -8,11 +8,12 @@ let severity : Spectec.Diagnostic.severity -> Lsp.DiagnosticSeverity.t =
   | Spectec.Diagnostic.Info -> Lsp.DiagnosticSeverity.Information
   | Spectec.Diagnostic.Hint -> Lsp.DiagnosticSeverity.Hint
 
-let of_diagnostic ~encoding ~sources (d : Spectec.Diagnostic.t) :
+let of_diagnostic ~encoding ~(sources : Sources.t) (d : Spectec.Diagnostic.t) :
     Lsp.Diagnostic.t =
   let open Spectec.Diagnostic in
   let text =
-    Option.bind (Location.file d.location) (Sources.text sources)
+    Option.bind (Location.file d.location) (fun file ->
+        Sources.find_text_opt sources.contents ~file)
     |> Option.value ~default:""
   in
   Lsp.Diagnostic.create

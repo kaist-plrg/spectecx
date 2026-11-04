@@ -16,12 +16,16 @@ let () =
   in
   assert (sources.files = [ definition; inserted; use ]);
   assert (Spectec_lsp.Check.analyze sources = []);
-  assert (Sources.text sources use = Some "syntax use = middle\n");
-  assert (Sources.text sources "unmarked/10-use.spectec" = None);
+  assert (
+    Sources.find_text_opt sources.contents ~file:use
+    = Some "syntax use = middle\n");
+  assert (
+    Sources.find_text_opt sources.contents ~file:"unmarked/10-use.spectec"
+    = None);
   let alias =
     Filename.concat (Filename.dirname use) "../unmarked/10-use.spectec"
   in
-  assert (Sources.text sources alias = None);
+  assert (Sources.find_text_opt sources.contents ~file:alias = None);
   assert (
     Sources.canonical_path "unmarked/../unmarked/2-def.spectec" = definition);
   let workspace = Workspace.create () in
@@ -37,12 +41,16 @@ let () =
   in
   let workspace, changed = Workspace.analyze workspace use in
   assert (changed != original);
-  assert (Sources.text changed.sources definition = Some "syntax base = text\n");
+  assert (
+    Sources.find_text_opt changed.sources.contents ~file:definition
+    = Some "syntax base = text\n");
   let workspace, shared = Workspace.analyze workspace definition in
   assert (changed == shared);
   let _, saved = Workspace.analyze saved_workspace use in
   assert (saved == original);
-  assert (Sources.text saved.sources definition = Some (read definition));
+  assert (
+    Sources.find_text_opt saved.sources.contents ~file:definition
+    = Some (read definition));
   let workspace = Workspace.set workspace ~path:definition "syntax base =\n" in
   let workspace, incomplete = Workspace.analyze workspace use in
   assert (incomplete.diagnostics <> []);
@@ -62,7 +70,9 @@ let () =
   let workspace, remaining = Workspace.affected workspace definition in
   assert (List.length remaining = 1);
   let rechecked = List.hd remaining in
-  assert (Sources.text rechecked.sources definition = Some (read definition));
+  assert (
+    Sources.find_text_opt rechecked.sources.contents ~file:definition
+    = Some (read definition));
   assert (rechecked.diagnostics = []);
   let _, retained = Workspace.analyze before_close use in
   assert (retained == recovered);
@@ -88,4 +98,6 @@ let () =
   assert (closed = Some (Sources.spec_directory_of inner));
   let _, remaining = Workspace.affected workspace inner in
   assert (List.length remaining = 1);
-  assert (Sources.text (List.hd remaining).sources inner = Some (read inner))
+  assert (
+    Sources.find_text_opt (List.hd remaining).sources.contents ~file:inner
+    = Some (read inner))

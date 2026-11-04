@@ -36,6 +36,12 @@ let contains spec_directory ~file =
   in
   within (Filename.dirname (canonical_path file))
 
+let find_text_opt contents ~file =
+  List.find_map
+    (fun (source : Spectec.spec_source) ->
+      if String.equal source.filename file then Some source.contents else None)
+    contents
+
 let load ~buffers path =
   let path = canonical_path path in
   let spec_directory = spec_directory_of path in
@@ -68,13 +74,8 @@ let load ~buffers path =
     List.sort_uniq Spectec.compare_spec_files ((path :: disk_files) @ open_files)
   in
   let read filename =
-    match
-      List.find_opt
-        (fun (source : Spectec.spec_source) ->
-          String.equal filename source.filename)
-        buffers
-    with
-    | Some source -> Either.Right source
+    match find_text_opt buffers ~file:filename with
+    | Some contents -> Either.Right Spectec.{ filename; contents }
     | None -> (
         match In_channel.with_open_bin filename In_channel.input_all with
         | contents -> Either.Right Spectec.{ filename; contents }
@@ -86,10 +87,3 @@ let load ~buffers path =
 let equal a b =
   a.spec_directory = b.spec_directory
   && a.files = b.files && a.contents = b.contents && a.io_errors = b.io_errors
-
-let text sources filename =
-  List.find_map
-    (fun (source : Spectec.spec_source) ->
-      if String.equal source.filename filename then Some source.contents
-      else None)
-    sources.contents
