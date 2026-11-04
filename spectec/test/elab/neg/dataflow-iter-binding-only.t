@@ -9,12 +9,4 @@
      |       bound outside whose values it iterates over. Here, every variable
      |       inside is newly bound rather than already bound, so there is no loop
      |       variable.
-  
-  warning[elab/relation-missing-rules]: relation R has no rules defined
-    --> dataflow-iter-binding-only.spectec:8:1
-    |
-  8 | relation R: foo |- foo
-    | ^^^^^^^^^^^^^^^^^^^^^^
-  9 |   hint(input %0)
-    | ^^^^^^^^^^^^^^^^
   [1]

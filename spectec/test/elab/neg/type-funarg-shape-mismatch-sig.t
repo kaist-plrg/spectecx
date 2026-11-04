@@ -14,10 +14,4 @@
     |   |
     | 7 | dec $caller(def $expected : nat) : nat
     |   |                  ^^^^^^^^
-  
-  warning[elab/dec-missing-clauses]: dec $caller has no clauses defined
-    --> type-funarg-shape-mismatch-sig.spectec:7:1
-    |
-  7 | dec $caller(def $expected : nat) : nat
-    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   [1]

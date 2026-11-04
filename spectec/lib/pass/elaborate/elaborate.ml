@@ -1997,17 +1997,7 @@ let populate_rule (ctx : Ctx.t) (def_il : Il.def) : Il.def =
   | _ -> def_il
 
 let populate_rules (ctx : Ctx.t) (spec_il : Il.spec) : Il.spec =
-  let spec_il = List.map (populate_rule ctx) spec_il in
-  List.iter
-    (fun def_il ->
-      match def_il.it with
-      | Il.RelD { relid = id; rules = []; _ } ->
-          warn def_il.at
-            (Format.asprintf "relation %s has no rules defined" id.it)
-            ~code:Relation_missing_rules
-      | _ -> ())
-    spec_il;
-  spec_il
+  List.map (populate_rule ctx) spec_il
 
 (* Populate clauses to their respective function declarations *)
 
@@ -2037,17 +2027,33 @@ let populate_clause (ctx : Ctx.t) (def_il : Il.def) : Il.def =
   | _ -> def_il
 
 let populate_clauses (ctx : Ctx.t) (spec_il : Il.spec) : Il.spec =
-  let spec_il = List.map (populate_clause ctx) spec_il in
+  List.map (populate_clause ctx) spec_il
+
+(* Warn about relations and decs that have no rules or clauses in the source *)
+
+let warn_missing_rules_and_clauses (spec_il : Il.spec) ~(source : spec) : unit =
+  let relids_with_rules, defids_with_clauses =
+    List.fold_left
+      (fun (relids, defids) def ->
+        match def.it with
+        | RuleD (id_rel, _, _, _) -> (IdSet.add id_rel relids, defids)
+        | DefD (id, _, _, _, _) -> (relids, IdSet.add id defids)
+        | _ -> (relids, defids))
+      (IdSet.empty, IdSet.empty) source
+  in
   List.iter
     (fun def_il ->
       match def_il.it with
-      | Il.DecD { defid = id; clauses = []; _ } ->
+      | Il.RelD { relid = id; _ } when not (IdSet.mem id relids_with_rules) ->
+          warn def_il.at
+            (Format.asprintf "relation %s has no rules defined" id.it)
+            ~code:Relation_missing_rules
+      | Il.DecD { defid = id; _ } when not (IdSet.mem id defids_with_clauses) ->
           warn def_il.at
             (Format.asprintf "dec $%s has no clauses defined" id.it)
             ~code:Dec_missing_clauses
       | _ -> ())
-    spec_il;
-  spec_il
+    spec_il
 
 (* Elaborate and collect failtraces *)
 
@@ -2146,6 +2152,7 @@ let elab_spec (spec : spec) : Lang.Il.spec Diagnostic.result =
     let ctx = Ctx.init () in
     let ctx, spec_il, errors = elab_defs_with_errors ctx spec in
     let spec_il = spec_il |> populate_rules ctx |> populate_clauses ctx in
+    warn_missing_rules_and_clauses spec_il ~source:spec;
     if errors = [] then Ok spec_il else Error errors
   with Diagnostic.ElabError e -> Error [ e ]
 

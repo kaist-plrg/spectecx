@@ -16,10 +16,4 @@
     |
   7 | dec $caller(def $h(nat, nat) : nat) : nat
     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  
-  warning[elab/dec-missing-clauses]: dec $bad has no clauses defined
-    --> type-functyp-param-arity-mismatch.spectec:9:1
-    |
-  9 | dec $bad : nat
-    | ^^^^^^^^^^^^^^
   [1]

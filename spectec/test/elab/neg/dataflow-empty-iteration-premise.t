@@ -9,12 +9,4 @@
      |       Here, no variable has an iteration left to consume: either the body
      |       has no variables, or every variable's `*`s have already been consumed
      |       by surrounding iterations.
-  
-  warning[elab/relation-missing-rules]: relation R has no rules defined
-    --> dataflow-empty-iteration-premise.spectec:8:1
-    |
-  8 | relation R: foo |- foo
-    | ^^^^^^^^^^^^^^^^^^^^^^
-  9 |   hint(input %0)
-    | ^^^^^^^^^^^^^^^^
   [1]

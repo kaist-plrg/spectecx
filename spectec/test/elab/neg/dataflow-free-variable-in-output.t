@@ -7,12 +7,4 @@
      |
      | note: Every variable here must already be bound by an earlier part of the
      |       rule (the conclusion's input slot or a preceding premise).
-  
-  warning[elab/relation-missing-rules]: relation E has no rules defined
-    --> dataflow-free-variable-in-output.spectec:10:1
-     |
-  10 | relation E: exp |- val
-     | ^^^^^^^^^^^^^^^^^^^^^^
-  11 |   hint(input %0)
-     | ^^^^^^^^^^^^^^^^
   [1]

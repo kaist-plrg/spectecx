@@ -16,10 +16,4 @@
     |
   6 | dec $caller(nat) : nat
     | ^^^^^^^^^^^^^^^^^^^^^^
-  
-  warning[elab/dec-missing-clauses]: dec $main has no clauses defined
-    --> type-funarg-expected-exp-got-fun.spectec:8:1
-    |
-  8 | dec $main : nat
-    | ^^^^^^^^^^^^^^^
   [1]

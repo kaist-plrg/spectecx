@@ -4,12 +4,4 @@
      |
   11 |   x* |- x
      |         ^
-  
-  warning[elab/relation-missing-rules]: relation R has no rules defined
-    --> dataflow-iter-dimension-mismatch.spectec:7:1
-    |
-  7 | relation R: foo* |- foo
-    | ^^^^^^^^^^^^^^^^^^^^^^^
-  8 |   hint(input %0)
-    | ^^^^^^^^^^^^^^^^
   [1]

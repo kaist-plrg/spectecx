@@ -4,10 +4,4 @@
     |
   6 | def $caller(n) = $missing(n)
     |                   ^^^^^^^^
-  
-  warning[elab/dec-missing-clauses]: dec $caller has no clauses defined
-    --> ctx-dec-undefined.spectec:5:1
-    |
-  5 | dec $caller(nat) : nat
-    | ^^^^^^^^^^^^^^^^^^^^^^
   [1]
