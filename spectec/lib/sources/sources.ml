@@ -84,6 +84,14 @@ let load ~buffers path =
   let file_errors, contents = List.partition_map read files in
   { spec_directory; files; contents; io_errors = listing_errors @ file_errors }
 
+let io_diagnostics sources =
+  List.map
+    (fun (file, message) ->
+      Spectec.Diagnostic.error ~source:"io" (Common.Location.File file)
+        (Printf.sprintf "cannot read spec file %s: %s" (Filename.basename file)
+           message))
+    sources.io_errors
+
 let equal a b =
   a.spec_directory = b.spec_directory
   && a.files = b.files && a.contents = b.contents && a.io_errors = b.io_errors

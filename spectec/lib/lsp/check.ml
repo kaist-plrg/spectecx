@@ -22,20 +22,14 @@ let of_diagnostic ~encoding ~(sources : Sources.t) (d : Spectec.Diagnostic.t) :
     ?code:(Option.map (fun c -> `String c) d.code)
     ~message:(`String d.message) ()
 
-let unreadable file message : Spectec.Diagnostic.t =
-  Spectec.Diagnostic.error ~source:"io" (Location.File file)
-    (Printf.sprintf "cannot read spec file %s: %s" (Filename.basename file)
-       message)
-
 let internal_error ~open_path exn : Spectec.Diagnostic.t =
   Spectec.Diagnostic.error ~source:"internal" (Location.File open_path)
     ("internal error: " ^ Printexc.to_string exn)
 
 let analyze (sources : Sources.t) =
   try
-    match sources.io_errors with
-    | _ :: _ ->
-        List.map (fun (file, msg) -> unreadable file msg) sources.io_errors
+    match Sources.io_diagnostics sources with
+    | _ :: _ as io_diagnostics -> io_diagnostics
     | [] -> (
         let parsed, parse_diagnostics =
           Spectec.with_diagnostics (fun () ->

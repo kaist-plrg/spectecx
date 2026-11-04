@@ -1,5 +1,11 @@
 type spec_directory = { path : string; recursive : bool }
 
+(** [files] lists a spec's files in spec order, the order that
+    {!Spectec.compare_spec_files} gives and the parser reads them in. [contents]
+    holds the text of each readable file in that order. [io_errors] holds an
+    error for each file that could not be read. When a directory of the spec
+    cannot be listed, [io_errors] also holds one error at the loaded path. Every
+    path in [t] is canonical. *)
 type t = private {
   spec_directory : spec_directory;
   files : string list;
@@ -27,6 +33,7 @@ val contains : spec_directory -> file:string -> bool
     {!contains} it, even when the file does not exist on disk. *)
 val load : buffers:Spectec.spec_source list -> string -> t
 
+val io_diagnostics : t -> Spectec.Diagnostic.t list
 val equal : t -> t -> bool
 
 (** [find_text_opt contents ~file] is the text of the source in [contents] whose
