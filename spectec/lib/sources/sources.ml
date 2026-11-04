@@ -37,6 +37,9 @@ let spec_directory_of path =
   | Some root -> { path = canonical_path root; recursive = true }
   | None -> { path = directory; recursive = false }
 
+let collect_canonical_files ~recursive directory =
+  List.map canonical_path (Spectec.collect_spec_files ~recursive directory)
+
 let contains spec_directory ~file =
   let rec within directory =
     String.equal directory spec_directory.path
@@ -74,11 +77,9 @@ let load ~buffers path =
   in
   let disk_files, listing_errors =
     try
-      let collect =
-        if spec_directory.recursive then Spectec.collect_spec_files
-        else Spectec.collect_spec_siblings
-      in
-      (List.map canonical_path (collect spec_directory.path), [])
+      ( collect_canonical_files ~recursive:spec_directory.recursive
+          spec_directory.path,
+        [] )
     with Sys_error message ->
       let directory, reason = split_sys_error message in
       ( [],

@@ -40,14 +40,12 @@ val with_diagnostics : (unit -> 'a result) -> 'a result * Diag.Bag.t
     marker among [directory] and its ancestors, if any. *)
 val find_spec_root_opt : string -> string option
 
-(** [collect_spec_files dir] is the [.spectec] files under [dir], gathered
-    recursively; digit runs in names compare as numbers ([5.9-] before [5.11-]),
-    so section numbers order without zero-padding. *)
-val collect_spec_files : string -> string list
-
-(** Collect only the [.spectec] files directly inside [dir], in the same natural
-    order as {!collect_spec_files}. *)
-val collect_spec_siblings : string -> string list
+(** [collect_spec_files dir] lists the [.spectec] files under [dir], including
+    files in nested directories by default. With [recursive:false], it lists
+    only files directly inside [dir]. Both modes use {!compare_spec_files} to
+    order files, so digit runs in names compare as numbers ([5.9-] before
+    [5.11-]). *)
+val collect_spec_files : ?recursive:bool -> string -> string list
 
 (** Compare file paths in natural order, component by component. *)
 val compare_spec_files : string -> string -> int

@@ -33,8 +33,7 @@ let with_diagnostics f =
 (* --- Spec membership --- *)
 
 let find_spec_root_opt directory = Spec_files.find_root_opt directory
-let collect_spec_files dir = Spec_files.collect dir
-let collect_spec_siblings dir = Spec_files.collect ~recursive:false dir
+let collect_spec_files = Spec_files.collect
 let compare_spec_files = Spec_files.compare_paths
 
 (* --- Pipeline transformations --- *)
