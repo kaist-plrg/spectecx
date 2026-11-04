@@ -40,6 +40,15 @@ let spec_directory_of path =
 let collect_canonical_files ~recursive directory =
   List.map canonical_path (Spectec.collect_spec_files ~recursive directory)
 
+let relative_files_at path ~relative_to =
+  let relative_to = canonical_path relative_to in
+  let files =
+    if is_directory path then
+      collect_canonical_files ~recursive:(spec_directory_of path).recursive path
+    else [ canonical_path path ]
+  in
+  List.map (fun file -> Core.Filename.of_absolute_exn file ~relative_to) files
+
 let contains spec_directory ~file =
   let rec within directory =
     String.equal directory spec_directory.path

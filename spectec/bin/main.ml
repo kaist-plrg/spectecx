@@ -208,8 +208,8 @@ let guard_parsed_spec ~color path ~on_ok =
         (Diagnostic.Bag.of_list io_diagnostics)
   | [] ->
       let contents = Sources.relative_contents sources ~relative_to in
-      Cli.Error_handling.guard ~color ~on_ok:(on_ok ~contents) @@ fun () ->
-      parse_spec_sources contents
+      Cli.Error_handling.guard ~color ~on_ok:(on_ok ~relative_to ~contents)
+      @@ fun () -> parse_spec_sources contents
 
 let query_uses_command =
   Core.Command.basic
@@ -222,7 +222,8 @@ let query_uses_command =
   and name = anon ("name" %: string)
   and color = Cli.Cli_args.Output.color_flag in
   fun () ->
-    guard_parsed_spec ~color path ~on_ok:(fun ~contents:_ spec_el ->
+    guard_parsed_spec ~color path
+      ~on_ok:(fun ~relative_to:_ ~contents:_ spec_el ->
         Query.Uses.find_all (Query.Uses.of_spec spec_el) ~name
         |> Query.Render.render_uses |> print_string)
 
@@ -237,7 +238,8 @@ let query_show_command =
   and names = anon (non_empty_sequence_as_list ("name" %: string))
   and color = Cli.Cli_args.Output.color_flag in
   fun () ->
-    guard_parsed_spec ~color path ~on_ok:(fun ~contents spec_el ->
+    guard_parsed_spec ~color path
+      ~on_ok:(fun ~relative_to:_ ~contents spec_el ->
         let found, missing =
           Query.Definitions.find_each (Query.Definitions.of_spec spec_el) ~names
         in
@@ -252,10 +254,30 @@ let query_show_command =
             Cli.Error_handling.exit_with_diagnostics ~color
               (Query.Render.diagnostics_of_missing_names missing))
 
+let query_outline_command =
+  Core.Command.basic ~summary:"list the definitions in a spec file or directory"
+    ~readme:(fun () -> spec_readme)
+  @@
+  let open Core.Command.Let_syntax in
+  let open Core.Command.Param in
+  let%map path = anon ("spec" %: string)
+  and color = Cli.Cli_args.Output.color_flag in
+  fun () ->
+    guard_parsed_spec ~color path
+      ~on_ok:(fun ~relative_to ~contents:_ spec_el ->
+        Query.Definitions.in_files
+          (Query.Definitions.of_spec spec_el)
+          ~files:(Sources.relative_files_at path ~relative_to)
+        |> Query.Render.render_outline |> print_string)
+
 let query_command =
   Core.Command.group ~summary:"look up names and definitions in a spec"
     ~readme:(fun () -> spec_readme)
-    [ ("uses", query_uses_command); ("show", query_show_command) ]
+    [
+      ("uses", query_uses_command);
+      ("show", query_show_command);
+      ("outline", query_outline_command);
+    ]
 
 let command =
   Core.Command.group ~summary:"SpecTec command line tools"

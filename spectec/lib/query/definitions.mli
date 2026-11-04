@@ -26,6 +26,10 @@ val of_spec : Lang.El.spec -> t
     has. *)
 val find_each : t -> names:string list -> t * string list
 
+(** [in_files definitions ~files] lists the definitions written in one of
+    [files]. *)
+val in_files : t -> files:string list -> t
+
 (** [string_of_kind kind] is the keyword or keywords that introduce a [kind]
     definition. *)
 val string_of_kind : kind -> string

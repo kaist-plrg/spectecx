@@ -77,6 +77,38 @@ let render_definitions ~text_of_file definitions =
            :: source_lines))
   |> String.concat "\n"
 
+let render_outline definitions =
+  let is_next_clause ((head : Definitions.definition), head_range)
+      ((definition : Definitions.definition), line_range) =
+    head.kind = Def && definition.kind = Def
+    && String.equal head.name definition.name
+    && String.equal head_range.file line_range.file
+  in
+  let rows =
+    List.fold_left
+      (fun rows ((_, line_range) as entry) ->
+        match rows with
+        | (head, clause_count, _) :: rows when is_next_clause head entry ->
+            (head, clause_count + 1, line_range.last_line) :: rows
+        | rows -> (entry, 1, line_range.last_line) :: rows)
+      []
+      (pair_with_line_ranges definitions
+         ~location_of:(fun (definition : Definitions.definition) ->
+           definition.location))
+    |> List.rev
+  in
+  let row_line ((head, head_range), clause_count, last_line) =
+    Printf.sprintf "  %s %s%s"
+      (string_of_line_range { head_range with last_line })
+      (label_of_definition head)
+      (if clause_count > 1 then Printf.sprintf " (%d clauses)" clause_count
+       else "")
+  in
+  List.map (fun (((_, head_range), _, _) as row) -> (head_range.file, row)) rows
+  |> Group.in_order
+  |> List.concat_map (fun (file, rows) -> file :: List.map row_line rows)
+  |> string_of_lines
+
 let diagnostics_of_missing_names names =
   List.map
     (fun name ->

@@ -14,6 +14,11 @@ val render_uses : Uses.use list -> string
 val render_definitions :
   text_of_file:(string -> string option) -> Definitions.t -> string
 
+(** [render_outline definitions] lists [definitions] by file, one per line with
+    its line range, keyword and name. Consecutive clauses of one function share
+    a line within each file. *)
+val render_outline : Definitions.t -> string
+
 (** [diagnostics_of_missing_names names] returns a bag with one error diagnostic
     for each of [names], saying that no definition has that name. *)
 val diagnostics_of_missing_names : string list -> Diag.Bag.t

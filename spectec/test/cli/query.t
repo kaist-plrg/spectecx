@@ -249,3 +249,63 @@ A name with no definition is reported after the others, and the command fails:
   
     source: query
   [1]
+
+outline lists the definitions in a file, one per line with its line range.
+Consecutive clauses of one function share a line:
+
+  $ spectec query outline p4/5-typing/5.00.1-flow.spectec
+  p4/5-typing/5.00.1-flow.spectec
+    5 syntax flow
+    7 var f
+    9-10 dec $join_flow
+    11-13 def $join_flow (2 clauses)
+
+outline names a builtin declaration by both of its keywords:
+
+  $ spectec query outline p4/2-static-runtime/2.0-domain.spectec | grep builtin
+    49-50 builtin dec $fresh_typeId
+
+A file outside the working directory is shown by a relative path that starts
+with ..:
+
+  $ (cd imp && spectec query outline ../p4/5-typing/5.00.1-flow.spectec | head -1)
+  ../p4/5-typing/5.00.1-flow.spectec
+
+For a directory, outline lists the files under it in spec order:
+
+  $ spectec query outline p4/0-aux | grep -v '^ '
+  p4/0-aux/0.0-stdlib.spectec
+  p4/0-aux/0.2-example.spectec
+
+For a directory without a marker, outline lists only the files directly inside
+it, because the spec holds only those:
+
+  $ mkdir -p nested/inner
+  $ echo 'syntax top = nat' > nested/a.spectec
+  $ echo 'syntax deep = nat' > nested/inner/b.spectec
+  $ spectec query outline nested
+  nested/a.spectec
+    1 syntax top
+
+With a marker, the spec also holds the files in nested directories:
+
+  $ touch nested/nested.spec
+  $ spectec query outline nested
+  nested/a.spectec
+    1 syntax top
+  nested/inner/b.spectec
+    1 syntax deep
+
+outline prints no file line for a file without definitions:
+
+  $ mkdir empty && touch empty/a.spectec
+  $ spectec query outline empty
+
+A linked file is outlined under the path of the file it links to:
+
+  $ mkdir linked && cp imp/spec.spectec real.spectec
+  $ ln -s ../real.spectec linked/spec.spectec
+  $ spectec query outline linked | head -3
+  real.spectec
+    4 syntax pair
+    5 syntax map

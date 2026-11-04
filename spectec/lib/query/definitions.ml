@@ -38,6 +38,14 @@ let find_each definitions ~names =
       (fun (name, matches) -> if matches = [] then Some name else None)
       found )
 
+let in_files definitions ~files =
+  List.filter
+    (fun definition ->
+      match Common.Location.file definition.location with
+      | Some file -> List.mem file files
+      | None -> false)
+    definitions
+
 let string_of_kind = function
   | Syntax -> "syntax"
   | Var -> "var"

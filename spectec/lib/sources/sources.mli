@@ -38,6 +38,14 @@ val spec_directory_of : string -> spec_directory
     [.spectec] extension. *)
 val contains : spec_directory -> file:string -> bool
 
+(** [relative_files_at path ~relative_to] lists [path] when it names a file, or
+    the [.spectec] files in [path] when it names a directory. It includes files
+    in nested directories when [spec_directory_of path] returns
+    [recursive = true]. The returned paths are canonical paths made relative to
+    the canonical path of [relative_to].
+    @raise Sys_error if [path] or a directory under it cannot be listed. *)
+val relative_files_at : string -> relative_to:string -> string list
+
 (** [load ~buffers path] loads the spec containing the file or directory [path].
     A file's text comes from [buffers] when [buffers] holds it, and from disk
     otherwise. The loader also includes [.spectec] files from [buffers] that
