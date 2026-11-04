@@ -14,4 +14,3 @@ p4c/testdata/p4_16_errors/spec-issue1297-string-cat-err-3-anno.p4
 p4c/testdata/p4_16_errors/structured-annotation-e1.p4
 p4c/testdata/p4_16_errors/structured-annotation-e2.p4
 p4c/testdata/p4_16_errors/structured-annotation-e3.p4
-p4c/testdata/p4_16_errors/type-in-expr.p4

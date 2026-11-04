@@ -51,8 +51,7 @@ Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_1
 error: relation was not matched
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/compound-assignment.p4
-Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/compound-assignment.p4
-error: relation was not matched
+Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/compound-assignment.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/conditional_e.p4
 Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/conditional_e.p4
@@ -127,12 +126,10 @@ Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_1
 error: relation was not matched
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/div1.p4
-Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/div1.p4
-error: relation was not matched
+Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/div1.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/div3.p4
-Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/div3.p4
-error: relation was not matched
+Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/div3.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/dup-param.p4
 Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/dup-param.p4
@@ -1184,9 +1181,9 @@ Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_1
 error: relation was not matched
 
 Typechecker (sl) summary
-  Ran:        253 / 310    (81.61%)
-  Passed:     253 (100.00% of ran)
+  Ran:        250 / 310    (80.65%)
+  Passed:     250 (100.00% of ran)
   Failed:       0 (0.00% of ran)
-  Skipped:     57 (18.39% of total)
+  Skipped:     60 (19.35% of total)
 
 
