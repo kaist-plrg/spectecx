@@ -1,0 +1,38 @@
+name: Commit messages
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    if: github.event.deleted != true
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout the head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Fetch the base when missing
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [[ "$BASE" =~ ^[0-9a-fA-F]{40}$ ]] && [[ "$BASE" != 0000000000000000000000000000000000000000 ]]; then
+            if ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+              git fetch --no-tags origin "$BASE"
+            fi
+          fi
+
+      - name: Test the message tools
+        run: python3 -m unittest discover -s tools/commit-messages -p 'test_*.py'
+
+      - name: Check commit messages
+        run: python3 tools/commit-messages/check_auto.py --event-file "$GITHUB_EVENT_PATH" --messages-only

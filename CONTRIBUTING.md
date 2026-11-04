@@ -4,6 +4,8 @@ We add shared rules when recurring contribution problems justify them. Suggestio
 
 See [README.md](README.md) for setup and project orientation, and [Makefile](Makefile) for build and test commands. Format OCaml changes with `make fmt`. The formatter version is pinned in [spectec/.ocamlformat](spectec/.ocamlformat), and CI checks formatting with that version. [editors/vscode/README.md](editors/vscode/README.md) describes the checks for the VS Code extension.
 
+CI uses [tools/commit-messages/check_auto.py](tools/commit-messages/check_auto.py) to check commit types, 72-column wrapping, ASCII text, source and credit record order, 12-character hashes, and quoted `Fixes:` subjects.
+
 ## Review and merging
 
 Review first addresses what the change does. Once that is settled, review addresses how the code is organized, including names and module boundaries.
@@ -12,7 +14,7 @@ Once review is resolved, the core maintainer prepares the branch immediately bef
 
 This preparation preserves intent, source references, and author credit. If preparation changes behavior or meaning, the maintainer sends those changes back for review before merging. Rewriting a branch that other people use requires their agreement.
 
-Write comments and commit messages for the final history. Good comments and messages usually survive the maintainer's edits with few changes. You may push review fixes as new commits with short messages. Do not rewrite branch history before the merge. The core maintainer does that.
+Write comments and commit messages for the final history. Good comments and messages usually survive the maintainer's edits with few changes. You may push review fixes as new commits with short messages. If the commit-message check fails on a review fix, leave that failure to the maintainer. Do not rewrite branch history before the merge. The core maintainer does that.
 
 ## Contributor expectations
 
