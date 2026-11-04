@@ -3,6 +3,7 @@ open Common.Annotated
 open Lang
 open Il.Expression
 open Il
+open Al
 open Dctx
 open Diagnostic
 module Mixop = Lang.Il.Mixfix
@@ -17,6 +18,10 @@ module Mixop = Lang.Il.Mixfix
     - Check that the dimension of binding variables is coherent *)
 
 (* Constructors *)
+
+(* [annotate_prem] fills in [vars_input] and [vars_output]. *)
+let unannotated_iterinstr (iter : iter) : iterinstr =
+  { iter; vars_input = []; vars_output = [] }
 
 let empty = VEnv.empty
 let singleton id typ = VEnv.add id (typ, []) VEnv.empty
@@ -288,7 +293,7 @@ and annotate_prem (dctx : Dctx.t) (bounds : VEnv.t) (prem : prem) :
             ("cannot determine dimension of binding identifier(s) only: "
             ^ String.concat ", " (List.map Il.Print.string_of_var itervars)
             ^ " "
-            ^ Il.Print.string_of_prem prem)
+            ^ Al.Print.string_of_prem prem)
             ~code:Dataflow_iter_binding_only
             ~detail:
               "An iteration needs a loop variable inside it: a variable \

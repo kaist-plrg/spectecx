@@ -14,7 +14,7 @@ let elab_command =
   and color = Cli.Cli_args.Output.color_flag in
   fun () ->
     Cli.Error_handling.guard ~color ~on_ok:(fun spec_il ->
-        Format.printf "%s\n" (Lang.Il.Print.string_of_spec spec_il))
+        Format.printf "%s\n" (Lang.Al.Print.string_of_spec spec_il))
     @@ fun () ->
     let* spec = parse_spec_files filenames in
     let* spec_il = elaborate spec in

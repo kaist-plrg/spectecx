@@ -1557,7 +1557,7 @@ and elab_args ?(as_def = false) (at : Location.t) (ctx : Ctx.t)
 and elab_prem (ctx : Ctx.t) (prem : prem) : Ctx.t * Il.prem option =
   let ctx, prem_il_opt = elab_prem' ctx prem.it in
   let prem_il_opt =
-    Option.map (fun prem_il -> prem_il $$ (prem.at, None)) prem_il_opt
+    Option.map (fun prem_il -> prem_il $$ (prem.at, prem)) prem_il_opt
   in
   (ctx, prem_il_opt)
 
@@ -1575,18 +1575,7 @@ and elab_prem' (ctx : Ctx.t) (prem : prem') : Ctx.t * Il.prem' option =
   | DebugPr exp -> elab_debug_prem ctx exp |> wrap_some
 
 and elab_prems (ctx : Ctx.t) (prems : prem list) : Ctx.t * Il.prem list =
-  let ctx, prems_il =
-    List.fold_left_map
-      (fun ctx prem ->
-        let ctx, prem_il_opt = elab_prem ctx prem in
-        let prem_il_opt =
-          Option.map
-            (fun prem_il -> prem_il.it $$ (prem_il.at, Some (Il.Source prem)))
-            prem_il_opt
-        in
-        (ctx, prem_il_opt))
-      ctx prems
-  in
+  let ctx, prems_il = List.fold_left_map elab_prem ctx prems in
   (ctx, List.filter_map Fun.id prems_il)
 
 (* Elaboration of variable premises *)
@@ -1641,7 +1630,7 @@ and elab_rule_not_prem (ctx : Ctx.t) (id : id) (exp : exp) : Ctx.t * Il.prem' =
 
 and elab_if_prem (ctx : Ctx.t) (exp : exp) : Ctx.t * Il.prem' =
   let+ ctx, exp_il = elab_exp ctx (Il.BoolT $ exp.at) exp in
-  let prem_il = Il.IfPr { cond = exp_il; role = Il.Condition } in
+  let prem_il = Il.IfPr exp_il in
   (ctx, prem_il)
 
 (* Elaboration of else premises *)
@@ -1663,7 +1652,7 @@ and elab_iter_prem (ctx : Ctx.t) (prem : prem) (iter : iter) : Ctx.t * Il.prem'
   let iter_il = elab_iter iter in
   let ctx, prem_il_opt = elab_prem ctx prem in
   let prem_il = Option.get prem_il_opt in
-  let prem_il = Il.IterPr (prem_il, Il.unannotated_iterinstr iter_il) in
+  let prem_il = Il.IterPr (prem_il, iter_il) in
   (ctx, prem_il)
 
 (* Elaboration of debug premises *)

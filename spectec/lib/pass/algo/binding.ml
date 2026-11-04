@@ -1,8 +1,10 @@
 open Common.Domain
 open Common.Annotated
 module Location = Common.Location
+module Il = Lang.Il
 open Lang.Il.Expression
 open Lang.Il
+open Lang.Al
 open Diagnostic
 open Dctx
 open Bind
@@ -103,21 +105,17 @@ let analyze_args_as_bind (dctx : Dctx.t) (args : arg list) :
 
 (* Premise binding analysis *)
 
-let rec analyze_prem (dctx : Dctx.t) (prem : prem) :
-    Dctx.t * VEnv.t * prem * prem list =
+let rec analyze_prem (dctx : Dctx.t) (prem : Il.prem) :
+    Dctx.t * VEnv.t * Al.prem * Al.prem list =
   match prem.it with
-  | RelPr { relid; notexp } -> analyze_rule_prem dctx prem.at relid notexp
-  | RelAssertPr { call; expect } ->
+  | Il.RelPr { relid; notexp } -> analyze_rule_prem dctx prem.at relid notexp
+  | Il.RelAssertPr { call; expect } ->
       analyze_rel_assert_prem dctx prem.at call expect
-  | IfPr { cond; _ } -> analyze_if_prem dctx prem.at cond
-  | ElsePr -> (dctx, VEnv.empty, prem, [])
-  | LetPr _ ->
-      (* unreachable: analyze_let_prem produces LetPr within this pass. *)
-      assert false
-  | IterPr (prem, { iter; vars_input = []; vars_output = [] }) ->
-      analyze_iter_prem dctx prem.at prem iter
-  | IterPr _ -> assert false
-  | DebugPr exp -> analyze_debug_prem dctx prem.at exp
+  | Il.IfPr cond -> analyze_if_prem dctx prem.at cond
+  | Il.ElsePr -> (dctx, VEnv.empty, ElsePr $$ (prem.at, None), [])
+  | Il.IterPr (prem_inner, iter) ->
+      analyze_iter_prem dctx prem_inner.at prem_inner iter
+  | Il.DebugPr exp -> analyze_debug_prem dctx prem.at exp
 
 and analyze_rule_prem (dctx : Dctx.t) (at : Location.t) (id : id)
     (notexp : notexp) : Dctx.t * VEnv.t * prem * prem list =
@@ -201,16 +199,19 @@ and analyze_let_prem (dctx : Dctx.t) (exp_l : exp) (binds_l : BEnv.t)
   let prem = LetPr (exp_l, exp_r) in
   (dctx, venv, prem, prems)
 
-and analyze_iter_prem (dctx : Dctx.t) (at : Location.t) (prem : prem)
+and analyze_iter_prem (dctx : Dctx.t) (at : Location.t) (prem : Il.prem)
     (iter : iter) : Dctx.t * VEnv.t * prem * prem list =
   let dctx, venv, prem, prems = analyze_prem dctx prem in
   let venv = VEnv.map (Typ.add_iter iter) venv in
   let prems =
     List.map
-      (fun prem -> IterPr (prem, unannotated_iterinstr iter) $$ (at, None))
+      (fun prem ->
+        IterPr (prem, Dimension.unannotated_iterinstr iter) $$ (at, None))
       prems
   in
-  let prem = IterPr (prem, unannotated_iterinstr iter) $$ (at, None) in
+  let prem =
+    IterPr (prem, Dimension.unannotated_iterinstr iter) $$ (at, None)
+  in
   (dctx, venv, prem, prems)
 
 and analyze_debug_prem (dctx : Dctx.t) (at : Location.t) (exp : exp) :

@@ -63,15 +63,15 @@ let production_of_typcase (self : Il.id) (typcase : Il.typcase) : production =
     ~precedence:(precedence_of_typcase typcase)
     (Il.Mixfix.map arg_of_typ typcase.notation.it)
 
-let syntax_of_def (def : Il.def) : syntax option =
+let syntax_of_def (def : Al.def) : syntax option =
   match def.it with
-  | Il.TypD { synid; deftyp = { it = Il.VariantT typcases; _ }; _ } ->
+  | Al.TypD { synid; deftyp = { it = Il.VariantT typcases; _ }; _ } ->
       Some
         {
           name = synid;
           productions = List.map (production_of_typcase synid) typcases;
         }
-  | Il.TypD { synid; deftyp = { it = Il.PlainT typ; _ }; _ } ->
+  | Al.TypD { synid; deftyp = { it = Il.PlainT typ; _ }; _ } ->
       Some
         {
           name = synid;
@@ -86,13 +86,13 @@ let syntax_of_def (def : Il.def) : syntax option =
 type syntax_usage = { name : string; uses : string list }
 type usage_graph = syntax_usage list
 
-let usage_graph_of (spec : Il.spec) : usage_graph =
+let usage_graph_of (spec : Al.spec) : usage_graph =
   let uses_of_typ (typ : Il.typ) =
     match typ.it with Il.VarT { synid; _ } -> [ synid.it ] | _ -> []
   in
-  let usage_of_def (def : Il.def) : syntax_usage option =
+  let usage_of_def (def : Al.def) : syntax_usage option =
     match def.it with
-    | Il.TypD { synid; deftyp = { it = Il.VariantT typcases; _ }; _ } ->
+    | Al.TypD { synid; deftyp = { it = Il.VariantT typcases; _ }; _ } ->
         Some
           {
             name = synid.it;
@@ -103,7 +103,7 @@ let usage_graph_of (spec : Il.spec) : usage_graph =
                     (Il.Mixfix.args typcase.notation.it))
                 typcases;
           }
-    | Il.TypD { synid; deftyp = { it = Il.PlainT typ; _ }; _ } ->
+    | Al.TypD { synid; deftyp = { it = Il.PlainT typ; _ }; _ } ->
         Some { name = synid.it; uses = uses_of_typ typ }
     | _ -> None
   in
@@ -121,11 +121,11 @@ let reachable (graph : usage_graph) (start : string) : string list =
   in
   visit [] start
 
-let extract ~(start : string) (spec : Il.spec) : t =
+let extract ~(start : string) (spec : Al.spec) : t =
   let keep = reachable (usage_graph_of spec) start in
-  let is_reachable (def : Il.def) =
+  let is_reachable (def : Al.def) =
     match def.it with
-    | Il.TypD { synid; _ } -> List.mem synid.it keep
+    | Al.TypD { synid; _ } -> List.mem synid.it keep
     | _ -> false
   in
   List.filter_map

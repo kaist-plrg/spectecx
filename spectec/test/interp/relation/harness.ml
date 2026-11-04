@@ -3,7 +3,7 @@ module Value = Lang.Il.Value
 module Diagnostic = Spectec.Diagnostic
 
 type compiled_spec = {
-  spec_il : Lang.Il.spec;
+  spec_il : Lang.Al.spec;
   spec_sl : Lang.Sl.spec;
   spec_pl : Lang.Pl.spec;
   henv : Hints.Henv.t;

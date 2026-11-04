@@ -1,4 +1,5 @@
 module Il = Lang.Il
+module Al = Lang.Al
 
 type 'a result = ('a, Error.t) Stdlib.result
 
@@ -39,14 +40,14 @@ module type S = sig
 
   (** Parse a string into IL values. *)
   val parse_string :
-    spec:Il.spec -> filename:string -> string -> Il.Value.t list result
+    spec:Al.spec -> filename:string -> string -> Il.Value.t list result
 
   (** Unparse IL values back into a string for display. *)
-  val unparse : spec:Il.spec -> Il.Value.t list -> string
+  val unparse : spec:Al.spec -> Il.Value.t list -> string
 
   (** May report decoded values through {!Instrumentation.Value_event.Decoded}.
   *)
-  val parse_input : spec:Il.spec -> input -> run result
+  val parse_input : spec:Al.spec -> input -> run result
 
   (** Get source identifier for tracing/errors (e.g., filename, test name) *)
   val source : input -> string

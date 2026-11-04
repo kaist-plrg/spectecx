@@ -168,7 +168,7 @@ let () =
             ]
       in
       let iterinstr =
-        Il.
+        Lang.Al.
           {
             iter;
             vars_input = [ itervar "x" [] ];

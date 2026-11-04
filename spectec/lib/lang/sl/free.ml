@@ -17,7 +17,7 @@ let free_iterexps (iterexps : iterexp list) : t =
   unions (List.map free_iterexp iterexps)
 
 let free_iterinstrs (iterinstrs : iterinstr list) : t =
-  iterinstrs |> List.map Il.iterexp_of_iterinstr |> free_iterexps
+  iterinstrs |> List.map Al.iterexp_of_iterinstr |> free_iterexps
 
 let free_relcall ({ notexp; _ } : relcall) : t =
   free_exps (Il.Mixfix.args notexp)

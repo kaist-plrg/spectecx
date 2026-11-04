@@ -56,8 +56,8 @@ let check_undeclared_builtin () =
       spec with
       spec_il =
         List.filter
-          (fun (def : Lang.Il.def) ->
-            match def.it with Lang.Il.BuiltinDecD _ -> false | _ -> true)
+          (fun (def : Lang.Al.def) ->
+            match def.it with Lang.Al.BuiltinDecD _ -> false | _ -> true)
           spec.spec_il;
       spec_sl =
         List.filter

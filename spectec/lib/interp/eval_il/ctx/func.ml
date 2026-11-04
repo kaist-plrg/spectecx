@@ -1,4 +1,5 @@
-open Lang.Il
+open Lang.Al
+module Il = Lang.Il
 
 (* Function *)
 
@@ -13,7 +14,7 @@ let to_string = function
   | Builtin _ -> "builtin function"
   | Defined (tparams, _, clauses) ->
       "def"
-      ^ Print.string_of_tparams tparams
+      ^ Il.Print.string_of_tparams tparams
       ^ "\n"
       ^ String.concat "\n"
           (List.mapi

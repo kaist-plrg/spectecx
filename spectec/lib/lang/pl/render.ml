@@ -447,7 +447,7 @@ let render_iterexp_suffix (ctx : context) (iterexps : iterexp list) : string =
 
 let render_iterinstr_suffix (ctx : context) (iterinstrs : iterinstr list) :
     string =
-  render_iterexp_suffix ctx (List.map Il.iterexp_of_iterinstr iterinstrs)
+  render_iterexp_suffix ctx (List.map Al.iterexp_of_iterinstr iterinstrs)
 
 (* Relations *)
 

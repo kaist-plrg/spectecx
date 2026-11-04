@@ -1,6 +1,7 @@
 open Common.Annotated
 open Lang
 open Il
+open Al
 open Il.Value
 open Xl
 open Hint

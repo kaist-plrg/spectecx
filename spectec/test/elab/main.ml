@@ -12,7 +12,7 @@ let run specdir =
     Ok spec_il
   in
   match spec_il with
-  | Ok spec_il -> Format.printf "%s\n" (Lang.Il.Print.string_of_spec spec_il)
+  | Ok spec_il -> Format.printf "%s\n" (Lang.Al.Print.string_of_spec spec_il)
   | Error err ->
       Format.printf "Elaboration failed:\n%s\n"
         (Spectec.Diagnostic.Render.render_bag

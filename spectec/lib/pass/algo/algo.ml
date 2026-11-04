@@ -1,11 +1,14 @@
 open Common.Annotated
+module Il = Lang.Il
+module Al = Lang.Al
 open Lang.Il
+open Lang.Al
 module Mixop = Lang.Il.Mixfix
 
 type error = Diagnostic.error
 
 (* Re-tag the checks synthesized from a rule/clause input pattern as guards. *)
-let rec as_guard (prem : prem) : prem =
+let rec as_guard (prem : Al.prem) : Al.prem =
   let guard =
     match prem.it with
     | IfPr { cond; _ } -> IfPr { cond; role = Guard }
@@ -14,12 +17,13 @@ let rec as_guard (prem : prem) : prem =
   in
   guard $$ (prem.at, Some Synthesized)
 
-let as_synthesized (prem : prem) : prem = prem.it $$ (prem.at, Some Synthesized)
+let as_synthesized (prem : Al.prem) : Al.prem =
+  prem.it $$ (prem.at, Some Synthesized)
 
 (* Expression analysis *)
 
 let analyze_exps_as_bind (dctx : Dctx.t) (exps : exp list) :
-    Dctx.t * exp list * prem list =
+    Dctx.t * exp list * Al.prem list =
   let dctx, venv, exps, sideconditions =
     Binding.analyze_exps_as_bind dctx exps
   in
@@ -38,7 +42,7 @@ let analyze_exps_as_bound (dctx : Dctx.t) (exps : exp list) : exp list =
 (* Argument analysis *)
 
 let analyze_args_as_bind (dctx : Dctx.t) (args : arg list) :
-    Dctx.t * arg list * prem list =
+    Dctx.t * arg list * Al.prem list =
   let dctx, venv, args, sideconditions =
     Binding.analyze_args_as_bind dctx args
   in
@@ -49,27 +53,31 @@ let analyze_args_as_bind (dctx : Dctx.t) (args : arg list) :
 
 (* Premise analysis *)
 
-let analyze_prem (dctx : Dctx.t) (prem : prem) : Dctx.t * prem list =
+let analyze_prem (dctx : Dctx.t) (prem : Il.prem) : Dctx.t * Al.prem list =
   let dctx, venv, prem_analyzed, sideconditions =
     Binding.analyze_prem dctx prem
   in
   let dctx = Dctx.add_bounds dctx venv in
   let prem_analyzed = Dimension.analyze_prem dctx prem_analyzed in
-  let prem_analyzed = prem_analyzed.it $$ (prem_analyzed.at, prem.note) in
+  let prem_analyzed =
+    prem_analyzed.it $$ (prem_analyzed.at, Some (Source prem.note))
+  in
   let sideconditions =
     Dimension.analyze_prems dctx sideconditions |> List.map as_synthesized
   in
   (dctx, prem_analyzed :: sideconditions)
 
-let analyze_prems (dctx : Dctx.t) (prems : prem list) : Dctx.t * prem list =
+let analyze_prems (dctx : Dctx.t) (prems : Il.prem list) : Dctx.t * Al.prem list
+    =
   let dctx, prems = List.fold_left_map analyze_prem dctx prems in
   (dctx, List.concat prems)
 
 (* Rule analysis *)
 
-let analyze_rule (env : Dctx.env) ~(reltyp : reltyp) (rule : rule) : rule =
-  let { ruleid; concl; prems } = rule.it in
-  let dctx = Dctx.make env ~frees:(Free.free_rule rule) in
+let analyze_rule (env : Dctx.env) ~(reltyp : reltyp) (rule : Il.rule) : Al.rule
+    =
+  let ({ ruleid; concl; prems } : Il.rule') = rule.it in
+  let dctx = Dctx.make env ~frees:(Il.Free.free_rule rule) in
   let mixop, exps = Mixop.split concl in
   let exps_input, exps_output = Mode.partition reltyp.it exps in
   let dctx, exps_input, sideconditions = analyze_exps_as_bind dctx exps_input in
@@ -84,9 +92,9 @@ let analyze_rule (env : Dctx.env) ~(reltyp : reltyp) (rule : rule) : rule =
 
 (* Clause analysis *)
 
-let analyze_clause (env : Dctx.env) (clause : clause) : clause =
-  let { args; body; prems } = clause.it in
-  let dctx = Dctx.make env ~frees:(Free.free_clause clause) in
+let analyze_clause (env : Dctx.env) (clause : Il.clause) : Al.clause =
+  let ({ args; body; prems } : Il.clause') = clause.it in
+  let dctx = Dctx.make env ~frees:(Il.Free.free_clause clause) in
   let dctx, args, sideconditions = analyze_args_as_bind dctx args in
   let dctx, prems = analyze_prems dctx prems in
   let prems = List.map as_guard sideconditions @ prems in
@@ -95,8 +103,8 @@ let analyze_clause (env : Dctx.env) (clause : clause) : clause =
 
 (* Spec analysis *)
 
-let map_collecting_errors ~(f : 'a -> 'a) (constructs : 'a list) :
-    'a list * Diag.t list =
+let map_collecting_errors ~(f : 'a -> 'b) (constructs : 'a list) :
+    'b list * Diag.t list =
   List.partition_map
     (fun construct ->
       match f construct with
@@ -104,21 +112,24 @@ let map_collecting_errors ~(f : 'a -> 'a) (constructs : 'a list) :
       | exception Diagnostic.AlgoError e -> Either.Right e)
     constructs
 
-let analyze_def (env : Dctx.env) (def : def) : def * Diag.t list =
+let analyze_def (env : Dctx.env) (def : Il.def) : Al.def * Diag.t list =
   match def.it with
-  | RelD { relid; reltyp; rules } ->
+  | Il.TypD { synid; tparams; deftyp } ->
+      (Al.TypD { synid; tparams; deftyp } $ def.at, [])
+  | Il.RelD { relid; reltyp; rules } ->
       let rules, errors =
         map_collecting_errors ~f:(analyze_rule env ~reltyp) rules
       in
-      (RelD { relid; reltyp; rules } $ def.at, errors)
-  | DecD { defid; tparams; params; typ; clauses } ->
+      (Al.RelD { relid; reltyp; rules } $ def.at, errors)
+  | Il.DecD { defid; tparams; params; typ; clauses } ->
       let clauses, errors =
         map_collecting_errors ~f:(analyze_clause env) clauses
       in
-      (DecD { defid; tparams; params; typ; clauses } $ def.at, errors)
-  | TypD _ | BuiltinDecD _ -> (def, [])
+      (Al.DecD { defid; tparams; params; typ; clauses } $ def.at, errors)
+  | Il.BuiltinDecD { defid; tparams; params; typ; hints } ->
+      (Al.BuiltinDecD { defid; tparams; params; typ; hints } $ def.at, [])
 
-let algo_spec (spec : spec) : spec * Diag.t list =
+let algo_spec (spec : Il.spec) : Al.spec * Diag.t list =
   let env = Dctx.make_env spec in
   let spec, errors = List.map (analyze_def env) spec |> List.split in
   (spec, List.concat errors)

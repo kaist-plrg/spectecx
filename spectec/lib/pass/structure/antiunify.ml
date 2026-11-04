@@ -3,6 +3,7 @@ open Common.Annotated
 open Lang
 open Lang.Il.Expression
 open Lang.Il
+open Lang.Al
 open Envs.Make
 
 (* Unification environment: a map from original id to its unified id *)
@@ -275,7 +276,7 @@ let antiunify_rules (reltyp : Il.reltyp') (rules : rule list) :
         let exps_input_group = exps_input_group @ [ exps_input ] in
         let exps_output_group = exps_output_group @ [ exps_output ] in
         let prems_group = prems_group @ [ prems ] in
-        let frees = rule |> Il.Free.free_rule |> IdSet.union frees in
+        let frees = rule |> Al.Free.free_rule |> IdSet.union frees in
         (exps_input_group, exps_output_group, prems_group, frees))
       ([], [], [], IdSet.empty) rules
   in
@@ -303,7 +304,7 @@ let antiunify_clauses (clauses : clause list) :
         let args_input_group = args_input_group @ [ args_input ] in
         let exp_output_group = exp_output_group @ [ exp_output ] in
         let prems_group = prems_group @ [ prems ] in
-        let frees = clause |> Il.Free.free_clause |> IdSet.union frees in
+        let frees = clause |> Al.Free.free_clause |> IdSet.union frees in
         (args_input_group, exp_output_group, prems_group, frees))
       ([], [], [], IdSet.empty) clauses
   in

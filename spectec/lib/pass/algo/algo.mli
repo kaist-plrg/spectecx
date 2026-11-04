@@ -5,4 +5,4 @@ type error = Diag.t list
 
     Expects elaborated IL with empty variable lists in expression iterations.
     Omits rules and clauses that fail analysis and returns their errors. *)
-val algo_spec : Lang.Il.spec -> Lang.Il.spec * error
+val algo_spec : Lang.Il.spec -> Lang.Al.spec * error

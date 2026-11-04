@@ -2,6 +2,7 @@ open Common.Domain
 open Common.Annotated
 open Lang.Il.Expression
 open Lang.Il
+open Lang.Al
 open Envs.Make
 open Dctx
 module Mixop = Lang.Il.Mixfix
@@ -97,7 +98,8 @@ let gen_prem_bound (dctx : Dctx.t) (to_ : To.t) (exp_from : exp)
   in
   List.fold_left
     (fun sidecondition iter ->
-      IterPr (sidecondition, unannotated_iterinstr iter) $$ (exp_from.at, None))
+      IterPr (sidecondition, Dimension.unannotated_iterinstr iter)
+      $$ (exp_from.at, None))
     sidecondition iters
 
 let gen_prem_bind_match (to_ : To.t) (pattern : pattern) (exp_from : exp)
@@ -117,7 +119,8 @@ let gen_prem_bind_match (to_ : To.t) (pattern : pattern) (exp_from : exp)
     (fun prem ->
       List.fold_left
         (fun prem iter ->
-          IterPr (prem, unannotated_iterinstr iter) $$ (exp_from.at, None))
+          IterPr (prem, Dimension.unannotated_iterinstr iter)
+          $$ (exp_from.at, None))
         prem iters)
     prems
 
@@ -142,7 +145,8 @@ let gen_prem_bind_sub (to_ : To.t) (typ_sub : typ) (exp_sub : exp)
     (fun prem ->
       List.fold_left
         (fun prem iter ->
-          IterPr (prem, unannotated_iterinstr iter) $$ (exp_from.at, None))
+          IterPr (prem, Dimension.unannotated_iterinstr iter)
+          $$ (exp_from.at, None))
         prem iters)
     prems
 

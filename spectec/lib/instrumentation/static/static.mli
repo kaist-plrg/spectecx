@@ -1,8 +1,8 @@
-module Il = Lang.Il
+module Al = Lang.Al
 module Sl = Lang.Sl
 
 (** The spec value shared between static analyses and {!Handler}. *)
-type spec = IlSpec of Il.spec | SlSpec of Sl.spec
+type spec = IlSpec of Al.spec | SlSpec of Sl.spec
 
 (** A static analysis runs once at session init and is shared across all
     handlers that depend on it. *)

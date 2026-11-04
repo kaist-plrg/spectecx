@@ -12,9 +12,9 @@ let parse_sources sources =
 
 let elaborate spec_el =
   let spec_il, errors_elab = Elaborate.elab_spec spec_el in
-  let spec_il, errors_algo = Algo.algo_spec spec_il in
+  let spec_al, errors_algo = Algo.algo_spec spec_il in
   match errors_algo @ errors_elab with
-  | [] -> Ok spec_il
+  | [] -> Ok spec_al
   | errors -> Error (SemanticError errors)
 
 let structure spec = Structure.struct_spec spec

@@ -39,4 +39,4 @@ val of_el_spec : El.spec -> t
 
 (** Extend an HEnv with Typcase-scoped hints (prose alter and fields) from the
     IL spec. *)
-val load_il_spec : t -> Il.spec -> t
+val load_il_spec : t -> Al.spec -> t

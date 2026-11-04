@@ -3,7 +3,7 @@
     every relation and function with coverage annotations. *)
 
 open Common.Annotated
-module Il = Lang.Il
+module Al = Lang.Al
 module Sl = Lang.Sl
 open Util
 
@@ -53,13 +53,13 @@ module M : Instrumentation_api.Handler.S = struct
         List.iter
           (fun def ->
             match def.it with
-            | Il.RelD { relid = id; rules; _ } ->
+            | Al.RelD { relid = id; rules; _ } ->
                 List.iter
                   (fun rule ->
-                    let { Il.ruleid = rule_id; _ } = rule.it in
+                    let { Al.ruleid = rule_id; _ } = rule.it in
                     State.all_rules := (id.it, rule_id.it) :: !State.all_rules)
                   rules
-            | Il.DecD { defid = id; clauses; _ } ->
+            | Al.DecD { defid = id; clauses; _ } ->
                 List.iteri
                   (fun idx _ ->
                     State.all_clauses := (id.it, idx) :: !State.all_clauses)

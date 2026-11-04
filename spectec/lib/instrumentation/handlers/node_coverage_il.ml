@@ -4,7 +4,8 @@
 
 open Common.Annotated
 module Location = Common.Location
-open Lang.Il
+open Lang.Al
+module Il = Lang.Il
 open Util
 open Instrumentation_static.Premise_uid
 
@@ -304,7 +305,7 @@ module M : Instrumentation_api.Handler.S = struct
               (fun rule ->
                 let ({ ruleid = rule_id; concl; prems; _ } : rule') = rule.it in
                 let result_str =
-                  Print.string_of_notexp concl |> normalize_whitespace
+                  Il.Print.string_of_notexp concl |> normalize_whitespace
                 in
                 Format.fprintf !fmt "      rule %s:\n" rule_id.it;
                 print_prems "    " result_str prems)
@@ -315,7 +316,7 @@ module M : Instrumentation_api.Handler.S = struct
               (fun idx clause ->
                 let { body; prems; _ } = clause.it in
                 let result_str =
-                  Print.string_of_exp body |> normalize_whitespace
+                  Il.Print.string_of_exp body |> normalize_whitespace
                 in
                 Format.fprintf !fmt "      clause %d:\n" idx;
                 print_prems "    " result_str prems)

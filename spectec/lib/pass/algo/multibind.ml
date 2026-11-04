@@ -2,6 +2,7 @@ open Common.Domain
 open Common.Annotated
 open Lang.Il.Expression
 open Lang.Il
+open Lang.Al
 open Envs.Make
 module Mixop = Lang.Il.Mixfix
 
@@ -61,7 +62,8 @@ let gen_sidecondition (benv : Bind.BEnv.t) (id : Id.t) (ids_rename : Ids.t) :
   let sidecondition = IfPr { cond = exp; role = Condition } $$ (id.at, None) in
   List.fold_left
     (fun sidecondition iter ->
-      IterPr (sidecondition, unannotated_iterinstr iter) $$ (id.at, None))
+      IterPr (sidecondition, Dimension.unannotated_iterinstr iter)
+      $$ (id.at, None))
     sidecondition iters
 
 let gen_sideconditions (benv : Bind.BEnv.t) (renv : REnv.t) : prem list =
