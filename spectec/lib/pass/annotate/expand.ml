@@ -365,18 +365,20 @@ let replace_call_exp ~(lift : lift) ?(iter_locals = IdSet.empty)
   let { Transform.var_base; iterexps; exp_orig; ids_used; _ } = state in
   (* Wrap one let-iteration per iteration the call was lifted out of, starting
      from the callee's own dimensions and binding one more at each level. *)
-  let iterexps_let, _ =
+  let iterinstrs_let, _ =
     List.fold_left
-      (fun (iterexps_let, var_bind) (iter, vars_iterated) ->
-        let iterexp = (iter, vars_iterated @ [ var_bind ]) in
+      (fun (iterinstrs_let, var_bind) (iter, vars_iterated) ->
+        let iterinstr =
+          Il.{ iter; vars_input = vars_iterated; vars_output = [ var_bind ] }
+        in
         let var_bind =
           { var_bind with Il.iters = var_bind.Il.iters @ [ iter ] }
         in
-        (iterexps_let @ [ iterexp ], var_bind))
+        (iterinstrs_let @ [ iterinstr ], var_bind))
       ([], var_base) iterexps
   in
   let wrap_in_let body =
-    LetI (Il.Var.as_exp var_base, exp_orig, iterexps_let, [ body ])
+    LetI (Il.Var.as_exp var_base, exp_orig, iterinstrs_let, [ body ])
     $ Location.Unknown
   in
   Some (wrap_in_let, exp, ids_used)
@@ -401,15 +403,15 @@ let expand_nested_calls (relmodes : (exp, unit) Il.Mode.t RelMap.t)
     ((instr -> instr) * instr * IdSet.t) option =
   let rebuild it = it $ instr.at in
   match instr.it with
-  | LetI (exp_l, exp_r, iterexps, block) ->
+  | LetI (exp_l, exp_r, iterinstrs, block) ->
       let* wrap_in_let, exp_r, ids_used =
         replace_call_exp ~lift:Root
-          ~iter_locals:(Sl.Free.free_iterexps iterexps)
+          ~iter_locals:(Sl.Free.free_iterinstrs iterinstrs)
           ids_used exp_r
       in
       Some
-        (wrap_in_let, rebuild (LetI (exp_l, exp_r, iterexps, block)), ids_used)
-  | RelI { call; iterexps; block } ->
+        (wrap_in_let, rebuild (LetI (exp_l, exp_r, iterinstrs, block)), ids_used)
+  | RelI { call; iterinstrs; block } ->
       (* Only the relation's inputs are ordinary expressions. Its outputs are
          positions the call binds. *)
       let* mode = RelMap.find_opt call.relid relmodes in
@@ -417,12 +419,12 @@ let expand_nested_calls (relmodes : (exp, unit) Il.Mode.t RelMap.t)
       let exps_input, exps_output = Il.Mode.partition mode exps in
       let* wrap_in_let, exps_input, ids_used =
         replace_call_exps_first ~lift:Kept
-          ~iter_locals:(Sl.Free.free_iterexps iterexps)
+          ~iter_locals:(Sl.Free.free_iterinstrs iterinstrs)
           ids_used exps_input
       in
       let exps = Il.Mode.interleave mode ~ins:exps_input ~outs:exps_output in
       let call = { call with notexp = Mixfix.fill mixop exps } in
-      Some (wrap_in_let, rebuild (RelI { call; iterexps; block }), ids_used)
+      Some (wrap_in_let, rebuild (RelI { call; iterinstrs; block }), ids_used)
   | RelAssertI { call; expect; iterexps; block; phantom } ->
       (* An assertion binds nothing, so every position is an ordinary expression. *)
       let mixop, exps = Mixfix.split call.notexp in
@@ -470,9 +472,9 @@ and expand_sub_blocks relmodes (ids_used : IdSet.t) (instr : instr) :
     IdSet.t * instr =
   let rebuild it = it $ instr.at in
   match instr.it with
-  | RelI { call; iterexps; block } ->
+  | RelI { call; iterinstrs; block } ->
       let ids_used, block = expand_block relmodes ids_used block in
-      (ids_used, rebuild (RelI { call; iterexps; block }))
+      (ids_used, rebuild (RelI { call; iterinstrs; block }))
   | RelAssertI { call; expect; iterexps; block; phantom } ->
       let ids_used, block = expand_block relmodes ids_used block in
       (ids_used, rebuild (RelAssertI { call; expect; iterexps; block; phantom }))
@@ -491,9 +493,9 @@ and expand_sub_blocks relmodes (ids_used : IdSet.t) (instr : instr) :
   | OtherwiseI instr_inner ->
       let ids_used, instr_inner = expand_instr relmodes ids_used instr_inner in
       (ids_used, rebuild (OtherwiseI instr_inner))
-  | LetI (exp_l, exp_r, iterexps, block) ->
+  | LetI (exp_l, exp_r, iterinstrs, block) ->
       let ids_used, block = expand_block relmodes ids_used block in
-      (ids_used, rebuild (LetI (exp_l, exp_r, iterexps, block)))
+      (ids_used, rebuild (LetI (exp_l, exp_r, iterinstrs, block)))
   | DebugI (exp, instr_inner) ->
       let ids_used, instr_inner = expand_instr relmodes ids_used instr_inner in
       (ids_used, rebuild (DebugI (exp, instr_inner)))

@@ -115,7 +115,7 @@ let annotate_guard (ctx : Ctx.t) (g : Ll.guard) : Pl.guard =
 let rec annotate_instr (ctx : Ctx.t) (instr : Ll.instr) : Pl.instr =
   let instr_inner, hints =
     match instr.it with
-    | Ll.RelI { call; iterexps } ->
+    | Ll.RelI { call; iterinstrs } ->
         ( Pl.RelI
             {
               call =
@@ -123,7 +123,7 @@ let rec annotate_instr (ctx : Ctx.t) (instr : Ll.instr) : Pl.instr =
                   Pl.relid = call.relid;
                   notexp = annotate_notexp ctx call.notexp;
                 };
-              iterexps;
+              iterinstrs;
             },
           hints_of_rel_instr ctx call.relid )
     | Ll.RelAssertI { call; expect; iterexps; block; phantom } ->
@@ -162,7 +162,7 @@ let rec annotate_instr (ctx : Ctx.t) (instr : Ll.instr) : Pl.instr =
               Pl.Annot.empty ))
     | Ll.TryI arms ->
         (Pl.TryI (List.map (annotate_block ctx) arms), Pl.Annot.empty)
-    | Ll.LetI (exp_l, exp_r, iterexps) ->
+    | Ll.LetI (exp_l, exp_r, iterinstrs) ->
         let exp_l_pl = annotate_exp ctx exp_l in
         let exp_r_pl = annotate_exp ctx exp_r in
         let hints =
@@ -175,7 +175,7 @@ let rec annotate_instr (ctx : Ctx.t) (instr : Ll.instr) : Pl.instr =
               }
           | _ -> Pl.Annot.empty
         in
-        (Pl.LetI (exp_l_pl, exp_r_pl, iterexps), hints)
+        (Pl.LetI (exp_l_pl, exp_r_pl, iterinstrs), hints)
     | Ll.ResultI exps ->
         ( Pl.ResultI (List.map (annotate_exp ctx) exps),
           hints_of_result_instr ctx )

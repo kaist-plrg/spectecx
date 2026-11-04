@@ -9,7 +9,8 @@ module Mixop = Lang.Il.Mixfix
 
 (* Dimension analysis :
 
-   Annotate iteration constructs with what variables are iterated over
+   Annotate iteration constructs with what variables are iterated over,
+   and record which of them an iterated premise binds
     - Check that iteration is non-empty
     - Check that the dimension of binding variables are not ambiguous,
       i.e., guided by at least one bound iteration variable
@@ -268,20 +269,21 @@ and annotate_prem (ctx : Ctx.t) (bounds : VEnv.t) (prem : prem) :
       let prem = LetPr (exp_l, exp_r) $$ (at, note) in
       let occurs = union occurs_l occurs_r in
       (VEnv.dom occurs_l, occurs, prem)
-  | IterPr (_, (_, _ :: _)) -> assert false
-  | IterPr (prem, (iter, [])) -> (
+  | IterPr (prem, { iter; vars_input = []; vars_output = [] }) -> (
       let binds, occurs, prem = annotate_prem ctx bounds prem in
       let itervars = collect_itervars bounds occurs iter in
-      match itervars with
-      | [] ->
+      let vars_output, vars_input =
+        List.partition (fun { varid; _ } -> IdSet.mem varid binds) itervars
+      in
+      match (vars_input, vars_output) with
+      | [], [] ->
           error at "empty iteration" ~code:Dataflow_empty_iter_premise
             ~detail:
               "Each iteration consumes one `*` (or `?`) from a variable inside \
                it. Here, no variable has an iteration left to consume: either \
                the body has no variables, or every variable's `*`s have \
                already been consumed by surrounding iterations."
-      | _ when List.for_all (fun { varid; _ } -> IdSet.mem varid binds) itervars
-        ->
+      | [], _ ->
           error at
             ("cannot determine dimension of binding identifier(s) only: "
             ^ String.concat ", " (List.map Il.Print.string_of_var itervars)
@@ -294,7 +296,9 @@ and annotate_prem (ctx : Ctx.t) (bounds : VEnv.t) (prem : prem) :
                every variable inside is newly bound rather than already bound, \
                so there is no loop variable."
       | _ ->
-          let prem = IterPr (prem, (iter, itervars)) $$ (at, note) in
+          let prem =
+            IterPr (prem, { iter; vars_input; vars_output }) $$ (at, note)
+          in
           let occurs =
             List.fold_left
               (fun occurs { varid; typ; iters } ->
@@ -302,6 +306,7 @@ and annotate_prem (ctx : Ctx.t) (bounds : VEnv.t) (prem : prem) :
               occurs itervars
           in
           (binds, occurs, prem))
+  | IterPr _ -> assert false
   | DebugPr exp ->
       let occurs, exp = annotate_exp bounds exp in
       let prem = DebugPr exp $$ (at, note) in

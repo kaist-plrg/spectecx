@@ -82,7 +82,7 @@ end) : sig
 
       Expansion binds input variables in one context per body evaluation.
       Collection combines body results into option/list values or bindings.
-      Nested [iterexps] are ordered innermost first. *)
+      Nested [iterexps] and [iterinstrs] are ordered innermost first. *)
 
   (** Expand [vars] into body contexts. Mixed option presence or unequal list
       lengths return [Error]. Empty [vars] yields one context for [Opt], none
@@ -107,12 +107,12 @@ end) : sig
     vars:Lang.Il.var list ->
     (Var.t * Value.t) list
 
-  (** Evaluate body [f] under [iterexps]. Existing iterated bindings supply
-      inputs. Collect and bind the remaining variables as outputs. Stop at the
-      first [Error]. Empty [iterexps] applies [f] directly. *)
+  (** For each record in [iterinstrs], expand its [vars_input] and collect its
+      [vars_output], replacing existing output bindings. Stop at the first
+      [Error]. Apply [f] directly when [iterinstrs] is empty. *)
   val eval_iterations :
     t ->
-    iterexps:Lang.Il.iterexp list ->
+    iterinstrs:Lang.Il.iterinstr list ->
     f:(t -> t Common.Attempt.attempt) ->
     t Common.Attempt.attempt
 

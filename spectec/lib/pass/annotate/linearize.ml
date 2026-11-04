@@ -5,9 +5,9 @@ module Sl = Lang.Sl
 let rec linearize_instr (instr : Sl.instr) : Ll.block =
   let at = instr.at in
   match instr.it with
-  | Sl.RelI { call; iterexps; block } ->
+  | Sl.RelI { call; iterinstrs; block } ->
       let block_ll = linearize_block block in
-      let instr_ll = Ll.RelI { call; iterexps } $ at in
+      let instr_ll = Ll.RelI { call; iterinstrs } $ at in
       instr_ll :: block_ll
   | Sl.RelAssertI { call; expect; iterexps; block = block_then; phantom } ->
       let block_then_ll = linearize_block block_then in
@@ -30,9 +30,9 @@ let rec linearize_instr (instr : Sl.instr) : Ll.block =
   | Sl.OtherwiseI instr_inner ->
       let block_ll = linearize_instr instr_inner in
       [ Ll.OtherwiseI block_ll $ at ]
-  | Sl.LetI (exp_l, exp_r, iterexps, block) ->
+  | Sl.LetI (exp_l, exp_r, iterinstrs, block) ->
       let block_ll = linearize_block block in
-      let instr_ll = Ll.LetI (exp_l, exp_r, iterexps) $ at in
+      let instr_ll = Ll.LetI (exp_l, exp_r, iterinstrs) $ at in
       instr_ll :: block_ll
   | Sl.ResultI exps -> [ Ll.ResultI exps $ at ]
   | Sl.ReturnI exp -> [ Ll.ReturnI exp $ at ]

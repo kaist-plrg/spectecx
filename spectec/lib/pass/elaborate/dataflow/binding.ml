@@ -114,8 +114,9 @@ let rec analyze_prem (dctx : Dctx.t) (prem : prem) :
   | LetPr _ ->
       (* unreachable: analyze_let_prem produces LetPr within this pass. *)
       assert false
-  | IterPr (_, (_, _ :: _)) -> assert false
-  | IterPr (prem, (iter, [])) -> analyze_iter_prem dctx prem.at prem iter
+  | IterPr (prem, { iter; vars_input = []; vars_output = [] }) ->
+      analyze_iter_prem dctx prem.at prem iter
+  | IterPr _ -> assert false
   | DebugPr exp -> analyze_debug_prem dctx prem.at exp
 
 and analyze_rule_prem (dctx : Dctx.t) (at : Location.t) (id : id)
@@ -205,9 +206,11 @@ and analyze_iter_prem (dctx : Dctx.t) (at : Location.t) (prem : prem)
   let dctx, venv, prem, prems = analyze_prem dctx prem in
   let venv = VEnv.map (Typ.add_iter iter) venv in
   let prems =
-    List.map (fun prem -> IterPr (prem, (iter, [])) $$ (at, None)) prems
+    List.map
+      (fun prem -> IterPr (prem, unannotated_iterinstr iter) $$ (at, None))
+      prems
   in
-  let prem = IterPr (prem, (iter, [])) $$ (at, None) in
+  let prem = IterPr (prem, unannotated_iterinstr iter) $$ (at, None) in
   (dctx, venv, prem, prems)
 
 and analyze_debug_prem (dctx : Dctx.t) (at : Location.t) (exp : exp) :

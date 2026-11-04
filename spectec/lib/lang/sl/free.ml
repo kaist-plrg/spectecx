@@ -16,6 +16,9 @@ let free_iterexp ((_, vars) : iterexp) : t =
 let free_iterexps (iterexps : iterexp list) : t =
   unions (List.map free_iterexp iterexps)
 
+let free_iterinstrs (iterinstrs : iterinstr list) : t =
+  iterinstrs |> List.map Il.iterexp_of_iterinstr |> free_iterexps
+
 let free_relcall ({ notexp; _ } : relcall) : t =
   free_exps (Il.Mixfix.args notexp)
 
@@ -26,7 +29,9 @@ let free_guard (guard : guard) : t =
 
 let rec free_instr (instr : instr) : t =
   match instr.it with
-  | RelI { call; iterexps; block } | RelAssertI { call; iterexps; block; _ } ->
+  | RelI { call; iterinstrs; block } ->
+      free_relcall call + free_iterinstrs iterinstrs + free_block block
+  | RelAssertI { call; iterexps; block; _ } ->
       free_relcall call + free_iterexps iterexps + free_block block
   | IfI (exp_cond, iterexps, block, _) ->
       free_exp exp_cond + free_iterexps iterexps + free_block block
@@ -37,8 +42,8 @@ let rec free_instr (instr : instr) : t =
              (fun (guard, block) -> free_guard guard + free_block block)
              cases)
   | OtherwiseI instr -> free_instr instr
-  | LetI (exp_l, exp_r, iterexps, block) ->
-      free_exp exp_l + free_exp exp_r + free_iterexps iterexps
+  | LetI (exp_l, exp_r, iterinstrs, block) ->
+      free_exp exp_l + free_exp exp_r + free_iterinstrs iterinstrs
       + free_block block
   | ResultI exps -> free_exps exps
   | ReturnI exp -> free_exp exp
