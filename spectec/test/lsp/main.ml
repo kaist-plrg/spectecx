@@ -1,5 +1,4 @@
 module Lsp = Linol_eio
-module Sources = Spectec_lsp.Sources
 module Check = Spectec_lsp.Check
 
 let print_diagnostics = function

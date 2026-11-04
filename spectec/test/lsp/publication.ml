@@ -1,4 +1,3 @@
-module Sources = Spectec_lsp.Sources
 module Workspace = Spectec_lsp.Workspace
 module Publication = Spectec_lsp.Publication
 

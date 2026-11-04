@@ -1,4 +1,3 @@
-module Sources = Spectec_lsp.Sources
 module Workspace = Spectec_lsp.Workspace
 
 let read path = In_channel.with_open_bin path In_channel.input_all
