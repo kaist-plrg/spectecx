@@ -122,13 +122,15 @@ let load ~buffers path =
   let file_errors, contents = List.partition_map read files in
   { spec_directory; files; contents; io_errors = listing_errors @ file_errors }
 
-let diagnostic_of_io_error error ~relative_to =
+let diagnostic_of_io_error error ~relative_to ~location_path_of =
   match error with
   | UnreadableFile { file; reason } ->
-      Spectec.Diagnostic.error ~source:"io" (Common.Location.File file)
+      Spectec.Diagnostic.error ~source:"io"
+        (Common.Location.File (location_path_of file))
         (Printf.sprintf "cannot read %s: %s" (Filename.basename file) reason)
   | UnlistableDirectory { loaded; directory; reason } ->
-      Spectec.Diagnostic.error ~source:"io" (Common.Location.File loaded)
+      Spectec.Diagnostic.error ~source:"io"
+        (Common.Location.File (location_path_of loaded))
         (Printf.sprintf "cannot list %s: %s"
            (Core.Filename.of_absolute_exn directory ~relative_to)
            reason)
@@ -136,7 +138,25 @@ let diagnostic_of_io_error error ~relative_to =
 let io_diagnostics sources =
   let relative_to = Filename.dirname sources.spec_directory.path in
   List.map
-    (fun error -> diagnostic_of_io_error error ~relative_to)
+    (fun error ->
+      diagnostic_of_io_error error ~relative_to ~location_path_of:Fun.id)
+    sources.io_errors
+
+let relative_contents sources ~relative_to =
+  let relative_to = canonical_path relative_to in
+  List.map
+    (fun (source : Spectec.spec_source) ->
+      {
+        source with
+        filename = Core.Filename.of_absolute_exn source.filename ~relative_to;
+      })
+    sources.contents
+
+let relative_io_diagnostics sources ~relative_to =
+  let relative_to = canonical_path relative_to in
+  let location_path_of path = Core.Filename.of_absolute_exn path ~relative_to in
+  List.map
+    (fun error -> diagnostic_of_io_error error ~relative_to ~location_path_of)
     sources.io_errors
 
 let equal a b =

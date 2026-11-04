@@ -8,6 +8,8 @@
  (libraries
   spectec
   spectec.cli
+  spectec.query
+  spectec.sources
   spectec.grammar
   spectec.backend.splice
   core

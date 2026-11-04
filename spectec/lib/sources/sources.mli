@@ -51,6 +51,17 @@ val load : buffers:Spectec.spec_source list -> string -> t
     parent of [sources.spec_directory.path]. *)
 val io_diagnostics : t -> Spectec.Diagnostic.t list
 
+(** [relative_contents sources ~relative_to] is the [contents] of [sources] with
+    each filename written relative to the canonical path of [relative_to]. *)
+val relative_contents : t -> relative_to:string -> Spectec.spec_source list
+
+(** [relative_io_diagnostics sources ~relative_to] returns diagnostics for
+    [sources.io_errors] with location paths and the directories named in listing
+    errors relative to the canonical path of [relative_to]. Messages for read
+    errors use the file's basename. *)
+val relative_io_diagnostics :
+  t -> relative_to:string -> Spectec.Diagnostic.t list
+
 val equal : t -> t -> bool
 
 (** [find_text_opt contents ~file] is the text of the source in [contents] whose

@@ -1,0 +1,4 @@
+(library
+ (name query)
+ (public_name spectec.query)
+ (libraries spectec.common spectec.lang))

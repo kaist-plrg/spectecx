@@ -177,6 +177,54 @@ let splice_command =
     in
     Ok report
 
+let spec_readme =
+  "SPEC is a .spectec file or a directory. The query commands resolve symbolic \
+   links in SPEC first. When SPEC or one of its ancestor directories holds a \
+   *.spec marker, the spec holds the .spectec files under the nearest such \
+   directory. Without a marker, the spec holds the .spectec files directly \
+   inside SPEC, or directly inside the directory of SPEC when SPEC is a file. \
+   The query commands parse the spec and do not elaborate it, so they also \
+   answer for a spec with elaboration errors."
+
+let uses_readme =
+  spec_readme
+  ^ "\n\n\
+     NAME is spelled as in the spec: a function with its dollar sign, as in \
+     $lookup, and an atom as written, as in INT. A query for a metavariable \
+     also finds its suffixed forms, such as c_1 and c'."
+
+let guard_parsed_spec ~color path ~on_ok =
+  let sources = Sources.load ~buffers:[] path in
+  let relative_to = Sys.getcwd () in
+  match Sources.relative_io_diagnostics sources ~relative_to with
+  | _ :: _ as io_diagnostics ->
+      Cli.Error_handling.exit_with_diagnostics ~color
+        (Diagnostic.Bag.of_list io_diagnostics)
+  | [] ->
+      let contents = Sources.relative_contents sources ~relative_to in
+      Cli.Error_handling.guard ~color ~on_ok @@ fun () ->
+      parse_spec_sources contents
+
+let query_uses_command =
+  Core.Command.basic
+    ~summary:"list the uses of a name by the definitions that contain them"
+    ~readme:(fun () -> uses_readme)
+  @@
+  let open Core.Command.Let_syntax in
+  let open Core.Command.Param in
+  let%map path = anon ("spec" %: string)
+  and name = anon ("name" %: string)
+  and color = Cli.Cli_args.Output.color_flag in
+  fun () ->
+    guard_parsed_spec ~color path ~on_ok:(fun spec_el ->
+        Query.Uses.find_all (Query.Uses.of_spec spec_el) ~name
+        |> Query.Render.render_uses |> print_string)
+
+let query_command =
+  Core.Command.group ~summary:"look up names and definitions in a spec"
+    ~readme:(fun () -> spec_readme)
+    [ ("uses", query_uses_command) ]
+
 let command =
   Core.Command.group ~summary:"SpecTec command line tools"
     ([
@@ -185,6 +233,7 @@ let command =
        ("grammar", grammar_command);
        ("struct", structure_command);
        ("annotate", annotate_command);
+       ("query", query_command);
        ("splice", splice_command);
      ]
     @ Cli.Plugin_loader.commands ())
