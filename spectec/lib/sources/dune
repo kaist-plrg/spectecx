@@ -1,4 +1,4 @@
 (library
  (name sources)
  (public_name spectec.sources)
- (libraries spectec spectec.common unix))
+ (libraries core spectec spectec.common unix))

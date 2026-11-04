@@ -30,6 +30,10 @@ file: 2-use.spectec
 file: absent.spectec
 {"message":"cannot read absent.spectec: No such file or directory","range":{"end":{"character":0,"line":0},"start":{"character":0,"line":0}},"severity":1,"source":"io"}
 
+## missing directory
+file: only.spectec
+{"message":"cannot list absent: No such file or directory","range":{"end":{"character":0,"line":0},"start":{"character":0,"line":0}},"severity":1,"source":"io"}
+
 ## typed imp: valid
 (no diagnostics)
 

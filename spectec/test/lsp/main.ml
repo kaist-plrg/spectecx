@@ -29,7 +29,8 @@ let case ?path ?(buffers = []) name text =
        path)
 
 let read_error_cases () =
-  report "missing file" (Sources.load ~buffers:[] "multifile/absent.spectec")
+  report "missing file" (Sources.load ~buffers:[] "multifile/absent.spectec");
+  case ~path:"absent/only.spectec" "missing directory" "syntax only = nat\n"
 
 let project_cases () =
   let path = "multifile/2-use.spectec" in

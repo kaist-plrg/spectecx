@@ -1,10 +1,18 @@
 type spec_directory = { path : string; recursive : bool }
 
+type io_error =
+  | UnreadableFile of { file : string; reason : string }
+  | UnlistableDirectory of {
+      loaded : string;
+      directory : string;
+      reason : string;
+    }
+
 type t = {
   spec_directory : spec_directory;
   files : string list;
   contents : Spectec.spec_source list;
-  io_errors : (string * string) list;
+  io_errors : io_error list;
 }
 
 let canonical_path path =
@@ -68,7 +76,19 @@ let load ~buffers path =
         else Spectec.collect_spec_siblings
       in
       (List.map canonical_path (collect spec_directory.path), [])
-    with Sys_error message -> ([], [ (path, snd (split_sys_error message)) ])
+    with Sys_error message ->
+      let directory, reason = split_sys_error message in
+      ( [],
+        [
+          UnlistableDirectory
+            {
+              loaded = path;
+              directory =
+                Option.fold directory ~none:spec_directory.path
+                  ~some:canonical_path;
+              reason;
+            };
+        ] )
   in
   let open_files =
     List.filter_map
@@ -90,16 +110,28 @@ let load ~buffers path =
         match In_channel.with_open_bin filename In_channel.input_all with
         | contents -> Either.Right Spectec.{ filename; contents }
         | exception Sys_error message ->
-            Either.Left (filename, snd (split_sys_error message)))
+            Either.Left
+              (UnreadableFile
+                 { file = filename; reason = snd (split_sys_error message) }))
   in
   let file_errors, contents = List.partition_map read files in
   { spec_directory; files; contents; io_errors = listing_errors @ file_errors }
 
-let io_diagnostics sources =
-  List.map
-    (fun (file, reason) ->
+let diagnostic_of_io_error error ~relative_to =
+  match error with
+  | UnreadableFile { file; reason } ->
       Spectec.Diagnostic.error ~source:"io" (Common.Location.File file)
-        (Printf.sprintf "cannot read %s: %s" (Filename.basename file) reason))
+        (Printf.sprintf "cannot read %s: %s" (Filename.basename file) reason)
+  | UnlistableDirectory { loaded; directory; reason } ->
+      Spectec.Diagnostic.error ~source:"io" (Common.Location.File loaded)
+        (Printf.sprintf "cannot list %s: %s"
+           (Core.Filename.of_absolute_exn directory ~relative_to)
+           reason)
+
+let io_diagnostics sources =
+  let relative_to = Filename.dirname sources.spec_directory.path in
+  List.map
+    (fun error -> diagnostic_of_io_error error ~relative_to)
     sources.io_errors
 
 let equal a b =
