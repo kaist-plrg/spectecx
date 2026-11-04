@@ -42,7 +42,31 @@ syntax functionTypeIR =
 ;;;; Method types
 ;;
 
-syntax builtinMethodTypeIR = BUILTIN_METHOD nameIR `( parameterIR* `) ':' typeIR
+syntax builtinIsValidMethodTypeIR    = BUILTIN_IS_VALID
+syntax builtinSetValidMethodTypeIR   = BUILTIN_SET_VALID
+syntax builtinSetInvalidMethodTypeIR = BUILTIN_SET_INVALID
+syntax builtinPushFrontMethodTypeIR  = BUILTIN_PUSH_FRONT
+syntax builtinPopFrontMethodTypeIR   = BUILTIN_POP_FRONT
+syntax builtinSizeMethodTypeIR       = BUILTIN_SIZE_OF
+
+syntax builtinMethodTypeIR =
+  | builtinIsValidMethodTypeIR
+  | builtinSetValidMethodTypeIR
+  | builtinSetInvalidMethodTypeIR
+  | builtinPushFrontMethodTypeIR
+  | builtinPopFrontMethodTypeIR
+  | builtinSizeMethodTypeIR
+
+;; the parameter list and return type of each builtin method
+dec $signature_of_builtinMethodTypeIR(builtinMethodTypeIR) : (parameterIR*, typeIR)
+def $signature_of_builtinMethodTypeIR(BUILTIN_IS_VALID) = (eps, BOOL)
+def $signature_of_builtinMethodTypeIR(BUILTIN_SET_VALID) = (eps, VOID)
+def $signature_of_builtinMethodTypeIR(BUILTIN_SET_INVALID) = (eps, VOID)
+def $signature_of_builtinMethodTypeIR(BUILTIN_PUSH_FRONT)
+  = ([ _EMPTY _EMPTY INT "count" eps ], VOID)
+def $signature_of_builtinMethodTypeIR(BUILTIN_POP_FRONT)
+  = ([ _EMPTY _EMPTY INT "count" eps ], VOID)
+def $signature_of_builtinMethodTypeIR(BUILTIN_SIZE_OF) = (eps, INT)
 
 syntax externMethodTypeIR =
   | EXTERN_METHOD nameIR `( parameterIR* `) ':' typeIR

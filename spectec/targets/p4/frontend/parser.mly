@@ -146,7 +146,7 @@
   identifier typeIdentifier nonTypeName prefixedNonTypeName typeName prefixedTypeName tableCustomName name nameList member
   (* Directions *) direction
   (* Types *)
-  baseType specializedType namedType headerStackType listType tupleType typeRef typeOrVoid
+  baseType specializedType namedType arrayType listType tupleType typeRef typeOrVoid
   (* Type parameters *) typeParameter typeParameterList typeParameterListOpt
   (* Parameters *) parameter nonEmptyParameterList parameterList
   (* Constructor parameters *) constructorParameterListOpt
@@ -157,9 +157,9 @@
   unop unaryExpression binop binaryExpression binaryExpressionNonBrace ternaryExpression ternaryExpressionNonBrace
   (* >> Cast expressions *) castExpression
   (* >> Data (aggregate) expressions *) dataExpression
-  (* >> Member and index access expressions *)
-  errorAccessExpression memberAccessExpression indexAccessExpression accessExpression
-  memberAccessExpressionNonBrace indexAccessExpressionNonBrace accessExpressionNonBrace
+  (* >> Member, index, and slice access expressions *)
+  errorAccessExpression memberAccessExpression indexAccessExpression sliceop sliceAccessExpression accessExpression
+  memberAccessExpressionNonBrace indexAccessExpressionNonBrace sliceAccessExpressionNonBrace accessExpressionNonBrace
   (* >> Call expressions *)
   routineTarget constructorTarget callTarget callExpression
   routineTargetNonBrace callTargetNonBrace callExpressionNonBrace
@@ -197,7 +197,7 @@
   (* >>>> Value set declarations *) valueSetType valueSetDeclaration
   (* >>>> Parser type declarations *) parserTypeDeclaration
   (* >>>> Parser Declarations *)
-  parserBlockStatement parserStatement parserStatementList parserState
+  parserBlockStatement parserStatement parserBlockElementStatement parserBlockElementStatementList parserState
   parserStateList parserLocalDeclaration parserLocalDeclarationList parserDeclaration
   (* >> Control statements and declarations *)
   (* >>>> Table declarations *) constOpt
@@ -411,10 +411,10 @@ namedType:
     { t }
 ;
 
-(* >> Header stack types *)
-headerStackType:
-  | t = namedType L_BRACKET e = expression R_BRACKET
-    { case "headerStackType" (at_v $sloc [ t ]) [ arg t; lbrack $loc($2); arg e; rbrack $loc($4) ] }
+(* >> Array types *)
+arrayType:
+  | t = typeRef L_BRACKET e = expression R_BRACKET
+    { case "arrayType" (at_v $sloc [ t ]) [ arg t; lbrack $loc($2); arg e; rbrack $loc($4) ] }
 ;
 
 (* >> List types *)
@@ -433,7 +433,7 @@ tupleType:
 typeRef:
   | t = baseType
   | t = namedType
-  | t = headerStackType
+  | t = arrayType
   | t = listType
   | t = tupleType
     { t }
@@ -592,7 +592,7 @@ namedExpressionList:
     { case "dataExpression" (at $sloc) [ lbrace $loc($1); arg e; arg c; rbrace $loc($4) ] }
 ;
 
-(* >> Member and index access expressions *)
+(* >> Member, index, and slice access expressions *)
 %inline errorAccessExpression:
   | ERROR DOT m = member
     { case "errorAccessExpression" (at $sloc) [ kw $loc($1) "ERROR"; op $loc($2) "."; arg m ] }
@@ -603,17 +603,26 @@ namedExpressionList:
     { case "memberAccessExpression" (at_v $sloc [ e ]) [ arg e; op $loc($2) "."; arg m ] }
 ;
 
+%inline sliceop:
+  | COLON { case "sliceop" (at $sloc) [ op $loc($1) ":" ] }
+  | PLUS COLON { case "sliceop" (at $sloc) [ op $sloc "+:" ] }
+;
+
 %inline indexAccessExpression:
   | a = expression L_BRACKET i = expression R_BRACKET
     { case "indexAccessExpression" (at_v $sloc [ a ]) [ arg a; lbrack $loc($2); arg i; rbrack $loc($4) ] }
-  | a = expression L_BRACKET h = expression COLON l = expression R_BRACKET
-    { case "indexAccessExpression" (at_v $sloc [ a ]) [ arg a; lbrack $loc($2); arg h; op $loc($4) ":"; arg l; rbrack $loc($6) ] }
+;
+
+%inline sliceAccessExpression:
+  | a = expression L_BRACKET e_l = expression s = sliceop e_r = expression R_BRACKET
+    { case "sliceAccessExpression" (at_v $sloc [ a ]) [ arg a; lbrack $loc($2); arg e_l; arg s; arg e_r; rbrack $loc($6) ] }
 ;
 
 %inline accessExpression:
   | e = errorAccessExpression
   | e = memberAccessExpression
   | e = indexAccessExpression
+  | e = sliceAccessExpression
     { e }
 ;
 
@@ -625,14 +634,18 @@ namedExpressionList:
 %inline indexAccessExpressionNonBrace:
   | a = expressionNonBrace L_BRACKET i = expression R_BRACKET
     { case "indexAccessExpressionNonBrace" (at_v $sloc [ a ]) [ arg a; lbrack $loc($2); arg i; rbrack $loc($4) ] }
-  | a = expressionNonBrace L_BRACKET h = expression COLON l = expression R_BRACKET
-    { case "indexAccessExpressionNonBrace" (at_v $sloc [ a ]) [ arg a; lbrack $loc($2); arg h; op $loc($4) ":"; arg l; rbrack $loc($6) ] }
+;
+
+%inline sliceAccessExpressionNonBrace:
+  | a = expressionNonBrace L_BRACKET e_l = expression s = sliceop e_r = expression R_BRACKET
+    { case "sliceAccessExpressionNonBrace" (at_v $sloc [ a ]) [ arg a; lbrack $loc($2); arg e_l; arg s; arg e_r; rbrack $loc($6) ] }
 ;
 
 %inline accessExpressionNonBrace:
   | e = errorAccessExpression
   | e = memberAccessExpressionNonBrace
   | e = indexAccessExpressionNonBrace
+  | e = sliceAccessExpressionNonBrace
     { e }
 ;
 
@@ -850,8 +863,8 @@ lvalue:
     { case "lvalue" (at_v $sloc [ lv ]) [ arg lv; op $loc($2) "."; arg m ] }
   | lv = lvalue L_BRACKET i = expression R_BRACKET
     { case "lvalue" (at_v $sloc [ lv ]) [ arg lv; lbrack $loc($2); arg i; rbrack $loc($4) ] }
-  | lv = lvalue L_BRACKET h = expression COLON l = expression R_BRACKET
-    { case "lvalue" (at_v $sloc [ lv ]) [ arg lv; lbrack $loc($2); arg h; op $loc($4) ":"; arg l; rbrack $loc($6) ] }
+  | lv = lvalue L_BRACKET e_l = expression s = sliceop e_r = expression R_BRACKET
+    { case "lvalue" (at_v $sloc [ lv ]) [ arg lv; lbrack $loc($2); arg e_l; arg s; arg e_r; rbrack $loc($6) ] }
   | L_PAREN lv = lvalue R_PAREN
     { case "lvalue" (at $sloc) [ lparen $loc($1); arg lv; rparen $loc($3) ] }
 ;
@@ -1298,13 +1311,11 @@ parserTypeDeclaration:
 
 (* >>>> Parser declarations *)
 parserBlockStatement:
-  | al = annotationList L_BRACE sl = parserStatementList R_BRACE
+  | al = annotationList L_BRACE sl = parserBlockElementStatementList R_BRACE
     { case "parserBlockStatement" (at_v $sloc [ al ]) [ arg al; lbrace $loc($2); arg sl; rbrace $loc($4) ] }
 ;
 
 parserStatement:
-  | s = constantDeclaration
-  | s = variableDeclaration
   | s = emptyStatement
   | s = assignmentStatement
   | s = callStatement
@@ -1314,14 +1325,21 @@ parserStatement:
     { s }
 ;
 
-parserStatementList:
-  | (* empty *) { case "parserStatementList" (at $sloc) [ tag "EMPTY" ] }
-  | sl = parserStatementList s = parserStatement
-    { case "parserStatementList" (at_v $sloc [ sl; s ]) [ arg sl; arg s ] }
+parserBlockElementStatement:
+  | s = constantDeclaration
+  | s = variableDeclaration
+  | s = parserStatement
+    { s }
+;
+
+parserBlockElementStatementList:
+  | (* empty *) { case "parserBlockElementStatementList" (at $sloc) [ tag "EMPTY" ] }
+  | sl = parserBlockElementStatementList s = parserBlockElementStatement
+    { case "parserBlockElementStatementList" (at_v $sloc [ sl; s ]) [ arg sl; arg s ] }
 ;
 
 parserState:
-  | al = annotationList STATE n = push_name L_BRACE sl = parserStatementList t = transitionStatement R_BRACE
+  | al = annotationList STATE n = push_name L_BRACE sl = parserBlockElementStatementList t = transitionStatement R_BRACE
     { case "parserState" (at_v $sloc [ al ]) [ arg al; kw $loc($2) "STATE"; arg n; lbrace $loc($4); arg sl; arg t; rbrace $loc($7) ] }
 ;
 

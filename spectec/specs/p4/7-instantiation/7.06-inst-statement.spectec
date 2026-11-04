@@ -49,7 +49,7 @@ rule DirectApplicationStmt_inst:
   -- if constantDeclarationIR
       = _EMPTY CONST typeIR nameIR ('=' _VALUE (REF objectId)) ';'
   -- if typedExpressionIR_base
-      = (_NAME nameIR) '#' `( typeIR CTK `)
+      = (_BARE nameIR) '#' `( typeIR CTK `)
   -- if callableTargetIR
       = typedExpressionIR_base '.' "apply"
   -- if callStatementIR

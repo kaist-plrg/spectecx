@@ -139,10 +139,12 @@ syntax namedType =
   | specializedType
 
 ;;
-;;;; Header stack types
+;;;; Array types
 ;;
 
-syntax headerStackType = namedType `[ expression `]
+syntax type
+
+syntax arrayType = type `[ expression `]
 
 ;;
 ;;;; List types
@@ -165,7 +167,7 @@ syntax tupleType = TUPLE `< typeArgumentList `>
 syntax type =
   | baseType
   | namedType
-  | headerStackType
+  | arrayType
   | listType
   | tupleType
 
@@ -348,9 +350,10 @@ syntax memberAccessExpression =
 syntax indexAccessExpression =
   expression `[ expression `]
 
+syntax sliceop = ':' | '+:'
+
 syntax sliceAccessExpression =
-  | expression `[ expression ':' expression `]
-  | expression `[ expression '+': expression `]
+  expression `[ expression sliceop expression `]
 
 syntax accessExpression =
   | errorAccessExpression
@@ -365,8 +368,7 @@ syntax indexAccessExpressionNonBrace =
   expressionNonBrace `[ expression `]
 
 syntax sliceAccessExpressionNonBrace =
-  | expressionNonBrace `[ expression ':' expression `]
-  | expressionNonBrace `[ expression '+': expression `]
+  expressionNonBrace `[ expression sliceop expression `]
 
 syntax accessExpressionNonBrace =
   | errorAccessExpression
@@ -510,8 +512,8 @@ def $expressionNonBrace_as_expression(
   -- if expression_base
       = $expressionNonBrace_as_expression(expressionNonBrace_base)
 def $expressionNonBrace_as_expression(
-    expressionNonBrace_base `[ expression_l '+': expression_w `])
-  = expression_base `[ expression_l '+': expression_w `]
+    expressionNonBrace_base `[ expression_l '+:' expression_w `])
+  = expression_base `[ expression_l '+:' expression_w `]
   -- if expression_base
       = $expressionNonBrace_as_expression(expressionNonBrace_base)
 def $expressionNonBrace_as_expression(
@@ -529,6 +531,47 @@ def $expressionNonBrace_as_expression(
       = $expressionNonBrace_as_expression(expressionNonBrace)
 def $expressionNonBrace_as_expression(parenthesizedExpression)
   = parenthesizedExpression
+
+dec $expression_as_expressionNonBrace(expression) : expressionNonBrace
+  hint(prose_in "the non-brace expression corresponding to" %0)
+def $expression_as_expressionNonBrace(literalExpression) = literalExpression
+def $expression_as_expressionNonBrace(referenceExpression) = referenceExpression
+def $expression_as_expressionNonBrace(unaryExpression) = unaryExpression
+def $expression_as_expressionNonBrace(
+    expression_l binop expression_r)
+  = expressionNonBrace_l binop expression_r
+  -- if expressionNonBrace_l = $expression_as_expressionNonBrace(expression_l)
+def $expression_as_expressionNonBrace(
+    expression_cond '?' expression_true ':' expression_false)
+  = expressionNonBrace_cond '?' expression_true ':' expression_false
+  -- if expressionNonBrace_cond = $expression_as_expressionNonBrace(expression_cond)
+def $expression_as_expressionNonBrace(castExpression) = castExpression
+def $expression_as_expressionNonBrace(errorAccessExpression) = errorAccessExpression
+def $expression_as_expressionNonBrace(prefixedTypeName '.' member)
+  = prefixedTypeName '.' member
+def $expression_as_expressionNonBrace(expression_base '.' member)
+  = expressionNonBrace_base '.' member
+  -- if expressionNonBrace_base = $expression_as_expressionNonBrace(expression_base)
+def $expression_as_expressionNonBrace(
+    expression_base `[ expression_index `])
+  = expressionNonBrace_base `[ expression_index `]
+  -- if expressionNonBrace_base = $expression_as_expressionNonBrace(expression_base)
+def $expression_as_expressionNonBrace(
+    expression_base `[ expression_hi ':' expression_lo `])
+  = expressionNonBrace_base `[ expression_hi ':' expression_lo `]
+  -- if expressionNonBrace_base = $expression_as_expressionNonBrace(expression_base)
+def $expression_as_expressionNonBrace(
+    expression `( argumentList `))
+  = expressionNonBrace `( argumentList `)
+  -- if expressionNonBrace = $expression_as_expressionNonBrace(expression)
+def $expression_as_expressionNonBrace(
+    constructorTarget `( argumentList `))
+  = constructorTarget `( argumentList `)
+def $expression_as_expressionNonBrace(
+    expression `< realTypeArgumentList `> `( argumentList `))
+  = expressionNonBrace `< realTypeArgumentList `> `( argumentList `)
+  -- if expressionNonBrace = $expression_as_expressionNonBrace(expression)
+def $expression_as_expressionNonBrace(parenthesizedExpression) = parenthesizedExpression
 
 ;;
 ;; Keyset expressions
@@ -634,8 +677,7 @@ syntax lvalue =
   | referenceExpression
   | lvalue '.' member
   | lvalue `[ expression `]
-  | lvalue `[ expression ':' expression `]
-  | lvalue `[ expression '+': expression `]
+  | lvalue `[ expression sliceop expression `]
   | `( lvalue `)
 
 dec $lvalue_as_expression(lvalue) : expression
@@ -650,8 +692,8 @@ def $lvalue_as_expression(lvalue_base `[ expression_index `])
 def $lvalue_as_expression(lvalue_base `[ expression_hi ':' expression_lo `])
   = expression_base `[ expression_hi ':' expression_lo `]
   -- if expression_base = $lvalue_as_expression(lvalue_base)
-def $lvalue_as_expression(lvalue_base `[ expression_hi '+': expression_lo `])
-  = expression_base `[ expression_hi '+': expression_lo `]
+def $lvalue_as_expression(lvalue_base `[ expression_hi '+:' expression_lo `])
+  = expression_base `[ expression_hi '+:' expression_lo `]
   -- if expression_base = $lvalue_as_expression(lvalue_base)
 def $lvalue_as_expression(`( lvalue `)) = `( expression `)
   -- if expression = $lvalue_as_expression(lvalue)
@@ -667,8 +709,8 @@ def $expression_as_lvalue(expression_base `[ expression_index `])
 def $expression_as_lvalue(expression_base `[ expression_hi ':' expression_lo `])
   = lvalue_base `[ expression_hi ':' expression_lo `]
   -- if lvalue_base = $expression_as_lvalue(expression_base)
-def $expression_as_lvalue(expression_base `[ expression_hi '+': expression_lo `])
-  = lvalue_base `[ expression_hi '+': expression_lo `]
+def $expression_as_lvalue(expression_base `[ expression_hi '+:' expression_lo `])
+  = lvalue_base `[ expression_hi '+:' expression_lo `]
   -- if lvalue_base = $expression_as_lvalue(expression_base)
 def $expression_as_lvalue(`( expression `)) = `( lvalue `)
   -- if lvalue = $expression_as_lvalue(expression)
@@ -1141,17 +1183,31 @@ syntax parserTypeDeclaration =
 ;;;;;; Parser declarations
 ;;
 
-syntax parserStatement, parserStatementList
+syntax parserBlockElementStatement, parserStatement
 
-syntax parserBlockStatement = annotationList `{ parserStatementList `}
+syntax parserBlockElementStatementList =
+  | _EMPTY
+  | parserBlockElementStatementList parserBlockElementStatement
+
+dec $flatten_parserBlockElementStatementList(
+    parserBlockElementStatementList
+  )
+  : parserBlockElementStatement*
+  hint(prose_in %0 "flattened")
+def $flatten_parserBlockElementStatementList(_EMPTY) = eps
+def $flatten_parserBlockElementStatementList(
+    parserBlockElementStatementList parserBlockElementStatement
+  )
+  = $flatten_parserBlockElementStatementList(parserBlockElementStatementList)
+    ++ [ parserBlockElementStatement ]
+
+syntax parserBlockStatement = annotationList `{ parserBlockElementStatementList `}
 
 syntax parserConditionalStatement =
   | IF `( expression `) parserStatement
   | IF `( expression `) parserStatement ELSE parserStatement
 
 syntax parserStatement =
-  | constantDeclaration
-  | variableDeclaration
   | emptyStatement
   | assignmentStatement
   | callStatement
@@ -1159,18 +1215,13 @@ syntax parserStatement =
   | parserBlockStatement
   | parserConditionalStatement
 
-syntax parserStatementList =
-  | _EMPTY
-  | parserStatementList parserStatement
-
-dec $flatten_parserStatementList(parserStatementList) : parserStatement*
-  hint(prose_in %0 "flattened")
-def $flatten_parserStatementList(_EMPTY) = eps
-def $flatten_parserStatementList(parserStatementList parserStatement)
-  = $flatten_parserStatementList(parserStatementList) ++ [ parserStatement ]
+syntax parserBlockElementStatement =
+  | constantDeclaration
+  | variableDeclaration
+  | parserStatement
 
 syntax parserState =
-  annotationList STATE name `{ parserStatementList transitionStatement `}
+  annotationList STATE name `{ parserBlockElementStatementList transitionStatement `}
 
 syntax parserStateList =
   | parserState

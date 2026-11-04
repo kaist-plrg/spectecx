@@ -38,7 +38,7 @@ syntax baseTypeIR =
 ;;;; Named types
 ;;
 
-syntax nameTypeIR = _NAME typeId
+syntax nameTypeIR = _NAME typeId hint(print %0)
 
 ;;
 ;;;; Alias types
@@ -62,7 +62,8 @@ syntax aliasTypeIR =
 
 syntax listTypeIR = LIST `< typeIR `>
 syntax tupleTypeIR = TUPLE `< typeIR* `>
-syntax headerStackTypeIR = typeIR `[ nat `]
+syntax arrayTypeIR = ARRAY typeIR `[ nat `]
+syntax headerStackTypeIR = HEADER_STACK typeIR `[ nat `]
 
 syntax fieldTypeIR = annotationList typeIR nameIR ';'
 
@@ -91,6 +92,7 @@ syntax enumTypeIR =
 syntax dataTypeIR =
   | listTypeIR
   | tupleTypeIR
+  | arrayTypeIR
   | headerStackTypeIR
   | structTypeIR
   | headerTypeIR

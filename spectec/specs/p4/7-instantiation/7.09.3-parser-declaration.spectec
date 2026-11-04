@@ -72,3 +72,4 @@ rule ParserLocalDecls_inst/cons:
   -- ParserLocalDecls_inst:
       IC_1 STO_1 |- parserLocalDeclarationIR_t*
                   : IC_2 STO_2 parserLocalDeclarationIR_t_inst*
+

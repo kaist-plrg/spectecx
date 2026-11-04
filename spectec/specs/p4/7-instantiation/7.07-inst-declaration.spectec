@@ -73,8 +73,8 @@ rule ObjectDecl_inst/instantiationIR:
   IC_0 STO_0 |- instantiationIR
               : IC_1 STO_1
   -- InstDecl_inst:
-      GLOBAL IC_0 STO_0 |- instantiationIR
-                         : IC_1 STO_1 _
+      BLOCK IC_0 STO_0 |- instantiationIR
+                        : IC_1 STO_1 _
 
 
 relation ObjectDecls_inst:
@@ -102,8 +102,7 @@ rule InstDecl_inst/extern:
                     `( argumentListIR `) nameIR objectInitializerOptIR ';'
                 : IC_1 STO_3 constantDeclarationIR
   ---- ;; find and instantiate constructor
-  -- if prefixedNameIR `< typeArgumentListIR `>
-      = constructorTargetIR
+  -- if prefixedNameIR `< typeArgumentListIR `> = constructorTargetIR
   -- Constructor_inst:
       p IC_0 |- prefixedNameIR `< typeArgumentListIR `> `( argumentListIR `)
               : constructorDef `< typeArgumentListIR_inst `> `( '#' id_default* '#' id_optional* `)
@@ -143,8 +142,7 @@ rule InstDecl_inst/non-extern:
                         `( argumentListIR `) nameIR objectInitializerOptIR ';'
                    : IC_1 STO_2 constantDeclarationIR
   ---- ;; find and instantiate constructor
-  -- if prefixedNameIR `< typeArgumentListIR `>
-      = constructorTargetIR
+  -- if prefixedNameIR `< typeArgumentListIR `> = constructorTargetIR
   -- Constructor_inst:
       p IC_0 |- prefixedNameIR `< typeArgumentListIR `> `( argumentListIR `)
               : constructorDef `< typeArgumentListIR_inst `> `( '#' id_default* '#' id_optional* `)
@@ -498,42 +496,42 @@ rule Decl_inst/typeIR:
 
 rule Decl_inst/derivedTypeDeclarationIR-monomorphic:
   IC_0 STO |- annotationList TYPEDEF derivedTypeDeclarationIR nameIR ';'
-            : IC_1 STO
+            : IC_2 STO
   ---- ;; instantiate type declaration
   -- Decl_inst: IC_0 $empty_store |- derivedTypeDeclarationIR
-                                   : IC_local _
+                                   : IC_1 _
   ---- ;; diff the local and global context to get the declared type id
   -- if `{ typeId_newtype `}
       = $diff_set<typeId>(
-          $dom_map<typeId, typeDefIR>(IC_local.GLOBAL.TYPE),
+          $dom_map<typeId, typeDefIR>(IC_1.GLOBAL.TYPE),
           $dom_map<typeId, typeDefIR>(IC_0.GLOBAL.TYPE))
   ---- ;; find the type definition
   -- if typeDefIR
-      = $find_typeDef_i(GLOBAL, IC_local, '.' typeId_newtype)
+      = $find_typeDef_i(GLOBAL, IC_1, '.' typeId_newtype)
   -- if $is_monomorphic_typeDefIR(typeDefIR)
   -- if typeIR = $typeIR_of_typeDefIR(typeDefIR)
   -- if aliasTypeDefIR = TYPEDEF nameIR typeIR
-  -- if IC_1 = $add_typeDef_i(GLOBAL, IC_0, nameIR, aliasTypeDefIR)
+  -- if IC_2 = $add_typeDef_i(GLOBAL, IC_1, nameIR, aliasTypeDefIR)
 
 rule Decl_inst/derivedTypeDeclaration-poly:
   IC_0 STO |- annotationList TYPEDEF derivedTypeDeclarationIR nameIR ';'
-            : IC_1 STO
+            : IC_2 STO
   ---- ;; instantiate type declaration
   -- Decl_inst: IC_0 $empty_store |- derivedTypeDeclarationIR
-                                   : IC_local _
+                                   : IC_1 _
   ---- ;; diff the local and global context to get the declared type id
   -- if `{ typeId_newtype `}
       = $diff_set<typeId>(
-          $dom_map<typeId, typeDefIR>(IC_local.GLOBAL.TYPE),
+          $dom_map<typeId, typeDefIR>(IC_1.GLOBAL.TYPE),
           $dom_map<typeId, typeDefIR>(IC_0.GLOBAL.TYPE))
   ---- ;; find the type definition
   -- if typeDefIR
-      = $find_typeDef_i(GLOBAL, IC_local, '.' typeId_newtype)
+      = $find_typeDef_i(GLOBAL, IC_1, '.' typeId_newtype)
   -- if ~$is_monomorphic_typeDefIR(typeDefIR)
   -- if (eps, eps) = $typeParameterListIR_of_typeDefIR(typeDefIR)
   -- if typeIR = $specialize_typeDefIR(typeDefIR, eps)
   -- if typedefTypeIR = TYPEDEF nameIR typeIR
-  -- if IC_1 = $add_typeDef_i(GLOBAL, IC_0, nameIR, typedefTypeIR)
+  -- if IC_2 = $add_typeDef_i(GLOBAL, IC_1, nameIR, typedefTypeIR)
 
 
 ;;;;; annotationList TYPE typeIR nameIR ';'

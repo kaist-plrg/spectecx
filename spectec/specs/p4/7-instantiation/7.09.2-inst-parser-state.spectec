@@ -7,19 +7,23 @@
 ;;
 
 rule ParserState_inst:
-  IC_0 STO_0 |- parserStateIR : IC_2 STO_1
+  IC_0 STO_0 |- parserStateIR : IC_4 STO_1
   -- if annotationList STATE nameIR
-          `{ parserStatementListIR transitionStatementIR `}
+          `{ parserBlockElementStatementListIR transitionStatementIR `}
       = parserStateIR
+  ---- ;; enter the state's local scope
+  -- if IC_1 = $enter_i(IC_0)
   ---- ;; instantiate parser statements
-  -- ParserStmts_inst:
-      IC_0 STO_0 |- parserStatementListIR
-                  : IC_1 STO_1 parserStatementListIR_inst
+  -- ParserBlockElementStmtList_inst:
+      IC_1 STO_0 |- parserBlockElementStatementListIR
+                  : IC_2 STO_1 parserBlockElementStatementListIR_inst
+  ---- ;; discard the state's local bindings
+  -- if IC_3 = $exit_i(IC_2)
   ---- ;; bind parser state to state environment
   -- if parserStateIR_inst
       = annotationList STATE nameIR
-          `{ parserStatementListIR_inst transitionStatementIR `}
-  -- if IC_2 = $add_parserState_i(IC_1, nameIR, parserStateIR_inst)
+          `{ parserBlockElementStatementListIR_inst transitionStatementIR `}
+  -- if IC_4 = $add_parserState_i(IC_3, nameIR, parserStateIR_inst)
 
 ;;
 ;; Parser state list instantiation
@@ -38,3 +42,4 @@ rule ParserStates_inst/cons:
                                    : IC_1 STO_1
   -- ParserStates_inst: IC_1 STO_1 |- parserStateIR_t*
                                     : IC_2 STO_2
+

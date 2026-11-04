@@ -85,7 +85,7 @@ def $capture_avoiding(theta, typeParameterIR_expl*, typeParameterIR_impl*, B)
 
 def $subst_typeIR(`{ eps `}, typeIR) = typeIR
 def $subst_typeIR(theta, typeIR) = $subst_typeIR'(theta, typeIR)
-  -- otherwise
+  -- if theta =/= `{ eps `}
 
 ;;; Base types
 
@@ -118,8 +118,12 @@ def $subst_typeIR'(theta, TUPLE `< typeIR* `>)
   = TUPLE `< typeIR_subst* `>
   -- if (typeIR_subst = $subst_typeIR'(theta, typeIR))*
 
-def $subst_typeIR'(theta, typeIR `[ n_size `])
-  = typeIR_subst `[ n_size `]
+def $subst_typeIR'(theta, ARRAY typeIR `[ n_size `])
+  = ARRAY typeIR_subst `[ n_size `]
+  -- if typeIR_subst = $subst_typeIR'(theta, typeIR)
+
+def $subst_typeIR'(theta, HEADER_STACK typeIR `[ n_size `])
+  = HEADER_STACK typeIR_subst `[ n_size `]
   -- if typeIR_subst = $subst_typeIR'(theta, typeIR)
 
 def $subst_typeIR'(theta, structTypeIR)
@@ -244,7 +248,7 @@ def $subst_typeIR'(theta, tableMetadataTypeIR) = tableMetadataTypeIR
 def $subst_parameterIR(`{ eps `}, parameterIR) = parameterIR
 def $subst_parameterIR(theta, parameterIR)
   = $subst_parameterIR'(theta, parameterIR)
-  -- otherwise
+  -- if theta =/= `{ eps `}
 
 def $subst_parameterIR'(
   theta, annotationList direction typeIR id parameterInitializerOptIR)
@@ -258,7 +262,7 @@ def $subst_parameterIR'(
 def $subst_callableTypeIR(`{ eps `}, callableTypeIR) = callableTypeIR
 def $subst_callableTypeIR(theta, callableTypeIR)
   = $subst_callableTypeIR'(theta, callableTypeIR)
-  -- otherwise
+  -- if theta =/= `{ eps `}
 
 ;;; Action types
 
@@ -283,11 +287,7 @@ def $subst_callableTypeIR'(theta, EXTERN_FUNCTION nameIR `( parameterIR* `) ':' 
 
 ;;; Method types
 
-def $subst_callableTypeIR'(theta, BUILTIN_METHOD nameIR `( parameterIR* `) ':' typeIR)
-  = BUILTIN_METHOD nameIR `( parameterIR_subst* `) ':' typeIR_subst
-  -- if (parameterIR_subst
-      = $subst_parameterIR'(theta, parameterIR))*
-  -- if typeIR_subst = $subst_typeIR'(theta, typeIR)
+def $subst_callableTypeIR'(theta, builtinMethodTypeIR) = builtinMethodTypeIR
 
 def $subst_callableTypeIR'(theta, EXTERN_METHOD nameIR `( parameterIR* `) ':' typeIR)
   = EXTERN_METHOD nameIR `( parameterIR_subst* `) ':' typeIR_subst
@@ -322,7 +322,7 @@ def $subst_callableTypeDefIR(`{ eps `}, callableTypeDefIR)
   = callableTypeDefIR
 def $subst_callableTypeDefIR(theta, callableTypeDefIR)
   = $subst_callableTypeDefIR'(theta, callableTypeDefIR)
-  -- otherwise
+  -- if theta =/= `{ eps `}
 
 ;;; Action type definitions
 
@@ -413,7 +413,7 @@ def $subst_callableTypeDefIR'(theta, controlApplyMethodTypeDefIR)
 def $subst_constructorTypeIR(`{ eps `}, constructorTypeIR) = constructorTypeIR
 def $subst_constructorTypeIR(theta, constructorTypeIR)
   = $subst_constructorTypeIR'(theta, constructorTypeIR)
-  -- otherwise
+  -- if theta =/= `{ eps `}
 
 def $subst_constructorTypeIR'(
     theta,

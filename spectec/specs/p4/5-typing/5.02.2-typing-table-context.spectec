@@ -137,7 +137,7 @@ def $update_mode_tbl(TBLC, tableKeyIR*)
   -- if tableKeyIR_lpm = $filter_<tableKeyIR>(tableKeyIR*, b_lpm*)
   -- if typedExpressionIR '#' _ ':' "lpm" _ ';' = tableKeyIR_lpm
   -- if typeIR = $type_of_typedExpressionIR(typedExpressionIR)
-  -- if integerTypeIR = $unroll_aliasType(typeIR)
+  -- if integerTypeIR = $unroll_aliasTypeIR(typeIR)
   -- if n = $width_of_integerTypeIR(integerTypeIR)
 
 def $update_mode_tbl(TBLC, tableKeyIR*)

@@ -172,7 +172,7 @@ P4:
   │ │ │   │ │ │ │ └─variableDeclaration % % % % ;  8:9-8:25
   │ │ │   │ │ │ │   ├─annotationList _EMPTY  7:12
   │ │ │   │ │ │ │   │ └─atom _EMPTY  (no location)
-  │ │ │   │ │ │ │   ├─headerStackType % [%]  8:9-8:22
+  │ │ │   │ │ │ │   ├─arrayType % [%]  8:9-8:22
   │ │ │   │ │ │ │   │ ├─specializedType % <%>  8:9-8:19
   │ │ │   │ │ │ │   │ │ ├─typeIdentifier _TID %  8:9-8:10
   │ │ │   │ │ │ │   │ │ │ ├─atom _TID  (no location)
@@ -203,7 +203,7 @@ P4:
   │ │ │   │ │ │   │ └─atom =  9:11-9:12
   │ │ │   │ │ │   ├─castExpression (%) %  9:13-9:63
   │ │ │   │ │ │   │ ├─atom (  9:13-9:14
-  │ │ │   │ │ │   │ ├─headerStackType % [%]  9:14-9:27
+  │ │ │   │ │ │   │ ├─arrayType % [%]  9:14-9:27
   │ │ │   │ │ │   │ │ ├─specializedType % <%>  9:14-9:24
   │ │ │   │ │ │   │ │ │ ├─typeIdentifier _TID %  9:14-9:15
   │ │ │   │ │ │   │ │ │ │ ├─atom _TID  (no location)

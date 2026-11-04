@@ -5,6 +5,8 @@
 ;;
 
 ;;; annotationList functionPrototypeIR ';'
+;;; annotationList ABSTRACT functionPrototypeIR ';'
+
 
 rule ExternMethod_inst/non-abstract:
   IC_0 |- annotationList (typeIR nameIR
@@ -19,8 +21,6 @@ rule ExternMethod_inst/non-abstract:
         `( parameterListIR `) eps
   -- if IC_1 = $add_callableDef_overload_i(BLOCK, IC_0, callableId, externMethodDef)
 
-;;; annotationList ABSTRACT functionPrototypeIR ';'
-
 rule ExternMethod_inst/abstract:
   IC_0 |- annotationList ABSTRACT (typeIR nameIR
             `< typeParameterListIR ',' typeParameterListIR_inferred `>
@@ -33,6 +33,7 @@ rule ExternMethod_inst/abstract:
         `< typeParameterListIR ++ typeParameterListIR_inferred `>
         `( parameterListIR `)
   -- if IC_1 = $add_callableDef_overload_i(BLOCK, IC_0, callableId, externMethodDef)
+
 
 ;;
 ;; Extern method list instantiation
@@ -48,3 +49,4 @@ rule ExternMethods_inst/cons:
   IC_0 |- externMethodPrototypeIR_h :: externMethodPrototypeIR_t* : IC_2
   -- ExternMethod_inst: IC_0 |- externMethodPrototypeIR_h : IC_1
   -- ExternMethods_inst: IC_1 |- externMethodPrototypeIR_t* : IC_2
+

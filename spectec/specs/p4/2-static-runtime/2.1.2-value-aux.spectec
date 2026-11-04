@@ -17,7 +17,8 @@ builtin dec $int_to_bitstr(int, int) : int
 ;; Convert an actual bitstring to a raw integer and vice-versa
 ;;
 
-syntax bits = bool*
+syntax bit = bool
+syntax bits = bit*
 
 builtin dec $bits_to_int_unsigned(bits) : int
 builtin dec $bits_to_int_signed(bits) : int
@@ -146,6 +147,7 @@ def $write_value_from_bits'(w S _, n_var, b*) = (w S i, b_t*)
   -- if i = $int_to_bitstr(w, $bits_to_int_signed(b_h*))
 def $write_value_from_bits'(n_max '.' _ V i, 0, b*) = (n_max '.' 0 V i, b*)
 def $write_value_from_bits'(n_max '.' _ V _, n_var, b*) = (n_max '.' n_var V i, b_t*)
+  -- if n_var =/= 0
   -- if $(|b*| >= n_var)
   -- if b_h* = b*[0 : n_var]
   -- if n_t = $(|b*| - n_var)
@@ -193,8 +195,13 @@ def $write_value_from_bits'(
   -- if (value_updated, b_rest*) = $write_value_from_bits'(value, n_var, b*)
 
 def $write_value_from_bits'(
-    HEADER_STACK `[ value* `( n_idx ';' n_size `) `], n_var, b*)
-  = (HEADER_STACK `[ value_updated* `( n_idx ';' n_size `) `], b_rest*)
+    ARRAY `[ value* `], n_var, b*)
+  = (ARRAY `[ value_updated* `], b_rest*)
+  -- if (value_updated*, b_rest*) = $write_values_from_bits'(value*, n_var, b*)
+
+def $write_value_from_bits'(
+    HEADER_STACK `[ value* `( n_idx `) `], n_var, b*)
+  = (HEADER_STACK `[ value_updated* `( n_idx `) `], b_rest*)
   -- if (value_updated*, b_rest*) = $write_values_from_bits'(value*, n_var, b*)
 
 ;;
@@ -212,7 +219,11 @@ def $write_bits_from_value(_ '.' w V i)
   = $int_to_bits_unsigned(w, i)
 
 def $write_bits_from_value(
-    HEADER_STACK `[ value_element* `( _ ';' _ `) `])
+    ARRAY `[ value_element* `])
+  = $concat_<bool>($write_bits_from_value(value_element)*)
+
+def $write_bits_from_value(
+    HEADER_STACK `[ value_element* `( _ `) `])
   = $concat_<bool>($write_bits_from_value(value_element)*)
 
 def $write_bits_from_value(
