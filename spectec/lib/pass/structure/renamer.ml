@@ -11,17 +11,14 @@ module Rename = MakeIdMap (Id)
 
 type t = Rename.t
 
+let rename_var (rename : t) (var : Il.var) : Il.var =
+  match Rename.find_opt var.Il.varid rename with
+  | Some id_renamed -> { var with Il.varid = id_renamed }
+  | None -> var
+
 let rename_iterexp (rename : t) (iterexp : iterexp) : iterexp =
   let iter, vars = iterexp in
-  let vars =
-    List.map
-      (fun var ->
-        match Rename.find_opt var.Il.varid rename with
-        | Some id_renamed -> { var with Il.varid = id_renamed }
-        | None -> var)
-      vars
-  in
-  (iter, vars)
+  (iter, List.map (rename_var rename) vars)
 
 let rename_iterexps (rename : t) (iterexps : iterexp list) : iterexp list =
   List.map (rename_iterexp rename) iterexps
@@ -161,19 +158,19 @@ and rename_instr (rename : t) (instr : instr) : instr =
   match instr.it with
   | RelI { call; iterexps; block } ->
       let notexp = Il.Mixfix.map (rename_exp rename) call.notexp in
-      let iterexps = List.map (rename_iterexp rename) iterexps in
+      let iterexps = rename_iterexps rename iterexps in
       let block = List.map (rename_instr rename) block in
       RelI { call = { relid = call.relid; notexp }; iterexps; block } $ at
   | RelAssertI { call; expect; iterexps; block } ->
       let notexp = Il.Mixfix.map (rename_exp rename) call.notexp in
-      let iterexps = List.map (rename_iterexp rename) iterexps in
+      let iterexps = rename_iterexps rename iterexps in
       let block = List.map (rename_instr rename) block in
       RelAssertI
         { call = { relid = call.relid; notexp }; expect; iterexps; block }
       $ at
   | IfI (exp_cond, iterexps, instrs_then) ->
       let exp_cond = rename_exp rename exp_cond in
-      let iterexps = List.map (rename_iterexp rename) iterexps in
+      let iterexps = rename_iterexps rename iterexps in
       let instrs_then = List.map (rename_instr rename) instrs_then in
       IfI (exp_cond, iterexps, instrs_then) $ at
   | CaseI (exp, cases, total) ->
@@ -186,7 +183,7 @@ and rename_instr (rename : t) (instr : instr) : instr =
   | LetI (exp_l, exp_r, iterexps, block) ->
       let exp_l = rename_exp rename exp_l in
       let exp_r = rename_exp rename exp_r in
-      let iterexps = List.map (rename_iterexp rename) iterexps in
+      let iterexps = rename_iterexps rename iterexps in
       let block = List.map (rename_instr rename) block in
       LetI (exp_l, exp_r, iterexps, block) $ at
   | ResultI exps ->
