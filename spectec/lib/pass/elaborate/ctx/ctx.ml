@@ -17,9 +17,6 @@ let error_dup ?code ?related (at : Location.t) (kind : string) (id : string) =
 
 (* Environments *)
 
-(* Identifier type and dimension environment *)
-module VEnv = MakeIdMap (Typ)
-
 (* Meta-variable type environment (IL types) *)
 module MetaTyp = struct
   type t = Il.typ
@@ -53,8 +50,6 @@ let fresh () =
 type t = {
   (* Set of free ids, for unique id insertion *)
   frees : IdSet.t;
-  (* Map from variable ids to dimensions *)
-  venv : VEnv.t;
   (* Map from syntax ids to type definitions *)
   tdenv : TDEnv.t;
   (* Map from meta-type ids to meta-types *)
@@ -70,7 +65,6 @@ type t = {
 let empty : t =
   {
     frees = IdSet.empty;
-    venv = VEnv.empty;
     tdenv = TDEnv.empty;
     menv = MEnv.empty;
     renv = REnv.empty;

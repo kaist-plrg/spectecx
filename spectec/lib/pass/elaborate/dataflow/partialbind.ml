@@ -3,7 +3,7 @@ open Common.Annotated
 open Lang.Il.Expression
 open Lang.Il
 open Envs.Make
-open Ctx
+open Dctx
 module Mixop = Lang.Il.Mixfix
 
 (* Helper for identifying singleton case *)
@@ -11,9 +11,8 @@ module Mixop = Lang.Il.Mixfix
 let rec is_singleton_case (dctx : Dctx.t) (typ : typ) : bool =
   match typ.it with
   | VarT { synid; targs } -> (
-      let td = Dctx.find_typdef dctx synid in
-      match td with
-      | Defined (tparams, deftyp) -> (
+      match Dctx.find_typdef_opt dctx synid with
+      | Some (tparams, deftyp) -> (
           match deftyp.it with
           | PlainT typ ->
               let theta = List.combine tparams targs |> TIdMap.of_list in
@@ -21,7 +20,7 @@ let rec is_singleton_case (dctx : Dctx.t) (typ : typ) : bool =
               is_singleton_case dctx typ
           | OpaqueT | StructT _ -> false
           | VariantT cases -> List.length cases = 1)
-      | _ -> false)
+      | None -> false)
   | _ -> false
 
 (* Rename for an expression *)

@@ -34,17 +34,6 @@ let groupby (eq : 'a -> 'a -> bool) (xs : 'a list) : 'a list list =
 
 let valid_tid (id : id) = id.it = (Var.strip_var_suffix id).it
 
-(* Re-tag the checks synthesized from a rule/clause input pattern as guards. *)
-let rec as_guard (prem : Il.prem) : Il.prem =
-  let guard =
-    match prem.it with
-    | Il.IfPr { cond; _ } -> Il.IfPr { cond; role = Il.Guard }
-    | Il.IterPr (prem_inner, iterinstr) ->
-        Il.IterPr (as_guard prem_inner, iterinstr)
-    | _ -> prem.it
-  in
-  guard $$ (prem.at, Some Il.Synthesized)
-
 (* Iteration elaboration *)
 
 let elab_iter (iter : iter) : Il.iter =
@@ -1585,30 +1574,20 @@ and elab_prem' (ctx : Ctx.t) (prem : prem') : Ctx.t * Il.prem' option =
   | IterPr (prem, iter) -> elab_iter_prem ctx prem iter |> wrap_some
   | DebugPr exp -> elab_debug_prem ctx exp |> wrap_some
 
-and elab_prem_with_bind (ctx : Ctx.t) (prem : prem) : Ctx.t * Il.prem list =
-  let ctx, prem_il_opt = elab_prem ctx prem in
-  match prem_il_opt with
-  | Some prem_il ->
-      let ctx, prem_il, sideconditions_il =
-        Dataflow.Analysis.analyze_prem ctx prem_il
-      in
-      let prem_il = prem_il.it $$ (prem_il.at, Some (Il.Source prem)) in
-      let sideconditions_il =
-        List.map
-          (fun p -> p.it $$ (p.at, Some Il.Synthesized))
-          sideconditions_il
-      in
-      let prems_il = prem_il :: sideconditions_il in
-      (ctx, prems_il)
-  | None -> (ctx, [])
-
-and elab_prems_with_bind (ctx : Ctx.t) (prems : prem list) :
-    Ctx.t * Il.prem list =
-  List.fold_left
-    (fun (ctx, prems_il_acc) prem ->
-      let ctx, prems_il = elab_prem_with_bind ctx prem in
-      (ctx, prems_il_acc @ prems_il))
-    (ctx, []) prems
+and elab_prems (ctx : Ctx.t) (prems : prem list) : Ctx.t * Il.prem list =
+  let ctx, prems_il =
+    List.fold_left_map
+      (fun ctx prem ->
+        let ctx, prem_il_opt = elab_prem ctx prem in
+        let prem_il_opt =
+          Option.map
+            (fun prem_il -> prem_il.it $$ (prem_il.at, Some (Il.Source prem)))
+            prem_il_opt
+        in
+        (ctx, prem_il_opt))
+      ctx prems
+  in
+  (ctx, List.filter_map Fun.id prems_il)
 
 (* Elaboration of variable premises *)
 
@@ -1862,22 +1841,7 @@ and elab_rule_def (ctx : Ctx.t) (at : Location.t) (id_rel : id) (id_rule : id)
     El.Free.free_id_def def |> Ctx.add_frees ctx_local
   in
   let+ ctx_local, notexp_il = elab_exp_not ctx_local nottyp_il exp in
-  let mixop, exps_il = Il.Mixfix.split notexp_il in
-  let exps_il_input, exps_il_output = Il.Mode.partition reltyp_il.it exps_il in
-  let ctx_local, exps_il_input, sideconditions_il =
-    Dataflow.Analysis.analyze_exps_as_bind ctx_local exps_il_input
-  in
-  let ctx_local, prems_il = elab_prems_with_bind ctx_local prems in
-  let prems_il = List.map as_guard sideconditions_il @ prems_il in
-  let exps_il_output =
-    Dataflow.Analysis.analyze_exps_as_bound ctx_local exps_il_output
-  in
-  let notexp_il =
-    let exps_il =
-      Il.Mode.interleave reltyp_il.it ~ins:exps_il_input ~outs:exps_il_output
-    in
-    Il.Mixfix.fill mixop exps_il
-  in
+  let _ctx_local, prems_il = elab_prems ctx_local prems in
   let rule =
     { Il.ruleid = id_rule; concl = notexp_il; prems = prems_il } $ at
   in
@@ -1931,21 +1895,6 @@ and elab_dec_def (ctx : Ctx.t) (at : Location.t) (id : id)
 
 (* Elaboration of function definitions *)
 
-and elab_def_input_with_bind (ctx : Ctx.t) (at : Location.t)
-    (params_il : Il.param list) (args : arg list) :
-    Ctx.t * Il.arg list * Il.prem list =
-  let ctx, args_il = elab_args ~as_def:true at ctx params_il args in
-  let ctx, args_il, sideconditions_il =
-    Dataflow.Analysis.analyze_args_as_bind ctx args_il
-  in
-  (ctx, args_il, sideconditions_il)
-
-and elab_def_output_with_bind (ctx : Ctx.t) (typ_il : Il.typ) (exp : exp) :
-    Ctx.t * Il.exp =
-  let+ ctx, exp_il = elab_exp ctx typ_il exp in
-  let exp_il = Dataflow.Analysis.analyze_exp_as_bound ctx exp_il in
-  (ctx, exp_il)
-
 and elab_def_def (ctx : Ctx.t) (at : Location.t) (id : id)
     (tparams : tparam list) (args : arg list) (exp : exp) (prems : prem list) :
     Ctx.t =
@@ -1973,12 +1922,9 @@ and elab_def_def (ctx : Ctx.t) (at : Location.t) (id : id)
     El.Free.free_id_def def |> Ctx.add_frees ctx_local
   in
   let ctx_local = Ctx.add_tparams ctx_local tparams in
-  let ctx_local, args_il, sideconditions_il =
-    elab_def_input_with_bind ctx_local at params_il args
-  in
-  let ctx_local, prems_il = elab_prems_with_bind ctx_local prems in
-  let prems_il = List.map as_guard sideconditions_il @ prems_il in
-  let _ctx_local, exp_il = elab_def_output_with_bind ctx_local typ_il exp in
+  let ctx_local, args_il = elab_args ~as_def:true at ctx_local params_il args in
+  let ctx_local, prems_il = elab_prems ctx_local prems in
+  let+ _ctx_local, exp_il = elab_exp ctx_local typ_il exp in
   let clause_il = { Il.args = args_il; body = exp_il; prems = prems_il } $ at in
   Ctx.add_defined_clause ctx id clause_il
 
@@ -2214,6 +2160,8 @@ let elab_spec (spec : spec) : Lang.Il.spec Diagnostic.result =
     let spec_il = spec_il |> populate_rules ctx |> populate_clauses ctx in
     warn_missing_rules_and_clauses spec_il ~source:spec;
     let errors = check_fallbacks spec ~declared:spec_il @ errors in
+    let spec_il, errors_dataflow = Dataflow.Analysis.analyze_spec spec_il in
+    let errors = errors_dataflow @ errors in
     if errors = [] then Ok spec_il else Error errors
   with Diagnostic.ElabError e -> Error [ e ]
 

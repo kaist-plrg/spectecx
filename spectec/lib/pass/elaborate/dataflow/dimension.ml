@@ -3,7 +3,7 @@ open Common.Annotated
 open Lang
 open Il.Expression
 open Il
-open Ctx
+open Dctx
 open Diagnostic
 module Mixop = Lang.Il.Mixfix
 
@@ -235,13 +235,13 @@ and annotate_args (bounds : VEnv.t) (args : arg list) : VEnv.t * arg list =
 
 (* Premise *)
 
-and annotate_prem (ctx : Ctx.t) (bounds : VEnv.t) (prem : prem) :
+and annotate_prem (dctx : Dctx.t) (bounds : VEnv.t) (prem : prem) :
     IdSet.t * VEnv.t * prem =
   let at, note = (prem.at, prem.note) in
   match prem.it with
   | RelPr { relid; notexp } ->
       let mixop, exps = Mixop.split notexp in
-      let reltyp = Ctx.find_rel ctx relid in
+      let reltyp = Dctx.find_reltyp dctx relid in
       let exps_input, exps_output = Mode.partition reltyp.it exps in
       let occurs_input, exps_input = annotate_exps bounds exps_input in
       let occurs_output, exps_output = annotate_exps bounds exps_output in
@@ -270,7 +270,7 @@ and annotate_prem (ctx : Ctx.t) (bounds : VEnv.t) (prem : prem) :
       let occurs = union occurs_l occurs_r in
       (VEnv.dom occurs_l, occurs, prem)
   | IterPr (prem, { iter; vars_input = []; vars_output = [] }) -> (
-      let binds, occurs, prem = annotate_prem ctx bounds prem in
+      let binds, occurs, prem = annotate_prem dctx bounds prem in
       let itervars = collect_itervars bounds occurs iter in
       let vars_output, vars_input =
         List.partition (fun { varid; _ } -> IdSet.mem varid binds) itervars
@@ -312,13 +312,13 @@ and annotate_prem (ctx : Ctx.t) (bounds : VEnv.t) (prem : prem) :
       let prem = DebugPr exp $$ (at, note) in
       (IdSet.empty, occurs, prem)
 
-and annotate_prems (ctx : Ctx.t) (bounds : VEnv.t) (prems : prem list) :
+and annotate_prems (dctx : Dctx.t) (bounds : VEnv.t) (prems : prem list) :
     VEnv.t * prem list =
   match prems with
   | [] -> (empty, [])
   | prem :: prems ->
-      let _, occurs_h, prem_h = annotate_prem ctx bounds prem in
-      let occurs_t, prems_t = annotate_prems ctx bounds prems in
+      let _, occurs_h, prem_h = annotate_prem dctx bounds prem in
+      let occurs_t, prems_t = annotate_prems dctx bounds prems in
       let prems = prem_h :: prems_t in
       let occurs = union occurs_h occurs_t in
       (occurs, prems)
@@ -350,12 +350,12 @@ let analyze_exps (bounds : VEnv.t) (exps : exp list) : exp list =
 let analyze_args (bounds : VEnv.t) (args : arg list) : arg list =
   analyze annotate_args bounds args
 
-let analyze_prem (ctx : Ctx.t) (prem : prem) : prem =
+let analyze_prem (dctx : Dctx.t) (prem : prem) : prem =
   analyze
     (fun bounds prem ->
-      let _, occurs, prem = annotate_prem ctx bounds prem in
+      let _, occurs, prem = annotate_prem dctx bounds prem in
       (occurs, prem))
-    ctx.venv prem
+    dctx.bounds prem
 
-let analyze_prems (ctx : Ctx.t) (prems : prem list) : prem list =
-  analyze (annotate_prems ctx) ctx.venv prems
+let analyze_prems (dctx : Dctx.t) (prems : prem list) : prem list =
+  analyze (annotate_prems dctx) dctx.bounds prems

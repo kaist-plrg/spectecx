@@ -1,33 +1,47 @@
 open Common.Domain
-open Ctx
+open Common.Annotated
+module Il = Lang.Il
+open Envs.Make
 
-(* Context for dataflow analysis *)
+(* Environments *)
+
+(* Identifier type and dimension environment *)
+module VEnv = MakeIdMap (Ctx.Typ)
+module RTEnv = Envs.RTEnv
+module TDEnv = Envs.Il.TDEnv
+
+(* Relation types and type definitions of the whole spec *)
+
+type env = { rtenv : RTEnv.t; tdenv : TDEnv.t }
+
+(* Context for dataflow analysis of one rule or clause *)
 
 type t = {
-  renv : REnv.t;
-  (* Free identifiers over the entire definition *)
+  env : env;
+  (* Identifiers the rule or clause uses, plus the fresh ones this pass adds *)
   frees : IdSet.t;
   (* Bound variables so far *)
   bounds : VEnv.t;
-  (* Typedefs so far *)
-  tdenv : TDEnv.t;
 }
 
 (* Constructors *)
 
-let init (ctx : Ctx.t) : t =
-  let renv = ctx.renv in
-  let frees = ctx.frees in
-  let bounds = ctx.venv in
-  let tdenv = ctx.tdenv in
-  { renv; frees; bounds; tdenv }
+let make_env (spec : Il.spec) : env =
+  List.fold_left
+    (fun env (def : Il.def) ->
+      match def.it with
+      | Il.TypD { synid; tparams; deftyp } ->
+          let tdenv = TDEnv.add synid (tparams, deftyp) env.tdenv in
+          { env with tdenv }
+      | Il.RelD { relid; reltyp; _ } ->
+          let rtenv = RTEnv.add relid reltyp env.rtenv in
+          { env with rtenv }
+      | Il.DecD _ | Il.BuiltinDecD _ -> env)
+    { rtenv = RTEnv.empty; tdenv = TDEnv.empty }
+    spec
 
-(* Promoter *)
-
-let promote (ctx : Ctx.t) (dctx : t) (venv : VEnv.t) : Ctx.t =
-  let frees = dctx.frees in
-  let venv = VEnv.union (fun _ -> assert false) ctx.venv venv in
-  { ctx with frees; venv }
+let make (env : env) ~(frees : IdSet.t) : t =
+  { env; frees; bounds = VEnv.empty }
 
 (* Adders *)
 
@@ -35,10 +49,16 @@ let add_free (dctx : t) (id : Id.t) =
   let frees = IdSet.add id dctx.frees in
   { dctx with frees }
 
+let add_bounds (dctx : t) (venv : VEnv.t) : t =
+  let bounds = VEnv.union (fun _ -> assert false) dctx.bounds venv in
+  { dctx with bounds }
+
 (* Finders *)
 
-let find_reltyp (dctx : t) (id : Id.t) =
-  let reltyp, _ = REnv.find id dctx.renv in
-  reltyp
+let find_reltyp (dctx : t) (id : Id.t) : Il.reltyp =
+  RTEnv.find id dctx.env.rtenv
 
-let find_typdef (dctx : t) (tid : TId.t) = TDEnv.find tid dctx.tdenv
+let find_typdef_opt (dctx : t) (tid : TId.t) : Envs.Il.Typdef.t option =
+  TDEnv.find_opt tid dctx.env.tdenv
+
+module Typ = Ctx.Typ

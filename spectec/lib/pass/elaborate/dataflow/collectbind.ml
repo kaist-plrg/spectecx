@@ -3,7 +3,7 @@ module Location = Common.Location
 open Lang.Il.Expression
 open Lang.Il
 open Diagnostic
-open Ctx
+open Dctx
 module Mixop = Lang.Il.Mixfix
 
 (* Collect binding identifiers,

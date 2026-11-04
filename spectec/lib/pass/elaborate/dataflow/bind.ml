@@ -2,7 +2,7 @@ open Common.Domain
 open Common.Annotated
 open Lang.Il
 open Envs.Make
-open Ctx
+open Dctx
 open Diagnostic
 
 (* Binding occurrences of identifiers, singular or multiple (parallel) *)
