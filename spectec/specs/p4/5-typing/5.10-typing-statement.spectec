@@ -427,6 +427,7 @@ def $compat_range(BIT `< w_l `>, BIT `< w_r `>) = $(w_l = w_r)
 def $compat_range(TYPEDEF _ typeIR_l, typeIR_r) = $compat_range(typeIR_l, typeIR_r)
 def $compat_range(typeIR_l, TYPEDEF _ typeIR_r) = $compat_range(typeIR_l, typeIR_r)
 def $compat_range(_, _) = false
+  -- otherwise
 
 
 rule ForCollectionExpr_ok/list:
@@ -774,6 +775,7 @@ def $compat_switch(BIT `< _ `>) = true
 def $compat_switch(TYPEDEF _ typeIR) = $compat_switch(typeIR)
 def $compat_switch(enumTypeIR) = true
 def $compat_switch(_) = false
+  -- otherwise
 
 rule Stmt_ok/switchStatement-general:
   LOCAL TC f l |- SWITCH `( expression_switch `) `{ switchCaseList `}

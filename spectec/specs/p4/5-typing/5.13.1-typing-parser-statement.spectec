@@ -63,6 +63,7 @@ def $compat_mask(BIT `< w_l `>, BIT `< w_r `>) = $(w_l = w_r)
 def $compat_mask(TYPEDEF _ typeIR_l, typeIR_r) = $compat_mask(typeIR_l, typeIR_r)
 def $compat_mask(typeIR_l, TYPEDEF _ typeIR_r) = $compat_mask(typeIR_l, typeIR_r)
 def $compat_mask(_, _) = false
+  -- otherwise
 
 rule SelectCase_keyset_simple_ok/mask:
   TC typeIR_key |- expression_l '&&&' expression_r

@@ -1126,86 +1126,89 @@ xref:width_of_integerTypeIR[Width of integer type ``integerTypeIR``]
 
 xref:is_defaultable_typeIR[``typeIR''`` can be default-initialized]
 
-. Try:
- .. {empty}
-  ... If let ``boolTypeIR`` be ``typeIR''``:
-   .... Check that ``boolTypeIR`` matches pattern ``+BOOL+``.
+. If let ``boolTypeIR`` be ``typeIR''``:
+ .. Check that ``boolTypeIR`` matches pattern ``+BOOL+``.
  return ``true``.
-  ... Else if let ``errorTypeIR`` be ``typeIR''``:
-   .... Check that ``errorTypeIR`` matches pattern ``+ERROR+``.
+. Else if let ``errorTypeIR`` be ``typeIR''``:
+ .. Check that ``errorTypeIR`` matches pattern ``+ERROR+``.
  return ``true``.
-  ... Else if let ``stringTypeIR`` be ``typeIR''``:
-   .... Check that ``stringTypeIR`` matches pattern ``+STRING+``.
+. Else if let ``stringTypeIR`` be ``typeIR''``:
+ .. Check that ``stringTypeIR`` matches pattern ``+STRING+``.
  return ``true``.
-  ... Else if let ``integerTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return xref:is_defaultable_typeIR[``typeIR`` can be default-initialized].
-  ... Else if let ``+TYPE+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return xref:is_defaultable_typeIR[``typeIR`` can be default-initialized].
-  ... Else if let ``+TUPLE+ +<+typeIR^{asterisk}^+>+`` be ``typeIR''``:
-   .... Let ``bool`` be xref:is_defaultable_typeIR[``typeIR`` can be default-initialized], for all ``typeIR`` in ``typeIR^{asterisk}^`` and ``bool`` in ``bool^{asterisk}^``.
-   .... Return xref:forall_[all ``bool^{asterisk}^`` are true].
-  ... Else if let ``typeIR +[+++_+++]+`` be ``typeIR''``:
-   .... Return xref:is_defaultable_typeIR[``typeIR`` can be default-initialized].
-  ... Else if let ``+STRUCT+ ++_++ +<+++_++^{asterisk}^+>+ +{+( ++_++ typeIR ++_++ +;+ )^{asterisk}^+}+`` be ``typeIR''``:
-   .... Let ``bool'`` be xref:is_defaultable_typeIR[``typeIR`` can be default-initialized], for all ``typeIR`` in ``typeIR^{asterisk}^`` and ``bool'`` in ``bool'^{asterisk}^``.
-   .... Return xref:forall_[all ``bool'^{asterisk}^`` are true].
-  ... Else if let ``+HEADER+ ++_++ +<+++_++^{asterisk}^+>+ +{+( ++_++ typeIR ++_++ +;+ )^{asterisk}^+}+`` be ``typeIR''``:
-   .... Let ``bool''`` be xref:is_defaultable_typeIR[``typeIR`` can be default-initialized], for all ``typeIR`` in ``typeIR^{asterisk}^`` and ``bool''`` in ``bool''^{asterisk}^``.
-   .... Return xref:forall_[all ``bool''^{asterisk}^`` are true].
-  ... Else if let ``+HEADER_UNION+ ++_++ +<+++_++^{asterisk}^+>+ +{+( ++_++ typeIR ++_++ +;+ )^{asterisk}^+}+`` be ``typeIR''``:
-   .... Let ``bool'''`` be xref:is_defaultable_typeIR[``typeIR`` can be default-initialized], for all ``typeIR`` in ``typeIR^{asterisk}^`` and ``bool'''`` in ``bool'''^{asterisk}^``.
-   .... Return xref:forall_[all ``bool'''^{asterisk}^`` are true].
-  ... Else if let ``+ENUM+ ++_++ +{+++_++^{asterisk}^+}+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+ENUM+ ++_++ +<+typeIR+>+ +{+++_++^{asterisk}^+}+`` be ``typeIR''``:
-   .... Return xref:is_defaultable_typeIR[``typeIR`` can be default-initialized].
- .. {empty} return ``false``.
+. Else if let ``integerTypeIR`` be ``typeIR''``: return ``true``.
+. Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
+ .. Return xref:is_defaultable_typeIR[``typeIR`` can be default-initialized].
+. Else if let ``+TYPE+ ++_++ typeIR`` be ``typeIR''``:
+ .. Return xref:is_defaultable_typeIR[``typeIR`` can be default-initialized].
+. Else if let ``+TUPLE+ +<+typeIR^{asterisk}^+>+`` be ``typeIR''``:
+ .. Let ``bool`` be xref:is_defaultable_typeIR[``typeIR`` can be default-initialized], for all ``typeIR`` in ``typeIR^{asterisk}^`` and ``bool`` in ``bool^{asterisk}^``.
+ .. Return xref:forall_[all ``bool^{asterisk}^`` are true].
+. Else if let ``typeIR +[+++_+++]+`` be ``typeIR''``:
+ .. Return xref:is_defaultable_typeIR[``typeIR`` can be default-initialized].
+. Else if let ``+STRUCT+ ++_++ +<+++_++^{asterisk}^+>+ +{+( ++_++ typeIR ++_++ +;+ )^{asterisk}^+}+`` be ``typeIR''``:
+ .. Let ``bool'`` be xref:is_defaultable_typeIR[``typeIR`` can be default-initialized], for all ``typeIR`` in ``typeIR^{asterisk}^`` and ``bool'`` in ``bool'^{asterisk}^``.
+ .. Return xref:forall_[all ``bool'^{asterisk}^`` are true].
+. Else if let ``+HEADER+ ++_++ +<+++_++^{asterisk}^+>+ +{+( ++_++ typeIR ++_++ +;+ )^{asterisk}^+}+`` be ``typeIR''``:
+ .. Let ``bool''`` be xref:is_defaultable_typeIR[``typeIR`` can be default-initialized], for all ``typeIR`` in ``typeIR^{asterisk}^`` and ``bool''`` in ``bool''^{asterisk}^``.
+ .. Return xref:forall_[all ``bool''^{asterisk}^`` are true].
+. Else if let ``+HEADER_UNION+ ++_++ +<+++_++^{asterisk}^+>+ +{+( ++_++ typeIR ++_++ +;+ )^{asterisk}^+}+`` be ``typeIR''``:
+ .. Let ``bool'''`` be xref:is_defaultable_typeIR[``typeIR`` can be default-initialized], for all ``typeIR`` in ``typeIR^{asterisk}^`` and ``bool'''`` in ``bool'''^{asterisk}^``.
+ .. Return xref:forall_[all ``bool'''^{asterisk}^`` are true].
+. Else if let ``+ENUM+ ++_++ +{+++_++^{asterisk}^+}+`` be ``typeIR''``: return ``true``.
+. Else:
+ .. Return xref:is_defaultable_typeIR[``typeIR`` can be default-initialized].
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``false``.
 
 xref:is_equalable_typeIR[``typeIR''`` supports equality comparison]
 
-. Try:
- .. {empty}
-  ... If let ``voidTypeIR`` be ``typeIR''``:
-   .... Check that ``voidTypeIR`` matches pattern ``+VOID+``.
+. If let ``voidTypeIR`` be ``typeIR''``:
+ .. Check that ``voidTypeIR`` matches pattern ``+VOID+``.
  return ``false``.
-  ... Else if let ``typeId`` be ``typeIR''``: return ``false``.
-  ... Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return xref:is_equalable_typeIR[``typeIR`` supports equality comparison].
-  ... Else if let ``externObjectTypeIR`` be ``typeIR''``: return ``false``.
-  ... Else if let ``parserObjectTypeIR`` be ``typeIR''``: return ``false``.
-  ... Else if let ``controlObjectTypeIR`` be ``typeIR''``: return ``false``.
-  ... Else if let ``packageObjectTypeIR`` be ``typeIR''``: return ``false``.
-  ... Else if let ``tableObjectTypeIR`` be ``typeIR''``: return ``false``.
-  ... Else if let ``defaultTypeIR`` be ``typeIR''``:
-   .... Check that ``defaultTypeIR`` matches pattern ``+DEFAULT+``.
+. Else if let ``typeId`` be ``typeIR''``: return ``false``.
+. Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
+ .. Return xref:is_equalable_typeIR[``typeIR`` supports equality comparison].
+. Else if let ``externObjectTypeIR`` be ``typeIR''``: return ``false``.
+. Else if let ``parserObjectTypeIR`` be ``typeIR''``: return ``false``.
+. Else if let ``controlObjectTypeIR`` be ``typeIR''``: return ``false``.
+. Else if let ``packageObjectTypeIR`` be ``typeIR''``: return ``false``.
+. Else if let ``tableObjectTypeIR`` be ``typeIR''``: return ``false``.
+. Else if let ``defaultTypeIR`` be ``typeIR''``:
+ .. Check that ``defaultTypeIR`` matches pattern ``+DEFAULT+``.
  return ``false``.
-  ... Else if let ``sequenceTypeIR`` be ``typeIR''``: return ``false``.
-  ... Else if let ``recordTypeIR`` be ``typeIR''``: return ``false``.
-  ... Else if let ``invalidHeaderTypeIR`` be ``typeIR''``:
-   .... Check that ``invalidHeaderTypeIR`` matches pattern ``+HEADER_INVALID+``.
+. Else if let ``sequenceTypeIR`` be ``typeIR''``: return ``false``.
+. Else if let ``recordTypeIR`` be ``typeIR''``: return ``false``.
+. Else if let ``invalidHeaderTypeIR`` be ``typeIR''``:
+ .. Check that ``invalidHeaderTypeIR`` matches pattern ``+HEADER_INVALID+``.
  return ``false``.
-  ... Else if let ``setTypeIR`` be ``typeIR''``: return ``false``.
-  ... Else if let ``tableMetadataTypeIR`` be ``typeIR''``: return ``false``.
- .. {empty} return ``true``.
+. Else if let ``setTypeIR`` be ``typeIR''``: return ``false``.
+. Else: return ``false``.
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``true``.
 
 xref:is_assignable_typeIR[``typeIR''`` supports assignment]
 
-. Try:
- .. {empty}
-  ... If let ``voidTypeIR`` be ``typeIR''``:
-   .... Check that ``voidTypeIR`` matches pattern ``+VOID+``.
+. If let ``voidTypeIR`` be ``typeIR''``:
+ .. Check that ``voidTypeIR`` matches pattern ``+VOID+``.
  return ``false``.
-  ... Else if let ``stringTypeIR`` be ``typeIR''``:
-   .... Check that ``stringTypeIR`` matches pattern ``+STRING+``.
+. Else if let ``stringTypeIR`` be ``typeIR''``:
+ .. Check that ``stringTypeIR`` matches pattern ``+STRING+``.
  return ``false``.
-  ... Else if let ``intTypeIR`` be ``typeIR''``:
-   .... Check that ``intTypeIR`` matches pattern ``+INT+``.
+. Else if let ``intTypeIR`` be ``typeIR''``:
+ .. Check that ``intTypeIR`` matches pattern ``+INT+``.
  return ``false``.
-  ... Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return xref:is_assignable_typeIR[``typeIR`` supports assignment].
-  ... Else if let ``objectTypeIR`` be ``typeIR''``: return ``false``.
-  ... Else if let ``synthesizedTypeIR`` be ``typeIR''``: return ``false``.
- .. {empty} return ``true``.
+. Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
+ .. Return xref:is_assignable_typeIR[``typeIR`` supports assignment].
+. Else if let ``objectTypeIR`` be ``typeIR''``: return ``false``.
+. Else: return ``false``.
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``true``.
 
 xref:typeId_of_typeDefIR[The name of ``typeDefIR``]
 
@@ -5337,103 +5340,108 @@ xref:ConstructorTypeDef_wf[ConstructorTypeDef_wf]:
 
 xref:nestable_typedef[``typeIR''`` can be used in a typedef]
 
-. Try:
- .. {empty}
-  ... If let ``boolTypeIR`` be ``typeIR''``:
-   .... Check that ``boolTypeIR`` matches pattern ``+BOOL+``.
+. If let ``boolTypeIR`` be ``typeIR''``:
+ .. Check that ``boolTypeIR`` matches pattern ``+BOOL+``.
  return ``true``.
-  ... Else if let ``errorTypeIR`` be ``typeIR''``:
-   .... Check that ``errorTypeIR`` matches pattern ``+ERROR+``.
+. Else if let ``errorTypeIR`` be ``typeIR''``:
+ .. Check that ``errorTypeIR`` matches pattern ``+ERROR+``.
  return ``true``.
-  ... Else if let ``stringTypeIR`` be ``typeIR''``:
-   .... Check that ``stringTypeIR`` matches pattern ``+STRING+``.
+. Else if let ``stringTypeIR`` be ``typeIR''``:
+ .. Check that ``stringTypeIR`` matches pattern ``+STRING+``.
  return ``true``.
-  ... Else if let ``integerTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``nameTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return xref:nestable_typedef[``typeIR`` can be used in a typedef].
-  ... Else if let ``newTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``dataTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``externObjectTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``parserObjectTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``controlObjectTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``packageObjectTypeIR`` be ``typeIR''``: return ``true``.
- .. {empty} return ``false``.
+. Else if let ``integerTypeIR`` be ``typeIR''``: return ``true``.
+. Else if let ``nameTypeIR`` be ``typeIR''``: return ``true``.
+. Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
+ .. Return xref:nestable_typedef[``typeIR`` can be used in a typedef].
+. Else if let ``newTypeIR`` be ``typeIR''``: return ``true``.
+. Else if let ``dataTypeIR`` be ``typeIR''``: return ``true``.
+. Else if let ``externObjectTypeIR`` be ``typeIR''``: return ``true``.
+. Else if let ``parserObjectTypeIR`` be ``typeIR''``: return ``true``.
+. Else if let ``controlObjectTypeIR`` be ``typeIR''``: return ``true``.
+. Else: return ``true``.
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``false``.
 
 xref:nestable_new[``typeIR''`` can be used in a new type]
 
-. Try:
- .. {empty}
-  ... If let ``boolTypeIR`` be ``typeIR''``:
-   .... Check that ``boolTypeIR`` matches pattern ``+BOOL+``.
+. If let ``boolTypeIR`` be ``typeIR''``:
+ .. Check that ``boolTypeIR`` matches pattern ``+BOOL+``.
  return ``true``.
-  ... Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+INT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``nameTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return xref:nestable_new[``typeIR`` can be used in a new type].
-  ... Else if let ``newTypeIR`` be ``typeIR''``: return ``true``.
- .. {empty} return ``false``.
+. Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
+. Else if let ``+INT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
+. Else if let ``nameTypeIR`` be ``typeIR''``: return ``true``.
+. Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
+ .. Return xref:nestable_new[``typeIR`` can be used in a new type].
+. Else: return ``true``.
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``false``.
 
 xref:nestable_list[``typeIR''`` can be nested in a list type]
 
-. Try:
- .. {empty}
-  ... If let ``boolTypeIR`` be ``typeIR''``:
-   .... Check that ``boolTypeIR`` matches pattern ``+BOOL+``.
+. If let ``boolTypeIR`` be ``typeIR''``:
+ .. Check that ``boolTypeIR`` matches pattern ``+BOOL+``.
  return ``true``.
-  ... Else if let ``errorTypeIR`` be ``typeIR''``:
-   .... Check that ``errorTypeIR`` matches pattern ``+ERROR+``.
+. Else if let ``errorTypeIR`` be ``typeIR''``:
+ .. Check that ``errorTypeIR`` matches pattern ``+ERROR+``.
  return ``true``.
-  ... Else if let ``matchKindTypeIR`` be ``typeIR''``:
-   .... Check that ``matchKindTypeIR`` matches pattern ``+MATCH_KIND+``.
+. Else if let ``matchKindTypeIR`` be ``typeIR''``:
+ .. Check that ``matchKindTypeIR`` matches pattern ``+MATCH_KIND+``.
  return ``true``.
-  ... Else if let ``stringTypeIR`` be ``typeIR''``:
-   .... Check that ``stringTypeIR`` matches pattern ``+STRING+``.
+. Else if let ``stringTypeIR`` be ``typeIR''``:
+ .. Check that ``stringTypeIR`` matches pattern ``+STRING+``.
  return ``true``.
-  ... Else if let ``integerTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``nameTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return xref:nestable_list[``typeIR`` can be nested in a list type].
-  ... Else if let ``newTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``dataTypeIR`` be ``typeIR''``: return ``true``.
- .. {empty} return ``false``.
+. Else if let ``integerTypeIR`` be ``typeIR''``: return ``true``.
+. Else if let ``nameTypeIR`` be ``typeIR''``: return ``true``.
+. Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
+ .. Return xref:nestable_list[``typeIR`` can be nested in a list type].
+. Else if let ``newTypeIR`` be ``typeIR''``: return ``true``.
+. Else: return ``true``.
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``false``.
 
 xref:nestable_tuple[``typeIR''`` can be nested in a tuple type]
 
-. Try:
- .. {empty}
-  ... If let ``boolTypeIR`` be ``typeIR''``:
-   .... Check that ``boolTypeIR`` matches pattern ``+BOOL+``.
+. If let ``boolTypeIR`` be ``typeIR''``:
+ .. Check that ``boolTypeIR`` matches pattern ``+BOOL+``.
  return ``true``.
-  ... Else if let ``errorTypeIR`` be ``typeIR''``:
-   .... Check that ``errorTypeIR`` matches pattern ``+ERROR+``.
+. Else if let ``errorTypeIR`` be ``typeIR''``:
+ .. Check that ``errorTypeIR`` matches pattern ``+ERROR+``.
  return ``true``.
-  ... Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+INT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+VARBIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``nameTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return xref:nestable_tuple[``typeIR`` can be nested in a tuple type].
-  ... Else if let ``newTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``tupleTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``headerStackTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``structTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``headerTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``headerUnionTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``enumTypeIR`` be ``typeIR''``: return ``true``.
- .. {empty} return ``false``.
+. Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
+. Else if let ``+INT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
+. Else if let ``+VARBIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
+. Else if let ``nameTypeIR`` be ``typeIR''``: return ``true``.
+. Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
+ .. Return xref:nestable_tuple[``typeIR`` can be nested in a tuple type].
+. Else if let ``newTypeIR`` be ``typeIR''``: return ``true``.
+. Else if let ``tupleTypeIR`` be ``typeIR''``: return ``true``.
+. Else if let ``headerStackTypeIR`` be ``typeIR''``: return ``true``.
+. Else if let ``structTypeIR`` be ``typeIR''``: return ``true``.
+. Else if let ``headerTypeIR`` be ``typeIR''``: return ``true``.
+. Else if let ``headerUnionTypeIR`` be ``typeIR''``: return ``true``.
+. Else: return ``true``.
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``false``.
 
 xref:nestable_headerStack[``typeIR''`` can be nested in a header stack type]
 
-. Try:
- .. {empty}
-  ... If let ``nameTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return xref:nestable_headerStack[``typeIR`` can be nested in a header stack type].
-  ... Else if let ``headerTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``headerUnionTypeIR`` be ``typeIR''``: return ``true``.
- .. {empty} return ``false``.
+. If let ``nameTypeIR`` be ``typeIR''``: return ``true``.
+. Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
+ .. Return xref:nestable_headerStack[``typeIR`` can be nested in a header stack type].
+. Else if let ``headerTypeIR`` be ``typeIR''``: return ``true``.
+. Else: return ``true``.
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``false``.
 
 xref:nestable_struct[``typeIR`` can be nested in a struct type]
 
@@ -5441,148 +5449,156 @@ xref:nestable_struct[``typeIR`` can be nested in a struct type]
 
 xref:nestable_header[``typeIR''`` can be used in a header type]
 
-. Try:
- .. {empty}
-  ... If let ``boolTypeIR`` be ``typeIR''``:
-   .... Check that ``boolTypeIR`` matches pattern ``+BOOL+``.
+. If let ``boolTypeIR`` be ``typeIR''``:
+ .. Check that ``boolTypeIR`` matches pattern ``+BOOL+``.
  return ``true``.
-  ... Else if let ``+INT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+VARBIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``nameTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return xref:nestable_header[``typeIR`` can be used in a header type].
-  ... Else if let ``newTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+ENUM+ ++_++ +<+++_+++>+ +{+++_++^{asterisk}^+}+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+STRUCT+ ++_++ +<+++_++^{asterisk}^+>+ +{+( ++_++ typeIR~field~ ++_++ +;+ )^{asterisk}^+}+`` be ``typeIR''``:
-   .... Let ``bool`` be xref:nestable_struct_in_header[``typeIR~field~`` can be used in a struct nested in a header type], for all ``typeIR~field~`` in ``typeIR~field~^{asterisk}^`` and ``bool`` in ``bool^{asterisk}^``.
-   .... Return xref:forall_[all ``bool^{asterisk}^`` are true].
- .. {empty} return ``false``.
+. Else if let ``+INT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
+. Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
+. Else if let ``+VARBIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
+. Else if let ``nameTypeIR`` be ``typeIR''``: return ``true``.
+. Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
+ .. Return xref:nestable_header[``typeIR`` can be used in a header type].
+. Else if let ``newTypeIR`` be ``typeIR''``: return ``true``.
+. Else if let ``+ENUM+ ++_++ +<+++_+++>+ +{+++_++^{asterisk}^+}+`` be ``typeIR''``: return ``true``.
+. Else:
+ .. Let ``bool`` be xref:nestable_struct_in_header[``typeIR~field~`` can be used in a struct nested in a header type], for all ``typeIR~field~`` in ``typeIR~field~^{asterisk}^`` and ``bool`` in ``bool^{asterisk}^``.
+ .. Return xref:forall_[all ``bool^{asterisk}^`` are true].
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``false``.
 
 xref:nestable_struct_in_header[``typeIR''`` can be used in a struct nested in a header type]
 
-. Try:
- .. {empty}
-  ... If let ``boolTypeIR`` be ``typeIR''``:
-   .... Check that ``boolTypeIR`` matches pattern ``+BOOL+``.
+. If let ``boolTypeIR`` be ``typeIR''``:
+ .. Check that ``boolTypeIR`` matches pattern ``+BOOL+``.
  return ``true``.
-  ... Else if let ``+INT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``nameTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return xref:nestable_struct_in_header[``typeIR`` can be used in a struct nested in a header type].
-  ... Else if let ``newTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+ENUM+ ++_++ +<+++_+++>+ +{+++_++^{asterisk}^+}+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+STRUCT+ ++_++ +<+++_++^{asterisk}^+>+ +{+( ++_++ typeIR~field~ ++_++ +;+ )^{asterisk}^+}+`` be ``typeIR''``:
-   .... Let ``bool`` be xref:nestable_struct_in_header[``typeIR~field~`` can be used in a struct nested in a header type], for all ``typeIR~field~`` in ``typeIR~field~^{asterisk}^`` and ``bool`` in ``bool^{asterisk}^``.
-   .... Return xref:forall_[all ``bool^{asterisk}^`` are true].
- .. {empty} return ``false``.
+. Else if let ``+INT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
+. Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
+. Else if let ``nameTypeIR`` be ``typeIR''``: return ``true``.
+. Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
+ .. Return xref:nestable_struct_in_header[``typeIR`` can be used in a struct nested in a header type].
+. Else if let ``newTypeIR`` be ``typeIR''``: return ``true``.
+. Else if let ``+ENUM+ ++_++ +<+++_+++>+ +{+++_++^{asterisk}^+}+`` be ``typeIR''``: return ``true``.
+. Else:
+ .. Let ``bool`` be xref:nestable_struct_in_header[``typeIR~field~`` can be used in a struct nested in a header type], for all ``typeIR~field~`` in ``typeIR~field~^{asterisk}^`` and ``bool`` in ``bool^{asterisk}^``.
+ .. Return xref:forall_[all ``bool^{asterisk}^`` are true].
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``false``.
 
 xref:nestable_headerUnion[``typeIR''`` can be used in a header union type]
 
-. Try:
- .. {empty}
-  ... If let ``nameTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return xref:nestable_headerUnion[``typeIR`` can be used in a header union type].
-  ... Else if let ``newTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``headerTypeIR`` be ``typeIR''``: return ``true``.
- .. {empty} return ``false``.
+. If let ``nameTypeIR`` be ``typeIR''``: return ``true``.
+. Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
+ .. Return xref:nestable_headerUnion[``typeIR`` can be used in a header union type].
+. Else if let ``newTypeIR`` be ``typeIR''``: return ``true``.
+. Else: return ``true``.
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``false``.
 
 xref:nestable_enum_serializable[``typeIR''`` can be used in a serializable enum type]
 
-. Try:
- .. {empty}
-  ... If let ``+INT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``nameTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return xref:nestable_enum_serializable[``typeIR`` can be used in a serializable enum type].
-  ... Else if let ``+TYPE+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return xref:nestable_new_in_enum_serializable[``typeIR`` can be used in a new type nested in a serializable enum type].
- .. {empty} return ``false``.
+. If let ``+INT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
+. Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
+. Else if let ``nameTypeIR`` be ``typeIR''``: return ``true``.
+. Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
+ .. Return xref:nestable_enum_serializable[``typeIR`` can be used in a serializable enum type].
+. Else:
+ .. Return xref:nestable_new_in_enum_serializable[``typeIR`` can be used in a new type nested in a serializable enum type].
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``false``.
 
 xref:nestable_new_in_enum_serializable[``typeIR''`` can be used in a new type nested in a serializable enum type]
 
-. Try:
- .. {empty}
-  ... If let ``+INT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``nameTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return xref:nestable_new_in_enum_serializable[``typeIR`` can be used in a new type nested in a serializable enum type].
-  ... Else if let ``newTypeIR`` be ``typeIR''``: return ``true``.
- .. {empty} return ``false``.
+. If let ``+INT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
+. Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
+. Else if let ``nameTypeIR`` be ``typeIR''``: return ``true``.
+. Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
+ .. Return xref:nestable_new_in_enum_serializable[``typeIR`` can be used in a new type nested in a serializable enum type].
+. Else: return ``true``.
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``false``.
 
 xref:nestable_set[``typeIR''`` can be used in a set type]
 
-. Try:
- .. {empty}
-  ... If let ``boolTypeIR`` be ``typeIR''``:
-   .... Check that ``boolTypeIR`` matches pattern ``+BOOL+``.
+. If let ``boolTypeIR`` be ``typeIR''``:
+ .. Check that ``boolTypeIR`` matches pattern ``+BOOL+``.
  return ``true``.
-  ... Else if let ``errorTypeIR`` be ``typeIR''``:
-   .... Check that ``errorTypeIR`` matches pattern ``+ERROR+``.
+. Else if let ``errorTypeIR`` be ``typeIR''``:
+ .. Check that ``errorTypeIR`` matches pattern ``+ERROR+``.
  return ``true``.
-  ... Else if let ``+INT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``nameTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return xref:nestable_set[``typeIR`` can be used in a set type].
-  ... Else if let ``newTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+TUPLE+ +<+typeIR^{asterisk}^+>+`` be ``typeIR''``:
-   .... Let ``bool`` be xref:nestable_tuple_in_set[``typeIR`` can be used in a tuple nested in a set type], for all ``typeIR`` in ``typeIR^{asterisk}^`` and ``bool`` in ``bool^{asterisk}^``.
-   .... Return xref:forall_[all ``bool^{asterisk}^`` are true].
-  ... Else if let ``enumTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``sequenceTypeIR`` be ``typeIR''``:
-   .... Let!~type~ ``+SEQ+ +<+typeIR^{asterisk}^+>+`` be ``sequenceTypeIR``.
+. Else if let ``+INT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
+. Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
+. Else if let ``nameTypeIR`` be ``typeIR''``: return ``true``.
+. Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
+ .. Return xref:nestable_set[``typeIR`` can be used in a set type].
+. Else if let ``newTypeIR`` be ``typeIR''``: return ``true``.
+. Else if let ``+TUPLE+ +<+typeIR^{asterisk}^+>+`` be ``typeIR''``:
+ .. Let ``bool`` be xref:nestable_tuple_in_set[``typeIR`` can be used in a tuple nested in a set type], for all ``typeIR`` in ``typeIR^{asterisk}^`` and ``bool`` in ``bool^{asterisk}^``.
+ .. Return xref:forall_[all ``bool^{asterisk}^`` are true].
+. Else if let ``enumTypeIR`` be ``typeIR''``: return ``true``.
+. Else:
+ .. Let!~type~ ``+SEQ+ +<+typeIR^{asterisk}^+>+`` be ``sequenceTypeIR``.
 
-   .... Let ``bool'`` be xref:nestable_sequence_in_set[``typeIR`` can be used in a sequence nested in a set type], for all ``typeIR`` in ``typeIR^{asterisk}^`` and ``bool'`` in ``bool'^{asterisk}^``.
-   .... Return xref:forall_[all ``bool'^{asterisk}^`` are true].
- .. {empty} return ``false``.
+ .. Let ``bool'`` be xref:nestable_sequence_in_set[``typeIR`` can be used in a sequence nested in a set type], for all ``typeIR`` in ``typeIR^{asterisk}^`` and ``bool'`` in ``bool'^{asterisk}^``.
+ .. Return xref:forall_[all ``bool'^{asterisk}^`` are true].
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``false``.
 
 xref:nestable_tuple_in_set[``typeIR''`` can be used in a tuple nested in a set type]
 
-. Try:
- .. {empty}
-  ... If let ``boolTypeIR`` be ``typeIR''``:
-   .... Check that ``boolTypeIR`` matches pattern ``+BOOL+``.
+. If let ``boolTypeIR`` be ``typeIR''``:
+ .. Check that ``boolTypeIR`` matches pattern ``+BOOL+``.
  return ``true``.
-  ... Else if let ``+INT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``nameTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return xref:nestable_tuple_in_set[``typeIR`` can be used in a tuple nested in a set type].
-  ... Else if let ``newTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+TUPLE+ +<+typeIR^{asterisk}^+>+`` be ``typeIR''``:
-   .... Let ``bool`` be xref:nestable_tuple_in_set[``typeIR`` can be used in a tuple nested in a set type], for all ``typeIR`` in ``typeIR^{asterisk}^`` and ``bool`` in ``bool^{asterisk}^``.
-   .... Return xref:forall_[all ``bool^{asterisk}^`` are true].
-  ... Else if let ``enumTypeIR`` be ``typeIR''``: return ``true``.
- .. {empty} return ``false``.
+. Else if let ``+INT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
+. Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
+. Else if let ``nameTypeIR`` be ``typeIR''``: return ``true``.
+. Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
+ .. Return xref:nestable_tuple_in_set[``typeIR`` can be used in a tuple nested in a set type].
+. Else if let ``newTypeIR`` be ``typeIR''``: return ``true``.
+. Else if let ``+TUPLE+ +<+typeIR^{asterisk}^+>+`` be ``typeIR''``:
+ .. Let ``bool`` be xref:nestable_tuple_in_set[``typeIR`` can be used in a tuple nested in a set type], for all ``typeIR`` in ``typeIR^{asterisk}^`` and ``bool`` in ``bool^{asterisk}^``.
+ .. Return xref:forall_[all ``bool^{asterisk}^`` are true].
+. Else: return ``true``.
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``false``.
 
 xref:nestable_sequence_in_set[``typeIR''`` can be used in a sequence nested in a set type]
 
-. Try:
- .. {empty}
-  ... If let ``boolTypeIR`` be ``typeIR''``:
-   .... Check that ``boolTypeIR`` matches pattern ``+BOOL+``.
+. If let ``boolTypeIR`` be ``typeIR''``:
+ .. Check that ``boolTypeIR`` matches pattern ``+BOOL+``.
  return ``true``.
-  ... Else if let ``+INT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``nameTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return xref:nestable_sequence_in_set[``typeIR`` can be used in a sequence nested in a set type].
-  ... Else if let ``newTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+TUPLE+ +<+typeIR^{asterisk}^+>+`` be ``typeIR''``:
-   .... Let ``bool`` be xref:nestable_sequence_in_set[``typeIR`` can be used in a sequence nested in a set type], for all ``typeIR`` in ``typeIR^{asterisk}^`` and ``bool`` in ``bool^{asterisk}^``.
-   .... Return xref:forall_[all ``bool^{asterisk}^`` are true].
-  ... Else if let ``enumTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``sequenceTypeIR`` be ``typeIR''``:
-   .... Let!~type~ ``+SEQ+ +<+typeIR^{asterisk}^+>+`` be ``sequenceTypeIR``.
+. Else if let ``+INT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
+. Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
+. Else if let ``nameTypeIR`` be ``typeIR''``: return ``true``.
+. Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
+ .. Return xref:nestable_sequence_in_set[``typeIR`` can be used in a sequence nested in a set type].
+. Else if let ``newTypeIR`` be ``typeIR''``: return ``true``.
+. Else if let ``+TUPLE+ +<+typeIR^{asterisk}^+>+`` be ``typeIR''``:
+ .. Let ``bool`` be xref:nestable_sequence_in_set[``typeIR`` can be used in a sequence nested in a set type], for all ``typeIR`` in ``typeIR^{asterisk}^`` and ``bool`` in ``bool^{asterisk}^``.
+ .. Return xref:forall_[all ``bool^{asterisk}^`` are true].
+. Else if let ``enumTypeIR`` be ``typeIR''``: return ``true``.
+. Else:
+ .. Let!~type~ ``+SEQ+ +<+typeIR^{asterisk}^+>+`` be ``sequenceTypeIR``.
 
-   .... Let ``bool'`` be xref:nestable_sequence_in_set[``typeIR`` can be used in a sequence nested in a set type], for all ``typeIR`` in ``typeIR^{asterisk}^`` and ``bool'`` in ``bool'^{asterisk}^``.
-   .... Return xref:forall_[all ``bool'^{asterisk}^`` are true].
- .. {empty} return ``false``.
+ .. Let ``bool'`` be xref:nestable_sequence_in_set[``typeIR`` can be used in a sequence nested in a set type], for all ``typeIR`` in ``typeIR^{asterisk}^`` and ``bool'`` in ``bool'^{asterisk}^``.
+ .. Return xref:forall_[all ``bool'^{asterisk}^`` are true].
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``false``.
 
 xref:directionless_trailing[Directionless parameters in ``direction^{asterisk}^`` only appear at the end]
 
@@ -5613,128 +5629,139 @@ xref:directionless_trailing'[$directionless_trailing'(++_++, direction''^{asteri
 
 xref:nestable_action[``typeIR''`` can be used in an action type]
 
-. Try:
- .. {empty}
-  ... If let ``intTypeIR`` be ``typeIR''``:
-   .... Check that ``intTypeIR`` matches pattern ``+INT+``.
+. If let ``intTypeIR`` be ``typeIR''``:
+ .. Check that ``intTypeIR`` matches pattern ``+INT+``.
  return ``false``.
-  ... Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return xref:nestable_action[``typeIR`` can be used in an action type].
-  ... Else if let ``objectTypeIR`` be ``typeIR''``: return ``false``.
-  ... Else if let ``synthesizedTypeIR`` be ``typeIR''``: return ``false``.
- .. {empty} return ``true``.
+. Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
+ .. Return xref:nestable_action[``typeIR`` can be used in an action type].
+. Else if let ``objectTypeIR`` be ``typeIR''``: return ``false``.
+. Else: return ``false``.
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``true``.
 
 xref:nestable_definedFunction[``typeIR''`` can be used in a defined function type]
 
-. Try:
- .. {empty}
-  ... If let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return xref:nestable_definedFunction[``typeIR`` can be used in a defined function type].
-  ... Else if let ``objectTypeIR`` be ``typeIR''``: return ``false``.
-  ... Else if let ``synthesizedTypeIR`` be ``typeIR''``: return ``false``.
- .. {empty} return ``true``.
+. If let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
+ .. Return xref:nestable_definedFunction[``typeIR`` can be used in a defined function type].
+. Else if let ``objectTypeIR`` be ``typeIR''``: return ``false``.
+. Else: return ``false``.
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``true``.
 
 xref:nestable_externFunction[``typeIR''`` can be used in an extern function type]
 
-. Try:
- .. {empty}
-  ... If let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return xref:nestable_externFunction[``typeIR`` can be used in an extern function type].
-  ... Else if let ``parserObjectTypeIR`` be ``typeIR''``: return ``false``.
-  ... Else if let ``controlObjectTypeIR`` be ``typeIR''``: return ``false``.
-  ... Else if let ``packageObjectTypeIR`` be ``typeIR''``: return ``false``.
-  ... Else if let ``tableObjectTypeIR`` be ``typeIR''``: return ``false``.
- .. {empty} return ``true``.
+. If let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
+ .. Return xref:nestable_externFunction[``typeIR`` can be used in an extern function type].
+. Else if let ``parserObjectTypeIR`` be ``typeIR''``: return ``false``.
+. Else if let ``controlObjectTypeIR`` be ``typeIR''``: return ``false``.
+. Else if let ``packageObjectTypeIR`` be ``typeIR''``: return ``false``.
+. Else: return ``false``.
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``true``.
 
 xref:nestable_externMethod[``typeIR''`` can be used in an extern method type]
 
-. Try:
- .. {empty}
-  ... If let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return xref:nestable_externMethod[``typeIR`` can be used in an extern method type].
-  ... Else if let ``parserObjectTypeIR`` be ``typeIR''``: return ``false``.
-  ... Else if let ``controlObjectTypeIR`` be ``typeIR''``: return ``false``.
-  ... Else if let ``packageObjectTypeIR`` be ``typeIR''``: return ``false``.
-  ... Else if let ``tableObjectTypeIR`` be ``typeIR''``: return ``false``.
- .. {empty} return ``true``.
+. If let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
+ .. Return xref:nestable_externMethod[``typeIR`` can be used in an extern method type].
+. Else if let ``parserObjectTypeIR`` be ``typeIR''``: return ``false``.
+. Else if let ``controlObjectTypeIR`` be ``typeIR''``: return ``false``.
+. Else if let ``packageObjectTypeIR`` be ``typeIR''``: return ``false``.
+. Else: return ``false``.
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``true``.
 
 xref:nestable_parserApplyMethod[``typeIR''`` can be used in a parser apply method type]
 
-. Try:
- .. {empty}
-  ... If let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return xref:nestable_parserApplyMethod[``typeIR`` can be used in a parser apply method type].
-  ... Else if let ``parserObjectTypeIR`` be ``typeIR''``: return ``false``.
-  ... Else if let ``controlObjectTypeIR`` be ``typeIR''``: return ``false``.
-  ... Else if let ``packageObjectTypeIR`` be ``typeIR''``: return ``false``.
-  ... Else if let ``tableObjectTypeIR`` be ``typeIR''``: return ``false``.
- .. {empty} return ``true``.
+. If let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
+ .. Return xref:nestable_parserApplyMethod[``typeIR`` can be used in a parser apply method type].
+. Else if let ``parserObjectTypeIR`` be ``typeIR''``: return ``false``.
+. Else if let ``controlObjectTypeIR`` be ``typeIR''``: return ``false``.
+. Else if let ``packageObjectTypeIR`` be ``typeIR''``: return ``false``.
+. Else: return ``false``.
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``true``.
 
 xref:nestable_controlApplyMethod[``typeIR''`` can be used in a control apply method type]
 
-. Try:
- .. {empty}
-  ... If let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return xref:nestable_controlApplyMethod[``typeIR`` can be used in a control apply method type].
-  ... Else if let ``parserObjectTypeIR`` be ``typeIR''``: return ``false``.
-  ... Else if let ``packageObjectTypeIR`` be ``typeIR''``: return ``false``.
-  ... Else if let ``tableObjectTypeIR`` be ``typeIR''``: return ``false``.
- .. {empty} return ``true``.
+. If let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
+ .. Return xref:nestable_controlApplyMethod[``typeIR`` can be used in a control apply method type].
+. Else if let ``parserObjectTypeIR`` be ``typeIR''``: return ``false``.
+. Else if let ``packageObjectTypeIR`` be ``typeIR''``: return ``false``.
+. Else: return ``false``.
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``true``.
 
 xref:nestable_constructor_extern[``typeIR''`` can be used in an extern constructor type]
 
-. Try:
- .. {empty}
-  ... If let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return xref:nestable_constructor_extern[``typeIR`` can be used in an extern constructor type].
-  ... Else if let ``parserObjectTypeIR`` be ``typeIR''``: return ``false``.
-  ... Else if let ``controlObjectTypeIR`` be ``typeIR''``: return ``false``.
-  ... Else if let ``packageObjectTypeIR`` be ``typeIR''``: return ``false``.
-  ... Else if let ``tableObjectTypeIR`` be ``typeIR''``: return ``false``.
- .. {empty} return ``true``.
+. If let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
+ .. Return xref:nestable_constructor_extern[``typeIR`` can be used in an extern constructor type].
+. Else if let ``parserObjectTypeIR`` be ``typeIR''``: return ``false``.
+. Else if let ``controlObjectTypeIR`` be ``typeIR''``: return ``false``.
+. Else if let ``packageObjectTypeIR`` be ``typeIR''``: return ``false``.
+. Else: return ``false``.
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``true``.
 
 xref:nestable_constructor_parser[``typeIR''`` can be used in a parser constructor type]
 
-. Try:
- .. {empty}
-  ... If let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return xref:nestable_constructor_parser[``typeIR`` can be used in a parser constructor type].
-  ... Else if let ``controlObjectTypeIR`` be ``typeIR''``: return ``false``.
-  ... Else if let ``packageObjectTypeIR`` be ``typeIR''``: return ``false``.
-  ... Else if let ``tableObjectTypeIR`` be ``typeIR''``: return ``false``.
- .. {empty} return ``true``.
+. If let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
+ .. Return xref:nestable_constructor_parser[``typeIR`` can be used in a parser constructor type].
+. Else if let ``controlObjectTypeIR`` be ``typeIR''``: return ``false``.
+. Else if let ``packageObjectTypeIR`` be ``typeIR''``: return ``false``.
+. Else: return ``false``.
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``true``.
 
 xref:nestable_constructor_control[``typeIR''`` can be used in a control constructor type]
 
-. Try:
- .. {empty}
-  ... If let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return xref:nestable_constructor_control[``typeIR`` can be used in a control constructor type].
-  ... Else if let ``parserObjectTypeIR`` be ``typeIR''``: return ``false``.
-  ... Else if let ``packageObjectTypeIR`` be ``typeIR''``: return ``false``.
-  ... Else if let ``tableObjectTypeIR`` be ``typeIR''``: return ``false``.
- .. {empty} return ``true``.
+. If let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
+ .. Return xref:nestable_constructor_control[``typeIR`` can be used in a control constructor type].
+. Else if let ``parserObjectTypeIR`` be ``typeIR''``: return ``false``.
+. Else if let ``packageObjectTypeIR`` be ``typeIR''``: return ``false``.
+. Else: return ``false``.
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``true``.
 
 xref:nestable_constructor_package[``typeIR''`` can be used in a package constructor type]
 
-. Try:
- .. {empty}
-  ... If let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return xref:nestable_constructor_package[``typeIR`` can be used in a package constructor type].
-  ... Else if let ``tableObjectTypeIR`` be ``typeIR''``: return ``false``.
- .. {empty} return ``true``.
+. If let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
+ .. Return xref:nestable_constructor_package[``typeIR`` can be used in a package constructor type].
+. Else: return ``false``.
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``true``.
 
 xref:definable_constructor[``typeIR''`` can be constructed]
 
-. Try:
- .. {empty}
-  ... If let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return xref:definable_constructor[``typeIR`` can be constructed].
-  ... Else if let ``externObjectTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``parserObjectTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``controlObjectTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``packageObjectTypeIR`` be ``typeIR''``: return ``true``.
- .. {empty} return ``false``.
+. If let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
+ .. Return xref:definable_constructor[``typeIR`` can be constructed].
+. Else if let ``externObjectTypeIR`` be ``typeIR''``: return ``true``.
+. Else if let ``parserObjectTypeIR`` be ``typeIR''``: return ``true``.
+. Else if let ``controlObjectTypeIR`` be ``typeIR''``: return ``true``.
+. Else: return ``true``.
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``false``.
 
 xref:ExternFunctionCall_eval_lctk[ExternFunctionCall_eval_lctk]:
 
@@ -9313,37 +9340,40 @@ xref:cast_binary[``typedExpressionIR~l~`` and ``typedExpressionIR~r~`` implicitl
 
 xref:compat_lnot[$compat_lnot(typeIR'')]
 
-. Try:
- .. {empty}
-  ... If let ``boolTypeIR`` be ``typeIR''``:
-   .... Check that ``boolTypeIR`` matches pattern ``+BOOL+``.
+. If let ``boolTypeIR`` be ``typeIR''``:
+ .. Check that ``boolTypeIR`` matches pattern ``+BOOL+``.
  return ``true``.
-  ... Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return ``xref:compat_lnot[$compat_lnot(typeIR)]``.
- .. {empty} return ``false``.
+. Else:
+ .. Return ``xref:compat_lnot[$compat_lnot(typeIR)]``.
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``false``.
 
 xref:compat_bnot[$compat_bnot(typeIR'')]
 
-. Try:
- .. {empty}
-  ... If let ``+INT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return ``xref:compat_bnot[$compat_bnot(typeIR)]``.
- .. {empty} return ``false``.
+. If let ``+INT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
+. Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
+. Else:
+ .. Return ``xref:compat_bnot[$compat_bnot(typeIR)]``.
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``false``.
 
 xref:compat_uplusminus[$compat_uplusminus(typeIR'')]
 
-. Try:
- .. {empty}
-  ... If let ``intTypeIR`` be ``typeIR''``:
-   .... Check that ``intTypeIR`` matches pattern ``+INT+``.
+. If let ``intTypeIR`` be ``typeIR''``:
+ .. Check that ``intTypeIR`` matches pattern ``+INT+``.
  return ``true``.
-  ... Else if let ``+INT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return ``xref:compat_uplusminus[$compat_uplusminus(typeIR)]``.
- .. {empty} return ``false``.
+. Else if let ``+INT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
+. Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
+. Else:
+ .. Return ``xref:compat_uplusminus[$compat_uplusminus(typeIR)]``.
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``false``.
 
 xref:compat_plusminusmult[$compat_plusminusmult(typeIR'', typeIR''')]
 
@@ -9364,13 +9394,16 @@ xref:compat_plusminusmult[$compat_plusminusmult(typeIR'', typeIR''')]
    .... Let!~type~ ``+BIT+ +<+w~r~+>+`` be ``typeIR'''``.
 
    .... Return ``w~l~`` is equal to ``w~r~``.
-  ... Else if let ``+TYPEDEF+ ++_++ typeIR~l~`` be ``typeIR''``:
+  ... Else:
    .... Return ``xref:compat_plusminusmult[$compat_plusminusmult(typeIR~l~, typeIR''')]``.
  .. {empty}
   ... Let!~type~ ``+TYPEDEF+ ++_++ typeIR~r~`` be ``typeIR'''``.
 
   ... Return ``xref:compat_plusminusmult[$compat_plusminusmult(typeIR'', typeIR~r~)]``.
- .. {empty} return ``false``.
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``false``.
 
 xref:compat_satplusminus[$compat_satplusminus(typeIR'', typeIR''')]
 
@@ -9384,13 +9417,16 @@ xref:compat_satplusminus[$compat_satplusminus(typeIR'', typeIR''')]
    .... Let!~type~ ``+BIT+ +<+w~r~+>+`` be ``typeIR'''``.
 
    .... Return ``w~l~`` is equal to ``w~r~``.
-  ... Else if let ``+TYPEDEF+ ++_++ typeIR~l~`` be ``typeIR''``:
+  ... Else:
    .... Return ``xref:compat_satplusminus[$compat_satplusminus(typeIR~l~, typeIR''')]``.
  .. {empty}
   ... Let!~type~ ``+TYPEDEF+ ++_++ typeIR~r~`` be ``typeIR'''``.
 
   ... Return ``xref:compat_satplusminus[$compat_satplusminus(typeIR'', typeIR~r~)]``.
- .. {empty} return ``false``.
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``false``.
 
 xref:compat_divmod[$compat_divmod(typeIR'', typeIR''')]
 
@@ -9403,13 +9439,16 @@ xref:compat_divmod[$compat_divmod(typeIR'', typeIR''')]
 
    .... Check that ``intTypeIR'`` matches pattern ``+INT+``.
  return ``true``.
-  ... Else if let ``+TYPEDEF+ ++_++ typeIR~l~`` be ``typeIR''``:
+  ... Else:
    .... Return ``xref:compat_divmod[$compat_divmod(typeIR~l~, typeIR''')]``.
  .. {empty}
   ... Let!~type~ ``+TYPEDEF+ ++_++ typeIR~r~`` be ``typeIR'''``.
 
   ... Return ``xref:compat_divmod[$compat_divmod(typeIR'', typeIR~r~)]``.
- .. {empty} return ``false``.
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``false``.
 
 xref:compat_shift[$compat_shift(typeIR'', typeIR''')]
 
@@ -9422,26 +9461,29 @@ xref:compat_shift[$compat_shift(typeIR'', typeIR''')]
     ..... Check that ``intTypeIR'`` matches pattern ``+INT+``.
  return ``true``.
    .... Else if let ``+INT+ +<+++_+++>+`` be ``typeIR'''``: return ``true``.
-   .... Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR'''``: return ``true``.
+   .... Else: return ``true``.
   ... Else if let ``+INT+ +<+++_+++>+`` be ``typeIR''``:
    .... If let ``intTypeIR`` be ``typeIR'''``:
     ..... Check that ``intTypeIR`` matches pattern ``+INT+``.
  return ``true``.
    .... Else if let ``+INT+ +<+++_+++>+`` be ``typeIR'''``: return ``true``.
-   .... Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR'''``: return ``true``.
+   .... Else: return ``true``.
   ... Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR''``:
    .... If let ``intTypeIR`` be ``typeIR'''``:
     ..... Check that ``intTypeIR`` matches pattern ``+INT+``.
  return ``true``.
    .... Else if let ``+INT+ +<+++_+++>+`` be ``typeIR'''``: return ``true``.
-   .... Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR'''``: return ``true``.
-  ... Else if let ``+TYPEDEF+ ++_++ typeIR~l~`` be ``typeIR''``:
+   .... Else: return ``true``.
+  ... Else:
    .... Return ``xref:compat_shift[$compat_shift(typeIR~l~, typeIR''')]``.
  .. {empty}
   ... Let!~type~ ``+TYPEDEF+ ++_++ typeIR~r~`` be ``typeIR'''``.
 
   ... Return ``xref:compat_shift[$compat_shift(typeIR'', typeIR~r~)]``.
- .. {empty} return ``false``.
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``false``.
 
 xref:compat_compare[$compat_compare(typeIR'', typeIR''')]
 
@@ -9462,13 +9504,16 @@ xref:compat_compare[$compat_compare(typeIR'', typeIR''')]
    .... Let!~type~ ``+BIT+ +<+w~r~+>+`` be ``typeIR'''``.
 
    .... Return ``w~l~`` is equal to ``w~r~``.
-  ... Else if let ``+TYPEDEF+ ++_++ typeIR~l~`` be ``typeIR''``:
+  ... Else:
    .... Return ``xref:compat_compare[$compat_compare(typeIR~l~, typeIR''')]``.
  .. {empty}
   ... Let!~type~ ``+TYPEDEF+ ++_++ typeIR~r~`` be ``typeIR'''``.
 
   ... Return ``xref:compat_compare[$compat_compare(typeIR'', typeIR~r~)]``.
- .. {empty} return ``false``.
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``false``.
 
 xref:compat_bitwise[$compat_bitwise(typeIR'', typeIR''')]
 
@@ -9482,13 +9527,16 @@ xref:compat_bitwise[$compat_bitwise(typeIR'', typeIR''')]
    .... Let!~type~ ``+BIT+ +<+w~r~+>+`` be ``typeIR'''``.
 
    .... Return ``w~l~`` is equal to ``w~r~``.
-  ... Else if let ``+TYPEDEF+ ++_++ typeIR~l~`` be ``typeIR''``:
+  ... Else:
    .... Return ``xref:compat_bitwise[$compat_bitwise(typeIR~l~, typeIR''')]``.
  .. {empty}
   ... Let!~type~ ``+TYPEDEF+ ++_++ typeIR~r~`` be ``typeIR'''``.
 
   ... Return ``xref:compat_bitwise[$compat_bitwise(typeIR'', typeIR~r~)]``.
- .. {empty} return ``false``.
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``false``.
 
 xref:compat_concat[$compat_concat(typeIR'', typeIR''')]
 
@@ -9503,17 +9551,20 @@ xref:compat_concat[$compat_concat(typeIR'', typeIR''')]
  return ``true``.
   ... Else if let ``+INT+ +<+++_+++>+`` be ``typeIR''``:
    .... If let ``+INT+ +<+++_+++>+`` be ``typeIR'''``: return ``true``.
-   .... Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR'''``: return ``true``.
+   .... Else: return ``true``.
   ... Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR''``:
    .... If let ``+INT+ +<+++_+++>+`` be ``typeIR'''``: return ``true``.
-   .... Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR'''``: return ``true``.
-  ... Else if let ``+TYPEDEF+ ++_++ typeIR~l~`` be ``typeIR''``:
+   .... Else: return ``true``.
+  ... Else:
    .... Return ``xref:compat_concat[$compat_concat(typeIR~l~, typeIR''')]``.
  .. {empty}
   ... Let!~type~ ``+TYPEDEF+ ++_++ typeIR~r~`` be ``typeIR'''``.
 
   ... Return ``xref:compat_concat[$compat_concat(typeIR'', typeIR~r~)]``.
- .. {empty} return ``false``.
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``false``.
 
 xref:result_concat[$result_concat(typeIR'', typeIR''')]
 
@@ -9557,79 +9608,87 @@ xref:compat_logical[$compat_logical(typeIR'', typeIR''')]
 
    .... Check that ``boolTypeIR'`` matches pattern ``+BOOL+``.
  return ``true``.
-  ... Else if let ``+TYPEDEF+ ++_++ typeIR~l~`` be ``typeIR''``:
+  ... Else:
    .... Return ``xref:compat_logical[$compat_logical(typeIR~l~, typeIR''')]``.
  .. {empty}
   ... Let!~type~ ``+TYPEDEF+ ++_++ typeIR~r~`` be ``typeIR'''``.
 
   ... Return ``xref:compat_logical[$compat_logical(typeIR'', typeIR~r~)]``.
- .. {empty} return ``false``.
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``false``.
 
 xref:compat_array_index[``typeIR''`` can be used as an array index]
 
-. Try:
- .. {empty}
-  ... If let ``intTypeIR`` be ``typeIR''``:
-   .... Check that ``intTypeIR`` matches pattern ``+INT+``.
+. If let ``intTypeIR`` be ``typeIR''``:
+ .. Check that ``intTypeIR`` matches pattern ``+INT+``.
  return ``true``.
-  ... Else if let ``+INT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return xref:compat_array_index[``typeIR`` can be used as an array index].
- .. {empty} return ``false``.
+. Else if let ``+INT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
+. Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
+. Else:
+ .. Return xref:compat_array_index[``typeIR`` can be used as an array index].
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``false``.
 
 xref:compat_bitslice_base[``typeIR''`` can be used as a bitslice base]
 
-. Try:
- .. {empty}
-  ... If let ``intTypeIR`` be ``typeIR''``:
-   .... Check that ``intTypeIR`` matches pattern ``+INT+``.
+. If let ``intTypeIR`` be ``typeIR''``:
+ .. Check that ``intTypeIR`` matches pattern ``+INT+``.
  return ``true``.
-  ... Else if let ``+INT+ +<+w+>+`` be ``typeIR''``:
-   .... Return ``w`` is greater than ``0``.
-  ... Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return xref:compat_bitslice_base[``typeIR`` can be used as a bitslice base].
- .. {empty} return ``false``.
+. Else if let ``+INT+ +<+w+>+`` be ``typeIR''``:
+ .. Return ``w`` is greater than ``0``.
+. Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
+. Else:
+ .. Return xref:compat_bitslice_base[``typeIR`` can be used as a bitslice base].
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``false``.
 
 xref:compat_bitslice_range_index[``typeIR''`` can be used as a bitslice range index]
 
-. Try:
- .. {empty}
-  ... If let ``intTypeIR`` be ``typeIR''``:
-   .... Check that ``intTypeIR`` matches pattern ``+INT+``.
+. If let ``intTypeIR`` be ``typeIR''``:
+ .. Check that ``intTypeIR`` matches pattern ``+INT+``.
  return ``true``.
-  ... Else if let ``+INT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return xref:compat_bitslice_range_index[``typeIR`` can be used as a bitslice range index].
- .. {empty} return ``false``.
+. Else if let ``+INT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
+. Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
+. Else:
+ .. Return xref:compat_bitslice_range_index[``typeIR`` can be used as a bitslice range index].
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``false``.
 
 xref:compat_bitslice_offset_index[``typeIR''`` can be used as an bitslice offset]
 
-. Try:
- .. {empty}
-  ... If let ``intTypeIR`` be ``typeIR''``:
-   .... Check that ``intTypeIR`` matches pattern ``+INT+``.
+. If let ``intTypeIR`` be ``typeIR''``:
+ .. Check that ``intTypeIR`` matches pattern ``+INT+``.
  return ``true``.
-  ... Else if let ``+INT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return xref:compat_bitslice_offset_index[``typeIR`` can be used as an bitslice offset].
- .. {empty} return ``false``.
+. Else if let ``+INT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
+. Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
+. Else:
+ .. Return xref:compat_bitslice_offset_index[``typeIR`` can be used as an bitslice offset].
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``false``.
 
 xref:compat_bitslice_offset_width[``typeIR''`` can be used as an bitslice width]
 
-. Try:
- .. {empty}
-  ... If let ``intTypeIR`` be ``typeIR''``:
-   .... Check that ``intTypeIR`` matches pattern ``+INT+``.
+. If let ``intTypeIR`` be ``typeIR''``:
+ .. Check that ``intTypeIR`` matches pattern ``+INT+``.
  return ``true``.
-  ... Else if let ``+INT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return xref:compat_bitslice_offset_width[``typeIR`` can be used as an bitslice width].
- .. {empty} return ``false``.
+. Else if let ``+INT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
+. Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
+. Else:
+ .. Return xref:compat_bitslice_offset_width[``typeIR`` can be used as an bitslice width].
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``false``.
 
 <<is_valid_bitslice,``typeIR''`` ``+[+`` ``n~lo'~`` ``+:+`` ``n~hi'~`` ``+]+`` is a valid bitslice>>
 
@@ -9826,13 +9885,16 @@ xref:compat_range[``typeIR''`` and ``typeIR'''`` can be used as range bounds]
    .... Let!~type~ ``+BIT+ +<+w~r~+>+`` be ``typeIR'''``.
 
    .... Return ``w~l~`` is equal to ``w~r~``.
-  ... Else if let ``+TYPEDEF+ ++_++ typeIR~l~`` be ``typeIR''``:
+  ... Else:
    .... Return xref:compat_range[``typeIR~l~`` and ``typeIR'''`` can be used as range bounds].
  .. {empty}
   ... Let!~type~ ``+TYPEDEF+ ++_++ typeIR~r~`` be ``typeIR'''``.
 
   ... Return xref:compat_range[``typeIR''`` and ``typeIR~r~`` can be used as range bounds].
- .. {empty} return ``false``.
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``false``.
 
 xref:check_switchLabel_default[Default label is only in the last position of ``switchLabel^{asterisk}^``]
 
@@ -9952,17 +10014,18 @@ xref:SwitchCaseList_general_ok[SwitchCaseList_general_ok]:
 
 xref:compat_switch[``typeIR''`` is a valid switch key type]
 
-. Try:
- .. {empty}
-  ... If let ``errorTypeIR`` be ``typeIR''``:
-   .... Check that ``errorTypeIR`` matches pattern ``+ERROR+``.
+. If let ``errorTypeIR`` be ``typeIR''``:
+ .. Check that ``errorTypeIR`` matches pattern ``+ERROR+``.
  return ``true``.
-  ... Else if let ``+INT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return xref:compat_switch[``typeIR`` is a valid switch key type].
-  ... Else if let ``enumTypeIR`` be ``typeIR''``: return ``true``.
- .. {empty} return ``false``.
+. Else if let ``+INT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
+. Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
+. Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
+ .. Return xref:compat_switch[``typeIR`` is a valid switch key type].
+. Else: return ``true``.
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``false``.
 
 xref:BlockElementStmts_ok[BlockElementStmts_ok]:
 
@@ -10212,13 +10275,16 @@ xref:compat_mask[$compat_mask(typeIR'', typeIR''')]
    .... Let!~type~ ``+BIT+ +<+w~r~+>+`` be ``typeIR'''``.
 
    .... Return ``w~l~`` is equal to ``w~r~``.
-  ... Else if let ``+TYPEDEF+ ++_++ typeIR~l~`` be ``typeIR''``:
+  ... Else:
    .... Return ``xref:compat_mask[$compat_mask(typeIR~l~, typeIR''')]``.
  .. {empty}
   ... Let!~type~ ``+TYPEDEF+ ++_++ typeIR~r~`` be ``typeIR'''``.
 
   ... Return ``xref:compat_mask[$compat_mask(typeIR'', typeIR~r~)]``.
- .. {empty} return ``false``.
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``false``.
 
 xref:SelectCase_keyset_ok[SelectCase_keyset_ok]:
 
@@ -10339,40 +10405,42 @@ xref:ParserLocalDecls_ok[ParserLocalDecls_ok]:
 
 xref:compat_table_exact_optional_key[$compat_table_exact_optional_key(typeIR'')]
 
-. Try:
- .. {empty}
-  ... If let ``boolTypeIR`` be ``typeIR''``:
-   .... Check that ``boolTypeIR`` matches pattern ``+BOOL+``.
+. If let ``boolTypeIR`` be ``typeIR''``:
+ .. Check that ``boolTypeIR`` matches pattern ``+BOOL+``.
  return ``true``.
-  ... Else if let ``errorTypeIR`` be ``typeIR''``:
-   .... Check that ``errorTypeIR`` matches pattern ``+ERROR+``.
+. Else if let ``errorTypeIR`` be ``typeIR''``:
+ .. Check that ``errorTypeIR`` matches pattern ``+ERROR+``.
  return ``true``.
-  ... Else if let ``integerTypeIR`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return ``xref:compat_table_exact_optional_key[$compat_table_exact_optional_key(typeIR)]``.
-  ... Else if let ``+TYPE+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return ``xref:compat_table_exact_optional_key[$compat_table_exact_optional_key(typeIR)]``.
-  ... Else if let ``+ENUM+ ++_++ +{+++_++^{asterisk}^+}+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+ENUM+ ++_++ +<+typeIR+>+ +{+++_++^{asterisk}^+}+`` be ``typeIR''``:
-   .... Return ``xref:compat_table_exact_optional_key[$compat_table_exact_optional_key(typeIR)]``.
- .. {empty} return ``false``.
+. Else if let ``integerTypeIR`` be ``typeIR''``: return ``true``.
+. Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
+ .. Return ``xref:compat_table_exact_optional_key[$compat_table_exact_optional_key(typeIR)]``.
+. Else if let ``+TYPE+ ++_++ typeIR`` be ``typeIR''``:
+ .. Return ``xref:compat_table_exact_optional_key[$compat_table_exact_optional_key(typeIR)]``.
+. Else if let ``+ENUM+ ++_++ +{+++_++^{asterisk}^+}+`` be ``typeIR''``: return ``true``.
+. Else:
+ .. Return ``xref:compat_table_exact_optional_key[$compat_table_exact_optional_key(typeIR)]``.
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``false``.
 
 xref:compat_table_lpm_ternary_range_key[$compat_table_lpm_ternary_range_key(typeIR'')]
 
-. Try:
- .. {empty}
-  ... If let ``intTypeIR`` be ``typeIR''``:
-   .... Check that ``intTypeIR`` matches pattern ``+INT+``.
+. If let ``intTypeIR`` be ``typeIR''``:
+ .. Check that ``intTypeIR`` matches pattern ``+INT+``.
  return ``true``.
-  ... Else if let ``+INT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
-  ... Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return ``xref:compat_table_lpm_ternary_range_key[$compat_table_lpm_ternary_range_key(typeIR)]``.
-  ... Else if let ``+TYPE+ ++_++ typeIR`` be ``typeIR''``:
-   .... Return ``xref:compat_table_lpm_ternary_range_key[$compat_table_lpm_ternary_range_key(typeIR)]``.
-  ... Else if let ``+ENUM+ ++_++ +<+typeIR+>+ +{+++_++^{asterisk}^+}+`` be ``typeIR''``:
-   .... Return ``xref:compat_table_lpm_ternary_range_key[$compat_table_lpm_ternary_range_key(typeIR)]``.
- .. {empty} return ``false``.
+. Else if let ``+INT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
+. Else if let ``+BIT+ +<+++_+++>+`` be ``typeIR''``: return ``true``.
+. Else if let ``+TYPEDEF+ ++_++ typeIR`` be ``typeIR''``:
+ .. Return ``xref:compat_table_lpm_ternary_range_key[$compat_table_lpm_ternary_range_key(typeIR)]``.
+. Else if let ``+TYPE+ ++_++ typeIR`` be ``typeIR''``:
+ .. Return ``xref:compat_table_lpm_ternary_range_key[$compat_table_lpm_ternary_range_key(typeIR)]``.
+. Else:
+ .. Return ``xref:compat_table_lpm_ternary_range_key[$compat_table_lpm_ternary_range_key(typeIR)]``.
+
+. Otherwise:
+ .. Otherwise:
+  ... Return ``false``.
 
 xref:compat_table_key[``typeIR`` can be used with match kind ``nameIR``]
 

@@ -66,6 +66,7 @@ dec $compat_lnot(typeIR) : bool
 def $compat_lnot(BOOL) = true
 def $compat_lnot(TYPEDEF _ typeIR) = $compat_lnot(typeIR)
 def $compat_lnot(_) = false
+  -- otherwise
 
 rule Expr_ok/unaryExpression-lnot:
   p TC |- '!' expression : ('!' typedExpressionIR_reduced) '#' expressionNoteIR
@@ -87,6 +88,7 @@ def $compat_bnot(INT `< _ `>) = true
 def $compat_bnot(BIT `< _ `>) = true
 def $compat_bnot(TYPEDEF _ typeIR) = $compat_bnot(typeIR)
 def $compat_bnot(_) = false
+  -- otherwise
 
 rule Expr_ok/unaryExpression-bnot:
   p TC |- '~' expression : ('~' typedExpressionIR_reduced) '#' expressionNoteIR
@@ -109,6 +111,7 @@ def $compat_uplusminus(INT `< _ `>) = true
 def $compat_uplusminus(BIT `< _ `>) = true
 def $compat_uplusminus(TYPEDEF _ typeIR) = $compat_uplusminus(typeIR)
 def $compat_uplusminus(_) = false
+  -- otherwise
 
 rule Expr_ok/unaryExpression-uplusminus:
   p TC |- unop expression : (unop typedExpressionIR_reduced) '#' expressionNoteIR
@@ -135,6 +138,7 @@ def $compat_plusminusmult(BIT `< w_l `>, BIT `< w_r `>) = $(w_l = w_r)
 def $compat_plusminusmult(TYPEDEF _ typeIR_l, typeIR_r) = $compat_plusminusmult(typeIR_l, typeIR_r)
 def $compat_plusminusmult(typeIR_l, TYPEDEF _ typeIR_r) = $compat_plusminusmult(typeIR_l, typeIR_r)
 def $compat_plusminusmult(_, _) = false
+  -- otherwise
 
 rule Expr_ok/binaryExpression-plusminusmult:
   p TC |- expression_l binop expression_r
@@ -169,6 +173,7 @@ def $compat_satplusminus(BIT `< w_l `>, BIT `< w_r `>) = $(w_l = w_r)
 def $compat_satplusminus(TYPEDEF _ typeIR_l, typeIR_r) = $compat_satplusminus(typeIR_l, typeIR_r)
 def $compat_satplusminus(typeIR_l, TYPEDEF _ typeIR_r) = $compat_satplusminus(typeIR_l, typeIR_r)
 def $compat_satplusminus(_, _) = false
+  -- otherwise
 
 rule Expr_ok/binaryExpression-satplusminus:
   p TC |- expression_l binop expression_r
@@ -202,6 +207,7 @@ def $compat_divmod(INT, INT) = true
 def $compat_divmod(TYPEDEF _ typeIR_l, typeIR_r) = $compat_divmod(typeIR_l, typeIR_r)
 def $compat_divmod(typeIR_l, TYPEDEF _ typeIR_r) = $compat_divmod(typeIR_l, typeIR_r)
 def $compat_divmod(_, _) = false
+  -- otherwise
 
 
 rule Expr_ok/rhs-lctk:
@@ -278,6 +284,7 @@ def $compat_shift(BIT `< _ `>, BIT `< _ `>) = true
 def $compat_shift(TYPEDEF _ typeIR_l, typeIR_r) = $compat_shift(typeIR_l, typeIR_r)
 def $compat_shift(typeIR_l, TYPEDEF _ typeIR_r) = $compat_shift(typeIR_l, typeIR_r)
 def $compat_shift(_, _) = false
+  -- otherwise
 
 
 rule Expr_ok/rhs-fixbit:
@@ -370,6 +377,7 @@ def $compat_compare(BIT `< w_l `>, BIT `< w_r `>) = $(w_l = w_r)
 def $compat_compare(TYPEDEF _ typeIR_l, typeIR_r) = $compat_compare(typeIR_l, typeIR_r)
 def $compat_compare(typeIR_l, TYPEDEF _ typeIR_r) = $compat_compare(typeIR_l, typeIR_r)
 def $compat_compare(_, _) = false
+  -- otherwise
 
 rule Expr_ok/binaryExpression-comparison:
   p TC |- expression_l binop expression_r
@@ -404,6 +412,7 @@ def $compat_bitwise(BIT `< w_l `>, BIT `< w_r `>) = $(w_l = w_r)
 def $compat_bitwise(TYPEDEF _ typeIR_l, typeIR_r) = $compat_bitwise(typeIR_l, typeIR_r)
 def $compat_bitwise(typeIR_l, TYPEDEF _ typeIR_r) = $compat_bitwise(typeIR_l, typeIR_r)
 def $compat_bitwise(_, _) = false
+  -- otherwise
 
 rule Expr_ok/binaryExpression-bitwise:
   p TC |- expression_l binop expression_r
@@ -441,6 +450,7 @@ def $compat_concat(BIT `< _ `>, BIT `< _ `>) = true
 def $compat_concat(TYPEDEF _ typeIR_l, typeIR_r) = $compat_concat(typeIR_l, typeIR_r)
 def $compat_concat(typeIR_l, TYPEDEF _ typeIR_r) = $compat_concat(typeIR_l, typeIR_r)
 def $compat_concat(_, _) = false
+  -- otherwise
 
 dec $result_concat(typeIR, typeIR) : typeIR
 
@@ -490,6 +500,7 @@ def $compat_logical(BOOL, BOOL) = true
 def $compat_logical(TYPEDEF _ typeIR_l, typeIR_r) = $compat_logical(typeIR_l, typeIR_r)
 def $compat_logical(typeIR_l, TYPEDEF _ typeIR_r) = $compat_logical(typeIR_l, typeIR_r)
 def $compat_logical(_, _) = false
+  -- otherwise
 
 rule Expr_ok/binaryExpression-logical:
   p TC |- expression_l binop expression_r
@@ -930,6 +941,7 @@ def $compat_array_index(INT `< _ `>) = true
 def $compat_array_index(BIT `< _ `>) = true
 def $compat_array_index(TYPEDEF _ typeIR) = $compat_array_index(typeIR)
 def $compat_array_index(_) = false
+  -- otherwise
 
 
 rule Expr_ok/tuple:
@@ -1028,6 +1040,7 @@ def $compat_bitslice_base(INT `< w `>) = $(w > 0)
 def $compat_bitslice_base(BIT `< _ `>) = true
 def $compat_bitslice_base(TYPEDEF _ typeIR) = $compat_bitslice_base(typeIR)
 def $compat_bitslice_base(_) = false
+  -- otherwise
 
 dec $compat_bitslice_range_index(typeIR) : bool
   hint(prose_true %0 "can be used as a bitslice range index")
@@ -1037,6 +1050,7 @@ def $compat_bitslice_range_index(INT `< _ `>) = true
 def $compat_bitslice_range_index(BIT `< _ `>) = true
 def $compat_bitslice_range_index(TYPEDEF _ typeIR) = $compat_bitslice_range_index(typeIR)
 def $compat_bitslice_range_index(_) = false
+  -- otherwise
 
 dec $compat_bitslice_offset_index(typeIR) : bool
   hint(prose_true %0 "can be used as an bitslice offset")
@@ -1046,6 +1060,7 @@ def $compat_bitslice_offset_index(INT `< _ `>) = true
 def $compat_bitslice_offset_index(BIT `< _ `>) = true
 def $compat_bitslice_offset_index(TYPEDEF _ typeIR) = $compat_bitslice_offset_index(typeIR)
 def $compat_bitslice_offset_index(_) = false
+  -- otherwise
 
 dec $compat_bitslice_offset_width(typeIR) : bool
   hint(prose_true %0 "can be used as an bitslice width")
@@ -1055,6 +1070,7 @@ def $compat_bitslice_offset_width(INT `< _ `>) = true
 def $compat_bitslice_offset_width(BIT `< _ `>) = true
 def $compat_bitslice_offset_width(TYPEDEF _ typeIR) = $compat_bitslice_offset_width(typeIR)
 def $compat_bitslice_offset_width(_) = false
+  -- otherwise
 
 dec $is_valid_bitslice(typeIR, nat, nat) : bool
   hint(prose_true %0 `[ %1 ':' %2 `] "is a valid bitslice")

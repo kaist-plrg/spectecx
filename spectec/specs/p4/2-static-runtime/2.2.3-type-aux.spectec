@@ -53,6 +53,7 @@ def $is_defaultable_typeIR(HEADER_UNION _ `< _ `> `{ (_ typeIR _ ';')* `}) = $fo
 def $is_defaultable_typeIR(ENUM _ `{ _ `}) = true
 def $is_defaultable_typeIR(ENUM _ `< typeIR `> `{ _ `}) = $is_defaultable_typeIR(typeIR)
 def $is_defaultable_typeIR(_) = false
+  -- otherwise
 
 ;;; Equals
 
@@ -74,6 +75,7 @@ def $is_equalable_typeIR(HEADER_INVALID) = false
 def $is_equalable_typeIR(setTypeIR) = false
 def $is_equalable_typeIR(tableMetadataTypeIR) = false
 def $is_equalable_typeIR(_) = true
+  -- otherwise
 
 ;;; Assignable
 
@@ -87,3 +89,4 @@ def $is_assignable_typeIR(TYPEDEF _ typeIR) = $is_assignable_typeIR(typeIR)
 def $is_assignable_typeIR(objectTypeIR) = false
 def $is_assignable_typeIR(synthesizedTypeIR) = false
 def $is_assignable_typeIR(_) = true
+  -- otherwise

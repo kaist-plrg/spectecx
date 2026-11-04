@@ -2427,6 +2427,7 @@ def $is_defaultable_typeIR(ENUM _ `<typeIR`> `{_`})
   = $is_defaultable_typeIR(typeIR)
 
 def $is_defaultable_typeIR(_) = false
+  -- otherwise
 
 dec $is_equalable_typeIR(typeIR) : bool
   hint(prose_true %0 "supports equality comparison")
@@ -2461,6 +2462,7 @@ def $is_equalable_typeIR(setTypeIR) = false
 def $is_equalable_typeIR(tableMetadataTypeIR) = false
 
 def $is_equalable_typeIR(_) = true
+  -- otherwise
 
 dec $is_assignable_typeIR(typeIR) : bool
   hint(prose_true %0 "supports assignment")
@@ -2479,6 +2481,7 @@ def $is_assignable_typeIR(objectTypeIR) = false
 def $is_assignable_typeIR(synthesizedTypeIR) = false
 
 def $is_assignable_typeIR(_) = true
+  -- otherwise
 ;; === 2-static-runtime/2.2.4-type-def-aux.spectec ===
 dec $typeId_of_typeDefIR(typeDefIR) : typeId
   hint(prose_in "the name of" %0)
@@ -7312,6 +7315,7 @@ def $nestable_typedef(controlObjectTypeIR) = true
 def $nestable_typedef(packageObjectTypeIR) = true
 
 def $nestable_typedef(_) = false
+  -- otherwise
 
 rule Type_wf/typedefTypeIR:
   B |- TYPEDEF _ typeIR
@@ -7335,6 +7339,7 @@ def $nestable_new(TYPEDEF _ typeIR) = $nestable_new(typeIR)
 def $nestable_new(newTypeIR) = true
 
 def $nestable_new(_) = false
+  -- otherwise
 
 rule Type_wf/newTypeIR:
   B |- TYPE _ typeIR
@@ -7364,6 +7369,7 @@ def $nestable_list(newTypeIR) = true
 def $nestable_list(dataTypeIR) = true
 
 def $nestable_list(_) = false
+  -- otherwise
 
 rule Type_wf/listTypeIR:
   B |- LIST `<typeIR`>
@@ -7403,6 +7409,7 @@ def $nestable_tuple(headerUnionTypeIR) = true
 def $nestable_tuple(enumTypeIR) = true
 
 def $nestable_tuple(_) = false
+  -- otherwise
 
 rule Type_wf/tupleTypeIR:
   B |- TUPLE `<typeIR*`>
@@ -7422,6 +7429,7 @@ def $nestable_headerStack(headerTypeIR) = true
 def $nestable_headerStack(headerUnionTypeIR) = true
 
 def $nestable_headerStack(_) = false
+  -- otherwise
 
 rule Type_wf/headerStackTypeIR:
   B |- typeIR `[_`]
@@ -7468,6 +7476,7 @@ def $nestable_header(STRUCT _ `<_`> `{(_ typeIR_field _ ';')*`})
   = $forall_($nestable_struct_in_header(typeIR_field)*)
 
 def $nestable_header(_) = false
+  -- otherwise
 
 def $nestable_struct_in_header(BOOL) = true
 
@@ -7488,6 +7497,7 @@ def $nestable_struct_in_header(STRUCT _ `<_`> `{(_ typeIR_field _ ';')*`})
   = $forall_($nestable_struct_in_header(typeIR_field)*)
 
 def $nestable_struct_in_header(_) = false
+  -- otherwise
 
 rule Type_wf/headerTypeIR:
   B |- HEADER _ `<_`> `{(_ typeIR_field nameIR_field ';')*`}
@@ -7508,6 +7518,7 @@ def $nestable_headerUnion(newTypeIR) = true
 def $nestable_headerUnion(headerTypeIR) = true
 
 def $nestable_headerUnion(_) = false
+  -- otherwise
 
 rule Type_wf/headerUnionTypeIR:
   B |- HEADER_UNION _ `<_`> `{(_ typeIR_field nameIR_field ';')*`}
@@ -7538,6 +7549,7 @@ def $nestable_enum_serializable(TYPE _ typeIR)
   = $nestable_new_in_enum_serializable(typeIR)
 
 def $nestable_enum_serializable(_) = false
+  -- otherwise
 
 def $nestable_new_in_enum_serializable(INT `<_`>) = true
 
@@ -7551,6 +7563,7 @@ def $nestable_new_in_enum_serializable(TYPEDEF _ typeIR)
 def $nestable_new_in_enum_serializable(newTypeIR) = true
 
 def $nestable_new_in_enum_serializable(_) = false
+  -- otherwise
 
 rule Type_wf/non-serializable:
   B |- ENUM _ `{nameIR_field*`}
@@ -7640,6 +7653,7 @@ def $nestable_set(SEQ `<typeIR*`>)
   = $forall_($nestable_sequence_in_set(typeIR)*)
 
 def $nestable_set(_) = false
+  -- otherwise
 
 def $nestable_tuple_in_set(BOOL) = true
 
@@ -7659,6 +7673,7 @@ def $nestable_tuple_in_set(TUPLE `<typeIR*`>)
 def $nestable_tuple_in_set(enumTypeIR) = true
 
 def $nestable_tuple_in_set(_) = false
+  -- otherwise
 
 def $nestable_sequence_in_set(BOOL) = true
 
@@ -7682,6 +7697,7 @@ def $nestable_sequence_in_set(SEQ `<typeIR*`>)
   = $forall_($nestable_sequence_in_set(typeIR)*)
 
 def $nestable_sequence_in_set(_) = false
+  -- otherwise
 
 rule Type_wf/setTypeIR:
   B |- SET `<typeIR`>
@@ -7771,6 +7787,7 @@ def $nestable_action(objectTypeIR) = false
 def $nestable_action(synthesizedTypeIR) = false
 
 def $nestable_action(_) = true
+  -- otherwise
 
 rule CallableType_wf/actionTypeIR:
   B |- _ ACTION _ `(parameterIR*`)
@@ -7792,6 +7809,7 @@ def $nestable_definedFunction(objectTypeIR) = false
 def $nestable_definedFunction(synthesizedTypeIR) = false
 
 def $nestable_definedFunction(_) = true
+  -- otherwise
 
 rule CallableType_wf/definedFunctionTypeIR:
   B |- FUNCTION _ `(parameterIR*`) ':' typeIR_ret
@@ -7817,6 +7835,7 @@ def $nestable_externFunction(packageObjectTypeIR) = false
 def $nestable_externFunction(tableObjectTypeIR) = false
 
 def $nestable_externFunction(_) = true
+  -- otherwise
 
 rule CallableType_wf/externFunctionTypeIR:
   B |- EXTERN_FUNCTION _ `(parameterIR*`) ':' typeIR_ret
@@ -7846,6 +7865,7 @@ def $nestable_externMethod(packageObjectTypeIR) = false
 def $nestable_externMethod(tableObjectTypeIR) = false
 
 def $nestable_externMethod(_) = true
+  -- otherwise
 
 rule CallableType_wf/non-abstract:
   B |- EXTERN_METHOD _ `(parameterIR*`) ':' typeIR_ret
@@ -7878,6 +7898,7 @@ def $nestable_parserApplyMethod(packageObjectTypeIR) = false
 def $nestable_parserApplyMethod(tableObjectTypeIR) = false
 
 def $nestable_parserApplyMethod(_) = true
+  -- otherwise
 
 rule CallableType_wf/parserApplyMethodTypeIR:
   B |- PARSER_APPLY `(parameterIR*`)
@@ -7900,6 +7921,7 @@ def $nestable_controlApplyMethod(packageObjectTypeIR) = false
 def $nestable_controlApplyMethod(tableObjectTypeIR) = false
 
 def $nestable_controlApplyMethod(_) = true
+  -- otherwise
 
 rule CallableType_wf/controlApplyMethodTypeIR:
   B |- CONTROL_APPLY `(parameterIR*`)
@@ -7943,6 +7965,7 @@ def $nestable_constructor_extern(packageObjectTypeIR) = false
 def $nestable_constructor_extern(tableObjectTypeIR) = false
 
 def $nestable_constructor_extern(_) = true
+  -- otherwise
 
 rule ConstructorType_wf/externObjectTypeIR:
   B |- CONSTRUCTOR `(parameterIR*`) ':' typeIR_object
@@ -7966,6 +7989,7 @@ def $nestable_constructor_parser(packageObjectTypeIR) = false
 def $nestable_constructor_parser(tableObjectTypeIR) = false
 
 def $nestable_constructor_parser(_) = true
+  -- otherwise
 
 rule ConstructorType_wf/parserObjectTypeIR:
   B |- CONSTRUCTOR `(parameterIR*`) ':' typeIR_object
@@ -7990,6 +8014,7 @@ def $nestable_constructor_control(packageObjectTypeIR) = false
 def $nestable_constructor_control(tableObjectTypeIR) = false
 
 def $nestable_constructor_control(_) = true
+  -- otherwise
 
 rule ConstructorType_wf/controlObjectTypeIR:
   B |- CONSTRUCTOR `(parameterIR*`) ':' typeIR_object
@@ -8015,6 +8040,7 @@ def $nestable_constructor_package(TYPEDEF _ typeIR)
 def $nestable_constructor_package(tableObjectTypeIR) = false
 
 def $nestable_constructor_package(_) = true
+  -- otherwise
 
 rule ConstructorType_wf/packageObjectTypeIR:
   B |- CONSTRUCTOR `(parameterIR*`) ':' typeIR_object
@@ -8039,6 +8065,7 @@ def $definable_constructor(controlObjectTypeIR) = true
 def $definable_constructor(packageObjectTypeIR) = true
 
 def $definable_constructor(_) = false
+  -- otherwise
 
 rule ConstructorTypeDef_wf:
   B |- constructorTypeDefIR
@@ -9347,6 +9374,7 @@ def $compat_lnot(BOOL) = true
 def $compat_lnot(TYPEDEF _ typeIR) = $compat_lnot(typeIR)
 
 def $compat_lnot(_) = false
+  -- otherwise
 
 rule Expr_ok/unaryExpression-lnot:
   p TC |- '!' expression : ('!' typedExpressionIR_reduced) '#' expressionNoteIR
@@ -9366,6 +9394,7 @@ def $compat_bnot(BIT `<_`>) = true
 def $compat_bnot(TYPEDEF _ typeIR) = $compat_bnot(typeIR)
 
 def $compat_bnot(_) = false
+  -- otherwise
 
 rule Expr_ok/unaryExpression-bnot:
   p TC |- '~' expression : ('~' typedExpressionIR_reduced) '#' expressionNoteIR
@@ -9387,6 +9416,7 @@ def $compat_uplusminus(BIT `<_`>) = true
 def $compat_uplusminus(TYPEDEF _ typeIR) = $compat_uplusminus(typeIR)
 
 def $compat_uplusminus(_) = false
+  -- otherwise
 
 rule Expr_ok/unaryExpression-uplusminus:
   p TC
@@ -9415,6 +9445,7 @@ def $compat_plusminusmult(typeIR_l, TYPEDEF _ typeIR_r)
   = $compat_plusminusmult(typeIR_l, typeIR_r)
 
 def $compat_plusminusmult(_, _) = false
+  -- otherwise
 
 rule Expr_ok/binaryExpression-plusminusmult:
   p TC
@@ -9450,6 +9481,7 @@ def $compat_satplusminus(typeIR_l, TYPEDEF _ typeIR_r)
   = $compat_satplusminus(typeIR_l, typeIR_r)
 
 def $compat_satplusminus(_, _) = false
+  -- otherwise
 
 rule Expr_ok/binaryExpression-satplusminus:
   p TC
@@ -9483,6 +9515,7 @@ def $compat_divmod(typeIR_l, TYPEDEF _ typeIR_r)
   = $compat_divmod(typeIR_l, typeIR_r)
 
 def $compat_divmod(_, _) = false
+  -- otherwise
 
 rule Expr_ok/rhs-lctk:
   p TC
@@ -9558,6 +9591,7 @@ def $compat_shift(typeIR_l, TYPEDEF _ typeIR_r)
   = $compat_shift(typeIR_l, typeIR_r)
 
 def $compat_shift(_, _) = false
+  -- otherwise
 
 rule Expr_ok/rhs-fixbit:
   p TC
@@ -9643,6 +9677,7 @@ def $compat_compare(typeIR_l, TYPEDEF _ typeIR_r)
   = $compat_compare(typeIR_l, typeIR_r)
 
 def $compat_compare(_, _) = false
+  -- otherwise
 
 rule Expr_ok/binaryExpression-comparison:
   p TC
@@ -9678,6 +9713,7 @@ def $compat_bitwise(typeIR_l, TYPEDEF _ typeIR_r)
   = $compat_bitwise(typeIR_l, typeIR_r)
 
 def $compat_bitwise(_, _) = false
+  -- otherwise
 
 rule Expr_ok/binaryExpression-bitwise:
   p TC
@@ -9719,6 +9755,7 @@ def $compat_concat(typeIR_l, TYPEDEF _ typeIR_r)
   = $compat_concat(typeIR_l, typeIR_r)
 
 def $compat_concat(_, _) = false
+  -- otherwise
 
 dec $result_concat(typeIR, typeIR) : typeIR
 
@@ -9774,6 +9811,7 @@ def $compat_logical(typeIR_l, TYPEDEF _ typeIR_r)
   = $compat_logical(typeIR_l, typeIR_r)
 
 def $compat_logical(_, _) = false
+  -- otherwise
 
 rule Expr_ok/binaryExpression-logical:
   p TC
@@ -10093,6 +10131,7 @@ def $compat_array_index(BIT `<_`>) = true
 def $compat_array_index(TYPEDEF _ typeIR) = $compat_array_index(typeIR)
 
 def $compat_array_index(_) = false
+  -- otherwise
 
 rule Expr_ok/tuple:
   p TC
@@ -10170,6 +10209,7 @@ def $compat_bitslice_base(BIT `<_`>) = true
 def $compat_bitslice_base(TYPEDEF _ typeIR) = $compat_bitslice_base(typeIR)
 
 def $compat_bitslice_base(_) = false
+  -- otherwise
 
 dec $compat_bitslice_range_index(typeIR) : bool
   hint(prose_true %0 "can be used as a bitslice range index")
@@ -10185,6 +10225,7 @@ def $compat_bitslice_range_index(TYPEDEF _ typeIR)
   = $compat_bitslice_range_index(typeIR)
 
 def $compat_bitslice_range_index(_) = false
+  -- otherwise
 
 dec $compat_bitslice_offset_index(typeIR) : bool
   hint(prose_true %0 "can be used as an bitslice offset")
@@ -10200,6 +10241,7 @@ def $compat_bitslice_offset_index(TYPEDEF _ typeIR)
   = $compat_bitslice_offset_index(typeIR)
 
 def $compat_bitslice_offset_index(_) = false
+  -- otherwise
 
 dec $compat_bitslice_offset_width(typeIR) : bool
   hint(prose_true %0 "can be used as an bitslice width")
@@ -10215,6 +10257,7 @@ def $compat_bitslice_offset_width(TYPEDEF _ typeIR)
   = $compat_bitslice_offset_width(typeIR)
 
 def $compat_bitslice_offset_width(_) = false
+  -- otherwise
 
 dec $is_valid_bitslice(typeIR, nat, nat) : bool
   hint(prose_true %0 `[%1 ':' %2`] "is a valid bitslice")
@@ -11352,6 +11395,7 @@ def $compat_range(typeIR_l, TYPEDEF _ typeIR_r)
   = $compat_range(typeIR_l, typeIR_r)
 
 def $compat_range(_, _) = false
+  -- otherwise
 
 rule ForCollectionExpr_ok/list:
   TC typeIR_var |- expression : typedExpressionIR
@@ -11645,6 +11689,7 @@ def $compat_switch(TYPEDEF _ typeIR) = $compat_switch(typeIR)
 def $compat_switch(enumTypeIR) = true
 
 def $compat_switch(_) = false
+  -- otherwise
 
 rule Stmt_ok/switchStatement-general:
   LOCAL TC f l
@@ -12877,6 +12922,7 @@ def $compat_mask(typeIR_l, TYPEDEF _ typeIR_r)
   = $compat_mask(typeIR_l, typeIR_r)
 
 def $compat_mask(_, _) = false
+  -- otherwise
 
 rule SelectCase_keyset_simple_ok/mask:
   TC typeIR_key
@@ -13273,6 +13319,7 @@ def $compat_table_exact_optional_key(ENUM _ `<typeIR`> `{_`})
   = $compat_table_exact_optional_key(typeIR)
 
 def $compat_table_exact_optional_key(_) = false
+  -- otherwise
 
 dec $compat_table_lpm_ternary_range_key(typeIR) : bool
 
@@ -13292,6 +13339,7 @@ def $compat_table_lpm_ternary_range_key(ENUM _ `<typeIR`> `{_`})
   = $compat_table_lpm_ternary_range_key(typeIR)
 
 def $compat_table_lpm_ternary_range_key(_) = false
+  -- otherwise
 
 dec $compat_table_key(nameIR, typeIR) : bool
   hint(prose_true %1 "can be used with match kind" %0)

@@ -13,6 +13,7 @@ def $compat_table_exact_optional_key(TYPE _ typeIR) = $compat_table_exact_option
 def $compat_table_exact_optional_key(ENUM _ `{ _ `}) = true
 def $compat_table_exact_optional_key(ENUM _ `< typeIR `> `{ _ `}) = $compat_table_exact_optional_key(typeIR)
 def $compat_table_exact_optional_key(_) = false
+  -- otherwise
 
 dec $compat_table_lpm_ternary_range_key(typeIR) : bool
 def $compat_table_lpm_ternary_range_key(INT) = true
@@ -22,6 +23,7 @@ def $compat_table_lpm_ternary_range_key(TYPEDEF _ typeIR) = $compat_table_lpm_te
 def $compat_table_lpm_ternary_range_key(TYPE _ typeIR) = $compat_table_lpm_ternary_range_key(typeIR)
 def $compat_table_lpm_ternary_range_key(ENUM _ `< typeIR `> `{ _ `}) = $compat_table_lpm_ternary_range_key(typeIR)
 def $compat_table_lpm_ternary_range_key(_) = false
+  -- otherwise
 
 dec $compat_table_key(nameIR, typeIR) : bool
   hint(prose_true %1 "can be used with match kind" %0)
