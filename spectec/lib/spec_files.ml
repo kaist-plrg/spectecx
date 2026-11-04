@@ -58,7 +58,7 @@ let collect ?(recursive = true) root =
   in
   gather root
 
-let root_of_file file =
+let find_root_opt directory =
   let holds_marker dir =
     match Sys.readdir dir with
     | exception Sys_error _ -> false
@@ -73,4 +73,4 @@ let root_of_file file =
       let parent = Filename.dirname dir in
       if String.equal parent dir then None else search parent
   in
-  search (Filename.dirname file)
+  search directory

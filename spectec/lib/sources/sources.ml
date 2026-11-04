@@ -30,7 +30,7 @@ let canonical_path path =
 
 let spec_directory_of path =
   let path = canonical_path path in
-  match Spectec.spec_root_of_file path with
+  match Spectec.find_spec_root_opt (Filename.dirname path) with
   | Some directory -> { path = canonical_path directory; recursive = true }
   | None -> { path = Filename.dirname path; recursive = false }
 
