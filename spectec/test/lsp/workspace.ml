@@ -28,6 +28,12 @@ let () =
   assert (Sources.find_text_opt sources.contents ~file:alias = None);
   assert (
     Sources.canonical_path "unmarked/../unmarked/2-def.spectec" = definition);
+  let marked = Sources.load ~buffers:[] "overlapping/inner" in
+  assert (
+    marked.files
+    = [ Sources.canonical_path "overlapping/inner/2-inner.spectec" ]);
+  let unmarked = Sources.load ~buffers:[] "unmarked" in
+  assert (unmarked.files = [ definition; use ]);
   let workspace = Workspace.create () in
   let workspace = Workspace.set workspace ~path:definition (read definition) in
   let workspace = Workspace.set workspace ~path:use (read use) in

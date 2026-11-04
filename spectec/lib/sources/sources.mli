@@ -1,3 +1,5 @@
+(** The [.spectec] files in [path] form one spec. When [recursive] is true, the
+    spec also includes files in nested directories. *)
 type spec_directory = { path : string; recursive : bool }
 
 (** A failure while reading a file or listing a directory. *)
@@ -21,6 +23,12 @@ type t = private {
     can be resolved, the result is [path] made absolute. *)
 val canonical_path : string -> string
 
+(** [spec_directory_of path] resolves [path] with {!canonical_path}. If the
+    resolved path names a directory, the marker search starts there. Otherwise,
+    it starts in the directory holding the resolved file. The search examines
+    the starting directory and its parents for a [*.spec] marker. The result's
+    [path] names the nearest directory with a marker, with [recursive = true],
+    or the starting directory with [recursive = false] if no marker is found. *)
 val spec_directory_of : string -> spec_directory
 
 (** [contains spec_directory ~file] resolves [file] with {!canonical_path} and
@@ -30,10 +38,11 @@ val spec_directory_of : string -> spec_directory
     [.spectec] extension. *)
 val contains : spec_directory -> file:string -> bool
 
-(** [load ~buffers path] loads the spec containing the file [path]. A file's
-    text comes from [buffers] when [buffers] holds it, and from disk otherwise.
-    A [.spectec] file in [buffers] belongs to the spec when the spec directory
-    {!contains} it, even when the file does not exist on disk. *)
+(** [load ~buffers path] loads the spec containing the file or directory [path].
+    A file's text comes from [buffers] when [buffers] holds it, and from disk
+    otherwise. The loader also includes [.spectec] files from [buffers] that
+    satisfy [contains (spec_directory_of path) ~file], even if they do not exist
+    on disk. *)
 val load : buffers:Spectec.spec_source list -> string -> t
 
 (** [io_diagnostics sources] returns diagnostics for [sources.io_errors] with

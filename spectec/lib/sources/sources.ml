@@ -28,11 +28,14 @@ let canonical_path path =
         (Filename.basename path)
     with Unix.Unix_error _ -> path)
 
+let is_directory path = Sys.file_exists path && Sys.is_directory path
+
 let spec_directory_of path =
   let path = canonical_path path in
-  match Spectec.find_spec_root_opt (Filename.dirname path) with
-  | Some directory -> { path = canonical_path directory; recursive = true }
-  | None -> { path = Filename.dirname path; recursive = false }
+  let directory = if is_directory path then path else Filename.dirname path in
+  match Spectec.find_spec_root_opt directory with
+  | Some root -> { path = canonical_path root; recursive = true }
+  | None -> { path = directory; recursive = false }
 
 let contains spec_directory ~file =
   let rec within directory =
@@ -100,8 +103,10 @@ let load ~buffers path =
         else None)
       buffers
   in
+  let selected_files = if is_directory path then [] else [ path ] in
   let files =
-    List.sort_uniq Spectec.compare_spec_files ((path :: disk_files) @ open_files)
+    List.sort_uniq Spectec.compare_spec_files
+      (selected_files @ disk_files @ open_files)
   in
   let read filename =
     match find_text_opt buffers ~file:filename with
