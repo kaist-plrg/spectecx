@@ -136,10 +136,12 @@ Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_1
 error: function was not matched
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/dup-param1.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/dup-param1.p4
+Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/dup-param1.p4
+error: relation was not matched
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/dup-param2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/dup-param2.p4
+Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/dup-param2.p4
+error: relation was not matched
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/dup-param3.p4
 Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/dup-param3.p4
@@ -363,7 +365,8 @@ Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_1
 error: relation was not matched
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/issue2206.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/issue2206.p4
+Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/issue2206.p4
+error: relation was not matched
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/issue2220.p4
 Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/issue2220.p4
@@ -378,7 +381,8 @@ Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_1
 error: relation was not matched
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/issue2260-1.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/issue2260-1.p4
+Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/issue2260-1.p4
+error: relation was not matched
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/issue2267.p4
 Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/issue2267.p4
@@ -456,7 +460,8 @@ Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_1
 error: relation was not matched
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/issue2835-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/issue2835-bmv2.p4
+Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/issue2835-bmv2.p4
+error: relation was not matched
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/issue3045-1.p4
 Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/issue3045-1.p4
@@ -471,7 +476,8 @@ Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_1
 error: relation was not matched
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/issue3057-1.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/issue3057-1.p4
+Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/issue3057-1.p4
+error: relation was not matched
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/issue306.p4
 Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/issue306.p4
@@ -525,7 +531,8 @@ Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_1
 error: syntax error
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/issue3273.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/issue3273.p4
+Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/issue3273.p4
+error: relation was not matched
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/issue3282.p4
 Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/issue3282.p4
@@ -543,7 +550,8 @@ Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_1
 error: function was not matched
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/issue3299.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/issue3299.p4
+Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/issue3299.p4
+error: relation was not matched
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/issue3304.p4
 Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/issue3304.p4
@@ -816,13 +824,16 @@ Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_1
 error: relation was not matched
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/loop1-err.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/loop1-err.p4
+Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/loop1-err.p4
+error: relation was not matched
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/loop2-err.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/loop2-err.p4
+Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/loop2-err.p4
+error: relation was not matched
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/loop3-err.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/loop3-err.p4
+Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/loop3-err.p4
+error: syntax error
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/methodArgDontcare.p4
 Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/methodArgDontcare.p4
@@ -948,7 +959,8 @@ Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_1
 error: relation was not matched
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/shift-int-non-const.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/shift-int-non-const.p4
+Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/shift-int-non-const.p4
+error: relation was not matched
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/shift_e.p4
 Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/shift_e.p4
@@ -1171,7 +1183,8 @@ Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_1
 error: relation was not matched
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/width1_e.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/width1_e.p4
+Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/width1_e.p4
+error: relation was not matched
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/width_e.p4
 Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors/width_e.p4
@@ -1181,9 +1194,9 @@ Expected typechecker failure: ../../../../../spectec/testdata/interp/p4/p4c/p4_1
 error: relation was not matched
 
 Typechecker (sl) summary
-  Ran:        250 / 310    (80.65%)
-  Passed:     250 (100.00% of ran)
+  Ran:        263 / 310    (84.84%)
+  Passed:     263 (100.00% of ran)
   Failed:       0 (0.00% of ran)
-  Skipped:     60 (19.35% of total)
+  Skipped:     47 (15.16% of total)
 
 

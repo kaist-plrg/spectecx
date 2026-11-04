@@ -7,7 +7,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/action-synth.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/action-two-params.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/action-two-params.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/action-two-params.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/action-uses.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/action-uses.p4
@@ -34,16 +34,16 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/action_param1.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/action_profile-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/action_profile-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/action_profile-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/action_profile_max_group_size_annotation.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/action_profile_max_group_size_annotation.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/action_profile_max_group_size_annotation.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/action_profile_sum_of_members_annotation.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/action_profile_sum_of_members_annotation.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/action_profile_sum_of_members_annotation.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/action_selector_shared-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/action_selector_shared-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/action_selector_shared-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/action_selector_unused-bmv2.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/action_selector_unused-bmv2.p4
@@ -139,7 +139,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/basic_routing-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/bfd_offload.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/bfd_offload.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/bfd_offload.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/bit0-bmv2.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/bit0-bmv2.p4
@@ -172,7 +172,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/bvec_union-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/calc-ebpf.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/calc-ebpf.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/calc-ebpf.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/call.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/call.p4
@@ -250,7 +250,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/const.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/constStruct.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/constStruct.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/constStruct.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/constant-fold-infint.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/constant-fold-infint.p4
@@ -265,7 +265,7 @@ Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/cons
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/constants.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/constructor_cast.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/constructor_cast.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/constructor_cast.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/constsigned.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/constsigned.p4
@@ -319,10 +319,10 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/custom-type-restricted-fields.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/dash/dash-pipeline-pna-dpdk.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/dash/dash-pipeline-pna-dpdk.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/dash/dash-pipeline-pna-dpdk.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/dash/dash-pipeline-v1model-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/dash/dash-pipeline-v1model-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/dash/dash-pipeline-v1model-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/decl.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/decl.p4
@@ -418,7 +418,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/enum.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/enumCast.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/enumCast.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/enumCast.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/equality-bmv2.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/equality-bmv2.p4
@@ -451,16 +451,16 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/expression.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/extern-funcs-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/extern-funcs-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/extern-funcs-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/extern-inst-as-param.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/extern-inst-as-param.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/extern-inst-as-param.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/extern.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/extern.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/extern2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/extern2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/extern2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/extern3.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/extern3.p4
@@ -469,7 +469,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/extract_for_header_union.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/fabric_20190420/fabric.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/fabric_20190420/fabric.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/fabric_20190420/fabric.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/factory1.p4
 Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/factory1.p4
@@ -490,28 +490,28 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/fold_match.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/forloop1.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/forloop1.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/forloop1.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/forloop2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/forloop2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/forloop2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/forloop3.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/forloop3.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/forloop3.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/forloop4.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/forloop4.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/forloop4.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/forloop5.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/forloop5.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/forloop5.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/forloop5a.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/forloop5a.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/forloop5a.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/forloop6.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/forloop6.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/forloop6.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/forloop7.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/forloop7.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/forloop7.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/free-form-annotation.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/free-form-annotation.p4
@@ -652,7 +652,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/gauntlet_extern_arguments_1.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/gauntlet_extern_arguments_2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/gauntlet_extern_arguments_2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/gauntlet_extern_arguments_2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/gauntlet_extern_arguments_3.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/gauntlet_extern_arguments_3.p4
@@ -676,7 +676,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/gauntlet_hdr_function_cast-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/gauntlet_hdr_in_value-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/gauntlet_hdr_in_value-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/gauntlet_hdr_in_value-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/gauntlet_hdr_init-bmv2.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/gauntlet_hdr_init-bmv2.p4
@@ -772,7 +772,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/gauntlet_nested_table_calls-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/gauntlet_optional-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/gauntlet_optional-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/gauntlet_optional-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/gauntlet_parser_test_1.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/gauntlet_parser_test_1.p4
@@ -907,7 +907,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/hit-expr-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/hit_ebpf.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/hit_ebpf.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/hit_ebpf.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/index.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/index.p4
@@ -916,7 +916,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/init-entries-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/init_ebpf.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/init_ebpf.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/init_ebpf.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/initializer.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/initializer.p4
@@ -1036,19 +1036,19 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1000-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1001-1-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1001-1-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1001-1-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1001-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1001-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1001-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1006.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1006.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1006.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1025-bmv2.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1025-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1043-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1043-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1043-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1049-bmv2.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1049-bmv2.p4
@@ -1063,10 +1063,10 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1079-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1097-2-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1097-2-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1097-2-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1097-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1097-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1097-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1107.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1107.p4
@@ -1102,7 +1102,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1301.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1304.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1304.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1304.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1325-bmv2.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1325-bmv2.p4
@@ -1183,7 +1183,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1544-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1560-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1560-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1560-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1566-bmv2.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1566-bmv2.p4
@@ -1207,16 +1207,16 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1638.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1642-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1642-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1642-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1653-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1653-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1653-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1653-complex-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1653-complex-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1653-complex-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1660-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1660-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1660-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1670-bmv2.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1670-bmv2.p4
@@ -1240,7 +1240,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1755-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1765-1-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1765-1-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1765-1-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1765-bmv2.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1765-bmv2.p4
@@ -1255,10 +1255,10 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1806.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1814-1-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1814-1-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1814-1-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1814-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1814-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1814-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1822.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1822.p4
@@ -1282,7 +1282,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1876.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1879-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1879-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1879-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1882-1-bmv2.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1882-1-bmv2.p4
@@ -1315,7 +1315,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1955.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1958.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1958.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1958.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1985.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue1985.p4
@@ -1390,16 +1390,16 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2170-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2175-1.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2175-1.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2175-1.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2175-2.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2175-2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2175-3.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2175-3.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2175-3.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2175-4.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2175-4.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2175-4.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2175-5.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2175-5.p4
@@ -1414,7 +1414,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2176-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2190.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2190.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2190.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2201-bmv2.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2201-bmv2.p4
@@ -1483,13 +1483,13 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2279_3.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2279_4.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2279_4.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2279_4.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2283_1-bmv2.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2283_1-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2287-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2287-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2287-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2288-1.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2288-1.p4
@@ -1612,7 +1612,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue249.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2492.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2492.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2492.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2495-bmv2.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2495-bmv2.p4
@@ -1666,19 +1666,19 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2627.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2630.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2630.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2630.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2635.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2635.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2648.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2648.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2648.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2657-bmv2.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2657-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2664-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2664-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2664-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue270-bmv2.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue270-bmv2.p4
@@ -1696,16 +1696,16 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2726-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2735-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2735-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2735-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2735.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2735.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2735.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2791_ebpf.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2791_ebpf.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2791_ebpf.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2793_ebpf.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2793_ebpf.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2793_ebpf.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2795.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2795.p4
@@ -1729,16 +1729,16 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue281.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2810.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2810.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2810.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2816-1_ebpf.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2816-1_ebpf.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2816-1_ebpf.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2816_ebpf.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2816_ebpf.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2816_ebpf.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2844-enum.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2844-enum.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2844-enum.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2890.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2890.p4
@@ -1765,10 +1765,10 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2958.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue297-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue297-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue297-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue298-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue298-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue298-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2982.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue2982.p4
@@ -1840,7 +1840,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue3238.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue3246-1.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue3246-1.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue3246-1.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue3274-1.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue3274-1.p4
@@ -1879,7 +1879,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue3329-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue3333.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue3333.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue3333.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue3343.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue3343.p4
@@ -1978,7 +1978,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue3806.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue383-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue383-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue383-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue3884-1.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue3884-1.p4
@@ -2014,7 +2014,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue422.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue4288.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue4288.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue4288.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue430-1-bmv2.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue430-1-bmv2.p4
@@ -2083,7 +2083,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue47.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue4739.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue4739.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue4739.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue4760_dontcare_action_out_arg.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue4760_dontcare_action_out_arg.p4
@@ -2119,7 +2119,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue4901_new_start_with_start_state_loopback2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue4932.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue4932.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue4932.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue496.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue496.p4
@@ -2170,7 +2170,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue561.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue562-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue562-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue562-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue584-1-bmv2.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue584-1-bmv2.p4
@@ -2200,7 +2200,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue737-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue754.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue754.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue754.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue774-4-bmv2.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue774-4-bmv2.p4
@@ -2233,10 +2233,10 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue841.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue870_ebpf.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue870_ebpf.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue870_ebpf.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue871.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue871.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue871.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue887.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue887.p4
@@ -2251,7 +2251,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue914-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue933-1.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue933-1.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue933-1.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue933.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue933.p4
@@ -2290,7 +2290,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/key-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/key-issue-1020_ebpf.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/key-issue-1020_ebpf.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/key-issue-1020_ebpf.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/key1-bmv2.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/key1-bmv2.p4
@@ -2299,7 +2299,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/key_after_exit.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/key_ebpf.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/key_ebpf.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/key_ebpf.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/kvanno.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/kvanno.p4
@@ -2338,7 +2338,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/list6.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/list7.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/list7.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/list7.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/list8.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/list8.p4
@@ -2359,10 +2359,10 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/lookahead_ubpf.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/loop-3-clause-tricky2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/loop-3-clause-tricky2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/loop-3-clause-tricky2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/lpm_ebpf.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/lpm_ebpf.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/lpm_ebpf.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/lpm_ubpf.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/lpm_ubpf.p4
@@ -2416,7 +2416,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/named-arg.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/named-arg1.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/named-arg1.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/named-arg1.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/named_meter_1-bmv2.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/named_meter_1-bmv2.p4
@@ -2473,19 +2473,19 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/octal.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/omec/up4.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/omec/up4.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/omec/up4.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/op_bin.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/op_bin.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/op_bin.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/opassign1-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/opassign1-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/opassign1-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/opassign1.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/opassign1.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/opassign1.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/opassign2-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/opassign2-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/opassign2-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/overwrite.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/overwrite.p4
@@ -2632,10 +2632,10 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/pkginfo_annotation.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/pna-action-selector-1.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/pna-action-selector-1.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/pna-action-selector-1.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/pna-action-selector.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/pna-action-selector.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/pna-action-selector.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/pna-add-on-miss.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/pna-add-on-miss.p4
@@ -2662,7 +2662,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/pna-dpdk-direct-counter-learner.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/pna-dpdk-direct-counter.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/pna-dpdk-direct-counter.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/pna-dpdk-direct-counter.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/pna-dpdk-direct-meter-learner.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/pna-dpdk-direct-meter-learner.p4
@@ -2836,7 +2836,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/pna-too-big-label-name-dpdk.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/pr1363.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/pr1363.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/pr1363.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/pragma-action.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/pragma-action.p4
@@ -2857,7 +2857,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/precedence-lt.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/precedence.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/precedence.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/precedence.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/pred.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/pred.p4
@@ -2887,55 +2887,55 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/proliferation1.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-action-profile1.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-action-profile1.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-action-profile1.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-action-profile3.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-action-profile3.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-action-profile3.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-action-profile4.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-action-profile4.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-action-profile4.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-action-selector1.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-action-selector1.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-action-selector1.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-action-selector2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-action-selector2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-action-selector2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-action-selector3.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-action-selector3.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-action-selector3.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-action-selector4.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-action-selector4.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-action-selector4.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-action-selector5.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-action-selector5.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-action-selector5.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-action-selector6.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-action-selector6.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-action-selector6.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-basic-counter-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-basic-counter-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-basic-counter-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-bool-ternary-const-entry-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-bool-ternary-const-entry-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-bool-ternary-const-entry-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-conditional_operator.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-conditional_operator.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-counter1.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-counter1.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-counter1.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-counter2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-counter2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-counter2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-counter3.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-counter3.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-counter3.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-counter4.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-counter4.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-custom-type-counter-index.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-custom-type-counter-index.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-custom-type-counter-index.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-dpdk-128bitCast.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-dpdk-128bitCast.p4
@@ -3103,7 +3103,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-e2e-cloning-basic-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-end-of-ingress-test-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-end-of-ingress-test-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-end-of-ingress-test-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-counters-bmv2.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-counters-bmv2.p4
@@ -3112,55 +3112,55 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-digest-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-byte-alignment_1.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-byte-alignment_1.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-byte-alignment_1.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-byte-alignment_2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-byte-alignment_2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-byte-alignment_2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-byte-alignment_3.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-byte-alignment_3.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-byte-alignment_3.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-byte-alignment_4.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-byte-alignment_4.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-byte-alignment_5.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-byte-alignment_5.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-byte-alignment_5.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-byte-alignment_6.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-byte-alignment_6.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-byte-alignment_6.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-byte-alignment_7.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-byte-alignment_7.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-byte-alignment_7.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-byte-alignment_8.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-byte-alignment_8.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-byte-alignment_8.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-byte-alignment_9.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-byte-alignment_9.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-byte-alignment_9.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-counter.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-counter.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-counter.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-directmeter.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-directmeter.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-externs.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-externs.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-externs.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-local-variable.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-local-variable.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-meter-execute-err.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-meter-execute-err.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-meter-execute-err.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-meter.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-meter.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-meter.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-meter1.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-meter1.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-meter1.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-varbit-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-varbit-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-dpdk-varbit-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-incremental-checksum.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-example-incremental-checksum.p4
@@ -3250,10 +3250,10 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-metadata-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-meter1.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-meter1.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-meter1.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-meter3.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-meter3.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-meter3.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-meter4.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-meter4.p4
@@ -3262,7 +3262,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-meter5.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-meter7-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-meter7-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-meter7-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-multicast-basic-2-bmv2.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-multicast-basic-2-bmv2.p4
@@ -3277,28 +3277,28 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-parser-error-test-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-random.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-random.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-random.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-recirculate-no-meta-bmv2.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-recirculate-no-meta-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-register-complex-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-register-complex-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-register-complex-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-register-read-write-2-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-register-read-write-2-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-register-read-write-2-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-register-read-write-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-register-read-write-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-register-read-write-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-register1.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-register1.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-register1.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-register2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-register2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-register2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-register3.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-register3.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-register3.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-remove-header.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/psa-remove-header.p4
@@ -3346,19 +3346,19 @@ Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/pvs-
 Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/pvs-struct-3-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/pvs.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/pvs.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/pvs.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/rcp.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/rcp.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/rcp.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/rcp1.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/rcp1.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/rcp1.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/redundant_parsers_dangling_unused_parser_decl.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/redundant_parsers_dangling_unused_parser_decl.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/register-serenum-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/register-serenum-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/register-serenum-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/reject.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/reject.p4
@@ -3421,7 +3421,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/simple-actions_ubpf.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/simple-firewall_ubpf.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/simple-firewall_ubpf.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/simple-firewall_ubpf.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/simplify.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/simplify.p4
@@ -3541,7 +3541,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/stack_complex-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/stack_ebpf.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/stack_ebpf.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/stack_ebpf.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/standard_headers.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/standard_headers.p4
@@ -3553,7 +3553,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/std_meta_inlining.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/strength.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/strength.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/strength.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/strength2.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/strength2.p4
@@ -3577,10 +3577,10 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/string_anno.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/struct.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/struct.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/struct.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/struct1.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/struct1.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/struct1.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/structArg.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/structArg.p4
@@ -3610,7 +3610,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/switch-expression.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/switch_ebpf.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/switch_ebpf.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/switch_ebpf.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/synth-action.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/synth-action.p4
@@ -3625,7 +3625,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/table-entries-lpm-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/table-entries-no-arg-actions.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/table-entries-no-arg-actions.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/table-entries-no-arg-actions.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/table-entries-optional-bmv2.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/table-entries-optional-bmv2.p4
@@ -3655,13 +3655,13 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/ternary2-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/ternary_ebpf.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/ternary_ebpf.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/ternary_ebpf.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/test-parserinvalidargument-error-bmv2.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/test-parserinvalidargument-error-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/test_ebpf.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/test_ebpf.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/test_ebpf.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/trailing-comma.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/trailing-comma.p4
@@ -3685,7 +3685,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/tuple2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/tuple3.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/tuple3.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/tuple3.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/tuple4.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/tuple4.p4
@@ -3697,7 +3697,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/twoPipe.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/two_ebpf.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/two_ebpf.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/two_ebpf.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/type-params.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/type-params.p4
@@ -3709,7 +3709,7 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/type-spec-nested.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/typedef-constructor.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/typedef-constructor.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/typedef-constructor.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/ubpf_checksum_extern.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/ubpf_checksum_extern.p4
@@ -3778,16 +3778,16 @@ Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/v1mo
 Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/v1model-p4runtime-most-types1.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/v1model-special-ops-bmv2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/v1model-special-ops-bmv2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/v1model-special-ops-bmv2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/valid.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/valid.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/valid_ebpf.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/valid_ebpf.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/valid_ebpf.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/value-sets.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/value-sets.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/value-sets.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/value_set_ebpf.p4
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/value_set_ebpf.p4
@@ -3808,10 +3808,10 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/very_simple_model.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/virtual.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/virtual.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/virtual.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/virtual2.p4
-Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/virtual2.p4
+Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/virtual2.p4
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/virtual3.p4
 Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/virtual3.p4
@@ -3835,9 +3835,9 @@ Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples
 Typechecker success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/xor_test.p4
 
 Typechecker (pl) summary
-  Ran:       1061 / 1278   (83.02%)
-  Passed:    1061 (100.00% of ran)
+  Ran:       1215 / 1278   (95.07%)
+  Passed:    1215 (100.00% of ran)
   Failed:       0 (0.00% of ran)
-  Skipped:    217 (16.98% of total)
+  Skipped:     63 (4.93% of total)
 
 
