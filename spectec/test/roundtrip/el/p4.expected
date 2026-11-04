@@ -306,7 +306,7 @@ dec $extend_map<K, V>(map<K, V>, map<K, V>) : map<K, V>
 def $extend_map<K, V>(`{(K_a ':' V_a)*`}, `{(K_b ':' V_b)*`})
   = `{(K_c ':' V_c)*`}
   -- if `{(K_c ':' V_c)*`} = $adds_map<K, V>(`{(K_a ':' V_a)*`}, K_b*, V_b*)
-;; === 0-aux/0.1-example.spectec ===
+;; === 0-aux/0.2-example.spectec ===
 dec $modulo(nat, nat) : nat?
   hint(prose_in %0 "mod" %1)
 
@@ -6387,7 +6387,7 @@ def $subexpressions_of_argumentIR(_) = eps
 
 def $subexpressions_of_argumentListIR(argumentIR*)
   = $concat_<typedExpressionIR>($subexpressions_of_argumentIR(argumentIR)*)
-;; === 5-typing/5.00-flow.spectec ===
+;; === 5-typing/5.00.1-flow.spectec ===
 syntax flow =
   | CONT
   | RET

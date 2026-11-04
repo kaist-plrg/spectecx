@@ -379,21 +379,21 @@ def $extend_map<K, V>(map<K, V>, map<K, V>) : map<K, V> =
    clause 0({ K_a : V_a*{K_a <- K_a*, V_a <- V_a*} }, { K_b : V_b*{K_b <- K_b*, V_b <- V_b*} }) = { K_c : V_c*{K_c <- K_c*, V_c <- V_c*} }
       -- let { K_c : V_c*{K_c <- K_c*, V_c <- V_c*} } = $adds_map<K, V>({ K_a : V_a*{K_a <- K_a*, V_a <- V_a*} }, K_b*{K_b <- K_b*}, V_b*{V_b <- V_b*})
 
-;; ../../../../../spectec/specs/p4/0-aux/0.1-example.spectec:1:1-2:29:
+;; ../../../../../spectec/specs/p4/0-aux/0.2-example.spectec:1:1-2:29:
 def $modulo(nat, nat) : nat? =
 
-   ;; ../../../../../spectec/specs/p4/0-aux/0.1-example.spectec:4:1-5:18:
+   ;; ../../../../../spectec/specs/p4/0-aux/0.2-example.spectec:4:1-5:18:
    clause 0(n_a, n_b) = ?((n_a \ n_b))
       -- if (n_b =/= 0)
 
-   ;; ../../../../../spectec/specs/p4/0-aux/0.1-example.spectec:6:1-7:16:
+   ;; ../../../../../spectec/specs/p4/0-aux/0.2-example.spectec:6:1-7:16:
    clause 1(n_a, n_b) = ?()
       -- if (n_b = 0)
 
-;; ../../../../../spectec/specs/p4/0-aux/0.1-example.spectec:9:1-10:36:
+;; ../../../../../spectec/specs/p4/0-aux/0.2-example.spectec:9:1-10:36:
 def $modulo_42(nat) : nat =
 
-   ;; ../../../../../spectec/specs/p4/0-aux/0.1-example.spectec:12:1-13:34:
+   ;; ../../../../../spectec/specs/p4/0-aux/0.2-example.spectec:12:1-13:34:
    clause 0(n) = n_result
       -- let nat?{nat <- nat?} = $modulo(n, 42)
       -- if nat?{nat <- nat?} matches (_)
@@ -9867,20 +9867,20 @@ def $subexpressions_of_argumentListIR(argumentListIR) : typedExpressionListIR =
    ;; ../../../../../spectec/specs/p4/4-p4-ir/4.4-ir-subexpression.spectec:117:1-119:50:
    clause 0(argumentIR*{argumentIR <- argumentIR*}) = $concat_<typedExpressionIR>($subexpressions_of_argumentIR(argumentIR)*{argumentIR <- argumentIR*})
 
-;; ../../../../../spectec/specs/p4/5-typing/5.00-flow.spectec:5:15-5:25:
+;; ../../../../../spectec/specs/p4/5-typing/5.00.1-flow.spectec:5:15-5:25:
 syntax flow = 
    | cont (from flow)
    | ret (from flow)
 
-;; ../../../../../spectec/specs/p4/5-typing/5.00-flow.spectec:9:1-10:58:
+;; ../../../../../spectec/specs/p4/5-typing/5.00.1-flow.spectec:9:1-10:58:
 def $join_flow(flow, flow) : flow =
 
-   ;; ../../../../../spectec/specs/p4/5-typing/5.00-flow.spectec:11:1-11:31:
+   ;; ../../../../../spectec/specs/p4/5-typing/5.00.1-flow.spectec:11:1-11:31:
    clause 0(flow, flow') = ret
       -- if flow matches `RET`
       -- if flow' matches `RET`
 
-   ;; ../../../../../spectec/specs/p4/5-typing/5.00-flow.spectec:12:1-13:15:
+   ;; ../../../../../spectec/specs/p4/5-typing/5.00.1-flow.spectec:12:1-13:15:
    clause 1(f_a, f_b) = cont
       -- otherwise
 

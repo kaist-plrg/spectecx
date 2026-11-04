@@ -442,7 +442,7 @@ dec $extend_map<K, V>(({ (K_a : V_a)* }), ({ (K_b : V_b)* }))
 
 2. Return ({ (K_c : V_c)* })
 
-;; ../../../../../spectec/specs/p4/0-aux/0.1-example.spectec:1:1-2:29:
+;; ../../../../../spectec/specs/p4/0-aux/0.2-example.spectec:1:1-2:29:
 dec $modulo(n_a, n_b)
 
 1. If ((n_b =/= 0)), then
@@ -457,7 +457,7 @@ dec $modulo(n_a, n_b)
 
 2. Else Phantom#13
 
-;; ../../../../../spectec/specs/p4/0-aux/0.1-example.spectec:9:1-10:36:
+;; ../../../../../spectec/specs/p4/0-aux/0.2-example.spectec:9:1-10:36:
 dec $modulo_42(n)
 
 1. (Let nat? be $modulo(n, 42))
@@ -12562,12 +12562,12 @@ dec $subexpressions_of_argumentListIR(argumentIR*)
 
 1. Return $concat_<typedExpressionIR>($subexpressions_of_argumentIR(argumentIR)*)
 
-;; ../../../../../spectec/specs/p4/5-typing/5.00-flow.spectec:5:15-5:25:
+;; ../../../../../spectec/specs/p4/5-typing/5.00.1-flow.spectec:5:15-5:25:
 syntax flow = 
    | cont (from flow)
    | ret (from flow)
 
-;; ../../../../../spectec/specs/p4/5-typing/5.00-flow.spectec:9:1-10:58:
+;; ../../../../../spectec/specs/p4/5-typing/5.00.1-flow.spectec:9:1-10:58:
 dec $join_flow(flow'', flow''')
 
 1. If ((flow'' matches pattern `RET`)), then
