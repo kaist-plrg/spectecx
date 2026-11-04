@@ -36,6 +36,16 @@ let contains spec_directory ~file =
   in
   within (Filename.dirname (canonical_path file))
 
+(* The message of a [Sys_error] from opening or listing a path is the path,
+   [": "] and a reason without a colon. The message of a [Sys_error] from
+   reading an open file is the reason alone. *)
+let split_sys_error message =
+  match String.rindex_opt message ':' with
+  | Some i ->
+      ( Some (String.sub message 0 i),
+        String.sub message (i + 2) (String.length message - i - 2) )
+  | None -> (None, message)
+
 let find_text_opt contents ~file =
   List.find_map
     (fun (source : Spectec.spec_source) ->
@@ -58,7 +68,7 @@ let load ~buffers path =
         else Spectec.collect_spec_siblings
       in
       (List.map canonical_path (collect spec_directory.path), [])
-    with Sys_error message -> ([], [ (path, message) ])
+    with Sys_error message -> ([], [ (path, snd (split_sys_error message)) ])
   in
   let open_files =
     List.filter_map
@@ -79,17 +89,17 @@ let load ~buffers path =
     | None -> (
         match In_channel.with_open_bin filename In_channel.input_all with
         | contents -> Either.Right Spectec.{ filename; contents }
-        | exception Sys_error message -> Either.Left (filename, message))
+        | exception Sys_error message ->
+            Either.Left (filename, snd (split_sys_error message)))
   in
   let file_errors, contents = List.partition_map read files in
   { spec_directory; files; contents; io_errors = listing_errors @ file_errors }
 
 let io_diagnostics sources =
   List.map
-    (fun (file, message) ->
+    (fun (file, reason) ->
       Spectec.Diagnostic.error ~source:"io" (Common.Location.File file)
-        (Printf.sprintf "cannot read spec file %s: %s" (Filename.basename file)
-           message))
+        (Printf.sprintf "cannot read %s: %s" (Filename.basename file) reason))
     sources.io_errors
 
 let equal a b =

@@ -14,18 +14,22 @@ let print_diagnostics = function
             diagnostics)
         reports
 
-let case ?path ?(buffers = []) name text =
-  let path = Option.value path ~default:name in
-  let sources =
-    Sources.load
-      ~buffers:(Spectec.{ filename = path; contents = text } :: buffers)
-      path
-  in
+let report name sources =
   Printf.printf "## %s\n" name;
   Check.analyze sources
   |> Check.diagnostics ~encoding:`UTF16 ~sources
   |> print_diagnostics;
   print_newline ()
+
+let case ?path ?(buffers = []) name text =
+  let path = Option.value path ~default:name in
+  report name
+    (Sources.load
+       ~buffers:(Spectec.{ filename = path; contents = text } :: buffers)
+       path)
+
+let read_error_cases () =
+  report "missing file" (Sources.load ~buffers:[] "multifile/absent.spectec")
 
 let project_cases () =
   let path = "multifile/2-use.spectec" in
@@ -65,4 +69,5 @@ let () =
   case "malformed atom" "syntax t = | X.foo\n";
   case "elab error" "syntax t = foo\n";
   project_cases ();
+  read_error_cases ();
   editing_cases ()
