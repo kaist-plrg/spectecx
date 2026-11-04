@@ -193,6 +193,12 @@ let uses_readme =
      $lookup, and an atom as written, as in INT. A query for a metavariable \
      also finds its suffixed forms, such as c_1 and c'."
 
+let show_readme =
+  spec_readme
+  ^ "\n\n\
+     NAME is spelled as in the spec: a function with its dollar sign, as in \
+     $lookup, and a rule as its relation and rule name, as in Check_expr/num."
+
 let guard_parsed_spec ~color path ~on_ok =
   let sources = Sources.load ~buffers:[] path in
   let relative_to = Sys.getcwd () in
@@ -202,7 +208,7 @@ let guard_parsed_spec ~color path ~on_ok =
         (Diagnostic.Bag.of_list io_diagnostics)
   | [] ->
       let contents = Sources.relative_contents sources ~relative_to in
-      Cli.Error_handling.guard ~color ~on_ok @@ fun () ->
+      Cli.Error_handling.guard ~color ~on_ok:(on_ok ~contents) @@ fun () ->
       parse_spec_sources contents
 
 let query_uses_command =
@@ -216,14 +222,40 @@ let query_uses_command =
   and name = anon ("name" %: string)
   and color = Cli.Cli_args.Output.color_flag in
   fun () ->
-    guard_parsed_spec ~color path ~on_ok:(fun spec_el ->
+    guard_parsed_spec ~color path ~on_ok:(fun ~contents:_ spec_el ->
         Query.Uses.find_all (Query.Uses.of_spec spec_el) ~name
         |> Query.Render.render_uses |> print_string)
+
+let query_show_command =
+  Core.Command.basic
+    ~summary:"print the source of each definition with one of the given names"
+    ~readme:(fun () -> show_readme)
+  @@
+  let open Core.Command.Let_syntax in
+  let open Core.Command.Param in
+  let%map path = anon ("spec" %: string)
+  and names = anon (non_empty_sequence_as_list ("name" %: string))
+  and color = Cli.Cli_args.Output.color_flag in
+  fun () ->
+    guard_parsed_spec ~color path ~on_ok:(fun ~contents spec_el ->
+        let found, missing =
+          Query.Definitions.find_each (Query.Definitions.of_spec spec_el) ~names
+        in
+        print_string
+          (Query.Render.render_definitions
+             ~text_of_file:(fun file -> Sources.find_text_opt contents ~file)
+             found);
+        match missing with
+        | [] -> ()
+        | _ :: _ ->
+            Out_channel.flush stdout;
+            Cli.Error_handling.exit_with_diagnostics ~color
+              (Query.Render.diagnostics_of_missing_names missing))
 
 let query_command =
   Core.Command.group ~summary:"look up names and definitions in a spec"
     ~readme:(fun () -> spec_readme)
-    [ ("uses", query_uses_command) ]
+    [ ("uses", query_uses_command); ("show", query_show_command) ]
 
 let command =
   Core.Command.group ~summary:"SpecTec command line tools"

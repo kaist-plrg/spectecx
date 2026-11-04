@@ -1,11 +1,12 @@
 module Location = Common.Location
 module Group = Common.Group
 
-type line_range = { file : string; first_line : int }
+type line_range = { file : string; first_line : int; last_line : int }
 
 let line_range_of_location (location : Location.t) =
   match location with
-  | Span { file; left; _ } -> Some { file; first_line = left.line }
+  | Span { file; left; right } ->
+      Some { file; first_line = left.line; last_line = right.line }
   | Unknown | File _ -> None
 
 let pair_with_line_ranges items ~location_of =
@@ -21,6 +22,10 @@ let string_of_count n ~noun =
 
 let label_of_definition (definition : Definitions.definition) =
   Definitions.string_of_kind definition.kind ^ " " ^ definition.name
+
+let string_of_line_range { first_line; last_line; _ } =
+  if first_line = last_line then string_of_int first_line
+  else Printf.sprintf "%d-%d" first_line last_line
 
 let string_of_lines lines =
   String.concat "" (List.map (fun line -> line ^ "\n") lines)
@@ -52,3 +57,29 @@ let render_uses uses =
          file :: List.map owner_row (Group.in_order owners_in_file))
        by_file
     @ [ summary ])
+
+let render_definitions ~text_of_file definitions =
+  pair_with_line_ranges definitions
+    ~location_of:(fun (definition : Definitions.definition) ->
+      definition.location)
+  |> List.map (fun (_, line_range) ->
+         let source_lines =
+           Option.fold ~none:[]
+             ~some:(String.split_on_char '\n')
+             (text_of_file line_range.file)
+           |> List.filteri (fun i _ ->
+                  line_range.first_line <= i + 1
+                  && i + 1 <= line_range.last_line)
+         in
+         string_of_lines
+           (Printf.sprintf "%s:%s" line_range.file
+              (string_of_line_range line_range)
+           :: source_lines))
+  |> String.concat "\n"
+
+let diagnostics_of_missing_names names =
+  List.map
+    (fun name ->
+      Diag.error ~source:"query" Location.Unknown ("no definition named " ^ name))
+    names
+  |> Diag.Bag.of_list

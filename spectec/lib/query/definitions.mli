@@ -19,6 +19,13 @@ type t = definition list
     that names several types introduces one definition for each. *)
 val of_def : Lang.El.def -> t
 
+val of_spec : Lang.El.spec -> t
+
+(** [find_each definitions ~names] lists the definitions named by each of
+    [names], in the order of [names], together with the names that no definition
+    has. *)
+val find_each : t -> names:string list -> t * string list
+
 (** [string_of_kind kind] is the keyword or keywords that introduce a [kind]
     definition. *)
 val string_of_kind : kind -> string

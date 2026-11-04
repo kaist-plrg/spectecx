@@ -167,3 +167,85 @@ A struct type's field names and its hints are not uses, but a field access is:
   untyped/a.spectec
     def $x: 7
   1 use in 1 definition across 1 file
+
+show prints the source of every definition with a given name, under its file
+and lines. A function's name covers its declaration and each of its clauses:
+
+  $ spectec query show imp '$lookup'
+  imp/spec.spectec:7-8
+  dec $lookup<K, V>(map<K, V>, K) : V?
+    hint(prose_in "lookup of" %1 "in" %0)
+  
+  imp/spec.spectec:9
+  def $lookup<K, V>(eps, K_query) = eps
+  
+  imp/spec.spectec:10-11
+  def $lookup<K, V>((K_h -> V_h)::(K_t -> V_t)*, K_query) = V_h
+    -- if K_h = K_query
+  
+  imp/spec.spectec:12-14
+  def $lookup<K, V>((K_h -> V_h):: (K_t -> V_t)*, K_query)
+    = $lookup<K, V>((K_t -> V_t)*, K_query)
+    -- otherwise
+
+A relation and one of its rules can be shown together. A rule is named by its
+relation and its own name:
+
+  $ spectec query show imp Check_expr Check_expr/num
+  imp/spec.spectec:63-66
+  relation Check_expr:
+    tenv |- expr : type
+    hint(input %0 %1)
+    hint(prose_in "typechecking" %1 "under context" %0)
+  
+  imp/spec.spectec:68-69
+  rule Check_expr/num:
+    tenv |- (_NUM i) : INT
+
+show prints the definitions in the order of its name arguments:
+
+  $ spectec query show imp Check_expr/num Check_expr | grep '^imp'
+  imp/spec.spectec:68-69
+  imp/spec.spectec:63-66
+
+A syntax declaration that names several types counts as a definition of
+each of them:
+
+  $ spectec query show p4 initializerOpt
+  p4/1-p4-surface/1-syntax.spectec:209
+  syntax annotationList, initializerOpt
+  
+  p4/1-p4-surface/1-syntax.spectec:926-928
+  syntax initializerOpt =
+    | _EMPTY
+    | initializer
+
+The clauses of a function can be spread over several files:
+
+  $ mkdir split
+  $ cat > split/1-dec.spectec <<'EOF'
+  > dec $double(nat) : nat
+  > def $double(0) = 0
+  > EOF
+  $ cat > split/2-more.spectec <<'EOF'
+  > def $double(n) = $(n + n)
+  > EOF
+  $ spectec query show split '$double'
+  split/1-dec.spectec:1
+  dec $double(nat) : nat
+  
+  split/1-dec.spectec:2
+  def $double(0) = 0
+  
+  split/2-more.spectec:1
+  def $double(n) = $(n + n)
+
+A name with no definition is reported after the others, and the command fails:
+
+  $ spectec query show imp tenv nothere
+  imp/spec.spectec:59
+  syntax tenv = map<id, type>
+  error: no definition named nothere
+  
+    source: query
+  [1]

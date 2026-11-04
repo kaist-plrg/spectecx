@@ -26,6 +26,18 @@ let of_def (def : El.def) =
   | El.DefD (id, _, _, _, _) -> [ definition Def (El.Print.string_of_defid id) ]
   | El.SepD -> []
 
+let of_spec spec = List.concat_map of_def spec
+
+let find_all definitions ~name =
+  List.filter (fun definition -> String.equal definition.name name) definitions
+
+let find_each definitions ~names =
+  let found = List.map (fun name -> (name, find_all definitions ~name)) names in
+  ( List.concat_map snd found,
+    List.filter_map
+      (fun (name, matches) -> if matches = [] then Some name else None)
+      found )
+
 let string_of_kind = function
   | Syntax -> "syntax"
   | Var -> "var"

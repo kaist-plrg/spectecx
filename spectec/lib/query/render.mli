@@ -7,3 +7,13 @@
     clauses of one function share a line, and so do the unnamed rules of one
     relation. Each kind and name pair counts as one definition across files. *)
 val render_uses : Uses.use list -> string
+
+(** [render_definitions ~text_of_file definitions] shows the source text of each
+    of [definitions] under its file and line range. [text_of_file file] is the
+    text of [file], or [None] when it is unknown. *)
+val render_definitions :
+  text_of_file:(string -> string option) -> Definitions.t -> string
+
+(** [diagnostics_of_missing_names names] returns a bag with one error diagnostic
+    for each of [names], saying that no definition has that name. *)
+val diagnostics_of_missing_names : string list -> Diag.Bag.t
