@@ -68,44 +68,26 @@ let resolve_spec_dir dir =
   if Filename.is_relative dir then Filename.concat "../../../../../" dir
   else dir
 
-(** P4 Typecheck test - uses P4_Target.spec_dir *)
-let run_p4_typecheck ~p4_old ~negative ~request ~includes ~exclude_dirs
-    ~testdirs =
+(** P4 typecheck test over the spec at [Targets_p4.P4.Target.spec_dir] *)
+let run_p4_typecheck ~negative ~request ~includes ~exclude_dirs ~testdirs =
   let expectation =
     if negative then Spectec.Task.Negative else Spectec.Task.Positive
   in
-  if p4_old then
-    let spec_dir = resolve_spec_dir Targets_p4.P4.Target_old.spec_dir in
-    let spec_files = Files.collect ~suffix:".spectec" spec_dir in
-    let inputs =
-      List.concat_map testdirs ~f:(fun dir ->
-          Targets_p4.P4.Typecheck_old.collect ~dir ())
-      |> List.map ~f:(fun input ->
-             {
-               Targets_p4.P4.Typecheck_old.includes;
-               filename = Targets_p4.P4.Typecheck_old.source input;
-               expect = expectation;
-             })
-    in
-    run_with_task
-      (module Targets_p4.P4.Typecheck_old)
-      ~request ~spec_files ~inputs ~exclude_dirs
-  else
-    let spec_dir = resolve_spec_dir Targets_p4.P4.Target.spec_dir in
-    let spec_files = Files.collect ~suffix:".spectec" spec_dir in
-    let inputs =
-      List.concat_map testdirs ~f:(fun dir ->
-          Targets_p4.P4.Typecheck.collect ~dir ())
-      |> List.map ~f:(fun input ->
-             {
-               Targets_p4.P4.Typecheck.includes;
-               filename = Targets_p4.P4.Typecheck.source input;
-               expect = expectation;
-             })
-    in
-    run_with_task
-      (module Targets_p4.P4.Typecheck)
-      ~request ~spec_files ~inputs ~exclude_dirs
+  let spec_dir = resolve_spec_dir Targets_p4.P4.Target.spec_dir in
+  let spec_files = Files.collect ~suffix:".spectec" spec_dir in
+  let inputs =
+    List.concat_map testdirs ~f:(fun dir ->
+        Targets_p4.P4.Typecheck.collect ~dir ())
+    |> List.map ~f:(fun input ->
+           {
+             Targets_p4.P4.Typecheck.includes;
+             filename = Targets_p4.P4.Typecheck.source input;
+             expect = expectation;
+           })
+  in
+  run_with_task
+    (module Targets_p4.P4.Typecheck)
+    ~request ~spec_files ~inputs ~exclude_dirs
 
 (** Impty Typecheck test - per-variant spec dispatch *)
 let run_impty_typecheck ~variant ~negative ~request ~testdirs =
@@ -171,7 +153,6 @@ let command =
   and negative = flag "-neg" no_arg ~doc:" expect failures (negative mode)"
   and sl_mode = flag "--sl" no_arg ~doc:" use SL interpreter (default: IL)"
   and pl_mode = flag "--pl" no_arg ~doc:" use PL interpreter (default: IL)"
-  and p4_old = flag "--p4-old" no_arg ~doc:" use p4-old target (default: p4)"
   and impty = flag "--impty" no_arg ~doc:" use impty target (default: p4)"
   and miniml = flag "--miniml" no_arg ~doc:" use Mini-ML target (default: p4)"
   and variant =
@@ -198,7 +179,6 @@ let command =
         run_impty_typecheck ~variant:v ~negative ~request ~testdirs
     | false, true -> run_miniml_eval ~negative ~request ~testdirs
     | false, false ->
-        run_p4_typecheck ~p4_old ~negative ~request ~includes ~exclude_dirs
-          ~testdirs
+        run_p4_typecheck ~negative ~request ~includes ~exclude_dirs ~testdirs
 
 let () = Command_unix.run command
