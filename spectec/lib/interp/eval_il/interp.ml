@@ -98,7 +98,8 @@ and eval_prem (ctx : Ctx.t) (prem : prem) : Ctx.t attempt =
   (match prem.it with
   | IterPr _ -> ()
   | _ ->
-      Instrumentation.Dispatcher.emit (Events.Prem_enter { prem; at = prem.at }));
+      Instrumentation.Dispatcher.emit
+        (Events.Prem_enter { prem; at = prem.at; env = Ctx.local_values ctx }));
   let result =
     match prem.it with
     | RelPr { relid; notexp } -> eval_rule_prem ctx relid notexp
@@ -116,16 +117,15 @@ and eval_prem (ctx : Ctx.t) (prem : prem) : Ctx.t attempt =
   (match prem.it with
   | IterPr _ -> ()
   | _ ->
-      Instrumentation.Dispatcher.emit_on_demand @@ fun () ->
       let ctx_out = Result.value ~default:ctx result in
-      let bindings =
-        Free.free_prem prem |> Common.Domain.IdSet.elements
-        |> List.filter_map (fun id ->
-               Ctx.find_value_opt ctx_out ~var:(id, [])
-               |> Option.map (fun value -> (id, value)))
-      in
-      Events.Prem_exit
-        { prem; at = prem.at; success = Result.is_ok result; bindings });
+      Instrumentation.Dispatcher.emit
+        (Events.Prem_exit
+           {
+             prem;
+             at = prem.at;
+             success = Result.is_ok result;
+             env = Ctx.local_values ctx_out;
+           }));
   result
 
 and eval_prems (ctx : Ctx.t) (prems : prem list) : Ctx.t attempt =

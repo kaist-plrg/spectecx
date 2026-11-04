@@ -2,6 +2,7 @@ module Location = Common.Location
 module Il = Lang.Il
 module Al = Lang.Al
 module Sl = Lang.Sl
+module VEnv = Envs_interp.VEnv
 
 type t =
   | Test_start of { test_case_id : string }
@@ -31,11 +32,11 @@ type t =
     }
   | Iter_prem_enter of { prem : Al.prem; at : Location.t }
   | Iter_prem_exit of { at : Location.t }
-  | Prem_enter of { prem : Al.prem; at : Location.t }
+  | Prem_enter of { prem : Al.prem; at : Location.t; env : VEnv.t }
   | Prem_exit of {
       prem : Al.prem;
       at : Location.t;
       success : bool;
-      bindings : (Il.id * Il.Value.t) list;
+      env : VEnv.t;
     }
   | Instr of { instr : Sl.instr; at : Location.t }

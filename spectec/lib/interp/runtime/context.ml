@@ -116,6 +116,7 @@ struct
       check_determinism;
     }
 
+  let local_values ctx = ctx.local.values
   let find_value_opt ctx ~var = VEnv.find_opt var ctx.local.values
 
   let find_value_exn ctx ~var =

@@ -92,7 +92,7 @@ module M : Instrumentation_api.Handler.S = struct
         printf_at_least Full "%s  → [iteration]\n%!" (State.indent ())
     | Iter_prem_exit _ ->
         printf_at_least Full "%s  ← [iteration]\n%!" (State.indent ())
-    | Prem_enter { prem; at = _ } ->
+    | Prem_enter { prem; at = _; env = _ } ->
         printf_at_least Full "%s  | -- %s\n%!" (State.indent ())
           (Al.Print.string_of_prem prem |> normalize_whitespace)
     | Prem_exit _ -> ()
