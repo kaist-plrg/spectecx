@@ -30,7 +30,15 @@ let case ?path ?(buffers = []) name text =
 
 let read_error_cases () =
   report "missing file" (Sources.load ~buffers:[] "multifile/absent.spectec");
-  case ~path:"absent/only.spectec" "missing directory" "syntax only = nat\n"
+  case ~path:"absent/only.spectec" "missing directory" "syntax only = nat\n";
+  let directory = Filename.temp_dir "broken-link" "" in
+  let link = Filename.concat directory "2-broken.spectec" in
+  Unix.symlink "absent.spectec" link;
+  case
+    ~path:(Filename.concat directory "1-only.spectec")
+    "broken link" "syntax only = nat\n";
+  Sys.remove link;
+  Sys.rmdir directory
 
 let project_cases () =
   let path = "multifile/2-use.spectec" in

@@ -1,7 +1,7 @@
 (executable
  (name main)
  (modules main)
- (libraries spectec.lsp spectec.sources spectec linol-eio yojson))
+ (libraries spectec.lsp spectec.sources spectec linol-eio yojson unix))
 
 (executable
  (name e2e)

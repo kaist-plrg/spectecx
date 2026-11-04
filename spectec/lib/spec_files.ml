@@ -51,7 +51,7 @@ let collect ?(recursive = true) root =
              (not recursive)
              && not (Filename.check_suffix entry spec_file_suffix)
            then []
-           else if Sys.is_directory path then
+           else if Sys.file_exists path && Sys.is_directory path then
              if recursive then gather path else []
            else if Filename.check_suffix entry spec_file_suffix then [ path ]
            else [])
