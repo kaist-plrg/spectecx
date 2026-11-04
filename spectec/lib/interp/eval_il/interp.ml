@@ -178,14 +178,20 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
       Ok values_output
     in
     let attempt_rule () : value list attempt =
-      Instrumentation.Dispatcher.emit
-        (Events.Rule_enter { id = id.it; rule_id = id_rule.it; at = id.at });
       (* Create a subtrace for the rule *)
       let ctx_local = Ctx.for_call ctx in
       (* Try to match the rule *)
       let ctx_local, prems, exps_output =
         match_rule ctx_local reltyp rule values_input
       in
+      Instrumentation.Dispatcher.emit
+        (Events.Rule_enter
+           {
+             id = id.it;
+             rule_id = id_rule.it;
+             at = id.at;
+             env = Ctx.local_values ctx_local;
+           });
       (* Try evaluating the rule *)
       let result =
         attempt_rule' ctx_local prems exps_output
@@ -281,7 +287,13 @@ and invoke_func_values (ctx : Ctx.t) (id : id) (targs : targ list)
     (* Invoke builtin function *)
     let invoke_func_builtin' () =
       Instrumentation.Dispatcher.emit
-        (Events.Clause_enter { id = id.it; clause_idx = 0; at = id.at });
+        (Events.Clause_enter
+           {
+             id = id.it;
+             clause_idx = 0;
+             at = id.at;
+             env = Envs.Interp.VEnv.empty;
+           });
       let value_output =
         Ctx.call_builtin ctx ~callback:(callback ctx) ~id ~targs
           ~values:values_input
@@ -312,9 +324,6 @@ and invoke_func_values (ctx : Ctx.t) (id : id) (targs : targ list)
         Ok value_output
       in
       let attempt_clause () : value attempt =
-        Instrumentation.Dispatcher.emit
-          (Events.Clause_enter
-             { id = id.it; clause_idx = idx_clause; at = id.at });
         (* Create a subtrace for the clause *)
         let ctx_local = Ctx.for_call ctx in
         (* Add type arguments to the context *)
@@ -333,6 +342,14 @@ and invoke_func_values (ctx : Ctx.t) (id : id) (targs : targ list)
         let ctx_local, args_input, prems, exp_output =
           match_clause ctx ctx_local clause values_input
         in
+        Instrumentation.Dispatcher.emit
+          (Events.Clause_enter
+             {
+               id = id.it;
+               clause_idx = idx_clause;
+               at = id.at;
+               env = Ctx.local_values ctx_local;
+             });
         (* Try evaluating the clause *)
         let result =
           attempt_clause' ctx_local prems exp_output

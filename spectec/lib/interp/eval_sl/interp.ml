@@ -204,12 +204,18 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
     (block <> [] || Option.is_some elseblock_opt)
     id.at "relation has no instructions";
   let attempt_rules () =
-    Instrumentation.Dispatcher.emit
-      (Events.Rule_enter { id = id.it; rule_id = "0"; at = id.at });
     let ctx_local = Ctx.for_call ctx in
     let ctx_local =
       Expressions.assign_exps ctx_local ~exps:exps_input ~values:values_input
     in
+    Instrumentation.Dispatcher.emit
+      (Events.Rule_enter
+         {
+           id = id.it;
+           rule_id = "0";
+           at = id.at;
+           env = Ctx.local_values ctx_local;
+         });
     let sign = eval_instrs ctx_local block in
     let sign =
       match (sign, elseblock_opt) with
@@ -293,12 +299,18 @@ and invoke_func_values (ctx : Ctx.t) (id : id) (targs : targ list)
         ctx_local tparams targs
     in
     let attempt_clauses () =
-      Instrumentation.Dispatcher.emit
-        (Events.Clause_enter { id = id.it; clause_idx = 0; at = id.at });
       let ctx_local =
         Expressions.assign_args ctx_local ~caller:ctx ~args:args_input
           ~values:values_input
       in
+      Instrumentation.Dispatcher.emit
+        (Events.Clause_enter
+           {
+             id = id.it;
+             clause_idx = 0;
+             at = id.at;
+             env = Ctx.local_values ctx_local;
+           });
       let sign = eval_instrs ctx_local block in
       let sign =
         match (sign, elseblock_opt) with
