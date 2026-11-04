@@ -1,0 +1,784 @@
+;;
+;; ElabForm: is a program in elaborated form? (Task 1.5)
+;;
+;; Elaborate and run together with the grammar:
+;;   ./spectecx elab syntax.spectec static/05-elabform.spectec
+;;   rust-check.sh -s syntax.spectec -s static/05-elabform.spectec \
+;;     --relation ElabForm -p FILE.rs        (verdict: ELAB | NOT_ELAB)
+;;
+;; The conditions E1-E6 are numbered as in ../../elab/checks/elab-form.md,
+;; which also gives the reasons and the limits (marked there as 잠정).
+;; ElabForm holds when every condition holds; a construct a condition forbids
+;; simply has no rule, so the derivation fails and the verdict is NOT_ELAB.
+;;
+;;   E1  every `let` has a type annotation
+;;   E2  every closure has a return type and a type on every parameter
+;;   E3  no `_` type
+;;   E4  no method call `e.m(..)`; a path `X::m` or `X::<..>::m` to a value
+;;       does not name a trait method (it must be `<T as Tr>::m`) unless an
+;;       inherent impl also has a method m
+;;   E5  inside a fn pointer type or `Fn*(..)` sugar, every reference type
+;;       `&T` carries a lifetime (a binder name, a named lifetime, or `'_`)
+;;   E6  a path to a fn, method or tuple/unit struct of the program carries
+;;       exactly the generic arguments rustc's THIR has: all of a struct's,
+;;       and a fn's type arguments plus its lifetime arguments unless one of
+;;       them is late-bound (golden README R5)
+;;
+;; Scope: E1-E5 look at fn bodies only (fn items, impl methods, the
+;; initializer of a static, nested items in a body); item signatures keep
+;; Rust's elision and object-lifetime defaults (golden README section 1).
+;; E6 uses tables collected from the whole (prelude-merged) program.
+
+;;
+;; Context: what E4 and E6 need from the item declarations
+;;
+
+syntax ent = _ENT id nat              (; a name and its required number of generic args ;)
+
+syntax ectx =
+  | _ECTX FNS ent* STRUCTS ent* METHODS ent* TRAITM id* INHERM id*
+                                      (; free fns, structs, methods (trait and inherent),
+                                         trait method names, inherent method names ;)
+
+syntax tmode =                        (; where a type is, for E5 ;)
+  | BODY                              (; a body type: an elided lifetime is a fresh region variable ;)
+  | FNPTR                             (; inside fn(..) or Fn*(..): an elided lifetime would be a binder ;)
+
+syntax ltm =                          (; which lifetimes $lts collects ;)
+  | ALL                               (; every occurrence ;)
+  | CONSTR                            (; only constraining ones: not inside <T as Tr>::A ;)
+
+;;
+;; Function declarations
+;;
+
+dec $fns(ectx) : ent*
+dec $structs(ectx) : ent*
+dec $meths(ectx) : ent*
+dec $trait_meths(ectx) : id*
+dec $inh_meths(ectx) : id*
+dec $ectx(item*) : ectx
+
+dec $flat(item*) : item*
+dec $unattr(item) : item
+dec $nested(item) : item*
+dec $stmt_items(stmt*) : item*
+
+dec $fnents(item*) : ent*
+dec $structents(item*) : ent*
+dec $methents(item*) : ent*
+dec $iitem_ents(iitem*) : ent*
+dec $titem_ents(titem*) : ent*
+dec $tmeths(item*) : id*
+dec $imeths(item*) : id*
+dec $iitem_names(iitem*) : id*
+dec $titem_names(titem*) : id*
+dec $names(ent*) : id*
+
+dec $gparams(generics?) : gparam*
+dec $ltparams(gparam*) : lname*
+dec $ntyparams(gparam*) : nat
+dec $nreq(generics?, param*, whereclause?) : nat
+dec $anylate(lname*, lname*, lname*) : bool
+
+dec $lts_reg(region) : lname*
+dec $lts_oreg(region?) : lname*
+dec $lts_lbound(lbound) : lname*
+dec $lts_lbounds(lbounds) : lname*
+dec $lts_lbtails(lboundtail*) : lname*
+dec $lts(ltm, typ) : lname*
+dec $lts_tys(ltm, typ*) : lname*
+dec $lts_arrow(ltm, arrowty?) : lname*
+dec $lts_objlt(objlt?) : lname*
+dec $lts_tr(ltm, traitref) : lname*
+dec $lts_garg(ltm, garg) : lname*
+dec $lts_gargs(ltm, garg*) : lname*
+dec $lts_bound(bound) : lname*
+dec $lts_bounds(bounds) : lname*
+dec $lts_btails(boundtail*) : lname*
+dec $lts_obounds(bounds?) : lname*
+dec $lts_gparams(gparam*) : lname*
+dec $lts_where(whereclause?) : lname*
+dec $lts_preds(pred*) : lname*
+dec $lts_params(param*) : lname*
+
+dec $gargs_of(gargs?) : garg*
+dec $nargs(turbofish?) : nat
+dec $pathlast(path) : id
+dec $lastseg(pathseg*) : id
+dec $lastvp(vpathseg, vpathseg*) : vpathseg
+dec $vpid(vpathseg) : id
+dec $vptf(vpathseg) : turbofish?
+
+;;
+;; Relations
+;;
+
+relation ElabForm: |- program ELAB
+  hint(input %0)
+relation ItemE: ectx |- item ELAB
+  hint(input %0 %1)
+relation IitemE: ectx |- iitem ELAB
+  hint(input %0 %1)
+relation BlockE: ectx |- block ELAB
+  hint(input %0 %1)
+relation StmtE: ectx |- stmt ELAB
+  hint(input %0 %1)
+relation OptExprE: ectx |- expr? ELAB
+  hint(input %0 %1)
+relation ExprE: ectx |- expr ELAB
+  hint(input %0 %1)
+relation CparamE: ectx |- cparam ELAB
+  hint(input %0 %1)
+relation TyannotE: ectx |- tyannot ELAB
+  hint(input %0 %1)
+relation ValpathE: ectx |- valpath ELAB
+  hint(input %0 %1)
+relation VpsegE: ectx |- vpathseg ELAB
+  hint(input %0 %1)
+relation HeadE: ectx |- pathhead ARGS nat
+  hint(input %0 %1 %2)
+relation MethE: ectx |- id ARGS nat
+  hint(input %0 %1 %2)
+relation ArgsOk: ent* |- id ARGS nat
+  hint(input %0 %1 %2)
+relation TfE: ectx |- turbofish? ELAB
+  hint(input %0 %1)
+relation TyE: ectx |- typ AT tmode
+  hint(input %0 %1 %2)
+relation OptArrowE: ectx |- arrowty? AT tmode
+  hint(input %0 %1 %2)
+relation TrE: ectx |- traitref AT tmode
+  hint(input %0 %1 %2)
+relation GargE: ectx |- garg AT tmode
+  hint(input %0 %1 %2)
+relation BoundsE: ectx |- bounds AT tmode
+  hint(input %0 %1 %2)
+relation BoundE: ectx |- bound AT tmode
+  hint(input %0 %1 %2)
+
+;;
+;; The context
+;;
+
+def $fns(_ECTX FNS ent_f* STRUCTS ent_s* METHODS ent_m* TRAITM id_t* INHERM id_i*) = ent_f*
+def $structs(_ECTX FNS ent_f* STRUCTS ent_s* METHODS ent_m* TRAITM id_t* INHERM id_i*) = ent_s*
+def $meths(_ECTX FNS ent_f* STRUCTS ent_s* METHODS ent_m* TRAITM id_t* INHERM id_i*) = ent_m*
+def $trait_meths(_ECTX FNS ent_f* STRUCTS ent_s* METHODS ent_m* TRAITM id_t* INHERM id_i*) = id_t*
+def $inh_meths(_ECTX FNS ent_f* STRUCTS ent_s* METHODS ent_m* TRAITM id_t* INHERM id_i*) = id_i*
+
+def $ectx(item*) =
+  _ECTX FNS $fnents($flat(item*)) STRUCTS $structents($flat(item*))
+    METHODS $methents($flat(item*)) TRAITM $tmeths($flat(item*)) INHERM $imeths($flat(item*))
+
+;; All items: top-level ones, attributes removed, and the item statements
+;; directly in a fn body, recursively. Items in impl method bodies and in
+;; nested blocks are not collected (elab-form.md, E6 limits).
+
+def $flat(eps) = eps
+def $flat(item :: item'*) = $unattr(item) :: $nested($unattr(item)) ++ $flat(item'*)
+
+def $unattr(_ATTRED attr item) = $unattr(item)
+def $unattr(item) = item
+  -- otherwise
+
+def $nested(FN id generics? `( param* `) ret? whereclause? (`{ stmt* expr? `})) = $flat($stmt_items(stmt*))
+def $nested(item) = eps
+  -- otherwise
+
+def $stmt_items(eps) = eps
+def $stmt_items((_ITEM item) :: stmt'*) = item :: $stmt_items(stmt'*)
+def $stmt_items(stmt :: stmt'*) = $stmt_items(stmt'*)
+  -- otherwise
+
+def $fnents(eps) = eps
+def $fnents((FN id generics? `( param* `) ret? whereclause? block) :: item'*) =
+  (_ENT id $nreq(generics?, param*, whereclause?)) :: $fnents(item'*)
+def $fnents((FN id generics? `( param* `) ret? whereclause? ';') :: item'*) =
+  (_ENT id $nreq(generics?, param*, whereclause?)) :: $fnents(item'*)
+def $fnents(item :: item'*) = $fnents(item'*)
+  -- otherwise
+
+def $structents(eps) = eps
+def $structents((STRUCT id generics? `( typ* `) ';') :: item'*) =
+  (_ENT id $nreq(generics?, eps, eps)) :: $structents(item'*)
+def $structents((STRUCT id generics? ';') :: item'*) =
+  (_ENT id $nreq(generics?, eps, eps)) :: $structents(item'*)
+;; [EXT-24] an enum's type path (Option::<T>::map) carries all its type args,
+;; as a struct's does. Its variants (None::<T>) are not in the table.
+def $structents((ENUM id generics? whereclause? `{ variant* `}) :: item'*) =
+  (_ENT id $nreq(generics?, eps, eps)) :: $structents(item'*)
+def $structents(item :: item'*) = $structents(item'*)
+  -- otherwise
+
+def $methents(eps) = eps
+def $methents((TRAIT id generics? supers? whereclause? `{ titem* `}) :: item'*) =
+  $titem_ents(titem*) ++ $methents(item'*)
+def $methents((IMPL generics? traitref FOR typ whereclause? `{ iitem* `}) :: item'*) =
+  $iitem_ents(iitem*) ++ $methents(item'*)
+def $methents((IMPL generics? typ whereclause? `{ iitem* `}) :: item'*) =
+  $iitem_ents(iitem*) ++ $methents(item'*)
+def $methents(item :: item'*) = $methents(item'*)
+  -- otherwise
+
+def $titem_ents(eps) = eps
+def $titem_ents((FN id generics? `( param* `) ret? whereclause? ';') :: titem'*) =
+  (_ENT id $nreq(generics?, param*, whereclause?)) :: $titem_ents(titem'*)
+def $titem_ents(titem :: titem'*) = $titem_ents(titem'*)
+  -- otherwise
+
+def $iitem_ents(eps) = eps
+def $iitem_ents((FN id generics? `( param* `) ret? whereclause? block) :: iitem'*) =
+  (_ENT id $nreq(generics?, param*, whereclause?)) :: $iitem_ents(iitem'*)
+def $iitem_ents((FN id generics? `( param* `) ret? whereclause? ';') :: iitem'*) =
+  (_ENT id $nreq(generics?, param*, whereclause?)) :: $iitem_ents(iitem'*)
+def $iitem_ents(iitem :: iitem'*) = $iitem_ents(iitem'*)
+  -- otherwise
+
+def $tmeths(eps) = eps
+def $tmeths((TRAIT id generics? supers? whereclause? `{ titem* `}) :: item'*) =
+  $titem_names(titem*) ++ $tmeths(item'*)
+def $tmeths((IMPL generics? traitref FOR typ whereclause? `{ iitem* `}) :: item'*) =
+  $iitem_names(iitem*) ++ $tmeths(item'*)
+def $tmeths(item :: item'*) = $tmeths(item'*)
+  -- otherwise
+
+def $imeths(eps) = eps
+def $imeths((IMPL generics? typ whereclause? `{ iitem* `}) :: item'*) =
+  $iitem_names(iitem*) ++ $imeths(item'*)
+def $imeths(item :: item'*) = $imeths(item'*)
+  -- otherwise
+
+def $titem_names(eps) = eps
+def $titem_names((FN id generics? `( param* `) ret? whereclause? ';') :: titem'*) =
+  id :: $titem_names(titem'*)
+def $titem_names(titem :: titem'*) = $titem_names(titem'*)
+  -- otherwise
+
+def $iitem_names(eps) = eps
+def $iitem_names((FN id generics? `( param* `) ret? whereclause? block) :: iitem'*) =
+  id :: $iitem_names(iitem'*)
+def $iitem_names((FN id generics? `( param* `) ret? whereclause? ';') :: iitem'*) =
+  id :: $iitem_names(iitem'*)
+def $iitem_names(iitem :: iitem'*) = $iitem_names(iitem'*)
+  -- otherwise
+
+def $names(eps) = eps
+def $names((_ENT id nat) :: ent'*) = id :: $names(ent'*)
+
+;;
+;; E6: how many generic args a path to a declaration must carry
+;;
+;; rustc (rustc_hir_analysis collect/resolve_bound_vars.rs, is_late_bound_map):
+;; a lifetime parameter of a fn is late-bound when it appears in a parameter
+;; type outside a projection and in no bound or where-clause predicate. A fn
+;; with a late-bound lifetime takes no lifetime args in THIR's turbofish
+;; (golden README R5). Structs have no late-bound lifetimes: $nreq with no
+;; parameters gives all of their parameters.
+;;
+
+def $gparams(eps) = eps
+def $gparams(`< gparam* `>) = gparam*
+
+def $ltparams(eps) = eps
+def $ltparams((_LTPARAM lname lsupers?) :: gparam'*) = lname :: $ltparams(gparam'*)
+def $ltparams(gparam :: gparam'*) = $ltparams(gparam'*)
+  -- otherwise
+
+def $ntyparams(eps) = 0
+def $ntyparams((_TYPARAM id supers?) :: gparam'*) = $(1 + $ntyparams(gparam'*))
+def $ntyparams(gparam :: gparam'*) = $ntyparams(gparam'*)
+  -- otherwise
+
+def $nreq(generics?, param*, whereclause?) = $ntyparams($gparams(generics?))
+  -- if $anylate($ltparams($gparams(generics?)), $lts_params(param*),
+       $lts_gparams($gparams(generics?)) ++ $lts_where(whereclause?))
+def $nreq(generics?, param*, whereclause?) =
+  $($ntyparams($gparams(generics?)) + |$ltparams($gparams(generics?))|)
+  -- otherwise
+
+;; $anylate(L, I, W): some l in L is in I (inputs) and not in W (bounds)
+def $anylate(eps, lname_i*, lname_w*) = false
+def $anylate(lname :: lname'*, lname_i*, lname_w*) = true
+  -- if lname <- lname_i*
+  -- if ~(lname <- lname_w*)
+def $anylate(lname :: lname'*, lname_i*, lname_w*) = $anylate(lname'*, lname_i*, lname_w*)
+  -- otherwise
+
+;; Named lifetimes in a phrase ('static and '_ are not lifetime parameters)
+
+def $lts_reg(_LT id) = (_LT id)
+def $lts_reg(region) = eps
+  -- otherwise
+
+def $lts_oreg(eps) = eps
+def $lts_oreg(region) = $lts_reg(region)
+
+def $lts_lbound(_LT id) = (_LT id)
+def $lts_lbound(lbound) = eps
+  -- otherwise
+
+def $lts_lbounds(_LBOUNDS lbound lboundtail*) = $lts_lbound(lbound) ++ $lts_lbtails(lboundtail*)
+
+def $lts_lbtails(eps) = eps
+def $lts_lbtails(('+' lbound) :: lboundtail'*) = $lts_lbound(lbound) ++ $lts_lbtails(lboundtail'*)
+
+def $lts(ltm, _TYPATH path gargs?) = $lts_gargs(ltm, $gargs_of(gargs?))
+def $lts(ALL, `< typ AS traitref `> '::' id) = $lts(ALL, typ) ++ $lts_tr(ALL, traitref)
+def $lts(CONSTR, `< typ AS traitref `> '::' id) = eps
+def $lts(ltm, '&' region? mutkw? typ) = $lts_oreg(region?) ++ $lts(ltm, typ)
+def $lts(ltm, `( typ `)) = $lts(ltm, typ)
+def $lts(ltm, `( typ ',' typ'* `)) = $lts(ltm, typ) ++ $lts_tys(ltm, typ'*)
+def $lts(ltm, `[ typ ';' nat `]) = $lts(ltm, typ)
+def $lts(ltm, binder? FN `( typ* `) arrowty?) = $lts_tys(ltm, typ*) ++ $lts_arrow(ltm, arrowty?)
+def $lts(ltm, DYN binder? traitref objlt?) = $lts_tr(ltm, traitref) ++ $lts_objlt(objlt?)
+def $lts(ltm, typ) = eps
+  -- otherwise
+
+def $lts_tys(ltm, eps) = eps
+def $lts_tys(ltm, typ :: typ'*) = $lts(ltm, typ) ++ $lts_tys(ltm, typ'*)
+
+def $lts_arrow(ltm, eps) = eps
+def $lts_arrow(ltm, '->' typ) = $lts(ltm, typ)
+
+def $lts_objlt(eps) = eps
+def $lts_objlt('+' region) = $lts_reg(region)
+
+def $lts_tr(ltm, _TRAITPATH path gargs?) = $lts_gargs(ltm, $gargs_of(gargs?))
+def $lts_tr(ltm, fnkind `( typ* `) arrowty?) = $lts_tys(ltm, typ*) ++ $lts_arrow(ltm, arrowty?)
+
+def $lts_garg(ltm, _LTARG region) = $lts_reg(region)
+def $lts_garg(ltm, _TYARG typ) = $lts(ltm, typ)
+def $lts_garg(ltm, id '=' typ) = $lts(ltm, typ)
+def $lts_garg(ltm, id ':' bounds) = $lts_bounds(bounds)
+
+def $lts_gargs(ltm, eps) = eps
+def $lts_gargs(ltm, garg :: garg'*) = $lts_garg(ltm, garg) ++ $lts_gargs(ltm, garg'*)
+
+def $lts_bound(_TRAIT binder? traitref) = $lts_tr(ALL, traitref)
+def $lts_bound(_LT id) = (_LT id)
+def $lts_bound(bound) = eps
+  -- otherwise
+
+def $lts_bounds(_BOUNDS bound boundtail*) = $lts_bound(bound) ++ $lts_btails(boundtail*)
+
+def $lts_btails(eps) = eps
+def $lts_btails(('+' bound) :: boundtail'*) = $lts_bound(bound) ++ $lts_btails(boundtail'*)
+
+def $lts_obounds(eps) = eps
+def $lts_obounds(bounds) = $lts_bounds(bounds)
+
+;; lifetimes in the bounds of the generic parameters: 'a: 'b mentions both
+def $lts_gparams(eps) = eps
+def $lts_gparams((_LTPARAM lname (':' lbounds)) :: gparam'*) =
+  lname :: $lts_lbounds(lbounds) ++ $lts_gparams(gparam'*)
+def $lts_gparams((_TYPARAM id (':' bounds)) :: gparam'*) =
+  $lts_bounds(bounds) ++ $lts_gparams(gparam'*)
+def $lts_gparams(gparam :: gparam'*) = $lts_gparams(gparam'*)
+  -- otherwise
+
+def $lts_where(eps) = eps
+def $lts_where(WHERE pred*) = $lts_preds(pred*)
+
+def $lts_preds(eps) = eps
+def $lts_preds((_OUTLIVES lname ':' lbounds) :: pred'*) =
+  lname :: $lts_lbounds(lbounds) ++ $lts_preds(pred'*)
+def $lts_preds((_BOUND binder? typ ':' bounds) :: pred'*) =
+  $lts(ALL, typ) ++ $lts_bounds(bounds) ++ $lts_preds(pred'*)
+
+;; lifetimes in parameter types that constrain (the late-bound candidates)
+def $lts_params(eps) = eps
+def $lts_params((pat ':' typ) :: param'*) = $lts(CONSTR, typ) ++ $lts_params(param'*)
+def $lts_params(('&' region? mutkw? SELF) :: param'*) = $lts_oreg(region?) ++ $lts_params(param'*)
+def $lts_params(param :: param'*) = $lts_params(param'*)
+  -- otherwise
+
+;;
+;; Paths
+;;
+
+def $gargs_of(eps) = eps
+def $gargs_of(`< garg* `>) = garg*
+
+def $nargs(eps) = 0
+def $nargs('::' `< garg* `>) = |garg*|
+
+def $pathlast(_PATH (_NAME id) eps) = id
+def $pathlast(_PATH pathhead pathseg*) = $lastseg(pathseg*)
+  -- if pathseg* =/= eps
+def $pathlast(path) = ""
+  -- otherwise
+
+def $lastseg(eps) = ""
+def $lastseg(('::' id) :: eps) = id
+def $lastseg(pathseg :: pathseg'*) = $lastseg(pathseg'*)
+  -- otherwise
+
+def $lastvp(vpathseg, eps) = vpathseg
+def $lastvp(vpathseg, vpathseg' :: vpathseg''*) = $lastvp(vpathseg', vpathseg''*)
+
+def $vpid('::' id turbofish?) = id
+def $vptf('::' id turbofish?) = turbofish?
+
+;;
+;; Rules
+;;
+
+rule ElabForm:
+  |- (_PROGRAM iattr* item*) ELAB
+  -- if ectx = $ectx(item*)
+  -- (ItemE: ectx |- item ELAB)*
+
+;; Items: only bodies are looked at (E1-E5 are about body types)
+
+rule ItemE/attred:
+  ectx |- (_ATTRED attr item) ELAB
+  -- ItemE: ectx |- item ELAB
+
+rule ItemE/alias:
+  ectx |- (TYPE id generics? '=' typ ';') ELAB
+
+rule ItemE/alias-impl:
+  ectx |- (TYPE id generics? '=' IMPL bounds ';') ELAB
+
+rule ItemE/static:
+  ectx |- (STATICKW id ':' typ '=' expr ';') ELAB
+  -- ExprE: ectx |- expr ELAB
+
+rule ItemE/use:
+  ectx |- (USE path ';') ELAB
+
+rule ItemE/tuple-struct:
+  ectx |- (STRUCT id generics? `( typ* `) ';') ELAB
+
+rule ItemE/unit-struct:
+  ectx |- (STRUCT id generics? ';') ELAB
+
+rule ItemE/enum:
+  ectx |- (ENUM id generics? whereclause? `{ variant* `}) ELAB
+
+rule ItemE/trait:
+  ectx |- (TRAIT id generics? supers? whereclause? `{ titem* `}) ELAB
+
+rule ItemE/trait-impl:
+  ectx |- (IMPL generics? traitref FOR typ whereclause? `{ iitem* `}) ELAB
+  -- (IitemE: ectx |- iitem ELAB)*
+
+rule ItemE/inherent-impl:
+  ectx |- (IMPL generics? typ whereclause? `{ iitem* `}) ELAB
+  -- (IitemE: ectx |- iitem ELAB)*
+
+rule ItemE/fn:
+  ectx |- (FN id generics? `( param* `) ret? whereclause? block) ELAB
+  -- BlockE: ectx |- block ELAB
+
+rule ItemE/fn-decl:
+  ectx |- (FN id generics? `( param* `) ret? whereclause? ';') ELAB
+
+rule IitemE/type:
+  ectx |- (TYPE id '=' typ ';') ELAB
+
+rule IitemE/fn:
+  ectx |- (FN id generics? `( param* `) ret? whereclause? block) ELAB
+  -- BlockE: ectx |- block ELAB
+
+rule IitemE/fn-decl:
+  ectx |- (FN id generics? `( param* `) ret? whereclause? ';') ELAB
+
+;; Bodies
+
+rule BlockE:
+  ectx |- (`{ stmt* expr? `}) ELAB
+  -- (StmtE: ectx |- stmt ELAB)*
+  -- OptExprE: ectx |- expr? ELAB
+
+rule OptExprE/none:
+  ectx |- eps ELAB
+
+rule OptExprE/some:
+  ectx |- expr ELAB
+  -- ExprE: ectx |- expr ELAB
+
+rule StmtE/item:
+  ectx |- (_ITEM item) ELAB
+  -- ItemE: ectx |- item ELAB
+
+;; E1: a let has a type. `LET pat ';'` and `LET pat '=' expr ';'` have no rule.
+rule StmtE/let:
+  ectx |- (LET pat tyannot '=' expr ';') ELAB
+  -- TyannotE: ectx |- tyannot ELAB
+  -- ExprE: ectx |- expr ELAB
+
+rule StmtE/let-uninit:
+  ectx |- (LET pat tyannot ';') ELAB
+  -- TyannotE: ectx |- tyannot ELAB
+
+rule StmtE/block:
+  ectx |- (_BLOCKSTMT block) ELAB
+  -- BlockE: ectx |- block ELAB
+
+rule StmtE/expr:
+  ectx |- (_EXPR expr ';') ELAB
+  -- ExprE: ectx |- expr ELAB
+
+rule TyannotE:
+  ectx |- (':' typ) ELAB
+  -- TyE: ectx |- typ AT BODY
+
+;; Expressions. E4: the method call `expr '.' id `( expr* `)` has no rule.
+;; E2: the closure without a return type `movekw? '|' cparam* '|' expr` has
+;; no rule.
+
+rule ExprE/cast:
+  ectx |- (expr AS typ) ELAB
+  -- ExprE: ectx |- expr ELAB
+  -- TyE: ectx |- typ AT BODY
+
+rule ExprE/path:
+  ectx |- valpath ELAB
+  -- ValpathE: ectx |- valpath ELAB
+
+rule ExprE/assign:
+  ectx |- (expr_1 '=' expr_2) ELAB
+  -- ExprE: ectx |- expr_1 ELAB
+  -- ExprE: ectx |- expr_2 ELAB
+
+rule ExprE/num:
+  ectx |- (_NUM nat) ELAB
+
+rule ExprE/str:
+  ectx |- (_STR text) ELAB
+
+rule ExprE/unit:
+  ectx |- '()' ELAB
+
+rule ExprE/paren:
+  ectx |- (`( expr `)) ELAB
+  -- ExprE: ectx |- expr ELAB
+
+rule ExprE/tuple:
+  ectx |- (`( expr_1 ',' expr_2* `)) ELAB
+  -- ExprE: ectx |- expr_1 ELAB
+  -- (ExprE: ectx |- expr_2 ELAB)*
+
+rule ExprE/array:
+  ectx |- (`[ expr* `]) ELAB
+  -- (ExprE: ectx |- expr ELAB)*
+
+rule ExprE/repeat:
+  ectx |- (`[ expr ';' nat `]) ELAB
+  -- ExprE: ectx |- expr ELAB
+
+rule ExprE/borrow:
+  ectx |- ('&' mutkw? expr) ELAB
+  -- ExprE: ectx |- expr ELAB
+
+rule ExprE/deref:
+  ectx |- ('*' expr) ELAB
+  -- ExprE: ectx |- expr ELAB
+
+rule ExprE/block:
+  ectx |- (_BLOCK block) ELAB
+  -- BlockE: ectx |- block ELAB
+
+rule ExprE/loop:
+  ectx |- (LOOP block) ELAB
+  -- BlockE: ectx |- block ELAB
+
+rule ExprE/call:
+  ectx |- (expr_1 `( expr_2* `)) ELAB
+  -- ExprE: ectx |- expr_1 ELAB
+  -- (ExprE: ectx |- expr_2 ELAB)*
+
+rule ExprE/field:
+  ectx |- (_FIELD expr '.' id) ELAB
+  -- ExprE: ectx |- expr ELAB
+
+rule ExprE/tuple-index:
+  ectx |- (_TUPLEINDEX expr '.' nat) ELAB
+  -- ExprE: ectx |- expr ELAB
+
+;; E2: return type and a type on every parameter
+rule ExprE/closure:
+  ectx |- (binder? movekw? '|' cparam* '|' '->' typ block) ELAB
+  -- (CparamE: ectx |- cparam ELAB)*
+  -- TyE: ectx |- typ AT BODY
+  -- BlockE: ectx |- block ELAB
+
+rule ExprE/macro:
+  ectx |- (_MACRO path '!' tokentree) ELAB
+
+rule CparamE:
+  ectx |- (_CPARAM pat tyannot) ELAB
+  -- TyannotE: ectx |- tyannot ELAB
+
+;; Value paths: E4 (type-relative trait method) and E6 (generic args)
+
+rule ValpathE/name:
+  ectx |- (_VALPATH (_PATH pathhead eps) turbofish?) ELAB
+  -- HeadE: ectx |- pathhead ARGS $nargs(turbofish?)
+  -- TfE: ectx |- turbofish? ELAB
+
+rule ValpathE/type-relative:
+  ectx |- (_VALPATH (_PATH pathhead pathseg*) turbofish?) ELAB
+  -- if pathseg* =/= eps
+  -- HeadE: ectx |- pathhead ARGS 0
+  -- MethE: ectx |- $lastseg(pathseg*) ARGS $nargs(turbofish?)
+  -- TfE: ectx |- turbofish? ELAB
+
+rule ValpathE/type-args:
+  ectx |- (_VALPATHARGS path turbofish vpathseg vpathseg'*) ELAB
+  -- ArgsOk: $structs(ectx) |- $pathlast(path) ARGS $nargs(turbofish)
+  -- MethE: ectx |- $vpid($lastvp(vpathseg, vpathseg'*)) ARGS $nargs($vptf($lastvp(vpathseg, vpathseg'*)))
+  -- TfE: ectx |- turbofish ELAB
+  -- VpsegE: ectx |- vpathseg ELAB
+  -- (VpsegE: ectx |- vpathseg' ELAB)*
+
+rule ValpathE/qualified:
+  ectx |- (`< typ AS traitref `> '::' id turbofish?) ELAB
+  -- TyE: ectx |- typ AT BODY
+  -- TrE: ectx |- traitref AT BODY
+  -- ArgsOk: $meths(ectx) |- id ARGS $nargs(turbofish?)
+  -- TfE: ectx |- turbofish? ELAB
+
+rule VpsegE:
+  ectx |- ('::' id turbofish?) ELAB
+  -- TfE: ectx |- turbofish? ELAB
+
+;; a one-segment path: a fn or a struct by that name takes its arguments
+rule HeadE/name:
+  ectx |- (_NAME id) ARGS nat
+  -- ArgsOk: $fns(ectx) |- id ARGS nat
+  -- ArgsOk: $structs(ectx) |- id ARGS nat
+
+rule HeadE/self:
+  ectx |- SELF ARGS nat
+
+rule HeadE/Self:
+  ectx |- Self ARGS nat
+
+;; E4: X::m with m a trait method needs <X as Tr>::m, unless an inherent
+;; impl has an m too; E6 for the method
+rule MethE:
+  ectx |- id ARGS nat
+  -- if ~(id <- $trait_meths(ectx)) \/ (id <- $inh_meths(ectx))
+  -- ArgsOk: $meths(ectx) |- id ARGS nat
+
+rule ArgsOk/unknown:
+  ent* |- id ARGS nat
+  -- if ~(id <- $names(ent*))
+
+rule ArgsOk/known:
+  ent* |- id ARGS nat
+  -- if (_ENT id nat) <- ent*
+
+rule TfE/none:
+  ectx |- eps ELAB
+
+rule TfE/some:
+  ectx |- ('::' `< garg* `>) ELAB
+  -- (GargE: ectx |- garg AT BODY)*
+
+;; Body types. E3: '_' has no rule. E5: in FNPTR mode a reference needs its
+;; lifetime; fn(..) and Fn*(..) switch to FNPTR.
+
+rule TyE/path:
+  ectx |- (_TYPATH path gargs?) AT tmode
+  -- if garg* = $gargs_of(gargs?)
+  -- (GargE: ectx |- garg AT tmode)*
+
+rule TyE/qualified:
+  ectx |- (`< typ AS traitref `> '::' id) AT tmode
+  -- TyE: ectx |- typ AT tmode
+  -- TrE: ectx |- traitref AT tmode
+
+rule TyE/ref-body:
+  ectx |- ('&' region? mutkw? typ) AT BODY
+  -- TyE: ectx |- typ AT BODY
+
+rule TyE/ref-fnptr:
+  ectx |- ('&' region mutkw? typ) AT FNPTR
+  -- TyE: ectx |- typ AT FNPTR
+
+rule TyE/unit:
+  ectx |- '()' AT tmode
+
+rule TyE/paren:
+  ectx |- (`( typ `)) AT tmode
+  -- TyE: ectx |- typ AT tmode
+
+rule TyE/tuple:
+  ectx |- (`( typ_1 ',' typ_2* `)) AT tmode
+  -- TyE: ectx |- typ_1 AT tmode
+  -- (TyE: ectx |- typ_2 AT tmode)*
+
+rule TyE/array:
+  ectx |- (`[ typ ';' nat `]) AT tmode
+  -- TyE: ectx |- typ AT tmode
+
+rule TyE/fnptr:
+  ectx |- (binder? FN `( typ* `) arrowty?) AT tmode
+  -- (TyE: ectx |- typ AT FNPTR)*
+  -- OptArrowE: ectx |- arrowty? AT FNPTR
+
+rule TyE/dyn:
+  ectx |- (DYN binder? traitref objlt?) AT tmode
+  -- TrE: ectx |- traitref AT tmode
+
+rule TyE/closure:
+  ectx |- (_CLOSURETY CLOSURE '#' nat) AT tmode
+
+rule TyE/fnitem:
+  ectx |- (_FNITEMTY FN '#' valpath) AT tmode
+  -- ValpathE: ectx |- valpath ELAB
+
+rule TyE/opaque:
+  ectx |- (_OPAQUETY OPAQUE '#' valpath) AT tmode
+  -- ValpathE: ectx |- valpath ELAB
+
+rule OptArrowE/none:
+  ectx |- eps AT tmode
+
+rule OptArrowE/some:
+  ectx |- ('->' typ) AT tmode
+  -- TyE: ectx |- typ AT tmode
+
+rule TrE/path:
+  ectx |- (_TRAITPATH path gargs?) AT tmode
+  -- if garg* = $gargs_of(gargs?)
+  -- (GargE: ectx |- garg AT tmode)*
+
+rule TrE/fn-sugar:
+  ectx |- (fnkind `( typ* `) arrowty?) AT tmode
+  -- (TyE: ectx |- typ AT FNPTR)*
+  -- OptArrowE: ectx |- arrowty? AT FNPTR
+
+rule GargE/lifetime:
+  ectx |- (_LTARG region) AT tmode
+
+rule GargE/type:
+  ectx |- (_TYARG typ) AT tmode
+  -- TyE: ectx |- typ AT tmode
+
+rule GargE/assoc-eq:
+  ectx |- (id '=' typ) AT tmode
+  -- TyE: ectx |- typ AT tmode
+
+rule GargE/assoc-bound:
+  ectx |- (id ':' bounds) AT tmode
+  -- BoundsE: ectx |- bounds AT tmode
+
+rule BoundsE:
+  ectx |- (_BOUNDS bound ('+' bound')*) AT tmode
+  -- BoundE: ectx |- bound AT tmode
+  -- (BoundE: ectx |- bound' AT tmode)*
+
+rule BoundE/lifetime:
+  ectx |- lbound AT tmode
+
+rule BoundE/trait:
+  ectx |- (_TRAIT binder? traitref) AT tmode
+  -- TrE: ectx |- traitref AT tmode
+
+rule BoundE/relaxed:
+  ectx |- ('?' Sized) AT tmode

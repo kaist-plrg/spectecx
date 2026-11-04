@@ -90,7 +90,9 @@ let run (print_terminal : terminal_printer) (grammar : Grammar.t)
                   :: render_notation ~left_operand_printed:true values rest
               | Grammar.Nonterminal sub ->
                   print_phrase (find_syntax sub.it) 0 value
-                  :: render_notation ~left_operand_printed values rest))
+                  :: render_notation ~left_operand_printed values rest
+              | Grammar.Iter _ -> failwith "Print: iterations are not supported"
+              ))
     in
     let needs_parens =
       match prod.recursion with

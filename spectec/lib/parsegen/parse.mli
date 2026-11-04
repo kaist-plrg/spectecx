@@ -12,6 +12,11 @@ exception Error of string
 (** [run classify grammar start tokens] parses [tokens] as an instance of syntax
     [start]. Raises {!Error} when the tokens do not match the grammar
     (unexpected token, end of input, or leftover tokens), and [Failure] when the
-    grammar itself is unsupported or malformed (a postfix operator, an unknown
-    syntax reference). *)
+    grammar itself is unsupported or malformed (a postfix operator, an
+    iteration, an unknown syntax reference). {!Earley} parses the first two. *)
 val run : 'tok token_classifier -> Grammar.t -> string -> 'tok list -> Il.value
+
+(** The value a production builds from its argument values, in notation order: a
+    case of the production's origin syntax, or for a plain inclusion the one
+    argument itself. *)
+val value_of_production : Grammar.production -> Il.value list -> Il.value

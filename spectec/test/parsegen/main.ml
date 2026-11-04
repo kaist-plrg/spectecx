@@ -1,12 +1,14 @@
 (* Differential test for the grammar-driven parser and printer, both built from
    the extracted grammar alone. Parse: Parsegen.Parse must reproduce impty's
    hand-written parser. Round-trip: Parsegen.Print must render each value so it
-   re-parses unchanged. Run over hand-written expressions and the base .imp
-   corpus. *)
+   re-parses unchanged. Earley: Parsegen.Earley must also reproduce it, in
+   exactly one parse, which checks its tighter_than filtering. Run over
+   hand-written expressions and the base .imp corpus. *)
 
 open Spectec
 module Parse = Parsegen.Parse
 module Print = Parsegen.Print
+module Earley = Parsegen.Earley
 module Lexer = Targets_impty.Lexer
 module Reference = Targets_impty.Parse
 
@@ -92,6 +94,30 @@ let roundtrip (grammar : Grammar.t) (start : string)
   in
   Printf.printf "%-32s %s\n  printed: %s\n" label verdict printed
 
+(* Parse.run reads a parenthesized phrase without a production for it, and
+   impty's grammar has none, so Earley cannot read parentheses. *)
+let earley (grammar : Grammar.t) (start : string)
+    (parse_reference : filename:string -> string -> Lang.Il.value)
+    (label : string) (source : string) : unit =
+  if String.contains source '(' then
+    Printf.printf "%-32s SKIP (no production for parentheses)\n" label
+  else
+    match
+      Earley.run (Earley.plain_lexicon classify) grammar start (lex source)
+    with
+    | Earley.Accepted { value; trees; _ } ->
+        let reference = parse_reference ~filename source in
+        let verdict =
+          if Lang.Il.Eq.eq_value value reference && trees = 1 then "OK"
+          else "MISMATCH"
+        in
+        Printf.printf "%-32s %s  (%d parse%s)\n  generated: %s\n" label verdict
+          trees
+          (if trees = 1 then "" else "s")
+          (show_value value)
+    | Earley.Rejected { at; _ } ->
+        Printf.printf "%-32s MISMATCH  (rejected at token %d)\n" label at
+
 let expressions =
   [
     "1";
@@ -142,6 +168,14 @@ let run spec corpus_dir =
   print_newline ();
   section "round-trip: programs (base .imp corpus)"
     (roundtrip grammar "prog" Reference.parse_string_exn)
+    prog_cases;
+  print_newline ();
+  section "earley: expressions"
+    (earley grammar "expr" Reference.parse_expr_exn)
+    expr_cases;
+  print_newline ();
+  section "earley: programs (base .imp corpus)"
+    (earley grammar "prog" Reference.parse_string_exn)
     prog_cases
 
 let command =
