@@ -16,13 +16,15 @@ let guard ?(suppress_trace = false) ~color ~on_ok f =
 let guard_unit ?suppress_trace ~color f =
   guard ?suppress_trace ~color ~on_ok:ignore f
 
+let exit_with_diagnostics ~color diagnostics =
+  Printf.eprintf "%s\n%!"
+    (Spectec.Diagnostic.Render.render_bag
+       ~ansi:(resolve_ansi ~out:Unix.stderr color)
+       diagnostics);
+  exit 1
+
 let guard_errors_only ~color f =
-  let ansi = resolve_ansi ~out:Unix.stderr color in
   let result, _bag = Spectec.with_warnings f in
   match result with
   | Ok () -> ()
-  | Error e ->
-      Printf.eprintf "%s\n%!"
-        (Spectec.Diagnostic.Render.render_bag ~ansi
-           (Spectec.Error.to_diagnostics e));
-      exit 1
+  | Error e -> exit_with_diagnostics ~color (Spectec.Error.to_diagnostics e)
