@@ -11,6 +11,6 @@ val parse_files : string list -> (Lang.El.spec, error) result
 val elaborate : Lang.El.spec -> (Lang.Al.spec, error) result
 val structure : Lang.Al.spec -> Lang.Sl.spec
 val henv_of_el_spec : Lang.El.spec -> Hints.Henv.t
-val henv_with_il_spec : Hints.Henv.t -> Lang.Al.spec -> Hints.Henv.t
+val henv_with_al_spec : Hints.Henv.t -> Lang.Al.spec -> Hints.Henv.t
 val annotate : henv:Hints.Henv.t -> Lang.Sl.spec -> Pl.spec
 val shorten : Pl.spec -> Pl.spec

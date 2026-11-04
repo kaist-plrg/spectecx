@@ -66,7 +66,7 @@ let modes =
 let evaluate ?config mode input =
   Spectec.eval_task_with_instrumentation
     (module Task)
-    ?config ~mode ~spec_il:spec.spec_il input
+    ?config ~mode ~spec_al:spec.spec_al input
 
 let fail_check ~name ~mode_name message =
   failwith (Printf.sprintf "%s (%s): %s" name mode_name message)

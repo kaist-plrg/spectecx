@@ -100,7 +100,7 @@ let load_def (henv : t) (def : El.def) : t =
 
 let of_el_spec (spec : El.spec) : t = List.fold_left load_def empty spec
 
-(* IL pass: load Typcase hints by mixop. *)
+(* Typcase hints are keyed by the mixops that elaboration assigns. *)
 
 let load_typcase_hint (henv : t) (mixop : unit Il.Mixfix.t) (hint : Il.hint) : t
     =
@@ -125,10 +125,10 @@ let load_deftyp (henv : t) (deftyp : Il.deftyp) : t =
   | Il.VariantT typcases -> List.fold_left load_typcase henv typcases
   | _ -> henv
 
-let load_il_def (henv : t) (def : Al.def) : t =
+let load_al_def (henv : t) (def : Al.def) : t =
   match def.it with
   | Al.TypD { deftyp; _ } -> load_deftyp henv deftyp
   | _ -> henv
 
-let load_il_spec (henv : t) (spec : Al.spec) : t =
-  List.fold_left load_il_def henv spec
+let load_al_spec (henv : t) (spec : Al.spec) : t =
+  List.fold_left load_al_def henv spec

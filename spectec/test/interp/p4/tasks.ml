@@ -21,9 +21,9 @@ let compile () =
     Spectec.collect_spec_files "../../../specs/p4"
     |> Spectec.parse_spec_files |> unwrap
   in
-  let spec_il = Spectec.elaborate spec |> unwrap in
-  let henv = Spectec.henv_with_il_spec (Spectec.henv_of_el_spec spec) spec_il in
-  (spec_il, henv)
+  let spec_al = Spectec.elaborate spec |> unwrap in
+  let henv = Spectec.henv_with_al_spec (Spectec.henv_of_el_spec spec) spec_al in
+  (spec_al, henv)
 
 let expected_state size =
   let open Lang.Il in
@@ -88,26 +88,26 @@ let check_store mode expected = function
         expected
   | _ -> failwith (mode ^ ": expected global context and store")
 
-let run spec_il mode filename =
+let run spec_al mode filename =
   let input : P4.Instantiate.input =
     { includes = []; filename; expect = Spectec.Task.Positive }
   in
-  Spectec.eval_task (module P4.Instantiate) ~mode ~spec_il input
+  Spectec.eval_task (module P4.Instantiate) ~mode ~spec_al input
 
 let samples = "../../../testdata/interp/p4/p4c/p4_16_samples/"
 
-let simulate spec_il mode filename ~stf =
+let simulate spec_al mode filename ~stf =
   let input : P4.Sim.input =
     { includes = [ "../../../testdata/interp/p4/p4c/includes" ]; filename; stf }
   in
-  Spectec.eval_task (module P4.Sim) ~check_determinism:true ~mode ~spec_il input
+  Spectec.eval_task (module P4.Sim) ~check_determinism:true ~mode ~spec_al input
 
-let check_simulation spec_il mode filename ~stf =
-  simulate spec_il mode filename ~stf |> unwrap |> ignore
+let check_simulation spec_al mode filename ~stf =
+  simulate spec_al mode filename ~stf |> unwrap |> ignore
 
-let check_malformed spec_il mode =
+let check_malformed spec_al mode =
   match
-    simulate spec_il mode "sim-operations.p4"
+    simulate spec_al mode "sim-operations.p4"
       ~stf:"sim-operations-malformed.stf"
   with
   | Error (Spectec.Error.TaskParseError (_, message))
@@ -116,9 +116,9 @@ let check_malformed spec_il mode =
   | Ok _ -> failwith "a malformed expect line was accepted"
   | Error error -> failwith (render error)
 
-let check_mismatch spec_il mode =
+let check_mismatch spec_al mode =
   match
-    simulate spec_il mode "sim-operations.p4" ~stf:"sim-operations-mismatch.stf"
+    simulate spec_al mode "sim-operations.p4" ~stf:"sim-operations-mismatch.stf"
   with
   | Error (Spectec.Error.TaskError (_, message))
     when P4.contains_substring message "but expected" ->
@@ -183,23 +183,23 @@ let check_min_nat () =
 let () =
   check_field_location ();
   check_min_nat ();
-  let spec_il, henv = compile () in
+  let spec_al, henv = compile () in
   List.iter
     (fun (name, mode) ->
-      run spec_il mode "counter-array.p4"
+      run spec_al mode "counter-array.p4"
       |> unwrap
       |> check_store name [ ("positional", 3); ("named", 4); ("empty", 0) ];
-      run spec_il mode "counter-default.p4"
+      run spec_al mode "counter-default.p4"
       |> unwrap
       |> check_store name
            [ ("defaults", 2); ("named_defaults", 1); ("all_defaults", 2) ];
-      run spec_il mode "counter-nested.p4" |> unwrap |> check_nested_store name;
-      check_simulation spec_il mode
+      run spec_al mode "counter-nested.p4" |> unwrap |> check_nested_store name;
+      check_simulation spec_al mode
         (samples ^ "valid_ebpf.p4")
         ~stf:(samples ^ "valid_ebpf.stf");
-      check_simulation spec_il mode "sim-operations.p4"
+      check_simulation spec_al mode "sim-operations.p4"
         ~stf:"sim-operations.stf";
-      match run spec_il mode "unsupported.p4" with
+      match run spec_al mode "unsupported.p4" with
       | Ok _ -> failwith (name ^ ": unsupported object was instantiated")
       | Error error ->
           let diagnostics = render error in
@@ -209,5 +209,5 @@ let () =
                  "unsupported eBPF extern object: Unsupported")
           then failwith diagnostics)
     [ ("IL", Spectec.Interp_mode.Il); ("SL", Sl); ("PL", Pl henv) ];
-  check_mismatch spec_il Spectec.Interp_mode.Sl;
-  check_malformed spec_il Spectec.Interp_mode.Sl
+  check_mismatch spec_al Spectec.Interp_mode.Sl;
+  check_malformed spec_al Spectec.Interp_mode.Sl

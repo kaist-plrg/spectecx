@@ -10,13 +10,13 @@ let run_with_task (type i) (module T : Spectec.Task.S with type input = i)
   let open Core.Result.Let_syntax in
   let suite_result =
     let%bind spec = Spectec.parse_spec_files spec_files in
-    let%bind spec_il = Spectec.elaborate spec in
+    let%bind spec_al = Spectec.elaborate spec in
     let mode : Spectec.Interp_mode.t =
       match request with
       | `IL -> Il
       | `SL -> Sl
       | `PL ->
-          Pl (Spectec.henv_with_il_spec (Spectec.henv_of_el_spec spec) spec_il)
+          Pl (Spectec.henv_with_al_spec (Spectec.henv_of_el_spec spec) spec_al)
     in
     let exclude_set = Exclude.load exclude_dirs in
     let mode_suffix = "(" ^ String.lowercase mode_name ^ ")" in
@@ -44,7 +44,7 @@ let run_with_task (type i) (module T : Spectec.Task.S with type input = i)
           let%bind _ =
             Spectec.eval_task_with_instrumentation
               (module T)
-              ~mode ~spec_il input
+              ~mode ~spec_al input
           in
           Ok ()
     in

@@ -56,16 +56,16 @@ let elaborate spec_el =
 (* Structuring depends only on the spec, so caching on its identity is sound. *)
 let structure =
   let cache = ref None in
-  fun spec_il ->
+  fun spec_al ->
     match !cache with
-    | Some (spec_il', spec_sl) when spec_il' == spec_il -> spec_sl
+    | Some (spec_al', spec_sl) when spec_al' == spec_al -> spec_sl
     | _ ->
-        let spec_sl = Pass.structure spec_il in
-        cache := Some (spec_il, spec_sl);
+        let spec_sl = Pass.structure spec_al in
+        cache := Some (spec_al, spec_sl);
         spec_sl
 
 let henv_of_el_spec spec_el = Pass.henv_of_el_spec spec_el
-let henv_with_il_spec henv spec_il = Pass.henv_with_il_spec henv spec_il
+let henv_with_al_spec henv spec_al = Pass.henv_with_al_spec henv spec_al
 let annotate ~henv spec_sl = Pass.annotate ~henv spec_sl
 let shorten spec_pl = Pass.shorten spec_pl
 
@@ -78,7 +78,7 @@ let validate_config config ~(mode : Interp_mode.request) =
 
 let interp_error e = Error.InterpError e
 
-let eval_run ~check_determinism ~(mode : Interp_mode.t) ~spec_il target_state
+let eval_run ~check_determinism ~(mode : Interp_mode.t) ~spec_al target_state
     (run : Task.run) =
   let driver =
     match run with
@@ -93,31 +93,31 @@ let eval_run ~check_determinism ~(mode : Interp_mode.t) ~spec_il target_state
   match mode with
   | Il ->
       run_layer
-        (Interp.context_of_il_spec ~check_determinism target_state spec_il)
+        (Interp.context_of_il_spec ~check_determinism target_state spec_al)
   | Sl ->
-      let spec_sl = structure spec_il in
+      let spec_sl = structure spec_al in
       run_layer
         (Interp.context_of_sl_spec ~check_determinism target_state spec_sl)
   | Pl henv ->
-      let spec_sl = structure spec_il in
+      let spec_sl = structure spec_al in
       let spec_pl = Pass.annotate ~henv spec_sl |> Pass.shorten in
       run_layer
         (Interp.context_of_pl_spec ~check_determinism target_state spec_pl)
 
 let eval_task (type i) (module T : Task.S with type input = i)
-    ?(check_determinism = false) ~(mode : Interp_mode.t) ~spec_il (input : i) =
+    ?(check_determinism = false) ~(mode : Interp_mode.t) ~spec_al (input : i) =
   Interp.with_target_state (module T.Target) @@ fun target_state ->
-  let* run = T.parse_input ~spec:spec_il input in
-  eval_run ~check_determinism ~mode ~spec_il target_state run
+  let* run = T.parse_input ~spec:spec_al input in
+  eval_run ~check_determinism ~mode ~spec_al target_state run
 
 let eval_task_with_instrumentation (type i)
     (module T : Task.S with type input = i)
     ?(config = Instrumentation.Config.default) ?(check_determinism = false)
-    ~(mode : Interp_mode.t) ~spec_il (input : i) =
+    ~(mode : Interp_mode.t) ~spec_al (input : i) =
   let instrumented_spec =
     match mode with
-    | Il -> Instrumentation.Static.IlSpec spec_il
-    | Sl | Pl _ -> Instrumentation.Static.SlSpec (structure spec_il)
+    | Il -> Instrumentation.Static.IlSpec spec_al
+    | Sl | Pl _ -> Instrumentation.Static.SlSpec (structure spec_al)
   in
   Instrumentation.with_instrumentation config instrumented_spec @@ fun () ->
-  eval_task (module T) ~check_determinism ~mode ~spec_il input
+  eval_task (module T) ~check_determinism ~mode ~spec_al input

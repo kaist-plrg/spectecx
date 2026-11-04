@@ -257,20 +257,20 @@ type 'i test_result = {
 let run_with_outcome_with_instrumentation (type i)
     (module T : Task.S with type input = i)
     ?(config = Instrumentation.Config.default) ?(check_determinism = false)
-    ~mode ~spec_il (input : i) =
+    ~mode ~spec_al (input : i) =
   let result =
     Spectec.eval_task_with_instrumentation
       (module T)
-      ~config ~check_determinism ~mode ~spec_il input
+      ~config ~check_determinism ~mode ~spec_al input
   in
   Task.compute_outcome (T.expectation input) result
 
 let run_with_outcome (type i) (module T : Task.S with type input = i)
-    ?(check_determinism = false) ~mode ~spec_il (input : i) =
+    ?(check_determinism = false) ~mode ~spec_al (input : i) =
   let test_case_id = T.source input in
   Instrumentation.Dispatcher.emit (Events.Test_start { test_case_id });
   let result =
-    try Spectec.eval_task (module T) ~check_determinism ~mode ~spec_il input
+    try Spectec.eval_task (module T) ~check_determinism ~mode ~spec_al input
     with e ->
       Instrumentation.Dispatcher.emit (Events.Test_end { test_case_id });
       raise e
@@ -296,10 +296,10 @@ let print_outcome_tag ansi outcome =
        (outcome_label outcome))
 
 let run_one_input (type i) (module T : Task.S with type input = i)
-    ?(check_determinism = false) ~ansi ~mode ~spec_il ~verbose (input : i) =
+    ?(check_determinism = false) ~ansi ~mode ~spec_al ~verbose (input : i) =
   let source = T.source input in
   let outcome =
-    try run_with_outcome (module T) ~check_determinism ~mode ~spec_il input
+    try run_with_outcome (module T) ~check_determinism ~mode ~spec_al input
     with exn ->
       let error = UnhandledException (Printexc.to_string exn) in
       Task.compute_outcome (T.expectation input) (Error error)
@@ -378,10 +378,10 @@ let print_summary summary =
 
 let run_batch_with_outcomes (type i) (module T : Task.S with type input = i)
     ?(config = Instrumentation.Config.default) ?(check_determinism = false)
-    ~ansi ~mode ~spec_il ?(verbose = false) (inputs : i list) =
+    ~ansi ~mode ~spec_al ?(verbose = false) (inputs : i list) =
   let total = List.length inputs in
   Instrumentation.with_instrumentation config
-    (Instrumentation.Static.IlSpec spec_il)
+    (Instrumentation.Static.IlSpec spec_al)
   @@ fun () ->
   List.mapi
     (fun idx input ->
@@ -389,17 +389,17 @@ let run_batch_with_outcomes (type i) (module T : Task.S with type input = i)
         Format.printf "[%d/%d] %s... %!" (idx + 1) total (T.source input);
       run_one_input
         (module T)
-        ~check_determinism ~ansi ~mode ~spec_il ~verbose input)
+        ~check_determinism ~ansi ~mode ~spec_al ~verbose input)
     inputs
 
 (* --- Composed run + print --- *)
 
 let run_and_print_single (type i) (module T : Task.S with type input = i)
-    ?config ?check_determinism ~mode ~spec_il (input : i) =
+    ?config ?check_determinism ~mode ~spec_al (input : i) =
   let outcome =
     run_with_outcome_with_instrumentation
       (module T)
-      ?config ?check_determinism ~mode ~spec_il input
+      ?config ?check_determinism ~mode ~spec_al input
   in
   match outcome with
   | Task.Pass values | Task.UnexpectedPass values ->
@@ -415,14 +415,14 @@ let empty_inputs_error ?dir () =
        (match dir with Some dir -> " under " ^ dir | None -> ""))
 
 let run_and_print_batch (type i) (module T : Task.S with type input = i) ?config
-    ?check_determinism ~ansi ~mode ~spec_il ~verbose (inputs : i list) =
+    ?check_determinism ~ansi ~mode ~spec_al ~verbose (inputs : i list) =
   match inputs with
   | [] -> Error (empty_inputs_error ())
   | _ ->
       let results =
         run_batch_with_outcomes
           (module T)
-          ?config ?check_determinism ~ansi ~mode ~spec_il ~verbose inputs
+          ?config ?check_determinism ~ansi ~mode ~spec_al ~verbose inputs
       in
       if not verbose then
         List.iter
@@ -443,10 +443,10 @@ type task_result = {
 
 let run_target ?(config = Instrumentation.Config.default)
     ?(check_determinism = false) ?test_dir ~ansi
-    ~(checkpoint_config : Checkpoint.config) ~verbose ~mode ~spec_files spec_il
+    ~(checkpoint_config : Checkpoint.config) ~verbose ~mode ~spec_files spec_al
     tasks =
   Instrumentation.with_instrumentation config
-    (Instrumentation.Static.IlSpec spec_il)
+    (Instrumentation.Static.IlSpec spec_al)
   @@ fun () ->
   let ( let* ) = Result.bind in
   let* loaded_checkpoint =
@@ -497,7 +497,7 @@ let run_target ?(config = Instrumentation.Config.default)
               let result =
                 run_one_input
                   (module T)
-                  ~check_determinism ~ansi ~mode ~spec_il ~verbose input
+                  ~check_determinism ~ansi ~mode ~spec_al ~verbose input
               in
               all_completed_inputs := result.source :: !all_completed_inputs;
               if (index + 1) mod checkpoint_config.save_interval = 0 then

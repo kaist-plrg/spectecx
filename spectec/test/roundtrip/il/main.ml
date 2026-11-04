@@ -99,13 +99,13 @@ let run specdir =
     let open Result.Let_syntax in
     let spec_files = Files.collect ~suffix:".spectec" specdir in
     let%bind spec = Spectec.parse_spec_files spec_files in
-    let%bind spec_il = Spectec.elaborate spec in
-    return (spec, spec_il)
+    let%bind spec_al = Spectec.elaborate spec in
+    return (spec, spec_al)
   in
   match result with
-  | Ok (spec, spec_il) ->
+  | Ok (spec, spec_al) ->
       let { rules_checked; clauses_checked; failures } =
-        List.fold spec_il
+        List.fold spec_al
           ~init:{ rules_checked = 0; clauses_checked = 0; failures = [] }
           ~f:(check_def spec)
       in

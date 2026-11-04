@@ -5,14 +5,14 @@ open Test_lib
 
 let run specdir =
   let open Core.Result.Let_syntax in
-  let spec_il =
+  let spec_al =
     let spec_files = Files.collect ~suffix:".spectec" specdir in
     let%bind spec = Spectec.parse_spec_files spec_files in
-    let%bind spec_il = Spectec.elaborate spec in
-    Ok spec_il
+    let%bind spec_al = Spectec.elaborate spec in
+    Ok spec_al
   in
-  match spec_il with
-  | Ok spec_il -> Format.printf "%s\n" (Lang.Al.Print.string_of_spec spec_il)
+  match spec_al with
+  | Ok spec_al -> Format.printf "%s\n" (Lang.Al.Print.string_of_spec spec_al)
   | Error err ->
       Format.printf "Elaboration failed:\n%s\n"
         (Spectec.Diagnostic.Render.render_bag

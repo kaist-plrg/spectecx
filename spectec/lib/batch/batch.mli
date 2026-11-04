@@ -70,7 +70,7 @@ val run_with_outcome_with_instrumentation :
   ?config:Instrumentation.Config.t ->
   ?check_determinism:bool ->
   mode:Spectec.Interp_mode.t ->
-  spec_il:Lang.Al.spec ->
+  spec_al:Lang.Al.spec ->
   'i ->
   Spectec.Task.test_outcome
 
@@ -83,7 +83,7 @@ val run_batch_with_outcomes :
   ?check_determinism:bool ->
   ansi:Spectec.Diagnostic.Ansi.t ->
   mode:Spectec.Interp_mode.t ->
-  spec_il:Lang.Al.spec ->
+  spec_al:Lang.Al.spec ->
   ?verbose:bool ->
   'i list ->
   'i test_result list
@@ -120,7 +120,7 @@ val run_and_print_single :
   ?config:Instrumentation.Config.t ->
   ?check_determinism:bool ->
   mode:Spectec.Interp_mode.t ->
-  spec_il:Lang.Al.spec ->
+  spec_al:Lang.Al.spec ->
   'i ->
   (unit, Spectec.Error.t) result
 
@@ -130,7 +130,7 @@ val run_and_print_batch :
   ?check_determinism:bool ->
   ansi:Spectec.Diagnostic.Ansi.t ->
   mode:Spectec.Interp_mode.t ->
-  spec_il:Lang.Al.spec ->
+  spec_al:Lang.Al.spec ->
   verbose:bool ->
   'i list ->
   (unit, Spectec.Error.t) result

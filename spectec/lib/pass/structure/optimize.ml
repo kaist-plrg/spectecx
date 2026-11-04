@@ -111,9 +111,9 @@ let rec matchify_if_eq_terminal (instr : instr) : instr =
 and matchify_if_eq_terminals (instrs : instr list) : instr list =
   List.map matchify_if_eq_terminal instrs
 
-(* [3] Remove redundant let and relation bindings from the code,
-   which appears due to the concatenation of multiple rules and clauses
-   This operation is safe because IL is already in SSA form *)
+(* [3] Remove redundant let and relation bindings. Structuring produces them
+   when it concatenates several rules or clauses. Removing them is safe
+   because each variable in AL is bound only once. *)
 
 module Bind = struct
   (* Expression unit *)

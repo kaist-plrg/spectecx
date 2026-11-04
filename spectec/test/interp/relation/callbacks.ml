@@ -117,7 +117,7 @@ let check_nested_callbacks () =
     (fun mode ->
       let instrumented_spec =
         match mode with
-        | H.Il -> Instrumentation.Static.IlSpec spec.spec_il
+        | H.Il -> Instrumentation.Static.IlSpec spec.spec_al
         | Sl | Pl -> SlSpec spec.spec_sl
       in
       let config : Instrumentation.Handler.Config.t =

@@ -13,13 +13,13 @@ let ( let* ) = Result.bind
 let run spec_dir file =
   let spec_files = Test_lib.Files.collect ~suffix:".spectec" spec_dir in
   let* spec = Spectec.parse_spec_files spec_files in
-  let* spec_il = Spectec.elaborate spec in
+  let* spec_al = Spectec.elaborate spec in
   let input =
     { Targets_impty.Impty.filename = file; expect = Spectec.Task.Negative }
   in
   Spectec.eval_task_with_instrumentation
     (module Targets_impty.Impty.Typecheck)
-    ~mode:Spectec.Interp_mode.Il ~spec_il input
+    ~mode:Spectec.Interp_mode.Il ~spec_al input
   |> Result.map ignore
 
 let () =
