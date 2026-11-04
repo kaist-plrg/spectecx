@@ -1,20 +1,31 @@
-type scope = { directory : string; recursive : bool }
+type spec_directory = { path : string; recursive : bool }
 
 type t = private {
-  scope : scope;
+  spec_directory : spec_directory;
   files : string list;
   contents : Spectec.spec_source list;
-  errors : (string * string) list;
+  io_errors : (string * string) list;
 }
 
-val canonical : string -> string
-val scope_of : string -> scope
-val contains : scope -> string -> bool
+(** [canonical_path path] is [path] made absolute with symbolic links resolved.
+    When [path] cannot be resolved, only its directory is resolved. When neither
+    can be resolved, the result is [path] made absolute. *)
+val canonical_path : string -> string
 
-(** Load one spec in parser order, using open buffers before disk contents.
-    Unmarked directories include immediate siblings only. Open files that do not
-    yet exist on disk participate in the same ordering. *)
-val load : buffers:Spectec.spec_source list -> path:string -> t
+val spec_directory_of : string -> spec_directory
+
+(** [contains spec_directory ~file] resolves [file] with {!canonical_path} and
+    tests whether its directory is [spec_directory.path]. When
+    [spec_directory.recursive] is true, directories nested inside
+    [spec_directory.path] also match. The file need not exist or have a
+    [.spectec] extension. *)
+val contains : spec_directory -> file:string -> bool
+
+(** [load ~buffers path] loads the spec containing the file [path]. A file's
+    text comes from [buffers] when [buffers] holds it, and from disk otherwise.
+    A [.spectec] file in [buffers] belongs to the spec when the spec directory
+    {!contains} it, even when the file does not exist on disk. *)
+val load : buffers:Spectec.spec_source list -> string -> t
 
 val equal : t -> t -> bool
 

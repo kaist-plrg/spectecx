@@ -3,11 +3,11 @@ module Workspace = Spectec_lsp.Workspace
 let read path = In_channel.with_open_bin path In_channel.input_all
 
 let () =
-  let definition = Sources.canonical "unmarked/2-def.spectec" in
-  let use = Sources.canonical "unmarked/10-use.spectec" in
-  let inserted = Sources.canonical "unmarked/5-added.spectec" in
+  let definition = Sources.canonical_path "unmarked/2-def.spectec" in
+  let use = Sources.canonical_path "unmarked/10-use.spectec" in
+  let inserted = Sources.canonical_path "unmarked/5-added.spectec" in
   let sources =
-    Sources.load ~path:use
+    Sources.load use
       ~buffers:
         [
           Spectec.{ filename = inserted; contents = "syntax middle = base\n" };
@@ -22,7 +22,8 @@ let () =
     Filename.concat (Filename.dirname use) "../unmarked/10-use.spectec"
   in
   assert (Sources.text sources alias = None);
-  assert (Sources.canonical "unmarked/../unmarked/2-def.spectec" = definition);
+  assert (
+    Sources.canonical_path "unmarked/../unmarked/2-def.spectec" = definition);
   let workspace = Workspace.create () in
   let workspace = Workspace.set workspace ~path:definition (read definition) in
   let workspace = Workspace.set workspace ~path:use (read use) in
@@ -66,13 +67,13 @@ let () =
   let _, retained = Workspace.analyze before_close use in
   assert (retained == recovered);
   let workspace, closed = Workspace.close workspace use in
-  assert (closed = Some (Sources.scope_of use));
+  assert (closed = Some (Sources.spec_directory_of use));
   let workspace, affected = Workspace.affected workspace definition in
   assert (affected = []);
   let workspace, affected = Workspace.affected workspace use in
   assert (affected = []);
-  let outer = Sources.canonical "overlapping/1-outer.spectec" in
-  let inner = Sources.canonical "overlapping/inner/2-inner.spectec" in
+  let outer = Sources.canonical_path "overlapping/1-outer.spectec" in
+  let inner = Sources.canonical_path "overlapping/inner/2-inner.spectec" in
   let workspace = Workspace.set workspace ~path:outer (read outer) in
   let workspace = Workspace.set workspace ~path:inner (read inner) in
   let workspace, initial = Workspace.affected workspace inner in
@@ -84,7 +85,7 @@ let () =
   assert (
     List.for_all (fun (a : Workspace.analysis) -> a.diagnostics = []) updated);
   let workspace, closed = Workspace.close workspace inner in
-  assert (closed = Some (Sources.scope_of inner));
+  assert (closed = Some (Sources.spec_directory_of inner));
   let _, remaining = Workspace.affected workspace inner in
   assert (List.length remaining = 1);
   assert (Sources.text (List.hd remaining).sources inner = Some (read inner))

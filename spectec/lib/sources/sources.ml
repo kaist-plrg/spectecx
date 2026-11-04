@@ -1,13 +1,13 @@
-type scope = { directory : string; recursive : bool }
+type spec_directory = { path : string; recursive : bool }
 
 type t = {
-  scope : scope;
+  spec_directory : spec_directory;
   files : string list;
   contents : Spectec.spec_source list;
-  errors : (string * string) list;
+  io_errors : (string * string) list;
 }
 
-let canonical path =
+let canonical_path path =
   let path =
     if Filename.is_relative path then Filename.concat (Sys.getcwd ()) path
     else path
@@ -20,38 +20,38 @@ let canonical path =
         (Filename.basename path)
     with Unix.Unix_error _ -> path)
 
-let scope_of path =
-  let path = canonical path in
+let spec_directory_of path =
+  let path = canonical_path path in
   match Spectec.spec_root_of_file path with
-  | Some directory -> { directory = canonical directory; recursive = true }
-  | None -> { directory = Filename.dirname path; recursive = false }
+  | Some directory -> { path = canonical_path directory; recursive = true }
+  | None -> { path = Filename.dirname path; recursive = false }
 
-let contains scope path =
+let contains spec_directory ~file =
   let rec within directory =
-    String.equal directory scope.directory
-    || scope.recursive
+    String.equal directory spec_directory.path
+    || spec_directory.recursive
        &&
        let parent = Filename.dirname directory in
        (not (String.equal parent directory)) && within parent
   in
-  within (Filename.dirname (canonical path))
+  within (Filename.dirname (canonical_path file))
 
-let load ~buffers ~path =
-  let path = canonical path in
-  let scope = scope_of path in
+let load ~buffers path =
+  let path = canonical_path path in
+  let spec_directory = spec_directory_of path in
   let buffers =
     List.map
       (fun (source : Spectec.spec_source) ->
-        { source with filename = canonical source.filename })
+        { source with filename = canonical_path source.filename })
       buffers
   in
-  let disk_files, discovery_errors =
+  let disk_files, listing_errors =
     try
       let collect =
-        if scope.recursive then Spectec.collect_spec_files
+        if spec_directory.recursive then Spectec.collect_spec_files
         else Spectec.collect_spec_siblings
       in
-      (List.map canonical (collect scope.directory), [])
+      (List.map canonical_path (collect spec_directory.path), [])
     with Sys_error message -> ([], [ (path, message) ])
   in
   let open_files =
@@ -59,7 +59,7 @@ let load ~buffers ~path =
       (fun (source : Spectec.spec_source) ->
         if
           Filename.check_suffix source.filename ".spectec"
-          && contains scope source.filename
+          && contains spec_directory ~file:source.filename
         then Some source.filename
         else None)
       buffers
@@ -80,12 +80,12 @@ let load ~buffers ~path =
         | contents -> Either.Right Spectec.{ filename; contents }
         | exception Sys_error message -> Either.Left (filename, message))
   in
-  let errors, contents = List.partition_map read files in
-  { scope; files; contents; errors = discovery_errors @ errors }
+  let file_errors, contents = List.partition_map read files in
+  { spec_directory; files; contents; io_errors = listing_errors @ file_errors }
 
 let equal a b =
-  a.scope = b.scope && a.files = b.files && a.contents = b.contents
-  && a.errors = b.errors
+  a.spec_directory = b.spec_directory
+  && a.files = b.files && a.contents = b.contents && a.io_errors = b.io_errors
 
 let text sources filename =
   List.find_map

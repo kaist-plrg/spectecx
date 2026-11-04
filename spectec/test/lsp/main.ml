@@ -17,8 +17,9 @@ let print_diagnostics = function
 let case ?path ?(buffers = []) name text =
   let path = Option.value path ~default:name in
   let sources =
-    Sources.load ~path
+    Sources.load
       ~buffers:(Spectec.{ filename = path; contents = text } :: buffers)
+      path
   in
   Printf.printf "## %s\n" name;
   Check.analyze sources

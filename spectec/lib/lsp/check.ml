@@ -32,8 +32,9 @@ let internal_error ~open_path exn : Spectec.Diagnostic.t =
 
 let analyze (sources : Sources.t) =
   try
-    match sources.errors with
-    | _ :: _ -> List.map (fun (file, msg) -> unreadable file msg) sources.errors
+    match sources.io_errors with
+    | _ :: _ ->
+        List.map (fun (file, msg) -> unreadable file msg) sources.io_errors
     | [] -> (
         let parsed, parse_diagnostics =
           Spectec.with_diagnostics (fun () ->
@@ -51,7 +52,7 @@ let analyze (sources : Sources.t) =
     let open_path =
       match sources.files with
       | path :: _ -> path
-      | [] -> sources.scope.directory
+      | [] -> sources.spec_directory.path
     in
     [ internal_error ~open_path exn ]
 
