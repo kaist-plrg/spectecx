@@ -2055,6 +2055,66 @@ let warn_missing_rules_and_clauses (spec_il : Il.spec) ~(source : spec) : unit =
       | _ -> ())
     spec_il
 
+(* Reject a second `otherwise` rule or clause *)
+
+(* Structuring treats a rule or clause as a fallback only when `otherwise` is
+   its last premise. Elaboration drops `var` premises before structuring reads
+   the premises. *)
+let fallback_at (prems : prem list) : Location.t option =
+  let prems =
+    List.filter
+      (fun prem -> match prem.it with VarPr _ -> false | _ -> true)
+      prems
+  in
+  match List.rev prems with { it = ElsePr; at; _ } :: _ -> Some at | _ -> None
+
+let check_fallbacks (spec : spec) ~(declared : Il.spec) : Diag.t list =
+  let relids, defids =
+    List.fold_left
+      (fun (relids, defids) def_il ->
+        match def_il.it with
+        | Il.RelD { relid = id; _ } -> (IdSet.add id relids, defids)
+        | Il.DecD { defid = id; _ } -> (relids, IdSet.add id defids)
+        | _ -> (relids, defids))
+      (IdSet.empty, IdSet.empty) declared
+  in
+  let check_fallback fallbacks_prior (id : id) (prems : prem list) ~kind ~code =
+    match fallback_at prems with
+    | None -> fallbacks_prior
+    | Some at -> (
+        match IdMap.find_opt id fallbacks_prior with
+        | Some prior_at ->
+            error_dup at kind id.it ~code
+              ~related:[ (prior_at, "originally defined here") ]
+        | None -> IdMap.add id at fallbacks_prior)
+  in
+  let _, _, errors =
+    List.fold_left
+      (fun (rel_fallbacks, dec_fallbacks, errors) def ->
+        try
+          match def.it with
+          | RuleD (id_rel, _, _, prems) when IdSet.mem id_rel relids ->
+              let rel_fallbacks =
+                check_fallback rel_fallbacks id_rel prems
+                  ~kind:"an `otherwise` rule for relation"
+                  ~code:Ctx_relation_fallback_redefined
+              in
+              (rel_fallbacks, dec_fallbacks, errors)
+          | DefD (id, _, _, _, prems) when IdSet.mem id defids ->
+              let dec_fallbacks =
+                check_fallback dec_fallbacks id prems
+                  ~kind:"an `otherwise` clause for dec"
+                  ~code:Ctx_dec_fallback_redefined
+              in
+              (rel_fallbacks, dec_fallbacks, errors)
+          | _ -> (rel_fallbacks, dec_fallbacks, errors)
+        with Diagnostic.ElabError e ->
+          (rel_fallbacks, dec_fallbacks, e :: errors))
+      (IdMap.empty, IdMap.empty, [])
+      spec
+  in
+  errors
+
 (* Elaborate and collect failtraces *)
 
 let elab_defs_with_errors (ctx : Ctx.t) (defs : def list) :
@@ -2153,6 +2213,7 @@ let elab_spec (spec : spec) : Lang.Il.spec Diagnostic.result =
     let ctx, spec_il, errors = elab_defs_with_errors ctx spec in
     let spec_il = spec_il |> populate_rules ctx |> populate_clauses ctx in
     warn_missing_rules_and_clauses spec_il ~source:spec;
+    let errors = check_fallbacks spec ~declared:spec_il @ errors in
     if errors = [] then Ok spec_il else Error errors
   with Diagnostic.ElabError e -> Error [ e ]
 

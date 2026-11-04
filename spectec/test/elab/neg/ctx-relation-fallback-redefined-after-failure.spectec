@@ -1,0 +1,13 @@
+var x : nat
+
+relation R:
+  nat |- nat
+  hint(input %0)
+
+rule R/first:
+  x |- true
+  -- otherwise
+
+rule R/second:
+  x |- 3
+  -- otherwise
