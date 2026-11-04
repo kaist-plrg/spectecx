@@ -4,7 +4,7 @@ We add shared rules when recurring contribution problems justify them. Suggestio
 
 See [README.md](README.md) for setup and project orientation, and [Makefile](Makefile) for build and test commands. Format OCaml changes with `make fmt`. The formatter version is pinned in [spectec/.ocamlformat](spectec/.ocamlformat), and CI checks formatting with that version. [editors/vscode/README.md](editors/vscode/README.md) describes the checks for the VS Code extension.
 
-CI uses [tools/commit-messages/check_auto.py](tools/commit-messages/check_auto.py) to check commit types, 72-column wrapping, ASCII text, source and credit record order, 12-character hashes, and quoted `Fixes:` subjects.
+CI uses [tools/commit-messages/check_auto.py](tools/commit-messages/check_auto.py) to check commit types, 72-column wrapping, ASCII text, source and credit record order, 12-character hashes, and quoted `Fixes:` subjects. The optional [commit-message hook](tools/commit-messages/README.md) wraps messages before Git records them.
 
 ## Review and merging
 
