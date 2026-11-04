@@ -1,0 +1,47 @@
+name: PR commit log
+
+# pull_request_target gives PRs from forks a token that can edit the PR body.
+# This job never checks out PR code. It reads commit subjects and the PR body
+# only as text.
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, edited]
+
+permissions:
+  pull-requests: write
+
+concurrency:
+  group: pr-commit-log-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  commit-log:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PULL: repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}
+    steps:
+      - name: Write the Commit Log between the markers
+        run: |
+          gh api --paginate "$PULL/commits" --jq '.[].commit.message | split("\n")[0]' > subjects.txt
+          gh api "$PULL" --jq '.body // ""' > body.md
+          python3 - <<'EOF'
+          import json, re
+          subjects = open("subjects.txt").read().splitlines()
+          body = open("body.md").read().removesuffix("\n")
+          section = "\n"
+          if len(subjects) >= 2:
+              section += "## Commit Log\n\n" + "".join(f"- {subject}\n" for subject in subjects)
+          new, count = re.subn(
+              r"(<!-- commit-log:start -->).*?(<!-- commit-log:end -->)",
+              lambda m: m[1] + section + m[2],
+              body,
+              count=1,
+              flags=re.S,
+          )
+          if count and new != body:
+              with open("payload.json", "w") as payload:
+                  json.dump({"body": new}, payload)
+          EOF
+          if [ -f payload.json ]; then gh api -X PATCH "$PULL" --input payload.json > /dev/null; fi

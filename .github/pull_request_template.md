@@ -55,6 +55,6 @@
 
 <!-- Ideas without a commitment to pursue them. -->
 
-## Commit Log
-
-<!-- For a PR with two or more commits, list the commit subjects verbatim and in order. -->
+<!-- Keep both markers. The workflow fills the Commit Log for PRs with two or more commits. -->
+<!-- commit-log:start -->
+<!-- commit-log:end -->
