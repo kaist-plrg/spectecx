@@ -1,4 +1,5 @@
 module Fresh = Fresh
+module P4_values = P4_values
 module Ebpf = Ebpf
 
 let builtins =

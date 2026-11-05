@@ -48,6 +48,9 @@ let init_object_state ~at name type_args ids values =
         Error (Error.runtime at "CounterArray does not take type arguments")
     | _ -> Error (Error.runtime at ("unsupported eBPF extern object: " ^ name))
 
+let packet_in_state bits =
+  Value.opaque typdef_object_state (PacketIn (Packet_in.make bits))
+
 (* Counter arrays *)
 
 let find_bit32 ~callback ~at ctx ~name =

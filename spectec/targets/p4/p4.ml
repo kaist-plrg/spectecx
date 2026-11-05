@@ -162,6 +162,51 @@ module Instantiate = struct
   let format_output _values = "Instantiation succeeded"
 end
 
+(* Runs a P4 program on the packets of an STF file with the eBPF architecture. *)
+module Sim = struct
+  let name = "simulator"
+
+  module Target = Target
+
+  type input = { includes : string list; filename : string; stf : string }
+
+  let uses_ebpf filename =
+    contains_substring
+      (In_channel.with_open_text filename In_channel.input_all)
+      "ebpf_model.p4"
+
+  let collect ?dir () =
+    match dir with
+    | None -> []
+    | Some base ->
+        let includes_dir = Filename.concat base "includes" in
+        collect_files_recursive ~suffix:".p4" base
+        |> List.filter_map (fun filename ->
+               let stf = Filename.remove_extension filename ^ ".stf" in
+               if Sys.file_exists stf && uses_ebpf filename then
+                 Some { includes = [ includes_dir ]; filename; stf }
+               else None)
+
+  let unparse = Frontend.unparse
+  let parse_string = Frontend.parse_string
+
+  let parse_input ~spec:_ { includes; filename; stf; _ } =
+    let ( let* ) = Result.bind in
+    let* program = Frontend.parse_file includes filename in
+    let* statements = Stf.parse_file stf in
+    Ok (Spectec.Task.Driver (Ebpf_sim.drive program ~statements))
+
+  let source { filename; _ } = filename
+  let expectation _ = Spectec.Task.Positive
+
+  let format_output = function
+    | [] -> "No packets transmitted"
+    | values ->
+        values |> List.map Ebpf_sim.string_of_transmitted |> String.concat "\n"
+
+  let save_output _filename _values = ()
+end
+
 let program_flags =
   let open Core.Command.Let_syntax in
   let open Core.Command.Param in
@@ -186,6 +231,20 @@ module Instantiate_cli : Cli.Task_cli.S = struct
   let flags = cli_flags
 end
 
+module Sim_cli : Cli.Task_cli.S = struct
+  module Task = Sim
+
+  let flags =
+    let open Core.Command.Let_syntax in
+    let open Core.Command.Param in
+    let%map includes, filename = program_flags
+    and stf =
+      flag "-stf" (required string)
+        ~doc:"FILE STF file with input packets and expected output packets"
+    in
+    { Sim.includes; filename; stf }
+end
+
 let target = (module Target : Spectec.Target.S)
 
 module Cli : Cli.Target_cli.S = struct
@@ -201,6 +260,9 @@ module Cli : Cli.Target_cli.S = struct
         Subcommand.make_task target ~name:"instantiate"
           ~summary:"Instantiate a P4 program with eBPF extern objects"
           (module Instantiate_cli);
+        Subcommand.make_task target ~name:"sim"
+          ~summary:"Run a P4 program on STF packets with the eBPF architecture"
+          (module Sim_cli);
         Subcommand.make_parse target ~name:"parse"
           ~summary:"parse a P4 program to an IL value"
           (module Typecheck_cli);

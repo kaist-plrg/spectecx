@@ -12,7 +12,12 @@
  (libraries spectec targets_p4)
  (deps
   (source_tree ../../../specs/p4)
-  (glob_files *.p4)))
+  (source_tree ../../../testdata/interp/p4/p4c/includes)
+  ../../../testdata/interp/p4/p4c/p4_16_samples/valid_ebpf.p4
+  ../../../testdata/interp/p4/p4c/p4_16_samples/valid_ebpf.stf
+  ../../../testdata/interp/p4/p4c/p4_16_samples/ebpf_headers.p4
+  (glob_files *.p4)
+  (glob_files *.stf)))
 
 (test
  (name ebpf_state)

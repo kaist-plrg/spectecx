@@ -1,0 +1,26 @@
+# A negative signed field is accepted. The expected digits match a prefix.
+packet 0 01F000
+expect 0 01F0
+
+# A positive signed field is dropped.
+packet 0 011000
+
+# A slice assignment sets the high bits of a field.
+packet 0 020005
+expect 0 02**05$
+
+# After push_front, the next extraction fills the second stack element.
+packet 0 03002A2A
+expect 0 03002A2A$
+
+# A packet shorter than its first header is dropped.
+packet 0 01
+
+# A packet that fails the parser's verify call is dropped.
+packet 0 FF0000
+
+# The expect lines of different ports may appear in any relative order.
+expect 1 020005$
+expect 0 01F000$
+packet 0 01F000
+packet 1 020005

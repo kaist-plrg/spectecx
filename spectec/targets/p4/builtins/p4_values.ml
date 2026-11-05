@@ -8,6 +8,7 @@ let ( let* ) = Result.bind
 
 (* Values of the P4 specification's syntax *)
 
+let global = Case.case_v ~var:"cursor" [ Case.kw "GLOBAL" ]
 let local = Case.case_v ~var:"cursor" [ Case.kw "LOCAL" ]
 
 let bare_name (name : string) : Value.t =
@@ -26,6 +27,12 @@ let return_empty : Value.t =
 
 let reject (error : Value.t) : Value.t =
   Case.case_v ~var:"rejectTransitionResult" [ Case.kw "REJECT"; Case.arg error ]
+
+let is_reject (value : Value.t) : bool =
+  match value.it with
+  | CaseV (Atom atom :: _) ->
+      Lang.Xl.Atom.eq atom.it (Lang.Xl.Atom.keyword "REJECT")
+  | _ -> false
 
 let error_value (name : string) : Value.t =
   Case.case_v ~var:"errorValue"
