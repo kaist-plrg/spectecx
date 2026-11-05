@@ -11,17 +11,12 @@ let run_relation ~(check_determinism : bool) ~opaque_types
     Interp.context_of_spec spec ~builtins ~cache ~check_determinism
       ~opaque_types
   in
-  let reltyp, _ = Ctx.find_rel_exn ctx ~id:(rid $ Location.Unknown) in
-  let typs = Mode.inputs reltyp.it in
-  (match
-     Value_typecheck.check_values ~opaque_types:(Ctx.opaque_types ctx)
-       ~find_typdef_opt:(fun id -> Ctx.find_typdef_opt ctx ~id)
-       ~typs values
-   with
-  | Ok () -> ()
-  | Error message ->
-      Error.error Location.Unknown ("relation " ^ rid ^ " input: " ^ message));
-  let+ values = Interp.invoke_rel ctx (rid $ Location.Unknown) values in
+  let id = rid $ Location.Unknown in
+  let reltyp, _ = Ctx.find_rel_exn ctx ~id in
+  Ctx.check_inputs_exn ctx ~kind:`Relation ~id
+    ~signature:([], Mode.inputs reltyp.it)
+    ~targs:[] ~values;
+  let+ values = Interp.invoke_rel ctx id values in
   (ctx, values)
 
 let run_relation_fresh ~(check_determinism : bool) ~opaque_types

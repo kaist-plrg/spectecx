@@ -135,6 +135,15 @@ end) : sig
     values:Value.t list ->
     Value.t Builtins.result
 
+  val check_inputs_exn :
+    t ->
+    kind:[ `Relation | `Function ] ->
+    id:Lang.Il.id ->
+    signature:Lang.Il.tparam list * Lang.Il.typ list ->
+    targs:Lang.Il.targ list ->
+    values:Value.t list ->
+    unit
+
   (** Return [f ()] or a cached result for the same [id] and equal [values]. The
       second component is [true] for a cache hit. *)
   val memoize_func :
