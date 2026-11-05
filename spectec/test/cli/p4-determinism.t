@@ -15,3 +15,16 @@ does.
 
   $ spectec p4 typecheck --spec-dir ../../specs/p4 -p lnot.p4 --det --pl --color never 2>/dev/null
   Typechecker succeeded
+
+When both operands of a sum are typedefs, only the first TYPEDEF clause of
+$compat_plusminusmult matches the call, because the second requires a left
+operand that is not a typedef:
+
+  $ cat > typedef-plus.p4 <<EOF
+  > typedef bit<8> B;
+  > const B a = 8w1;
+  > const B s = a + a;
+  > EOF
+
+  $ spectec p4 typecheck --spec-dir ../../specs/p4 -p typedef-plus.p4 --det --color never 2>/dev/null
+  Typechecker succeeded
