@@ -67,6 +67,13 @@ let list_of (p : 'a t) : 'a list t =
   | ListV vs -> result_all (List.map (p at) vs)
   | _ -> Error (type_err at "Expected ListV" v)
 
+let option_of (p : 'a t) : 'a option t =
+ fun at v ->
+  match v.it with
+  | OptV None -> Ok None
+  | OptV (Some v) -> Result.map Option.some (p at v)
+  | _ -> Error (type_err at "Expected OptV" v)
+
 module VSet = Set.Make (Value)
 
 let set : VSet.t t =

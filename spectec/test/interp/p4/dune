@@ -1,7 +1,10 @@
-; Tests need private counter values to check initialization. The other copied
-; module is a dependency of ebpf.ml.
+; Tests need private counter values to check initialization and updates. The
+; other copied modules are dependencies of ebpf.ml.
 
-(copy_files ../../../targets/p4/builtins/{ebpf,p4_values}.ml)
+(copy_files
+ ../../../targets/p4/builtins/{ebpf,packet_in,p4_values,spec_calls}.ml)
+
+(copy_files ../../../targets/p4/builtins/packet_in.mli)
 
 (test
  (name instantiate)
@@ -13,5 +16,5 @@
 
 (test
  (name ebpf_state)
- (modules ebpf_state ebpf p4_values)
+ (modules ebpf_state ebpf packet_in p4_values spec_calls)
  (libraries spectec.interp.builtins))
