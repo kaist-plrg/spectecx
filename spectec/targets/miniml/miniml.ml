@@ -98,6 +98,8 @@ module Cli : Cli.Target_cli.S = struct
         Subcommand.make_task target ~name:"eval"
           ~summary:"Run Mini-ML evaluator"
           (module Eval_cli);
+        Subcommand.make_debug target ~name:"debug"
+          [ ("eval", (module Eval_cli)) ];
         Subcommand.make_parse target ~name:"parse"
           ~summary:"Parse a Mini-ML program to an IL value"
           (module Eval_cli);

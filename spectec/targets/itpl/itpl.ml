@@ -97,6 +97,8 @@ module Make (Language : Language) = struct
           Cli.Subcommand.make_task target ~name:"eval"
             ~summary:("Run " ^ Language.title ^ " evaluator")
             (module Eval_cli);
+          Cli.Subcommand.make_debug target ~name:"debug"
+            [ ("eval", (module Eval_cli)) ];
           Cli.Subcommand.make_parse target ~name:"parse"
             ~summary:("Parse " ^ Language.title ^ " input")
             (module Eval_cli);
@@ -158,6 +160,10 @@ module Make_typed (Language : Language) = struct
           Cli.Subcommand.make_task target ~name:"eval"
             ~summary:("Typecheck and evaluate " ^ Language.title ^ " input")
             (module Eval_cli);
+          Cli.Subcommand.make_debug target ~name:"debug"
+            [
+              ("typecheck", (module Typecheck_cli)); ("eval", (module Eval_cli));
+            ];
           Cli.Subcommand.make_parse target ~name:"parse"
             ~summary:("Parse " ^ Language.title ^ " input")
             (module Eval_cli);

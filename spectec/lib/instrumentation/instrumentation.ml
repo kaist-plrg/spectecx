@@ -11,6 +11,7 @@ module Instruction_coverage = Instrumentation_handlers.Instruction_coverage
 module Profile = Instrumentation_handlers.Profile
 module Trace = Instrumentation_handlers.Trace
 module Tree = Instrumentation_handlers.Tree
+module Debugger = Instrumentation_handlers.Debugger
 module Run_config = Instrumentation_config.Config
 module Exn = Instrumentation_common.Exn
 
@@ -31,7 +32,7 @@ module Config = struct
   let close_outputs = Run_config.close_outputs
 end
 
-(* *** Add one entry here when adding a new handler *** *)
+(* *** Add one entry here when adding a new flag-driven handler *** *)
 let builtin_handler_specs : Handler.Spec.t list =
   [
     Trace.spec;
