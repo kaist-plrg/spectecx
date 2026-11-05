@@ -110,6 +110,24 @@ module T0 = struct
           (Error.arity at
              (Printf.sprintf "Expected 3 arguments, got %d" (List.length vs)))
 
+  let a4 (p1 : 'a Arg.t) (p2 : 'b Arg.t) (p3 : 'c Arg.t) (p4 : 'd Arg.t)
+      (impl :
+        at:Location.t -> 'a -> 'b -> 'c -> 'd -> (Value.t, Error.t) result) : t
+      =
+    make @@ fun ~at targs values ->
+    let* (), vs = Extract.extract ~targs_num:0 ~args_num:4 at targs values in
+    match vs with
+    | [ v1; v2; v3; v4 ] ->
+        let* arg1 = p1 at v1 in
+        let* arg2 = p2 at v2 in
+        let* arg3 = p3 at v3 in
+        let* arg4 = p4 at v4 in
+        impl ~at arg1 arg2 arg3 arg4
+    | _ ->
+        Error
+          (Error.arity at
+             (Printf.sprintf "Expected 4 arguments, got %d" (List.length vs)))
+
   let a5 (p1 : 'a Arg.t) (p2 : 'b Arg.t) (p3 : 'c Arg.t) (p4 : 'd Arg.t)
       (p5 : 'e Arg.t)
       (impl :

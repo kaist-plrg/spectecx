@@ -32,6 +32,14 @@ module T0 : sig
     (at:Location.t -> 'a -> 'b -> 'c -> (Value.t, Error.t) result) ->
     t
 
+  val a4 :
+    'a Arg.t ->
+    'b Arg.t ->
+    'c Arg.t ->
+    'd Arg.t ->
+    (at:Location.t -> 'a -> 'b -> 'c -> 'd -> (Value.t, Error.t) result) ->
+    t
+
   val a5 :
     'a Arg.t ->
     'b Arg.t ->
