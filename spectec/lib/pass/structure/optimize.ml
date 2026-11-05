@@ -8,7 +8,7 @@ open Ol.Ast
 module RTEnv = Envs.RTEnv
 module SEnv = Envs.Il.SEnv
 
-(* [1] Remove redundant, trivial let aliases from the code,
+(* Remove redundant, trivial let aliases from the code,
 
    let y = x; if (y == 0) then { let z = y + y; let y = 1; let k = y + y; ... }
 
@@ -67,7 +67,7 @@ let rec remove_let_alias (instrs : instr list) : instr list =
       let instrs_t = remove_let_alias instrs_t in
       instr_h :: instrs_t
 
-(* [2] Matchify equals terminal *)
+(* Matchify equals terminal *)
 
 let matchify_exp_eq_terminal (exp : exp) : exp =
   let at, note = (exp.at, exp.note) in
@@ -111,23 +111,12 @@ let rec matchify_if_eq_terminal (instr : instr) : instr =
 and matchify_if_eq_terminals (instrs : instr list) : instr list =
   List.map matchify_if_eq_terminal instrs
 
-(* [3] Remove redundant let and relation bindings. Structuring produces them
-   when it concatenates several rules or clauses. Removing them is safe
-   because each variable in AL is bound only once. *)
+(* Let and relation bindings *)
 
 module Bind = struct
   (* Expression unit *)
 
   type expunit = exp * iterinstr list
-
-  let string_of_expunit (expunit : expunit) : string =
-    let exp, iterinstrs = expunit in
-    Format.asprintf "(%s)%s"
-      (Sl.Print.string_of_exp exp)
-      (Sl.Print.string_of_iterinstrs iterinstrs)
-
-  let string_of_expunits (expunits : expunit list) : string =
-    String.concat ", " (List.map string_of_expunit expunits)
 
   let eq_expunit (expunit_a : expunit) (expunit_b : expunit) : bool =
     let exp_a, iterinstrs_a = expunit_a in
@@ -278,125 +267,7 @@ module Bind = struct
     | _ -> None
 end
 
-let rec remove_redundant_bindings' (rtenv : RTEnv.t) (bind : Bind.t)
-    (instrs : instr list) : instr list =
-  match instrs with
-  | [] -> []
-  | { it = IfI (exp_cond, iterexps, instrs_then); at; _ } :: instrs_t ->
-      let instrs_then = instrs_then |> remove_redundant_bindings' rtenv bind in
-      let instr_h = IfI (exp_cond, iterexps, instrs_then) $ at in
-      let instrs_t = remove_redundant_bindings' rtenv bind instrs_t in
-      instr_h :: instrs_t
-  | { it = RelAssertI { call; expect; iterexps; block = instrs_then }; at; _ }
-    :: instrs_t ->
-      let instrs_then = instrs_then |> remove_redundant_bindings' rtenv bind in
-      let instr_h =
-        RelAssertI { call; expect; iterexps; block = instrs_then } $ at
-      in
-      let instrs_t = remove_redundant_bindings' rtenv bind instrs_t in
-      instr_h :: instrs_t
-  | { it = CaseI (exp, cases, total); at; _ } :: instrs_t ->
-      let cases =
-        let guards, blocks = List.split cases in
-        let blocks = List.map (remove_redundant_bindings' rtenv bind) blocks in
-        List.combine guards blocks
-      in
-      let instr_h = CaseI (exp, cases, total) $ at in
-      let instrs_t = remove_redundant_bindings' rtenv bind instrs_t in
-      instr_h :: instrs_t
-  | ({ it = LetI (exp_l, exp_r, iterinstrs, block); _ } as instr_h) :: instrs_t
-    -> (
-      let block = remove_redundant_bindings' rtenv bind block in
-      let bind_target = Bind.init_let_bind exp_l exp_r iterinstrs in
-      let rename_opt = Bind.collapse_bind bind bind_target in
-      match rename_opt with
-      | Some rename ->
-          let block =
-            block
-            |> Renamer.rename_instrs rename
-            |> remove_redundant_bindings' rtenv bind
-          in
-          let instrs_t = remove_redundant_bindings' rtenv bind instrs_t in
-          block @ instrs_t
-      | None ->
-          let instrs_t = remove_redundant_bindings' rtenv bind instrs_t in
-          let instr_h = LetI (exp_l, exp_r, iterinstrs, block) $ instr_h.at in
-          instr_h :: instrs_t)
-  | ({ it = RelI { call; iterinstrs; block }; _ } as instr_h) :: instrs_t -> (
-      let block = remove_redundant_bindings' rtenv bind block in
-      let bind_target =
-        Bind.init_rel_bind rtenv call.relid call.notexp iterinstrs
-      in
-      let rename_opt = Bind.collapse_bind bind bind_target in
-      match rename_opt with
-      | Some rename ->
-          let block =
-            block
-            |> Renamer.rename_instrs rename
-            |> remove_redundant_bindings' rtenv bind
-          in
-          let instrs_t = remove_redundant_bindings' rtenv bind instrs_t in
-          block @ instrs_t
-      | None ->
-          let instrs_t = remove_redundant_bindings' rtenv bind instrs_t in
-          let instr_h = RelI { call; iterinstrs; block } $ instr_h.at in
-          instr_h :: instrs_t)
-  | instr_h :: instrs_t ->
-      let instrs_t = remove_redundant_bindings' rtenv bind instrs_t in
-      instr_h :: instrs_t
-
-let rec remove_redundant_bindings (rtenv : RTEnv.t) (instrs : instr list) :
-    instr list =
-  match instrs with
-  | [] -> []
-  | { it = IfI (exp_cond, iterexps, instrs_then); at; _ } :: instrs_t ->
-      let instrs_then = instrs_then |> remove_redundant_bindings rtenv in
-      let instr_h = IfI (exp_cond, iterexps, instrs_then) $ at in
-      let instrs_t = remove_redundant_bindings rtenv instrs_t in
-      instr_h :: instrs_t
-  | { it = RelAssertI { call; expect; iterexps; block = instrs_then }; at; _ }
-    :: instrs_t ->
-      let instrs_then = instrs_then |> remove_redundant_bindings rtenv in
-      let instr_h =
-        RelAssertI { call; expect; iterexps; block = instrs_then } $ at
-      in
-      let instrs_t = remove_redundant_bindings rtenv instrs_t in
-      instr_h :: instrs_t
-  | { it = CaseI (exp, cases, total); at; _ } :: instrs_t ->
-      let cases =
-        let guards, blocks = List.split cases in
-        let blocks = List.map (remove_redundant_bindings rtenv) blocks in
-        List.combine guards blocks
-      in
-      let instr_h = CaseI (exp, cases, total) $ at in
-      let instrs_t = remove_redundant_bindings rtenv instrs_t in
-      instr_h :: instrs_t
-  | ({ it = LetI (exp_l, exp_r, iterinstrs, block); _ } as instr_h) :: instrs_t
-    ->
-      let block = remove_redundant_bindings rtenv block in
-      let bind = Bind.init_let_bind exp_l exp_r iterinstrs in
-      let instrs_t =
-        instrs_t
-        |> remove_redundant_bindings' rtenv bind
-        |> remove_redundant_bindings rtenv
-      in
-      let instr_h = LetI (exp_l, exp_r, iterinstrs, block) $ instr_h.at in
-      instr_h :: instrs_t
-  | ({ it = RelI { call; iterinstrs; block }; _ } as instr_h) :: instrs_t ->
-      let block = remove_redundant_bindings rtenv block in
-      let bind = Bind.init_rel_bind rtenv call.relid call.notexp iterinstrs in
-      let instrs_t =
-        instrs_t
-        |> remove_redundant_bindings' rtenv bind
-        |> remove_redundant_bindings rtenv
-      in
-      let instr_h = RelI { call; iterinstrs; block } $ instr_h.at in
-      instr_h :: instrs_t
-  | instr_h :: instrs_t ->
-      let instrs_t = instrs_t |> remove_redundant_bindings rtenv in
-      instr_h :: instrs_t
-
-(* [4] Condition analysis and case analysis insertion *)
+(* Condition analysis and case analysis insertion *)
 
 let rec merge_block (instrs_a : instr list) (instrs_b : instr list) : instr list
     =
@@ -680,7 +551,7 @@ let overlap_guard (senv : SEnv.t) (exp : exp) (guard_a : guard)
   let exp_b = guard_as_exp exp guard_b in
   overlap_exp senv exp_a exp_b
 
-(* [4-1] Merge consecutive if statements with the same condition
+(* Merge consecutive if statements with the same condition
 
    This handles if statements that are not categorized as case analysis,
    either because the condition itself is complex or because it is iterated *)
@@ -762,7 +633,7 @@ let rec merge_if (senv : SEnv.t) (instrs : instr list) : instr list =
       let instrs_t = merge_if senv instrs_t in
       instr_h :: instrs_t
 
-(* [4-2] Merge consecutive relation assertions with the same call *)
+(* Merge consecutive relation assertions with the same call *)
 
 let rec merge_identical_rel_assert (at : Location.t) (call_target : relcall)
     (iterexps_target : iterexp list) (instrs_then_target : instr list)
@@ -867,7 +738,7 @@ let rec merge_rel_assert (instrs : instr list) : instr list =
       let instrs_t = merge_rel_assert instrs_t in
       instr_h :: instrs_t
 
-(* [4-2-a] if-and-if to case analysis *)
+(* if-and-if to case analysis *)
 
 let casify_if_if (senv : SEnv.t) (at : Location.t) (exp_cond_target : exp)
     (instrs_then_target : instr list) (exp_cond : exp)
@@ -888,7 +759,7 @@ let casify_if_if (senv : SEnv.t) (at : Location.t) (exp_cond_target : exp)
       Some instr
   | _ -> None
 
-(* [4-2-b] if-and-case to case analysis *)
+(* if-and-case to case analysis *)
 
 let rec merge_if_case (senv : SEnv.t) (exp_cond_target : exp)
     (instrs_then_target : instr list) (exp : exp) (cases : case list)
@@ -932,7 +803,7 @@ let casify_if_case (senv : SEnv.t) (at : Location.t) (exp_cond_target : exp)
       Some instr
   | None -> None
 
-(* [4-2-c] case-and-if to case analysis *)
+(* case-and-if to case analysis *)
 
 let rec merge_case_if (senv : SEnv.t) (exp_target : exp)
     (cases_target : case list) (total_target : bool) (exp_cond : exp)
@@ -978,7 +849,7 @@ let casify_case_if (senv : SEnv.t) (at : Location.t) (exp_target : exp)
       Some instr
   | None -> None
 
-(* [4-2-d] case-and-case to case analysis *)
+(* case-and-case to case analysis *)
 
 let merge_case_case (senv : SEnv.t) (exp_target : exp)
     (cases_target : case list) (total_target : bool) (exp : exp)
@@ -1006,7 +877,7 @@ let casify_case_case (senv : SEnv.t) (at : Location.t) (exp_target : exp)
       Some instr
   | None -> None
 
-(* [4-2-a/b] Casifying from an if statement *)
+(* Casifying from an if statement *)
 
 let rec casify_from_if (senv : SEnv.t) (at : Location.t) (exp_cond_target : exp)
     (iterexps_target : iterexp list) (instrs_then_target : instr list)
@@ -1043,7 +914,7 @@ and casify_from_if' (senv : SEnv.t) (at : Location.t) (exp_cond_target : exp)
             instrs_leftover instrs_t)
   | _ -> None
 
-(* [4-2-c] Casifying from a case statement *)
+(* Casifying from a case statement *)
 
 let rec casify_from_case (senv : SEnv.t) (at : Location.t) (exp_target : exp)
     (cases_target : case list) (total_target : bool) (instrs : instr list) :
@@ -1125,7 +996,7 @@ let rec casify (senv : SEnv.t) (instrs : instr list) : instr list =
       let instrs_t = casify senv instrs_t in
       instr_h :: instrs_t
 
-(* [4-3] Totalize case analysis of variant matches *)
+(* Totalize case analysis of variant matches *)
 
 let find_variant_case_analysis (senv : SEnv.t) (cases : case list) :
     mixop list option =
