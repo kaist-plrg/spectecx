@@ -21,7 +21,15 @@ let error_to_diagnostic = function
 
 let with_target_state target f =
   let module T = (val target : Target.S) in
-  T.with_state (fun () -> f (TargetState target))
+  T.with_state (fun () ->
+      let next_vid = ref 0 in
+      let fresh_vid () =
+        let vid = !next_vid in
+        incr next_vid;
+        vid
+      in
+      Lang.Il.Value.GlobalVidProvider.with_provider fresh_vid (fun () ->
+          f (TargetState target)))
 
 let eval_il ?(check_determinism = false) (TargetState target) spec rid args =
   Eval_il.run ~check_determinism target spec rid args

@@ -75,23 +75,15 @@ module Target : Spectec.Target.S = struct
   let state_version = tid_counter
 
   let with_state f =
-    let vid_counter = ref 0 in
     let previous_tid_counter = !tid_counter in
     tid_counter := 0;
-    let fresh_vid () =
-      let vid = !vid_counter in
-      incr vid_counter;
-      vid
-    in
     let fresh_tid () =
       let tid = "FRESH__" ^ string_of_int !tid_counter in
       incr tid_counter;
       tid
     in
     Fun.protect
-      (fun () ->
-        Lang.Il.Value.GlobalVidProvider.with_provider fresh_vid @@ fun () ->
-        Builtins.Fresh.GlobalTidProvider.with_provider fresh_tid f)
+      (fun () -> Builtins.Fresh.GlobalTidProvider.with_provider fresh_tid f)
       ~finally:(fun () -> tid_counter := previous_tid_counter)
 
   (* The cache stores the result of a call to one of these functions or

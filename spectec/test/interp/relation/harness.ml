@@ -21,15 +21,7 @@ module Pure_target : Interp.Target.S = struct
   let is_impure_func _ = false
   let is_impure_rel _ = false
   let state_version = ref 0
-
-  let with_state f =
-    let next_vid = ref 0 in
-    let fresh_vid () =
-      let vid = !next_vid in
-      Int.incr next_vid;
-      vid
-    in
-    Value.GlobalVidProvider.with_provider fresh_vid f
+  let with_state f = f ()
 end
 
 let render_diagnostics diagnostics =

@@ -34,15 +34,7 @@ module Target : Interp.Target.S = struct
   let state_version = ref 0
   let is_impure_func _ = false
   let is_impure_rel _ = false
-
-  let with_state f =
-    let next_vid = ref 0 in
-    V.GlobalVidProvider.with_provider
-      (fun () ->
-        let vid = !next_vid in
-        incr next_vid;
-        vid)
-      f
+  let with_state f = f ()
 
   let builtins =
     [
