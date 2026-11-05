@@ -82,6 +82,7 @@ vsix:
 # Individual tests:
 #   make test-lang       - Shared language operations
 #   make test-elab       - Elaboration test (both p4 and p4-old)
+#   make test-algo       - Algo test (both p4 and p4-old)
 #   make test-struct     - Structuring test (both p4 and p4-old)
 #   make test-annotate   - Annotate/prose render test (impty x3 + p4-old)
 #   make test-roundtrip-il - EL<->IL premise roundtrip test (impty base + closure, p4)
@@ -124,7 +125,7 @@ vsix:
 #
 #   make test            - quick + interpreter tests
 
-.PHONY: test test-quick test-lang test-context test-interp test-elab test-elab-neg test-interp-relation test-interp-neg test-cli test-launcher test-lsp test-struct test-annotate test-roundtrip-il test-roundtrip-el test-parsegen test-package
+.PHONY: test test-quick test-lang test-context test-interp test-elab test-algo test-elab-neg test-interp-relation test-interp-neg test-cli test-launcher test-lsp test-struct test-annotate test-roundtrip-il test-roundtrip-el test-parsegen test-package
 .PHONY: test-il test-il-pos test-il-neg
 .PHONY: test-sl test-sl-pos test-sl-neg
 .PHONY: test-pl test-pl-pos test-pl-neg
@@ -149,6 +150,10 @@ test-lang:
 test-elab:
 	@echo "#### Running elaboration test"
 	@$(DUNE) build @test/elab/runtest --profile=release && echo OK
+
+test-algo:
+	@echo "#### Running algo test"
+	@$(DUNE) build @test/algo/runtest --profile=release && echo OK
 
 test-roundtrip-el:
 	@echo "#### Running EL pretty-printer roundtrip test"
@@ -230,7 +235,7 @@ test-pl-pos:
 test-pl-neg:
 	$(call run_interp_test,p4,pl,neg)
 
-test-quick: test-context test-lang test-elab test-elab-neg test-interp-relation test-interp-neg test-cli test-launcher test-lsp test-struct test-annotate test-roundtrip-il test-roundtrip-el test-impty test-miniml test-parsegen test-package
+test-quick: test-context test-lang test-elab test-algo test-elab-neg test-interp-relation test-interp-neg test-cli test-launcher test-lsp test-struct test-annotate test-roundtrip-il test-roundtrip-el test-impty test-miniml test-parsegen test-package
 	@$(DUNE) build @test/interp/p4/runtest --profile=release
 	@echo "#### Quick tests passed"
 

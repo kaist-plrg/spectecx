@@ -138,8 +138,8 @@ See [editors/README.md](editors/README.md) for installing a highlighter and turn
 make test
 ```
 
-- Checks parsing, elaboration and structuring using the `spectec/examples/p4-concrete` spec corpus.
-- Checks IL/SL interpreter coupled with the P4 parser using `spectec/testdata/interp/p4-tests` files.
+- Checks parsing, elaboration, algo and structuring using the specs under `spectec/specs/p4` and `spectec/specs/p4-old`.
+- Checks interpreter results with the P4 parser using files under `spectec/testdata/interp/p4`.
 
 ### Adding a New Target
 
