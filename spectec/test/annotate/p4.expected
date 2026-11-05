@@ -17845,15 +17845,17 @@ xref:Call_eval[Call_eval]:
 
 xref:ExternFunctionCall_eval[ExternFunctionCall_eval]:
 
-* Calling an extern function ``nameIR`` ``+(+`` ``nameIR'^{asterisk}^`` ``+)+``, under context ``evalContext``, and state ``arch``.
+* Calling an extern function ``nameIR`` ``+(+`` ``nameIR~param~^{asterisk}^`` ``+)+``, under context ``EC~0~``, and state ``ARCH~0~``.
 
-
+. Let ``( EC~1~, ARCH~1~, callResult )`` be xref:eval_extern_function_call[the result of calling the extern function ``nameIR`` ``+(+`` ``nameIR~param~^{asterisk}^`` ``+)+`` under context ``EC~0~`` and state ``ARCH~0~``].
+. Result in context ``EC~1~``, state ``ARCH~1~``, and call result ``callResult``.
 
 xref:ExternMethodCall_eval[ExternMethodCall_eval]:
 
-* Calling an extern method ``nameIR`` ``+(+`` ``nameIR'^{asterisk}^`` ``+)+`` on object ``objectId``, under context ``evalContext``, and state ``arch``.
+* Calling an extern method ``nameIR`` ``+(+`` ``nameIR~param~^{asterisk}^`` ``+)+`` on object ``objectId``, under context ``EC~0~``, and state ``ARCH~0~``.
 
-
+. Let ``( EC~1~, ARCH~1~, callResult )`` be xref:eval_extern_method_call[the result of calling the extern method ``nameIR`` ``+(+`` ``nameIR~param~^{asterisk}^`` ``+)+`` on object ``objectId`` under context ``EC~0~`` and state ``ARCH~0~``].
+. Result in context ``EC~1~``, state ``ARCH~1~``, and call result ``callResult``.
 
 xref:match_keysets[``value'^{asterisk}^`` matches ``setValue''^{asterisk}^``]
 
@@ -18619,6 +18621,10 @@ xref:DefinedFunctionBody_eval[DefinedFunctionBody_eval]:
  .. Result in context ``EC~1~``, state ``ARCH~1~`` and result ``+EXIT+``.
 . Else if let ``returnResult`` be ``statementResult``:
  .. Result in context ``EC~1~``, state ``ARCH~1~`` and result ``returnResult``.
+
+xref:eval_extern_function_call[The result of calling the extern function ``nameIR`` ``+(+`` ``nameIR'^{asterisk}^`` ``+)+`` under context ``evalContext`` and state ``arch``]
+
+xref:eval_extern_method_call[The result of calling the extern method ``nameIR`` ``+(+`` ``nameIR'^{asterisk}^`` ``+)+`` on object ``objectId`` under context ``evalContext`` and state ``arch``]
 
 xref:Var_init[Var_init]:
 
