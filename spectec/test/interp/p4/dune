@@ -7,8 +7,8 @@
 (copy_files ../../../targets/p4/builtins/packet_in.mli)
 
 (test
- (name instantiate)
- (modules instantiate)
+ (name tasks)
+ (modules tasks)
  (libraries spectec targets_p4)
  (deps
   (source_tree ../../../specs/p4)
