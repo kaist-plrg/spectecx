@@ -528,33 +528,6 @@ let handler_failure_finishes_handlers () =
         |> values_exn ~name ~mode_name))
     modes
 
-let decoder_events_reach_handlers () =
-  let name = "events emitted while decoding reach handlers" in
-  List.iter
-    (fun (mode_name, mode) ->
-      let x = nat 1 and y = nat 2 in
-      let decoded = V.record "point" [ field "X" x; field "Y" y ] in
-      let event =
-        Value_event.Constructed { value = decoded; components = [ x; y ] }
-      in
-      let input =
-        {
-          relation = "Shift";
-          decode =
-            (fun () ->
-              Instrumentation.Dispatcher.emit_value event;
-              Ok [ decoded; nats [ 5 ] ]);
-        }
-      in
-      let log = ref [] in
-      ignore
-        (evaluate ~config:[ recorder ~name:"recorder" ~log ] mode input
-        |> values_exn ~name ~mode_name);
-      if not (List.exists (fun (_, received) -> received == event) !log) then
-        fail_check ~name ~mode_name
-          "the decoder's event did not reach the handler")
-    modes
-
 let decode_failures_finish_handlers () =
   let name = "decoding failures finish handlers" in
   List.iter
@@ -580,6 +553,70 @@ let decode_failures_finish_handlers () =
           "the handler was not finished after each run")
     modes
 
+(* Emits [Decoded] for each labeled value and for each struct field and list
+   element inside it, as a decoder that labels each of its inputs would. *)
+let report_decoded labeled_values =
+  let rec report (value : V.t) origin =
+    Instrumentation.Dispatcher.emit_value (Decoded { value; origin });
+    match value.it with
+    | StructV fields ->
+        List.iter
+          (fun ((atom : Lang.Il.atom), field) ->
+            report field
+              (Instrumentation.Origin.extend origin ~step:(Struct atom.it)))
+          fields
+    | ListV values ->
+        List.iteri
+          (fun index value ->
+            report value
+              (Instrumentation.Origin.extend origin ~step:(List index)))
+          values
+    | _ -> ()
+  in
+  List.map
+    (fun (label, value) ->
+      report value (Instrumentation.Origin.make ~label);
+      value)
+    labeled_values
+
+let decoded_fields_reach_later_events () =
+  let name = "decoded struct fields reach later events" in
+  let origin_x : Instrumentation.Origin.t =
+    { label = "point"; path = [ Struct (Lang.Xl.Atom.keyword "X") ] }
+  in
+  List.iter
+    (fun (mode_name, mode) ->
+      let origins = ref [] in
+      let reached = ref false in
+      let handle_value : Value_event.t -> unit = function
+        | Decoded { value; origin } -> origins := (value, origin) :: !origins
+        | Combined { sources; _ } ->
+            if
+              List.exists
+                (fun source -> List.assq_opt source !origins = Some origin_x)
+                sources
+            then reached := true
+        | _ -> ()
+      in
+      let input =
+        {
+          relation = "Shift";
+          decode =
+            (fun () ->
+              Ok
+                (report_decoded
+                   [ ("point", point 1 2); ("lengths", nats [ 5 ]) ]));
+        }
+      in
+      ignore
+        (evaluate
+           ~config:[ handler_config ~name:"origins" ~handle_value () ]
+           mode input
+        |> values_exn ~name ~mode_name);
+      if not !reached then
+        fail_check ~name ~mode_name "no computed value read the X field")
+    modes
+
 let run () =
   handlers_preserve_results ();
   composed_handlers_receive_events_in_order ();
@@ -596,5 +633,5 @@ let run () =
   update_paths_report_intermediate_values ();
   iteration_events_include_body_results ();
   handler_failure_finishes_handlers ();
-  decoder_events_reach_handlers ();
-  decode_failures_finish_handlers ()
+  decode_failures_finish_handlers ();
+  decoded_fields_reach_later_events ()
