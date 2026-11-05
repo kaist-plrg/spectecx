@@ -21,7 +21,7 @@ let compile () =
     Spectec.collect_spec_files "../../../specs/p4"
     |> Spectec.parse_spec_files |> unwrap
   in
-  let spec_al = Spectec.elaborate spec |> unwrap in
+  let spec_al = Spectec.elaborate_and_algorithmize spec |> unwrap in
   let henv = Spectec.henv_with_al_spec (Spectec.henv_of_el_spec spec) spec_al in
   (spec_al, henv)
 

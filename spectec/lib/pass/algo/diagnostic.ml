@@ -28,9 +28,9 @@ let string_of_code = function
 
 let render_code (c : code) : string = "elab/" ^ string_of_code c
 
-(* [Pass.elaborate] reports dataflow analysis errors together with elaboration
-   errors, so dataflow errors carry the `elab` source and the `elab/` code
-   prefix. *)
+(* [Pass.elaborate_and_algorithmize] reports dataflow analysis errors together
+   with elaboration errors, so dataflow errors carry the `elab` source and the
+   `elab/` code prefix. *)
 let error ?code ?detail (at : Location.t) (msg : string) =
   let code = Option.map render_code code in
   raise (AlgoError (Diag.error ?code ?detail ~source:"elab" at msg))

@@ -43,7 +43,8 @@ let analyze (sources : Sources.t) =
         | Error _ -> Spectec.Diagnostic.Bag.to_sorted_list parse_diagnostics
         | Ok spec ->
             let _, type_diagnostics =
-              Spectec.with_diagnostics (fun () -> Spectec.elaborate spec)
+              Spectec.with_diagnostics (fun () ->
+                  Spectec.elaborate_and_algorithmize spec)
             in
             Spectec.Diagnostic.Bag.merge parse_diagnostics type_diagnostics
             |> Spectec.Diagnostic.Bag.to_sorted_list)

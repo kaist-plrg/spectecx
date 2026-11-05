@@ -17,7 +17,7 @@ let elab_command =
         Format.printf "%s\n" (Lang.Al.Print.string_of_spec spec_al))
     @@ fun () ->
     let* spec = parse_spec_files filenames in
-    let* spec_al = elaborate spec in
+    let* spec_al = elaborate_and_algorithmize spec in
     Ok spec_al
 
 let unparse_roundtrip filenames =
@@ -72,7 +72,7 @@ let grammar_command =
           (Grammar.string_of_t (Grammar.extract ~start spec_al)))
     @@ fun () ->
     let* spec = parse_spec_files filenames in
-    let* spec_al = elaborate spec in
+    let* spec_al = elaborate_and_algorithmize spec in
     Ok spec_al
 
 let structure_command =
@@ -87,7 +87,7 @@ let structure_command =
         Format.printf "%s\n" (Lang.Sl.Print.string_of_spec spec_sl))
     @@ fun () ->
     let* spec = parse_spec_files filenames in
-    let* spec_al = elaborate spec in
+    let* spec_al = elaborate_and_algorithmize spec in
     let spec_sl = structure spec_al in
     Ok spec_sl
 
@@ -103,7 +103,7 @@ let annotate_command =
         Format.printf "%s\n" (Pl.Print.string_of_spec spec_pl))
     @@ fun () ->
     let* spec = parse_spec_files filenames in
-    let* spec_al = elaborate spec in
+    let* spec_al = elaborate_and_algorithmize spec in
     let spec_sl = structure spec_al in
     let henv = henv_of_el_spec spec in
     let henv = henv_with_al_spec henv spec_al in
@@ -157,7 +157,7 @@ let splice_command =
         | None -> ())
     @@ fun () ->
     let* spec = parse_spec_files filenames in
-    let* spec_al = elaborate spec in
+    let* spec_al = elaborate_and_algorithmize spec in
     let spec_sl = structure spec_al in
     let henv = henv_of_el_spec spec in
     let henv = henv_with_al_spec henv spec_al in

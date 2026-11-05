@@ -13,7 +13,7 @@ let ( let* ) = Result.bind
 let run spec_dir file =
   let spec_files = Test_lib.Files.collect ~suffix:".spectec" spec_dir in
   let* spec = Spectec.parse_spec_files spec_files in
-  let* spec_al = Spectec.elaborate spec in
+  let* spec_al = Spectec.elaborate_and_algorithmize spec in
   let input =
     { Targets_impty.Impty.filename = file; expect = Spectec.Task.Negative }
   in

@@ -8,7 +8,7 @@ let run specdir =
   let spec_sl =
     let spec_files = Files.collect ~suffix:".spectec" specdir in
     let%bind spec = Spectec.parse_spec_files spec_files in
-    let%bind spec_al = Spectec.elaborate spec in
+    let%bind spec_al = Spectec.elaborate_and_algorithmize spec in
     let spec_sl = Spectec.structure spec_al in
     Ok spec_sl
   in

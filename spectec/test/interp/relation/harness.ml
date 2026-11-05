@@ -39,7 +39,7 @@ let compile_source ~filename contents =
     Spectec.with_diagnostics (fun () ->
         let ( let* ) = Stdlib.Result.bind in
         let* spec_el = Spectec.parse_spec_source source in
-        let* spec_al = Spectec.elaborate spec_el in
+        let* spec_al = Spectec.elaborate_and_algorithmize spec_el in
         let henv =
           Spectec.henv_with_al_spec (Spectec.henv_of_el_spec spec_el) spec_al
         in

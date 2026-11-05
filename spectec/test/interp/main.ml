@@ -10,7 +10,7 @@ let run_with_task (type i) (module T : Spectec.Task.S with type input = i)
   let open Core.Result.Let_syntax in
   let suite_result =
     let%bind spec = Spectec.parse_spec_files spec_files in
-    let%bind spec_al = Spectec.elaborate spec in
+    let%bind spec_al = Spectec.elaborate_and_algorithmize spec in
     let mode : Spectec.Interp_mode.t =
       match request with
       | `IL -> Il

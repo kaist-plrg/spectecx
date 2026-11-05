@@ -5,7 +5,7 @@ open Error_handling
 let load_spec source =
   let* filenames = Spec_source.files source in
   let* spec = Spectec.parse_spec_files filenames in
-  let* spec_al = Spectec.elaborate spec in
+  let* spec_al = Spectec.elaborate_and_algorithmize spec in
   let henv = Spectec.henv_of_el_spec spec in
   let henv = Spectec.henv_with_al_spec henv spec_al in
   Ok (filenames, spec_al, henv)

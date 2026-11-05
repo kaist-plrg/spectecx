@@ -10,7 +10,7 @@ let parse_source source =
 let parse_sources sources =
   Parse.parse_sources sources |> Result.map_error (fun e -> ParseError e)
 
-let elaborate spec_el =
+let elaborate_and_algorithmize spec_el =
   let spec_il, errors_elab = Elaborate.elab_spec spec_el in
   let spec_al, errors_algo = Algo.algo_spec spec_il in
   match errors_algo @ errors_elab with
