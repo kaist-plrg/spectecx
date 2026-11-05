@@ -1,0 +1,12 @@
+var x : nat
+var y : nat
+var z : nat
+
+relation R:
+  nat |- nat
+  hint(input %0)
+
+rule R/both:
+  x |- x
+  -- if y = z
+  -- if x = true
