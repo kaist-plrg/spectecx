@@ -24,11 +24,10 @@ let max ~at (nums : Bigint.t list) : Value.t result =
 
 (* dec $min_nat(nat* ) : nat *)
 
-(* Returns zero if list is empty *)
 let min ~at (nums : Bigint.t list) : Value.t result =
-  at |> ignore;
-  let min = List.fold_left Bigint.min Bigint.zero nums in
-  Ok (Value.nat min)
+  match nums with
+  | [] -> Error (Error.runtime at "min_nat: the list is empty")
+  | num :: nums -> Ok (Value.nat (List.fold_left Bigint.min num nums))
 
 let builtins =
   [
