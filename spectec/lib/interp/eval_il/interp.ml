@@ -1,8 +1,6 @@
 open Common.Annotated
 module Location = Common.Location
 open Lang.Il
-open Envs.Make
-module Typ = Envs.Il.Typ
 open Error
 open Attempt
 module Events = Instrumentation.Event
@@ -284,21 +282,7 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
   in
   (* User-defined function invocation *)
   let invoke_func_def tparams clauses =
-    (* Evaluate type arguments *)
-    let targs =
-      match targs with
-      | [] -> []
-      | targs ->
-          let theta =
-            Ctx.fold_local_typdefs ctx ~init:TIdMap.empty
-              ~f:(fun theta tid typdef ->
-                let tparams, deftyp = typdef in
-                match (tparams, deftyp.it) with
-                | [], PlainT typ -> TIdMap.add tid typ theta
-                | _ -> theta)
-          in
-          List.map (Typ.subst_typ theta) targs
-    in
+    let targs = Ctx.resolve_targs ctx ~targs in
     let attempt_of_clause idx_clause clause =
       let attempt_clause' (ctx_local : Ctx.t) (prems : prem list)
           (exp_output : exp) : value attempt =
