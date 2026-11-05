@@ -4,6 +4,7 @@ module Ebpf = Ebpf
 let builtins =
   [
     Nats.builtins;
+    Ints.builtins;
     Texts.builtins;
     Lists.builtins;
     Sets.builtins;
