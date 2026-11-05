@@ -242,6 +242,7 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
 and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     value attempt =
   let values_input = eval_args ctx args in
+  let targs = Ctx.resolve_targs ctx ~targs in
   Instrumentation.Dispatcher.emit
     (Events.Func_enter { id = id.it; at = id.at; inputs = values_input });
   (* Clause matching *)
@@ -282,7 +283,6 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
   in
   (* User-defined function invocation *)
   let invoke_func_def tparams clauses =
-    let targs = Ctx.resolve_targs ctx ~targs in
     let attempt_of_clause idx_clause clause =
       let attempt_clause' (ctx_local : Ctx.t) (prems : prem list)
           (exp_output : exp) : value attempt =

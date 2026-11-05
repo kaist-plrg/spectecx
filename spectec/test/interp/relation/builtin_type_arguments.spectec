@@ -1,0 +1,13 @@
+var n : nat
+
+builtin dec $type_name<X>(X) : text
+
+dec $type_name_in<Y>(Y) : text
+def $type_name_in<Y>(Y) = $type_name<Y>(Y)
+
+relation TypeName:
+  nat |- text
+  hint(input %0)
+
+rule TypeName:
+  n |- $type_name_in<nat>(n)
