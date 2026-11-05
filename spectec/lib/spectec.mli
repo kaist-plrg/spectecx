@@ -100,8 +100,12 @@ val eval_task :
   'i ->
   Lang.Il.Value.t list result
 
-(** Evaluate with instrumentation wrapping the call. See {!eval_task} for
-    [check_determinism]. *)
+(** Evaluate with instrumentation wrapping the call. The task decodes its input
+    through [parse_input] inside the instrumentation session, so handlers
+    receive the events that the decoder emits.
+    [Instrumentation.with_instrumentation] finishes handlers and closes outputs
+    when the call returns or raises, including when decoding fails. See
+    {!eval_task} for [check_determinism]. *)
 val eval_task_with_instrumentation :
   (module Task.S with type input = 'i) ->
   ?config:Instrumentation.Config.t ->
