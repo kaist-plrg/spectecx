@@ -1,0 +1,222 @@
+;;
+;; eBPF architecture initialization
+;;
+
+relation EBPF_init:
+  |- p4program : evalContext arch
+  hint(input %0)
+  hint(prose_in "initializing the evaluation context and state for"
+                %0 "in the eBPF architecture")
+  hint(prose_out "the resulting evaluation context" %1#" and state" %2)
+
+rule EBPF_init:
+  |- p4program : EC ARCH
+  ---- ;; instantiate the program
+  ---- ;; instantiate the program
+  -- Program_init:
+      |- p4program : EC STO
+  -- if ARCH = { STATE $init_archState, STORE STO }
+
+;;
+;; eBPF packet setup
+;;
+
+relation EBPF_init_packet_in:
+  evalContext arch |- objectState : evalContext arch
+  hint(input %0 %1 %2)
+
+rule EBPF_init_packet_in:
+  EC_0 ARCH_0 |- objectState_packet_in : EC_1 ARCH_2
+  ---- ;; initialize packet_in extern
+  -- Extern_init: EC_0 ARCH_0 |- "packet_in" "packet_in" : ARCH_1
+  ---- ;; add packet_in to context
+  -- if EC_1 = $add_var_e(GLOBAL, EC_0, _BARE "packet_in", REF "packet_in")
+  ---- ;; initialize packet_in state and update arch
+  -- if externObject_packet_in = $find_object_e(ARCH_1, [ "packet_in" ])
+  -- if EXTERN typeId `< theta `> `{ _ frame externMethodDefEnv `}
+      = externObject_packet_in
+  -- if externObject_packet_in_init
+      = EXTERN typeId `< theta `> `{ objectState_packet_in frame externMethodDefEnv `}
+  -- if ARCH_2
+      = $add_object_e(ARCH_1, [ "packet_in" ], externObject_packet_in_init)
+
+relation EBPF_init_globals:
+  evalContext arch |- evalContext
+  hint(input %0 %1)
+
+rule EBPF_init_globals:
+  EC_0 ARCH |- EC_2
+  ---- ;; headers
+  -- if PACKAGE `< theta `> `{ _ `}
+      = $find_object_e(ARCH, [ "main" ])
+  -- if typeIR_headers = $find_map<typeId, typeIR>(theta, "H")
+  -- Var_init: EC_0 |- typeIR_headers "headers" : EC_1
+  ---- ;; accept
+  -- Var_init: EC_1 |- BOOL "accept" : EC_2
+
+;;
+;; Setup helpers
+;;
+
+dec $eBPF_setup_packet_in_argument(evalContext) : argumentIR
+def $eBPF_setup_packet_in_argument(EC) = argumentIR_packet_in
+  -- if typeDefIR_packet_in
+      = $find_typeDef_e(GLOBAL, EC, _BARE "packet_in")
+  -- if typeIR_packet_in
+      = $specialize_typeDefIR(typeDefIR_packet_in, eps)
+  -- if argumentIR_packet_in
+      = ('.' "packet_in") '#' `( typeIR_packet_in CTK `)
+
+dec $eBPF_setup_headers_argument(arch) : argumentIR
+def $eBPF_setup_headers_argument(ARCH) = argumentIR_headers
+  -- if PACKAGE `< theta `> `{ _ `}
+      = $find_object_e(ARCH, [ "main" ])
+  -- if typeIR_headers = $find_map<typeId, typeIR>(theta, "H")
+  -- if argumentIR_headers
+      = ('.' "headers") '#' `( typeIR_headers DYN `)
+
+dec $eBPF_setup_main_callee(evalContext, arch) : typedExpressionIR
+def $eBPF_setup_main_callee(EC, ARCH) = typedExpressionIR_main
+  ---- ;; get package type definition
+  -- if typeDefIR_package
+      = $find_typeDef_e(GLOBAL, EC, _BARE "ebpfFilter")
+  ---- ;; get package type arguments
+  -- if PACKAGE `< theta `> `{ _ `}
+      = $find_object_e(ARCH, [ "main" ])
+  -- if typeIR_headers = $find_map<typeId, typeIR>(theta, "H")
+  ---- ;; create callee
+  -- if typeIR_package
+      = $specialize_typeDefIR(typeDefIR_package, typeIR_headers)
+  -- if typedExpressionIR_main
+      = (_BARE "main") '#' `( typeIR_package CTK `)
+
+dec $eBPF_setup_parse_callee(
+    evalContext, arch, typedExpressionIR
+  )
+  : typedExpressionIR
+def $eBPF_setup_parse_callee(
+    EC, ARCH, typedExpressionIR_main
+  )
+  = typedExpressionIR_parse
+  ---- ;; get parser type definition
+  -- if typeDefIR_parse = $find_typeDef_e(GLOBAL, EC, _BARE "parse")
+  ---- ;; get package type arguments
+  -- if PACKAGE `< theta `> `{ _ `}
+      = $find_object_e(ARCH, [ "main" ])
+  -- if typeIR_headers = $find_map<typeId, typeIR>(theta, "H")
+  ---- ;; create callee
+  -- if typeIR_parse
+      = $specialize_typeDefIR(typeDefIR_parse, typeIR_headers)
+  -- if typedExpressionIR_parse
+      = (typedExpressionIR_main '.' "prs") '#' `( typeIR_parse CTK `)
+
+dec $eBPF_setup_filter_callee(
+    evalContext, arch, typedExpressionIR
+  )
+  : typedExpressionIR
+def $eBPF_setup_filter_callee(
+    EC, ARCH, typedExpressionIR_main
+  )
+  = typedExpressionIR_filter
+  ---- ;; get control type definition
+  -- if typeDefIR_filter
+      = $find_typeDef_e(GLOBAL, EC, _BARE "filter")
+  ---- ;; get package type arguments
+  -- if PACKAGE `< theta `> `{ _ `}
+      = $find_object_e(ARCH, [ "main" ])
+  -- if typeIR_headers = $find_map<typeId, typeIR>(theta, "H")
+  ---- ;; create callee
+  -- if typeIR_filter
+      = $specialize_typeDefIR(typeDefIR_filter, typeIR_headers)
+  -- if typedExpressionIR_filter
+      = (typedExpressionIR_main '.' "filt") '#' `( typeIR_filter CTK `)
+
+;;
+;; eBPF parse invocation
+;;
+
+relation EBPF_parse:
+  evalContext arch |- evalContext arch transitionResult
+  hint(input %0 %1)
+
+
+rule EBPF_parse/cont:
+  EC_0 ARCH_0 |- EC_1 ARCH_1 ACCEPT
+  ---- ;; prepare the arguments
+  -- if argumentIR_packet_in
+      = $eBPF_setup_packet_in_argument(EC_0)
+  -- if argumentIR_headers
+      = $eBPF_setup_headers_argument(ARCH_0)
+  -- if argumentIR* = [ argumentIR_packet_in, argumentIR_headers ]
+  ---- ;; invoke the parser object (main.prs)
+  -- if typedExpressionIR_main
+      = $eBPF_setup_main_callee(EC_0, ARCH_0)
+  -- if typedExpressionIR_prs
+      = $eBPF_setup_parse_callee(EC_0, ARCH_0, typedExpressionIR_main)
+  -- if callableTargetIR = typedExpressionIR_prs '.' "apply"
+  -- Stmt_eval:
+      GLOBAL EC_0 ARCH_0 |- callableTargetIR `< eps `> `( argumentIR* `) ';'
+                          : EC_1 ARCH_1 _EMPTY
+
+rule EBPF_parse/reject:
+  EC_0 ARCH_0 |- EC_1 ARCH_1 rejectTransitionResult
+  ---- ;; prepare the arguments
+  -- if argumentIR_packet_in
+      = $eBPF_setup_packet_in_argument(EC_0)
+  -- if argumentIR_headers
+      = $eBPF_setup_headers_argument(ARCH_0)
+  -- if argumentIR* = [ argumentIR_packet_in, argumentIR_headers ]
+  ---- ;; invoke the parser object (main.prs)
+  -- if typedExpressionIR_main
+      = $eBPF_setup_main_callee(EC_0, ARCH_0)
+  -- if typedExpressionIR_prs
+      = $eBPF_setup_parse_callee(EC_0, ARCH_0, typedExpressionIR_main)
+  -- if callableTargetIR = typedExpressionIR_prs '.' "apply"
+  -- Stmt_eval:
+      GLOBAL EC_0 ARCH_0 |- callableTargetIR `< eps `> `( argumentIR* `) ';'
+                          : EC_1 ARCH_1 rejectTransitionResult
+
+
+;;
+;; eBPF filter invocation
+;;
+
+relation EBPF_filter:
+  evalContext arch |- evalContext arch callResult
+  hint(input %0 %1)
+
+
+rule EBPF_filter/continueEmptyResult:
+  EC_0 ARCH_0 |- EC_1 ARCH_1 (RETURN eps)
+  ---- ;; prepare the arguments
+  -- if argumentIR_headers
+      = $eBPF_setup_headers_argument(ARCH_0)
+  -- if argumentIR_accept = ('.' "accept") '#' `( BOOL DYN `)
+  -- if argumentIR* = [ argumentIR_headers, argumentIR_accept ]
+  ---- ;; invoke the verify object (main.filt)
+  -- if typedExpressionIR_main
+      = $eBPF_setup_main_callee(EC_0, ARCH_0)
+  -- if typedExpressionIR_filt
+      = $eBPF_setup_filter_callee(EC_0, ARCH_0, typedExpressionIR_main)
+  -- if callableTargetIR = typedExpressionIR_filt '.' "apply"
+  -- Stmt_eval:
+      GLOBAL EC_0 ARCH_0 |- callableTargetIR `< eps `> `( argumentIR* `) ';'
+                          : EC_1 ARCH_1 _EMPTY
+
+rule EBPF_filter/exit:
+  EC_0 ARCH_0 |- EC_1 ARCH_1 EXIT
+  ---- ;; prepare the arguments
+  -- if argumentIR_headers
+      = $eBPF_setup_headers_argument(ARCH_0)
+  -- if argumentIR_accept = ('.' "accept") '#' `( BOOL DYN `)
+  -- if argumentIR* = [ argumentIR_headers, argumentIR_accept ]
+  ---- ;; invoke the verify object (main.filt)
+  -- if typedExpressionIR_main
+      = $eBPF_setup_main_callee(EC_0, ARCH_0)
+  -- if typedExpressionIR_filt
+      = $eBPF_setup_filter_callee(EC_0, ARCH_0, typedExpressionIR_main)
+  -- if callableTargetIR = typedExpressionIR_filt '.' "apply"
+  -- Stmt_eval:
+      GLOBAL EC_0 ARCH_0 |- callableTargetIR `< eps `> `( argumentIR* `) ';'
+                          : EC_1 ARCH_1 EXIT
+

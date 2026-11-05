@@ -11,7 +11,13 @@ let typdef_object_state =
   Opaque.make_typdef ~name:"objectState" ~compare:Stdlib.compare
     ~hash:Hashtbl.hash
 
-let opaque_types = [ Opaque.Typdef typdef_object_state ]
+(* The eBPF architecture keeps no state of its own. *)
+let typdef_arch_state =
+  Opaque.make_typdef ~name:"archState" ~compare:Stdlib.compare
+    ~hash:Hashtbl.hash
+
+let opaque_types =
+  [ Opaque.Typdef typdef_object_state; Opaque.Typdef typdef_arch_state ]
 
 let bit32_value at value =
   match value.it with
@@ -66,4 +72,9 @@ let init_object_state_builtin ~at targs args =
   | [], _ -> Error (Error.arity at "init_objectState expects four arguments")
   | _ -> Error (Error.arity at "init_objectState does not take type arguments")
 
-let builtins = [ ("init_objectState", init_object_state_builtin) ]
+let builtins =
+  [
+    ("init_objectState", init_object_state_builtin);
+    ( "init_archState",
+      Define.T0.a0 (fun ~at:_ -> Ok (Value.opaque typdef_arch_state ())) );
+  ]

@@ -1,0 +1,1077 @@
+;;
+;; Statement evaluation
+;;
+;; syntax statementIR
+;;
+
+;;; emptyStatementIR
+
+rule Stmt_eval/emptyStatementIR:
+  p EC ARCH |- ';' : EC ARCH _EMPTY
+
+;;; assignmentStatementIR
+;;; syntax assignmentStatementIR = typedLvalueIR assignop typedExpressionIR ';'
+
+
+rule Stmt_eval/typedLvalueIR-abort:
+  p EC_0 ARCH_0 |- typedLvalueIR assignop typedExpressionIR ';'
+                 : EC_1 ARCH_1 abortResult
+  ---- ;; evaluate l-value
+  -- Lvalue_eval:
+      p EC_0 ARCH_0 |- typedLvalueIR
+                     : EC_1 ARCH_1 abortResult
+
+rule Stmt_eval/typedLvalueIR-cont-eq-typedExpressionIR-abort:
+  p EC_0 ARCH_0 |- typedLvalueIR assignop typedExpressionIR ';'
+                 : EC_2 ARCH_2 abortResult
+  ---- ;; evaluate l-value
+  -- Lvalue_eval:
+      p EC_0 ARCH_0 |- typedLvalueIR
+                     : EC_1 ARCH_1 (_CONT storageReference)
+  ---- ;; if simple assignment
+  -- if assignop = '='
+  ---- ;; evaluate expression
+  -- Expr_eval:
+      p EC_1 ARCH_1 |- typedExpressionIR
+                     : EC_2 ARCH_2 abortResult
+
+rule Stmt_eval/typedLvalueIR-cont-compound-typedExpressionIR-abort:
+  p EC_0 ARCH_0 |- typedLvalueIR assignop typedExpressionIR ';'
+                 : EC_2 ARCH_2 abortResult
+  ---- ;; evaluate l-value
+  -- Lvalue_eval:
+      p EC_0 ARCH_0 |- typedLvalueIR
+                     : EC_1 ARCH_1 (_CONT storageReference)
+  ---- ;; if compound assignment
+  -- if assignop =/= '='
+  ---- ;; evaluate expression
+  -- Expr_eval:
+      p EC_1 ARCH_1 |- typedExpressionIR
+                     : EC_2 ARCH_2 abortResult
+
+rule Stmt_eval/typedLvalueIR-cont-eq-typedExpressionIR-cont:
+  p EC_0 ARCH_0 |- typedLvalueIR assignop typedExpressionIR ';'
+                 : EC_3 ARCH_2 _EMPTY
+  ---- ;; evaluate l-value
+  -- Lvalue_eval:
+      p EC_0 ARCH_0 |- typedLvalueIR
+                     : EC_1 ARCH_1 (_CONT storageReference)
+  ---- ;; if simple assignment
+  -- if assignop = '='
+  ---- ;; evaluate expression
+  -- Expr_eval:
+      p EC_1 ARCH_1 |- typedExpressionIR
+                     : EC_2 ARCH_2 (_CONT value)
+  ---- ;; perform assignment
+  -- Lvalue_write:
+      p EC_2 ARCH_2 |- storageReference := value : EC_3
+
+rule Stmt_eval/typedLvalueIR-cont-compound-typedExpressionIR-cont:
+  p EC_0 ARCH_0 |- typedLvalueIR assignop typedExpressionIR ';'
+                 : EC_3 ARCH_2 _EMPTY
+  ---- ;; evaluate l-value
+  -- Lvalue_eval:
+      p EC_0 ARCH_0 |- typedLvalueIR
+                     : EC_1 ARCH_1 (_CONT storageReference)
+  ---- ;; if compound assignment
+  -- if assignop =/= '='
+  ---- ;; evaluate expression
+  -- Expr_eval:
+      p EC_1 ARCH_1 |- typedExpressionIR
+                     : EC_2 ARCH_2 (_CONT value)
+  ---- ;; compute new value
+  -- Lvalue_read:
+      p EC_2 ARCH_2 |- storageReference : value_lvalue
+  -- if binop = $assignop_as_binop(assignop)
+  -- if value_new = $bin_op(binop, value_lvalue, value)
+  ---- ;; perform assignment
+  -- Lvalue_write:
+      p EC_2 ARCH_2 |- storageReference := value_new : EC_3
+
+
+;;; callStatementIR
+;;; syntax callStatementIR =
+;;;   routineTargetIR `< typeArgumentListIR > `( argumentListIR ) ';'
+
+
+rule Stmt_eval/callee-abort:
+  p EC_0 ARCH_0 |- callableTargetIR `< typeArgumentIR* `> `( argumentIR* `) ';'
+                 : EC_1 ARCH_1 abortResult
+  -- Callee_eval:
+      p EC_0 ARCH_0 |- callableTargetIR `< '_' `> `( argumentIR* `)
+                     : EC_1 ARCH_1 abortResult
+
+rule Stmt_eval/callee-cont-call-abort:
+  p EC_0 ARCH_0 |- callableTargetIR `< typeArgumentIR* `> `( argumentIR* `) ';'
+                 : EC_2 ARCH_2 abortResult
+  -- Callee_eval:
+      p EC_0 ARCH_0 |- callableTargetIR `< '_' `> `( argumentIR* `)
+                     : EC_1 ARCH_1 (_CONT callee)
+  -- Call_eval:
+      p EC_1 ARCH_1 |- callee '@' `< typeArgumentIR* `> `( argumentIR* `)
+                     : EC_2 ARCH_2 abortResult
+
+rule Stmt_eval/callee-cont-call-return:
+  p EC_0 ARCH_0 |- callableTargetIR `< typeArgumentIR* `> `( argumentIR* `) ';'
+                 : EC_2 ARCH_2 _EMPTY
+  -- Callee_eval:
+      p EC_0 ARCH_0 |- callableTargetIR `< '_' `> `( argumentIR* `)
+                     : EC_1 ARCH_1 (_CONT callee)
+  -- Call_eval:
+      p EC_1 ARCH_1 |- callee '@' `< typeArgumentIR* `> `( argumentIR* `)
+                     : EC_2 ARCH_2 returnResult
+
+
+;;; directApplicationStatementIR
+;;; direct applications should have been handled during instantiation
+
+;;; returnStatementIR
+;;; syntax returnStatementIR
+
+;;;; RETURN ';'
+;;;; RETURN typedExpressionIR ';'
+
+
+rule Stmt_eval/non-expression:
+  LOCAL EC ARCH |- RETURN ';' : EC ARCH (RETURN eps)
+
+rule Stmt_eval/expression-abort:
+  LOCAL EC_0 ARCH_0 |- RETURN typedExpressionIR ';'
+                     : EC_1 ARCH_1 abortResult
+  -- Expr_eval:
+      LOCAL EC_0 ARCH_0 |- typedExpressionIR
+                         : EC_1 ARCH_1 abortResult
+
+rule Stmt_eval/expression-cont:
+  LOCAL EC_0 ARCH_0 |- RETURN typedExpressionIR ';'
+                     : EC_1 ARCH_1 (RETURN value)
+  -- Expr_eval:
+      LOCAL EC_0 ARCH_0 |- typedExpressionIR
+                         : EC_1 ARCH_1 (_CONT value)
+
+
+;;; exitStatementIR
+;;; syntax exitStatementIR = EXIT ';'
+
+rule Stmt_eval/exitStatementIR:
+  p EC ARCH |- EXIT ';' : EC ARCH EXIT
+
+;;; syntax blockStatementIR =
+;;;   annotationList `{ blockElementStatementListIR }
+
+rule Stmt_eval/blockStatementIR:
+  p EC_0 ARCH_0 |- blockStatementIR
+                 : EC_3 ARCH_1 statementResult
+  -- if EC_1 = $enter_e(EC_0)
+  -- Block_eval:
+      EC_1 ARCH_0 |- blockStatementIR
+                   : EC_2 ARCH_1 statementResult
+  -- if EC_3 = $exit_e(EC_2)
+
+;;; conditionalStatementIR
+;;; syntax conditionalStatementIR
+
+;;;; IF `( typedExpressionIR ) statementIR
+;;;; IF `( typedExpressionIR ) statementIR ELSE statementIR
+
+
+rule Stmt_eval/non-else-abort:
+  p EC ARCH |- IF `( typedExpressionIR_cond `) statementIR_then
+             : EC_cond ARCH_cond abortResult
+  -- Expr_eval:
+      p EC ARCH |- typedExpressionIR_cond
+                 : EC_cond ARCH_cond abortResult
+
+rule Stmt_eval/non-else-cont-true:
+  p EC ARCH |- IF `( typedExpressionIR_cond `) statementIR_then
+             : EC_then ARCH_then statementResult
+  -- Expr_eval:
+      p EC ARCH |- typedExpressionIR_cond
+                 : EC_cond ARCH_cond (_CONT (_B true))
+  -- Stmt_eval:
+      p EC_cond ARCH_cond |- statementIR_then
+                           : EC_then ARCH_then statementResult
+
+rule Stmt_eval/non-else-cont-false:
+  p EC ARCH |- IF `( typedExpressionIR_cond `) statementIR_then
+             : EC_cond ARCH_cond _EMPTY
+  -- Expr_eval:
+      p EC ARCH |- typedExpressionIR_cond
+                 : EC_cond ARCH_cond (_CONT (_B false))
+
+rule Stmt_eval/else-abort:
+  p EC ARCH |- IF `( typedExpressionIR_cond `) statementIR_then
+              ELSE statementIR_else
+             : EC_cond ARCH_cond abortResult
+  -- Expr_eval:
+      p EC ARCH |- typedExpressionIR_cond
+                 : EC_cond ARCH_cond abortResult
+
+rule Stmt_eval/else-cont-true:
+  p EC ARCH |- IF `( typedExpressionIR_cond `) statementIR_then
+              ELSE statementIR_else
+             : EC_then ARCH_then statementResult
+  -- Expr_eval:
+      p EC ARCH |- typedExpressionIR_cond
+                 : EC_cond ARCH_cond (_CONT (_B true))
+  -- Stmt_eval:
+      p EC_cond ARCH_cond |- statementIR_then
+                           : EC_then ARCH_then statementResult
+
+rule Stmt_eval/else-cont-false:
+  p EC ARCH |- IF `( typedExpressionIR_cond `) statementIR_then
+              ELSE statementIR_else
+             : EC_else ARCH_else statementResult
+  -- Expr_eval:
+      p EC ARCH |- typedExpressionIR_cond
+                 : EC_cond ARCH_cond (_CONT (_B false))
+  -- Stmt_eval:
+      p EC_cond ARCH_cond |- statementIR_else
+                           : EC_else ARCH_else statementResult
+
+
+;;; forStatementIR
+;;; syntax forStatementIR
+
+;;;; annotationList FOR
+;;;;   `( forInitStatementListIR ';' typedExpressionIR ';' forUpdateStatementListIR )
+;;;;   statementIR
+
+;;;;; syntax forUpdateStatementIR
+
+relation ForUpdateStmt_eval:
+  evalContext arch |- forUpdateStatementIR
+                    : evalContext arch statementResult
+  hint(input %0 %1 %2)
+  hint(prose_in "runtime evaluation of" %2#
+                ", under evaluation context" %0 "and state" %1)
+  hint(prose_out "\nthe updated evaluation context" %3#
+                 ", state" %4#", and" %5)
+
+;;;;;; callableTargetIR `< typeArgumentListIR > `( argumentListIR )
+;;;;;; typedLvalueIR assignop typedExpressionIR
+
+
+rule ForUpdateStmt_eval/call:
+  EC_0 ARCH_0 |- callableTargetIR `< typeArgumentListIR `> `( argumentListIR `)
+               : EC_1 ARCH_1 statementResult
+  -- Stmt_eval:
+      LOCAL EC_0 ARCH_0 |- callableTargetIR `< typeArgumentListIR `> `( argumentListIR `) ';'
+                         : EC_1 ARCH_1 statementResult
+
+rule ForUpdateStmt_eval/assign:
+  EC_0 ARCH_0 |- typedLvalueIR assignop typedExpressionIR
+               : EC_1 ARCH_1 statementResult
+  -- Stmt_eval: LOCAL EC_0 ARCH_0 |- typedLvalueIR assignop typedExpressionIR ';'
+                                   : EC_1 ARCH_1 statementResult
+
+
+;;;;; syntax forUpdateStatementListIR = forUpdateStatementIR*
+
+relation ForUpdateStmts_eval:
+  evalContext arch |- forUpdateStatementListIR
+                    : evalContext arch statementResult
+  hint(input %0 %1 %2)
+  hint(prose_in "runtime evaluation of" %2#
+                ", under evaluation context" %0 "and state" %1)
+  hint(prose_out "\nthe updated evaluation context" %3#
+                 ", state" %4#", and" %5)
+
+
+rule ForUpdateStmts_eval/nil:
+  EC ARCH |- eps : EC ARCH _EMPTY
+
+rule ForUpdateStmts_eval/cons-head-exit:
+  EC_0 ARCH_0 |- forUpdateStatementIR_h :: forUpdateStatementIR_t*
+               : EC_1 ARCH_1 EXIT
+  -- ForUpdateStmt_eval:
+      EC_0 ARCH_0 |- forUpdateStatementIR_h : EC_1 ARCH_1 EXIT
+
+rule ForUpdateStmts_eval/cons-head-cont:
+  EC_0 ARCH_0 |- forUpdateStatementIR_h :: forUpdateStatementIR_t*
+               : EC_2 ARCH_2 statementResult
+  -- ForUpdateStmt_eval:
+      EC_0 ARCH_0 |- forUpdateStatementIR_h : EC_1 ARCH_1 _EMPTY
+  -- ForUpdateStmts_eval:
+      EC_1 ARCH_1 |- forUpdateStatementIR_t* : EC_2 ARCH_2 statementResult
+
+
+;;;;; syntax forInitStatementIR
+
+relation ForInitStmt_eval:
+  evalContext arch |- forInitStatementIR
+                    : evalContext arch statementResult
+  hint(input %0 %1 %2)
+  hint(prose_in "runtime evaluation of" %2#
+                ", under evaluation context" %0 "and state" %1)
+  hint(prose_out "\nthe updated evaluation context" %3#
+                 ", state" %4#", and" %5)
+
+;;;;;; annotationList typeIR nameIR initializerOptIR
+
+
+rule ForInitStmt_eval/variableDeclarationIR-non-initializer:
+  EC_0 ARCH |- annotationList typeIR nameIR eps
+             : EC_1 ARCH _EMPTY
+  ---- ;; get initial value
+  -- if typeIR_subst = $subst_type_e(LOCAL, EC_0, typeIR)
+  -- if value_init = $default(typeIR_subst)
+  ---- ;; update evaluation context
+  -- if EC_1 = $add_var_e(LOCAL, EC_0, _BARE nameIR, value_init)
+
+rule ForInitStmt_eval/variableDeclarationIR-initializer-abort:
+  EC_0 ARCH_0 |- annotationList typeIR nameIR ('=' typedExpressionIR_init)
+               : EC_1 ARCH_1 abortResult
+  ---- ;; evaluate initializer
+  -- Expr_eval:
+      LOCAL EC_0 ARCH_0 |- typedExpressionIR_init
+                         : EC_1 ARCH_1 abortResult
+
+rule ForInitStmt_eval/variableDeclarationIR-initializer-cont:
+  EC_0 ARCH_0 |- annotationList typeIR nameIR ('=' typedExpressionIR_init)
+               : EC_2 ARCH_1 _EMPTY
+  ---- ;; evaluate initializer
+  -- Expr_eval:
+      LOCAL EC_0 ARCH_0 |- typedExpressionIR_init
+                         : EC_1 ARCH_1 (_CONT value_init)
+  ---- ;; update evaluation context
+  -- if EC_2 = $add_var_e(LOCAL, EC_1, _BARE nameIR, value_init)
+
+rule ForInitStmt_eval/forUpdateStatementIR:
+  EC_0 ARCH_0 |- forUpdateStatementIR
+               : EC_1 ARCH_1 statementResult
+  -- ForUpdateStmt_eval:
+      EC_0 ARCH_0 |- forUpdateStatementIR
+                   : EC_1 ARCH_1 statementResult
+
+
+;;;;;; forUpdateStatementIR
+
+;;;;; syntax forInitStatementListIR = forInitStatementIR*
+
+relation ForInitStmts_eval:
+  evalContext arch |- forInitStatementListIR
+                     : evalContext arch statementResult
+  hint(input %0 %1 %2)
+  hint(prose_in "runtime evaluation of" %2#
+                ", under evaluation context" %0 "and state" %1)
+  hint(prose_out "\nthe updated evaluation context" %3#
+                 ", state" %4#", and" %5)
+
+
+rule ForInitStmts_eval/nil:
+  EC ARCH |- eps : EC ARCH _EMPTY
+
+rule ForInitStmts_eval/cons-head-abort:
+  EC_0 ARCH_0 |- forInitStatementIR_h :: forInitStatementIR_t*
+               : EC_1 ARCH_1 abortResult
+  -- ForInitStmt_eval:
+      EC_0 ARCH_0 |- forInitStatementIR_h : EC_1 ARCH_1 abortResult
+
+rule ForInitStmts_eval/cons-head-cont:
+  EC_0 ARCH_0 |- forInitStatementIR_h :: forInitStatementIR_t*
+               : EC_2 ARCH_2 statementResult
+  -- ForInitStmt_eval:
+      EC_0 ARCH_0 |- forInitStatementIR_h : EC_1 ARCH_1 _EMPTY
+  -- ForInitStmts_eval:
+      EC_1 ARCH_1 |- forInitStatementIR_t* : EC_2 ARCH_2 statementResult
+
+
+;;;; annotationList FOR
+;;;;   `( forInitStatementListIR ';' typedExpressionIR ';' forUpdateStatementListIR )
+;;;;   statementIR
+
+relation ForThreeClauseStmt_eval:
+  evalContext arch |- typedExpressionIR statementIR forUpdateStatementListIR
+                     : evalContext arch statementResult
+  hint(input %0 %1 %2 %3 %4)
+  hint(prose_in "looping" %3 "with condition" %2 "and updates" %4#
+                ", under evaluation context" %0 "and state" %1)
+  hint(prose_out "\nthe updated evaluation context" %5#
+                 ", state" %6#", and" %7)
+
+
+rule ForThreeClauseStmt_eval/cond-abort:
+  EC_0 ARCH_0 |- typedExpressionIR statementIR forUpdateStatementListIR
+               : EC_1 ARCH_1 abortResult
+  -- Expr_eval:
+      LOCAL EC_0 ARCH_0 |- typedExpressionIR
+                         : EC_1 ARCH_1 abortResult
+
+rule ForThreeClauseStmt_eval/cond-false:
+  EC_0 ARCH_0 |- typedExpressionIR statementIR forUpdateStatementListIR
+               : EC_1 ARCH_1 _EMPTY
+  -- Expr_eval:
+      LOCAL EC_0 ARCH_0 |- typedExpressionIR
+                         : EC_1 ARCH_1 (_CONT (_B false))
+
+rule ForThreeClauseStmt_eval/cond-true-loop-abort:
+  EC_0 ARCH_0 |- typedExpressionIR statementIR forUpdateStatementListIR
+               : EC_2 ARCH_2 abortResult
+  -- Expr_eval:
+      LOCAL EC_0 ARCH_0 |- typedExpressionIR
+                         : EC_1 ARCH_1 (_CONT (_B true))
+  -- Stmt_eval:
+      LOCAL EC_1 ARCH_1 |- statementIR
+                         : EC_2 ARCH_2 abortResult
+
+rule ForThreeClauseStmt_eval/cond-true-loop-return:
+  EC_0 ARCH_0 |- typedExpressionIR statementIR forUpdateStatementListIR
+               : EC_2 ARCH_2 returnResult
+  -- Expr_eval:
+      LOCAL EC_0 ARCH_0 |- typedExpressionIR
+                         : EC_1 ARCH_1 (_CONT (_B true))
+  -- Stmt_eval:
+      LOCAL EC_1 ARCH_1 |- statementIR
+                         : EC_2 ARCH_2 returnResult
+
+rule ForThreeClauseStmt_eval/cond-true-loop-break:
+  EC_0 ARCH_0 |- typedExpressionIR statementIR forUpdateStatementListIR
+               : EC_2 ARCH_2 _EMPTY
+  -- Expr_eval:
+      LOCAL EC_0 ARCH_0 |- typedExpressionIR
+                         : EC_1 ARCH_1 (_CONT (_B true))
+  -- Stmt_eval:
+      LOCAL EC_1 ARCH_1 |- statementIR
+                         : EC_2 ARCH_2 BREAK
+
+rule ForThreeClauseStmt_eval/cond-true-loop-cont-update-exit:
+  EC_0 ARCH_0 |- typedExpressionIR statementIR forUpdateStatementListIR
+               : EC_3 ARCH_3 EXIT
+  -- Expr_eval:
+      LOCAL EC_0 ARCH_0 |- typedExpressionIR
+                         : EC_1 ARCH_1 (_CONT (_B true))
+  -- Stmt_eval:
+      LOCAL EC_1 ARCH_1 |- statementIR
+                         : EC_2 ARCH_2 statementResult_loop
+  -- if statementResult_loop = _EMPTY
+        \/ statementResult_loop = CONTINUE
+  -- ForUpdateStmts_eval:
+      EC_2 ARCH_2 |- forUpdateStatementListIR
+                   : EC_3 ARCH_3 EXIT
+
+rule ForThreeClauseStmt_eval/cond-true-loop-cont-update-cont:
+  EC_0 ARCH_0 |- typedExpressionIR statementIR forUpdateStatementListIR
+               : EC_4 ARCH_4 statementResult
+  -- Expr_eval:
+      LOCAL EC_0 ARCH_0 |- typedExpressionIR
+                         : EC_1 ARCH_1 (_CONT (_B true))
+  -- Stmt_eval:
+      LOCAL EC_1 ARCH_1 |- statementIR
+                         : EC_2 ARCH_2 statementResult_loop
+  -- if statementResult_loop = _EMPTY
+        \/ statementResult_loop = CONTINUE
+  -- ForUpdateStmts_eval:
+      EC_2 ARCH_2 |- forUpdateStatementListIR
+                   : EC_3 ARCH_3 _EMPTY
+  -- ForThreeClauseStmt_eval:
+      EC_3 ARCH_3 |- typedExpressionIR statementIR forUpdateStatementListIR
+                   : EC_4 ARCH_4 statementResult
+
+
+
+rule Stmt_eval/init-abort:
+  LOCAL EC_0 ARCH_0 |- annotationList FOR
+                        `( forInitStatementListIR ';'
+                           typedExpressionIR ';'
+                           forUpdateStatementListIR `) statementIR
+                     : EC_3 ARCH_1 abortResult
+  -- if EC_1 = $enter_e(EC_0)
+  -- ForInitStmts_eval:
+      EC_1 ARCH_0 |- forInitStatementListIR
+                   : EC_2 ARCH_1 abortResult
+  -- if EC_3 = $exit_e(EC_2)
+
+rule Stmt_eval/init-cont:
+  LOCAL EC_0 ARCH_0 |- annotationList FOR
+                        `( forInitStatementListIR ';'
+                           typedExpressionIR ';'
+                           forUpdateStatementListIR `) statementIR
+                     : EC_4 ARCH_2 statementResult
+  -- if EC_1 = $enter_e(EC_0)
+  -- ForInitStmts_eval:
+      EC_1 ARCH_0 |- forInitStatementListIR
+                   : EC_2 ARCH_1 _EMPTY
+  -- ForThreeClauseStmt_eval:
+      EC_2 ARCH_1 |- typedExpressionIR statementIR forUpdateStatementListIR
+                   : EC_3 ARCH_2 statementResult
+  -- if EC_4 = $exit_e(EC_3)
+
+
+;;;; annotationList FOR
+;;;;   `( typeIR nameIR IN forCollectionExpressionIR )
+;;;;   statementIR
+;;;; annotationList FOR
+;;;;   `( annotationList typeIR nameIR IN forCollectionExpressionIR )
+;;;;   statementIR
+
+;;;;; syntax forCollectionExpressionIR
+
+relation ForCollectionExpr_eval:
+  evalContext arch |- forCollectionExpressionIR
+                    : evalContext arch expressionListResult
+  hint(input %0 %1 %2)
+  hint(prose_in "runtime evaluation of" %2#
+                ", under evaluation context" %0 "and state" %1)
+  hint(prose_out "\nthe updated evaluation context" %3#
+                 ", state" %4#", and" %5)
+
+;;;;;; typedExpressionIR
+
+
+rule ForCollectionExpr_eval/abort:
+  EC_0 ARCH_0 |- typedExpressionIR
+               : EC_1 ARCH_1 abortResult
+  -- Expr_eval:
+      LOCAL EC_0 ARCH_0 |- typedExpressionIR
+                         : EC_1 ARCH_1 abortResult
+
+rule ForCollectionExpr_eval/list:
+  EC_0 ARCH_0 |- typedExpressionIR
+               : EC_1 ARCH_1 (_CONT value*)
+  -- Expr_eval:
+      LOCAL EC_0 ARCH_0 |- typedExpressionIR
+                         : EC_1 ARCH_1 (_CONT listValue)
+  -- if LIST `[ value* `] = listValue
+
+rule ForCollectionExpr_eval/array:
+  EC_0 ARCH_0 |- typedExpressionIR
+               : EC_1 ARCH_1 (_CONT value*)
+  -- Expr_eval:
+      LOCAL EC_0 ARCH_0 |- typedExpressionIR
+                         : EC_1 ARCH_1 (_CONT arrayValue)
+-- if ARRAY `[ value* `] = arrayValue
+
+rule ForCollectionExpr_eval/header-stack:
+  EC_0 ARCH_0 |- typedExpressionIR
+               : EC_1 ARCH_1 (_CONT value*)
+  -- Expr_eval:
+      LOCAL EC_0 ARCH_0 |- typedExpressionIR
+                         : EC_1 ARCH_1 (_CONT headerStackValue)
+-- if HEADER_STACK `[ value* `( _ `) `] = headerStackValue
+
+
+;;;;;; typedExpressionIR '..' typedExpressionIR
+
+dec $values_of_setValue(setTypeIR, setValue) : value*
+  hint(prose_in "the values in" %1 "of type" %0)
+
+def $values_of_setValue(SET `< typeIR `>, SET `{ value_l '..' value_r `})
+  = value_l :: $values_of_setValue(SET `< typeIR `>,
+                                   SET `{ value_l_inc '..' value_r `})
+  -- if $bin_lt(value_l, value_r)
+  -- if value_one = $cast_op(typeIR, D 1)
+  -- if value_l_inc = $bin_plus(value_l, value_one)
+def $values_of_setValue(SET `< typeIR `>, SET `{ value_l '..' value_r `}) = value_l
+  -- if $bin_eq(value_l, value_r)
+def $values_of_setValue(SET `< typeIR `>, SET `{ value_l '..' value_r `}) = eps
+  -- if $bin_gt(value_l, value_r)
+
+
+rule ForCollectionExpr_eval/left-abort:
+  EC_0 ARCH_0 |- typedExpressionIR_l '..' typedExpressionIR_r
+               : EC_1 ARCH_1 abortResult
+  -- Expr_eval:
+      LOCAL EC_0 ARCH_0 |- typedExpressionIR_l
+                         : EC_1 ARCH_1 abortResult
+
+rule ForCollectionExpr_eval/left-cont-right-abort:
+  EC_0 ARCH_0 |- typedExpressionIR_l '..' typedExpressionIR_r
+               : EC_2 ARCH_2 abortResult
+  -- Expr_eval:
+      LOCAL EC_0 ARCH_0 |- typedExpressionIR_l
+                         : EC_1 ARCH_1 (_CONT value_l)
+  -- Expr_eval:
+      LOCAL EC_1 ARCH_1 |- typedExpressionIR_r
+                         : EC_2 ARCH_2 abortResult
+
+rule ForCollectionExpr_eval/left-cont-right-cont:
+  EC_0 ARCH_0 |- typedExpressionIR_l '..' typedExpressionIR_r
+               : EC_2 ARCH_2 (_CONT value*)
+  -- Expr_eval:
+      LOCAL EC_0 ARCH_0 |- typedExpressionIR_l
+                         : EC_1 ARCH_1 (_CONT value_l)
+  -- Expr_eval:
+      LOCAL EC_1 ARCH_1 |- typedExpressionIR_r
+                         : EC_2 ARCH_2 (_CONT value_r)
+  -- if typeIR = $type_of_typedExpressionIR(typedExpressionIR_l)
+  -- if value*
+      = $values_of_setValue(SET `< typeIR `>, SET `{ value_l '..' value_r `})
+
+
+relation ForInStmt_eval:
+  evalContext arch |- nameIR value* statementIR
+                    : evalContext arch statementResult
+  hint(input %0 %1 %2 %3 %4)
+  hint(prose_in "looping over" %3 "with loop variable" %2
+                "and body" %4#", under evaluation context" %0 "and state" %1)
+  hint(prose_out "\nthe updated evaluation context" %5#
+                 ", state" %6#", and" %7)
+
+
+rule ForInStmt_eval/nil:
+  EC ARCH |- nameIR eps statementIR : EC ARCH _EMPTY
+
+rule ForInStmt_eval/cons-loop-abort:
+  EC_0 ARCH_0 |- nameIR (value_h :: value_t*) statementIR
+               : EC_2 ARCH_1 abortResult
+  -- if EC_1 = $update_var_e(LOCAL, EC_0, _BARE nameIR, value_h)
+  -- Stmt_eval:
+      LOCAL EC_1 ARCH_0 |- statementIR
+                         : EC_2 ARCH_1 abortResult
+
+rule ForInStmt_eval/cons-loop-return:
+  EC_0 ARCH_0 |- nameIR (value_h :: value_t*) statementIR
+               : EC_2 ARCH_1 returnResult
+  -- if EC_1 = $update_var_e(LOCAL, EC_0, _BARE nameIR, value_h)
+  -- Stmt_eval:
+      LOCAL EC_1 ARCH_0 |- statementIR
+                         : EC_2 ARCH_1 returnResult
+
+rule ForInStmt_eval/cons-loop-break:
+  EC_0 ARCH_0 |- nameIR (value_h :: value_t*) statementIR
+               : EC_2 ARCH_1 _EMPTY
+  -- if EC_1 = $update_var_e(LOCAL, EC_0, _BARE nameIR, value_h)
+  -- Stmt_eval:
+      LOCAL EC_1 ARCH_0 |- statementIR
+                         : EC_2 ARCH_1 BREAK
+
+rule ForInStmt_eval/cons-loop-cont:
+  EC_0 ARCH_0 |- nameIR (value_h :: value_t*) statementIR
+               : EC_3 ARCH_2 statementResult
+  -- if EC_1 = $update_var_e(LOCAL, EC_0, _BARE nameIR, value_h)
+  -- Stmt_eval:
+      LOCAL EC_1 ARCH_0 |- statementIR
+                         : EC_2 ARCH_1 statementResult_loop
+  -- if statementResult_loop = _EMPTY
+        \/ statementResult_loop = CONTINUE
+  -- ForInStmt_eval:
+      EC_2 ARCH_1 |- nameIR value_t* statementIR
+                   : EC_3 ARCH_2 statementResult
+
+
+
+rule Stmt_eval/no-annotations-collection-abort:
+  LOCAL EC_0 ARCH_0 |- annotationList FOR
+                        `( typeIR nameIR IN forCollectionExpressionIR `)
+                        statementIR
+                     : EC_3 ARCH_1 abortResult
+  -- if EC_1 = $enter_e(EC_0)
+  -- ForCollectionExpr_eval:
+      EC_1 ARCH_0 |- forCollectionExpressionIR
+                   : EC_2 ARCH_1 abortResult
+  -- if EC_3 = $exit_e(EC_2)
+
+rule Stmt_eval/no-annotations-collection-loop:
+  LOCAL EC_0 ARCH_0 |- annotationList FOR
+                        `( typeIR nameIR IN forCollectionExpressionIR `)
+                        statementIR
+                     : EC_5 ARCH_2 statementResult
+  -- if EC_1 = $enter_e(EC_0)
+  ---- ;; evaluate collection
+  -- ForCollectionExpr_eval:
+      EC_1 ARCH_0 |- forCollectionExpressionIR
+                   : EC_2 ARCH_1 (_CONT value*)
+  ---- ;; update evaluation context
+  -- if typeIR_subst = $subst_type_e(LOCAL, EC_0, typeIR)
+  -- if value_init = $default(typeIR_subst)
+  -- if EC_3 = $add_var_e(LOCAL, EC_2, _BARE nameIR, value_init)
+  ---- ;; evaluate loop
+  -- ForInStmt_eval:
+      EC_3 ARCH_1 |- nameIR value* statementIR
+                   : EC_4 ARCH_2 statementResult
+  -- if EC_5 = $exit_e(EC_4)
+
+rule Stmt_eval/annotations:
+  LOCAL EC_0 ARCH_0 |- annotationList FOR
+                        `( annotationList_in
+                           typeIR nameIR IN forCollectionExpressionIR `)
+                        statementIR
+                     : EC_1 ARCH_1 statementResult
+  -- Stmt_eval:
+      LOCAL EC_0 ARCH_0 |- annotationList FOR
+                            `( typeIR nameIR IN forCollectionExpressionIR `)
+                            statementIR
+                         : EC_1 ARCH_1 statementResult
+
+
+;;; breakStatementIR
+
+rule Stmt_eval/breakStatementIR:
+  LOCAL EC ARCH |- BREAK ';' : EC ARCH BREAK
+
+;;; continueStatementIR
+
+rule Stmt_eval/continueStatementIR:
+  LOCAL EC ARCH |- CONTINUE ';' : EC ARCH CONTINUE
+
+;;; switchStatementIR
+;;; syntax switchStatementIR =
+;;;   SWITCH `( typedExpressionIR ) `{ switchCaseListIR }
+
+;;;; Switch on table apply method result
+
+relation Switch_table_eval:
+  evalContext arch |- SWITCH `( id `) `{ switchCaseIR* `}
+                    : evalContext arch statementResult
+  hint(input %0 %1 %2 %3)
+
+;;;;; syntax switchLabelIR
+;;;;;; DEFAULT
+;;;;;; typedExpressionIR
+
+dec $match_switchLabelIR_table(id, switchLabelIR) : bool
+  hint(prose_true %0 "matches" %1)
+  hint(prose_false %0 "does not match" %1)
+def $match_switchLabelIR_table(id, DEFAULT) = true
+def $match_switchLabelIR_table(id, (_BARE id) '#' _) = true
+def $match_switchLabelIR_table(id, _) = false
+  -- otherwise
+
+;;;;; syntax switchCaseListIR
+;;;;;; switchLabelIR ':' blockStatementIR
+;;;;;; switchLabelIR ':'
+
+relation SwitchCases_table_eval:
+  id |- switchCaseListIR : blockStatementIR?
+  hint(input %0 %1)
+  hint(prose_in "runtime evaluation of" %1 "for invocation of table" %0)
+  hint(prose_out "the matched block" %2)
+
+dec $is_non_fallthrough_switchCaseIR(switchCaseIR) : bool
+  hint(prose_true %0 "is not a fall-through case")
+  hint(prose_false %0 "is a fall-through case")
+def $is_non_fallthrough_switchCaseIR(switchLabelIR ':' blockStatementIR) = true
+def $is_non_fallthrough_switchCaseIR(switchLabelIR ':' ) = false
+
+
+rule SwitchCases_table_eval/nil:
+  id |- eps : eps
+
+rule SwitchCases_table_eval/cons-non-fallthrough-match:
+  id |- switchCaseIR_h :: switchCaseIR_t* : blockStatementIR_h
+  ---- ;; if not fallthrough
+  -- if switchLabelIR_h ':' blockStatementIR_h = switchCaseIR_h
+  ---- ;; if match
+  -- if $match_switchLabelIR_table(id, switchLabelIR_h)
+
+rule SwitchCases_table_eval/cons-non-fallthrough-no-match:
+  id |- switchCaseIR_h :: switchCaseIR_t* : blockStatementIR?
+  ---- ;; if not fallthrough
+  -- if switchLabelIR_h ':' blockStatementIR_h = switchCaseIR_h
+  ---- ;; if no match
+  -- if ~$match_switchLabelIR_table(id, switchLabelIR_h)
+  -- SwitchCases_table_eval:
+      id |- switchCaseIR_t* : blockStatementIR?
+
+rule SwitchCases_table_eval/cons-fallthrough-match:
+  id |- switchCaseIR_h :: switchCaseIR_t* : blockStatementIR
+  ---- ;; if fallthrough
+  -- if switchLabelIR_h ':' = switchCaseIR_h
+  ---- ;; if match
+  -- if $match_switchLabelIR_table(id, switchLabelIR_h)
+  ---- ;; take the closest non-fallthrough case
+  -- if (_ ':' blockStatementIR) :: _
+      = $filter_<switchCaseIR>(
+          switchCaseIR_t*,
+          $is_non_fallthrough_switchCaseIR(switchCaseIR_t)*)
+
+rule SwitchCases_table_eval/cons-fallthrough-match-no-block:
+  id |- switchCaseIR_h :: switchCaseIR_t* : eps
+  ---- ;; if fallthrough
+  -- if switchLabelIR_h ':' = switchCaseIR_h
+  ---- ;; if match
+  -- if $match_switchLabelIR_table(id, switchLabelIR_h)
+  ---- ;; no following non-fallthrough case
+  -- if eps
+      = $filter_<switchCaseIR>(
+          switchCaseIR_t*,
+          $is_non_fallthrough_switchCaseIR(switchCaseIR_t)*)
+
+rule SwitchCases_table_eval/cons-fallthrough-no-match:
+  id |- switchCaseIR_h :: switchCaseIR_t* : blockStatementIR?
+  ---- ;; if fallthrough
+  -- if switchLabelIR_h ':' = switchCaseIR_h
+  ---- ;; if no match
+  -- if ~$match_switchLabelIR_table(id, switchLabelIR_h)
+  -- SwitchCases_table_eval:
+      id |- switchCaseIR_t* : blockStatementIR?
+
+
+
+rule Switch_table_eval/no-match:
+  EC_0 ARCH_0 |- SWITCH `( id_enum `) `{ switchCaseIR* `}
+               : EC_0 ARCH_0 _EMPTY
+  ---- ;; find matching case
+  -- SwitchCases_table_eval:
+      id_enum |- switchCaseIR* : eps
+
+rule Switch_table_eval/match:
+  EC_0 ARCH_0 |- SWITCH `( id_enum `) `{ switchCaseIR* `}
+               : EC_1 ARCH_1 statementResult
+  ---- ;; find matching case
+  -- SwitchCases_table_eval:
+      id_enum |- switchCaseIR* : blockStatementIR
+  ---- ;; evaluate matching case
+  -- Stmt_eval:
+      LOCAL EC_0 ARCH_0 |- blockStatementIR
+                         : EC_1 ARCH_1 statementResult
+
+
+;;;; Switch on error, numeric or enumerated type expression
+
+relation Switch_general_eval:
+  evalContext arch |- SWITCH `( value `) `{ switchCaseIR* `}
+                    : evalContext arch statementResult
+  hint(input %0 %1 %2 %3)
+
+;;;;; syntax switchLabelIR
+;;;;;; DEFAULT
+;;;;;; typedExpressionIR
+
+relation SwitchLabel_general_eval:
+  cursor evalContext arch |- switchLabelIR
+                           : evalContext arch expressionResult
+  hint(input %0 %1 %2 %3)
+  hint(prose_in "runtime evaluation of" %2#
+                ", under evaluation context" %0 "and state" %1)
+  hint(prose_out "\nthe updated evaluation context" %4#
+                 ", state" %5#", and" %6)
+
+
+rule SwitchLabel_general_eval/default:
+  LOCAL EC_0 ARCH_0 |- DEFAULT
+                     : EC_0 ARCH_0 (_CONT DEFAULT)
+
+rule SwitchLabel_general_eval/typedExpressionIR:
+  LOCAL EC_0 ARCH_0 |- typedExpressionIR
+                     : EC_1 ARCH_1 expressionResult
+  -- Expr_eval:
+      LOCAL EC_0 ARCH_0 |- typedExpressionIR
+                         : EC_1 ARCH_1 expressionResult
+
+
+dec $match_switchLabelIR_general(value, value) : bool
+  hint(prose_true %0 "matches" %1)
+  hint(prose_false %0 "does not match" %1)
+def $match_switchLabelIR_general(value, DEFAULT) = true
+def $match_switchLabelIR_general(value_a, value_b) = $bin_eq(value_a, value_b)
+  -- if value_b =/= DEFAULT
+
+relation SwitchCases_general_eval:
+  cursor evalContext arch value |- switchCaseListIR
+                                 : evalContext arch blockStatementIR?
+  hint(input %0 %1 %2 %3 %4)
+  hint(prose_in "runtime evaluation of" %4#
+                ", under evaluation context" %0 "and state" %1
+                "with switch key" %3)
+  hint(prose_out "\nthe updated evaluation context" %5#
+                 ", state" %6#", and" %7)
+
+
+rule SwitchCases_general_eval/nil:
+  LOCAL EC_0 ARCH_0 value |- eps : EC_0 ARCH_0 eps
+
+rule SwitchCases_general_eval/cons-non-fallthrough-match:
+  LOCAL EC_0 ARCH_0 value |- (switchCaseIR_h :: switchCaseIR_t*)
+                           : EC_1 ARCH_1 blockStatementIR_h
+  ---- ;; if not fall-through
+  -- if switchLabelIR_h ':' blockStatementIR_h = switchCaseIR_h
+  -- SwitchLabel_general_eval:
+      LOCAL EC_0 ARCH_0 |- switchLabelIR_h
+                         : EC_1 ARCH_1 (_CONT value_label)
+  ---- ;; if match
+  -- if $match_switchLabelIR_general(value, value_label)
+
+rule SwitchCases_general_eval/cons-non-fallthrough-no-match:
+  LOCAL EC_0 ARCH_0 value |- (switchCaseIR_h :: switchCaseIR_t*)
+                           : EC_2 ARCH_2 blockStatementIR?
+  ---- ;; if not fall-through
+  -- if switchLabelIR_h ':' blockStatementIR_h = switchCaseIR_h
+  -- SwitchLabel_general_eval:
+      LOCAL EC_0 ARCH_0 |- switchLabelIR_h
+                         : EC_1 ARCH_1 (_CONT value_label)
+  ---- ;; if not match
+  -- if ~$match_switchLabelIR_general(value, value_label)
+  -- SwitchCases_general_eval:
+      LOCAL EC_1 ARCH_1 value |- switchCaseIR_t*
+                               : EC_2 ARCH_2 blockStatementIR?
+
+rule SwitchCases_general_eval/cons-fallthrough-match:
+  LOCAL EC_0 ARCH_0 value |- (switchCaseIR_h :: switchCaseIR_t*)
+                           : EC_1 ARCH_1 blockStatementIR
+  ---- ;; if fallthrough
+  -- if switchLabelIR_h ':' = switchCaseIR_h
+  -- SwitchLabel_general_eval:
+      LOCAL EC_0 ARCH_0 |- switchLabelIR_h
+                         : EC_1 ARCH_1 (_CONT value_label)
+  ---- ;; if match
+  -- if $match_switchLabelIR_general(value, value_label)
+  ---- ;; take the closest non-fallthrough case
+  -- if (_ ':' blockStatementIR) :: _
+      = $filter_<switchCaseIR>(
+          switchCaseIR_t*,
+          $is_non_fallthrough_switchCaseIR(switchCaseIR_t)*)
+
+rule SwitchCases_general_eval/cons-fallthrough-match-no-block:
+  LOCAL EC_0 ARCH_0 value |- (switchCaseIR_h :: switchCaseIR_t*)
+                           : EC_1 ARCH_1 eps
+  ---- ;; if fallthrough
+  -- if switchLabelIR_h ':' = switchCaseIR_h
+  -- SwitchLabel_general_eval:
+      LOCAL EC_0 ARCH_0 |- switchLabelIR_h
+                         : EC_1 ARCH_1 (_CONT value_label)
+  ---- ;; if match
+  -- if $match_switchLabelIR_general(value, value_label)
+  ---- ;; no following non-fallthrough case
+  -- if eps
+      = $filter_<switchCaseIR>(
+          switchCaseIR_t*,
+          $is_non_fallthrough_switchCaseIR(switchCaseIR_t)*)
+
+rule SwitchCases_general_eval/cons-fallthrough-no-match:
+  LOCAL EC_0 ARCH_0 value |- (switchCaseIR_h :: switchCaseIR_t*)
+                           : EC_2 ARCH_2 blockStatementIR?
+  ---- ;; if fallthrough
+  -- if switchLabelIR_h ':' = switchCaseIR_h
+  -- SwitchLabel_general_eval:
+      LOCAL EC_0 ARCH_0 |- switchLabelIR_h
+                         : EC_1 ARCH_1 (_CONT value_label)
+  ---- ;; if no match
+  -- if ~$match_switchLabelIR_general(value, value_label)
+  -- SwitchCases_general_eval:
+      LOCAL EC_1 ARCH_1 value |- switchCaseIR_t*
+                               : EC_2 ARCH_2 blockStatementIR?
+
+
+
+rule Switch_general_eval/no-match:
+  EC_0 ARCH_0 |- SWITCH `( value `) `{ switchCaseIR* `}
+               : EC_1 ARCH_1 _EMPTY
+  ---- ;; find matching case
+  -- SwitchCases_general_eval:
+      LOCAL EC_0 ARCH_0 value |- switchCaseIR*
+                               : EC_1 ARCH_1 eps
+
+rule Switch_general_eval/match:
+  EC_0 ARCH_0 |- SWITCH `( value `) `{ switchCaseIR* `}
+               : EC_2 ARCH_2 statementResult
+  ---- ;; find matching case
+  -- SwitchCases_general_eval:
+      LOCAL EC_0 ARCH_0 value |- switchCaseIR*
+                               : EC_1 ARCH_1 blockStatementIR
+  ---- ;; evaluate matching case
+  -- Stmt_eval:
+      LOCAL EC_1 ARCH_1 |- blockStatementIR
+                         : EC_2 ARCH_2 statementResult
+
+
+
+rule Stmt_eval/target-abort:
+  LOCAL EC_0 ARCH_0 |- SWITCH `( typedExpressionIR `) `{ switchCaseIR* `}
+                     : EC_1 ARCH_1 abortResult
+  ---- ;; evaluate switch target
+  -- Expr_eval:
+      LOCAL EC_0 ARCH_0 |- typedExpressionIR
+                         : EC_1 ARCH_1 abortResult
+
+rule Stmt_eval/target-cont-table:
+  LOCAL EC_0 ARCH_0 |- SWITCH `( typedExpressionIR `) `{ switchCaseIR* `}
+                     : EC_2 ARCH_2 statementResult
+  ---- ;; evaluate switch target
+  -- Expr_eval:
+      LOCAL EC_0 ARCH_0 |- typedExpressionIR
+                         : EC_1 ARCH_1 (_CONT value)
+  ---- ;; if switch on table apply result
+  -- if TABLE_ENUM _ '.' id_enum = value
+  ---- ;; find matching case
+  -- Switch_table_eval:
+      EC_1 ARCH_1 |- SWITCH `( id_enum `) `{ switchCaseIR* `}
+                   : EC_2 ARCH_2 statementResult
+
+rule Stmt_eval/target-cont-general:
+  LOCAL EC_0 ARCH_0 |- SWITCH `( typedExpressionIR `) `{ switchCaseIR* `}
+                     : EC_2 ARCH_2 statementResult
+  ---- ;; evaluate switch target
+  -- Expr_eval:
+      LOCAL EC_0 ARCH_0 |- typedExpressionIR
+                         : EC_1 ARCH_1 (_CONT value)
+  ---- ;; if switch on table apply result
+  -- if ~(value <: tableMetadataEnumValue)
+  ---- ;; find matching case
+  -- Switch_general_eval:
+      EC_1 ARCH_1 |- SWITCH `( value `) `{ switchCaseIR* `}
+                   : EC_2 ARCH_2 statementResult
+
+
+;;
+;; Block statement instantiation
+;;
+
+;;
+;; syntax blockElementStatementIR
+;;
+
+;;; constantDeclarationIR
+;;; variableDeclarationIR
+;;; statementIR
+
+
+rule BlockElementStmt_eval/constantDeclarationIR:
+  EC_0 ARCH |- constantDeclarationIR
+             : EC_1 ARCH _EMPTY
+  -- ConstDecl_eval:
+      LOCAL EC_0 |- constantDeclarationIR : EC_1
+
+rule BlockElementStmt_eval/variableDeclarationIR:
+  EC_0 ARCH_0 |- variableDeclarationIR
+               : EC_1 ARCH_1 declarationResult
+  -- VarDecl_eval:
+      LOCAL EC_0 ARCH_0 |- variableDeclarationIR
+                         : EC_1 ARCH_1 declarationResult
+
+rule BlockElementStmt_eval/statementIR:
+  EC_0 ARCH_0 |- statementIR
+               : EC_1 ARCH_1 statementResult
+  -- Stmt_eval:
+      LOCAL EC_0 ARCH_0 |- statementIR
+                         : EC_1 ARCH_1 statementResult
+
+
+;;
+;; syntax blockElementStatementListIR
+;;
+
+
+rule BlockElementStmtList_eval/nil:
+  EC ARCH |- eps : EC ARCH _EMPTY
+
+rule BlockElementStmtList_eval/cons-head-non-cont:
+  EC_0 ARCH_0 |- blockElementStatementIR_h :: blockElementStatementIR_t*
+               : EC_1 ARCH_1 statementResult
+  -- BlockElementStmt_eval:
+      EC_0 ARCH_0 |- blockElementStatementIR_h
+                   : EC_1 ARCH_1 statementResult
+  -- if statementResult =/= _EMPTY
+
+rule BlockElementStmtList_eval/cons-head-cont:
+  EC_0 ARCH_0 |- blockElementStatementIR_h :: blockElementStatementIR_t*
+               : EC_2 ARCH_2 statementResult
+  -- BlockElementStmt_eval:
+      EC_0 ARCH_0 |- blockElementStatementIR_h
+                   : EC_1 ARCH_1 _EMPTY
+  -- BlockElementStmtList_eval:
+      EC_1 ARCH_1 |- blockElementStatementIR_t*
+                   : EC_2 ARCH_2 statementResult
+
+
+;;
+;; syntax blockStatmentIR = annotationList `{ blockElementStatementListIR }
+;;
+
+rule Block_eval:
+  EC_0 ARCH_0 |- annotationList `{ blockElementStatementListIR `}
+               : EC_1 ARCH_1 statementResult
+  -- BlockElementStmtList_eval:
+      EC_0 ARCH_0 |- blockElementStatementListIR
+                   : EC_1 ARCH_1 statementResult

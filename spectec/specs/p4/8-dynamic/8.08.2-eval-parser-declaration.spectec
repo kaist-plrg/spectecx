@@ -1,0 +1,59 @@
+;;
+;; Parser local declaration evaluation
+;;
+;; syntax parserLocalDeclarationIR
+;;
+
+;;; constantDeclarationIR
+
+rule ParserLocalDecl_eval/constantDeclarationIR:
+  EC_0 ARCH |- constantDeclarationIR
+            : EC_1 ARCH _EMPTY
+  -- ConstDecl_eval:
+      BLOCK EC_0 |- constantDeclarationIR : EC_1
+
+;;; instantiationIR
+;;; should have been handled during instantiation
+
+;;; variableDeclarationIR
+
+
+rule ParserLocalDecl_eval/reject:
+  EC_0 ARCH_0 |- variableDeclarationIR
+              : EC_1 ARCH_1 rejectTransitionResult
+  -- VarDecl_eval:
+      BLOCK EC_0 ARCH_0 |- variableDeclarationIR
+                        : EC_1 ARCH_1 rejectTransitionResult
+
+rule ParserLocalDecl_eval/cont:
+  EC_0 ARCH_0 |- variableDeclarationIR
+              : EC_1 ARCH_1 _EMPTY
+  -- VarDecl_eval:
+      BLOCK EC_0 ARCH_0 |- variableDeclarationIR
+                        : EC_1 ARCH_1 _EMPTY
+
+
+;;
+;; Parser local declaration list evaluation
+;;
+;; syntax parserLocalDeclarationListIR
+;;
+
+
+rule ParserLocalDecls_eval/nil:
+  EC ARCH |- eps : EC ARCH _EMPTY
+
+rule ParserLocalDecls_eval/cons-reject:
+  EC_0 ARCH_0 |- parserLocalDeclarationIR_h :: parserLocalDeclarationListIR_t
+              : EC_1 ARCH_1 rejectTransitionResult
+  -- ParserLocalDecl_eval:
+      EC_0 ARCH_0 |- parserLocalDeclarationIR_h : EC_1 ARCH_1 rejectTransitionResult
+
+rule ParserLocalDecls_eval/cons-cont:
+  EC_0 ARCH_0 |- parserLocalDeclarationIR_h :: parserLocalDeclarationListIR_t
+              : EC_2 ARCH_2 parserStatementResult
+  -- ParserLocalDecl_eval:
+      EC_0 ARCH_0 |- parserLocalDeclarationIR_h : EC_1 ARCH_1 continueEmptyResult
+  -- ParserLocalDecls_eval:
+      EC_1 ARCH_1 |- parserLocalDeclarationListIR_t : EC_2 ARCH_2 parserStatementResult
+
