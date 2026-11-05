@@ -1,5 +1,4 @@
 open Common.Annotated
-module Location = Common.Location
 open Common.Domain
 open Lang
 open Lang.Xl
@@ -485,178 +484,89 @@ let merge_rel_assert (instrs : instr list) : instr list =
           else Skip
       | _ -> Stop)
 
-(* if-and-if to case analysis *)
+(* Case analysis insertion *)
 
-let casify_if_if (senv : SEnv.t) (at : Location.t) (exp_cond_target : exp)
-    (instrs_then_target : instr list) (exp_cond : exp)
-    (instrs_then : instr list) : instr option =
-  let overlap_exp_cond = overlap_exp senv exp_cond_target exp_cond in
-  match overlap_exp_cond with
-  | Disjoint (exp, guard_target, guard) ->
-      let cases =
-        [ (guard_target, instrs_then_target); (guard, instrs_then) ]
-      in
-      let instr = CaseI (exp, cases, false) $ at in
-      Some instr
-  | Partition (exp, guard_target, guard) ->
-      let cases =
-        [ (guard_target, instrs_then_target); (guard, instrs_then) ]
-      in
-      let instr = CaseI (exp, cases, true) $ at in
-      Some instr
-  | _ -> None
-
-(* if-and-case to case analysis *)
-
-let rec merge_if_case (senv : SEnv.t) (exp_cond_target : exp)
-    (instrs_then_target : instr list) (exp : exp) (cases : case list)
-    (total : bool) : case list option =
-  match exp_as_guard exp exp_cond_target with
-  | Some guard_target ->
-      merge_if_case' senv exp cases total [] guard_target instrs_then_target
-  | None -> None
-
-and merge_if_case' (senv : SEnv.t) (exp : exp) (cases : case list)
-    (total : bool) (cases_leftover : case list) (guard_target : guard)
-    (instrs_then_target : instr list) : case list option =
-  match cases with
-  | [] when total -> assert false
-  | [] ->
-      let cases = cases_leftover @ [ (guard_target, instrs_then_target) ] in
-      Some cases
-  | case_h :: cases_t -> (
-      let guard_h, instrs_h = case_h in
-      let overlap_guard = overlap_guard senv exp guard_target guard_h in
-      match overlap_guard with
-      | Identical ->
-          let instrs_h = merge_block instrs_then_target instrs_h in
-          let case_h = (guard_h, instrs_h) in
-          Some (cases_leftover @ (case_h :: cases_t))
-      | Disjoint _ | Partition _ ->
-          let cases_leftover = cases_leftover @ [ case_h ] in
-          merge_if_case' senv exp cases_t total cases_leftover guard_target
-            instrs_then_target
-      | _ -> None)
-
-let casify_if_case (senv : SEnv.t) (at : Location.t) (exp_cond_target : exp)
-    (instrs_then_target : instr list) (exp : exp) (cases : case list)
-    (total : bool) : instr option =
-  let cases_opt =
-    merge_if_case senv exp_cond_target instrs_then_target exp cases total
+let merge_case (case : case) ~into:(cases : case list) ~(exp : exp)
+    ~(total : bool) ~(from_earlier : bool) ~(senv : SEnv.t) : case list option =
+  let rec merge_case' (cases_skipped : case list) (cases : case list) =
+    match cases with
+    | [] when total -> assert false
+    | [] -> Some (List.rev_append cases_skipped [ case ])
+    | ((guard_h, _) as case_h) :: cases_t -> (
+        (* Reversing [overlap_guard]'s arguments can change its result. *)
+        let (guard_earlier, block_earlier), (guard_later, block_later) =
+          if from_earlier then (case, case_h) else (case_h, case)
+        in
+        match overlap_guard senv exp guard_earlier guard_later with
+        | Identical ->
+            (* The default SL evaluator uses the first result in a block. *)
+            let case_h = (guard_h, merge_block block_earlier block_later) in
+            Some (List.rev_append cases_skipped (case_h :: cases_t))
+        | Disjoint _ | Partition _ ->
+            merge_case' (case_h :: cases_skipped) cases_t
+        | Fuzzy -> None)
   in
-  match cases_opt with
-  | Some cases ->
-      let instr = CaseI (exp, cases, total) $ at in
-      Some instr
-  | None -> None
-
-(* case-and-if to case analysis *)
-
-let rec merge_case_if (senv : SEnv.t) (exp_target : exp)
-    (cases_target : case list) (total_target : bool) (exp_cond : exp)
-    (instrs : instr list) : case list option =
-  match exp_as_guard exp_target exp_cond with
-  | Some guard ->
-      merge_case_if' senv exp_target cases_target [] total_target guard instrs
-  | None -> None
-
-and merge_case_if' (senv : SEnv.t) (exp_target : exp) (cases_target : case list)
-    (cases_target_leftover : case list) (total_target : bool) (guard : guard)
-    (instrs : instr list) : case list option =
-  match cases_target with
-  | [] when total_target -> assert false
-  | [] ->
-      let cases = cases_target_leftover @ [ (guard, instrs) ] in
-      Some cases
-  | case_target_h :: cases_target_t -> (
-      let guard_target_h, instrs_target_h = case_target_h in
-      let overlap_guard = overlap_guard senv exp_target guard_target_h guard in
-      match overlap_guard with
-      | Identical ->
-          let instrs_target_h = merge_block instrs_target_h instrs in
-          let case_target_h = (guard_target_h, instrs_target_h) in
-          Some (cases_target_leftover @ (case_target_h :: cases_target_t))
-      | Disjoint _ | Partition _ ->
-          let cases_target_leftover =
-            cases_target_leftover @ [ case_target_h ]
-          in
-          merge_case_if' senv exp_target cases_target_t cases_target_leftover
-            total_target guard instrs
-      | _ -> None)
-
-let casify_case_if (senv : SEnv.t) (at : Location.t) (exp_target : exp)
-    (cases_target : case list) (total_target : bool) (exp_cond : exp)
-    (instrs_then : instr list) : instr option =
-  let cases_opt =
-    merge_case_if senv exp_target cases_target total_target exp_cond instrs_then
-  in
-  match cases_opt with
-  | Some cases ->
-      let instr = CaseI (exp_target, cases, false) $ at in
-      Some instr
-  | None -> None
-
-(* case-and-case to case analysis *)
-
-let merge_case_case (senv : SEnv.t) (exp_target : exp)
-    (cases_target : case list) (total_target : bool) (exp : exp)
-    (cases : case list) : case list option =
-  if Sl.Eq.eq_exp exp_target exp then
-    List.fold_left
-      (fun cases_target_opt (guard, instrs) ->
-        match cases_target_opt with
-        | Some cases_target ->
-            merge_case_if' senv exp_target cases_target [] total_target guard
-              instrs
-        | None -> None)
-      (Some cases_target) cases
-  else None
-
-let casify_case_case (senv : SEnv.t) (at : Location.t) (exp_target : exp)
-    (cases_target : case list) (total_target : bool) (exp : exp)
-    (cases : case list) : instr option =
-  let cases_opt =
-    merge_case_case senv exp_target cases_target total_target exp cases
-  in
-  match cases_opt with
-  | Some cases ->
-      let instr = CaseI (exp_target, cases, total_target) $ at in
-      Some instr
-  | None -> None
-
-(* Casifying an if or case statement with a later sibling *)
+  merge_case' [] cases
 
 let casify_sibling ~(senv : SEnv.t) (instr_earlier : instr)
     (instr_later : instr) : Ol.Traverse.sibling_decision =
   let at = instr_earlier.at in
-  let instr_opt =
-    match (instr_earlier.it, instr_later.it) with
-    | ( IfI (exp_cond_earlier, [], instrs_then_earlier),
-        IfI (exp_cond_later, [], instrs_then_later) ) ->
-        Some
-          (casify_if_if senv at exp_cond_earlier instrs_then_earlier
-             exp_cond_later instrs_then_later)
-    | ( IfI (exp_cond_earlier, [], instrs_then_earlier),
-        CaseI (exp_later, cases_later, total_later) ) ->
-        Some
-          (casify_if_case senv at exp_cond_earlier instrs_then_earlier exp_later
-             cases_later total_later)
-    | ( CaseI (exp_earlier, cases_earlier, total_earlier),
-        IfI (exp_cond_later, [], instrs_then_later) ) ->
-        Some
-          (casify_case_if senv at exp_earlier cases_earlier total_earlier
-             exp_cond_later instrs_then_later)
-    | ( CaseI (exp_earlier, cases_earlier, total_earlier),
-        CaseI (exp_later, cases_later, _) ) ->
-        Some
-          (casify_case_case senv at exp_earlier cases_earlier total_earlier
-             exp_later cases_later)
-    | _ -> None
+  let sibling_decision_of_option (instr_opt : instr option) :
+      Ol.Traverse.sibling_decision =
+    match instr_opt with Some instr -> Take instr | None -> Skip
   in
-  match instr_opt with
-  | Some (Some instr) -> Take instr
-  | Some None -> Skip
-  | None -> Stop
+  match (instr_earlier.it, instr_later.it) with
+  | ( IfI (exp_cond_earlier, [], instrs_then_earlier),
+      IfI (exp_cond_later, [], instrs_then_later) ) ->
+      let case_analysis exp guard_earlier guard_later ~total =
+        let cases =
+          [
+            (guard_earlier, instrs_then_earlier);
+            (guard_later, instrs_then_later);
+          ]
+        in
+        CaseI (exp, cases, total) $ at
+      in
+      (match overlap_exp senv exp_cond_earlier exp_cond_later with
+      | Disjoint (exp, guard_earlier, guard_later) ->
+          Some (case_analysis exp guard_earlier guard_later ~total:false)
+      | Partition (exp, guard_earlier, guard_later) ->
+          Some (case_analysis exp guard_earlier guard_later ~total:true)
+      | _ -> None)
+      |> sibling_decision_of_option
+  | ( IfI (exp_cond_earlier, [], instrs_then_earlier),
+      CaseI (exp_later, cases_later, total_later) ) ->
+      Option.bind (exp_as_guard exp_later exp_cond_earlier)
+        (fun guard_earlier ->
+          merge_case
+            (guard_earlier, instrs_then_earlier)
+            ~into:cases_later ~exp:exp_later ~total:total_later
+            ~from_earlier:true ~senv)
+      |> Option.map (fun cases -> CaseI (exp_later, cases, total_later) $ at)
+      |> sibling_decision_of_option
+  | ( CaseI (exp_earlier, cases_earlier, total_earlier),
+      IfI (exp_cond_later, [], instrs_then_later) ) ->
+      Option.bind (exp_as_guard exp_earlier exp_cond_later) (fun guard_later ->
+          merge_case
+            (guard_later, instrs_then_later)
+            ~into:cases_earlier ~exp:exp_earlier ~total:total_earlier
+            ~from_earlier:false ~senv)
+      |> Option.map (fun cases -> CaseI (exp_earlier, cases, false) $ at)
+      |> sibling_decision_of_option
+  | ( CaseI (exp_earlier, cases_earlier, total_earlier),
+      CaseI (exp_later, cases_later, _) ) ->
+      (if Sl.Eq.eq_exp exp_earlier exp_later then
+         List.fold_left
+           (fun cases_opt case_later ->
+             Option.bind cases_opt (fun cases ->
+                 merge_case case_later ~into:cases ~exp:exp_earlier
+                   ~total:total_earlier ~from_earlier:false ~senv))
+           (Some cases_earlier) cases_later
+       else None)
+      |> Option.map (fun cases ->
+             CaseI (exp_earlier, cases, total_earlier) $ at)
+      |> sibling_decision_of_option
+  | _ -> Stop
 
 let casify (senv : SEnv.t) (instrs : instr list) : instr list =
   Ol.Traverse.merge_siblings_preorder instrs ~f:(casify_sibling ~senv)
