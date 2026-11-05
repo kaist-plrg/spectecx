@@ -1,19 +1,19 @@
 module Location = Common.Location
 
-module Ctx : sig
-  type t
-end
-
 type error = Location.t * string
 
 val error_to_diagnostic : error -> Diag.t
 
-(** With [check_determinism=true], [run] reports an error when multiple arms of
-    a try instruction apply. [check_determinism] defaults to [false]. *)
-val run :
+type context
+
+val context_of_spec :
   ?check_determinism:bool ->
   (module Target.S) ->
   Lang.Pl.spec ->
-  string ->
-  Lang.Il.Value.t list ->
-  (Ctx.t * Lang.Il.Value.t list, error) result
+  (context, error) result
+
+val eval_rel :
+  context ->
+  rel:string ->
+  values:Lang.Il.Value.t list ->
+  (Lang.Il.Value.t list, error) result

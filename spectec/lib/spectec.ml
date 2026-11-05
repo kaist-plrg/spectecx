@@ -76,23 +76,39 @@ let validate_config config ~(mode : Interp_mode.request) =
 
 (* --- Unified interpreter entry point --- *)
 
+let interp_error e = Error.InterpError e
+
+let eval_run ~check_determinism ~(mode : Interp_mode.t) ~spec_il target_state
+    (run : Task.run) =
+  let driver =
+    match run with
+    | Relation (relation, values) -> fun ~eval_rel -> eval_rel relation values
+    | Driver drive -> drive
+  in
+  let run_layer context =
+    let* context = Result.map_error interp_error context in
+    driver ~eval_rel:(fun rel values ->
+        Interp.eval_rel context ~rel ~values |> Result.map_error interp_error)
+  in
+  match mode with
+  | Il ->
+      run_layer
+        (Interp.context_of_il_spec ~check_determinism target_state spec_il)
+  | Sl ->
+      let spec_sl = structure spec_il in
+      run_layer
+        (Interp.context_of_sl_spec ~check_determinism target_state spec_sl)
+  | Pl henv ->
+      let spec_sl = structure spec_il in
+      let spec_pl = Pass.annotate ~henv spec_sl |> Pass.shorten in
+      run_layer
+        (Interp.context_of_pl_spec ~check_determinism target_state spec_pl)
+
 let eval_task (type i) (module T : Task.S with type input = i)
     ?(check_determinism = false) ~(mode : Interp_mode.t) ~spec_il (input : i) =
   Interp.with_target_state (module T.Target) @@ fun target_state ->
-  let* relation, values = T.parse_input ~spec:spec_il input in
-  (match mode with
-  | Il ->
-      Interp.eval_il ~check_determinism target_state spec_il relation values
-      |> Result.map snd
-  | Sl ->
-      let spec_sl = structure spec_il in
-      Interp.eval_sl ~check_determinism target_state spec_sl relation values
-      |> Result.map snd
-  | Pl henv ->
-      let spec_pl = structure spec_il |> Pass.annotate ~henv |> Pass.shorten in
-      Interp.eval_pl ~check_determinism target_state spec_pl relation values
-      |> Result.map snd)
-  |> Result.map_error (fun e -> Error.InterpError e)
+  let* run = T.parse_input ~spec:spec_il input in
+  eval_run ~check_determinism ~mode ~spec_il target_state run
 
 let eval_task_with_instrumentation (type i)
     (module T : Task.S with type input = i)

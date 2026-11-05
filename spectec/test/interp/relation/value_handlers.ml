@@ -43,7 +43,7 @@ module Task : Spectec.Task.S with type input = input = struct
 
   let parse_input ~spec:_ { relation; decode } =
     match decode () with
-    | Ok values -> Ok (relation, values)
+    | Ok values -> Ok (Spectec.Task.Relation (relation, values))
     | Error message ->
         Error (Spectec.Error.TaskParseError (Common.Location.Unknown, message))
 
