@@ -173,6 +173,24 @@ module Make (Ctx : Context) = struct
             in
             Value.Make.tuple typ.it values
         | _ -> assert false)
+    | IterT { typ = typ_inner; iter = Opt } -> (
+        match value.it with
+        | OptV value_opt ->
+            let value_opt =
+              Option.map
+                (fun value -> upcast value ~to_typ:typ_inner ~ctx)
+                value_opt
+            in
+            Value.Make.opt typ.it value_opt
+        | _ -> assert false)
+    | IterT { typ = typ_inner; iter = List } -> (
+        match value.it with
+        | ListV values ->
+            let values =
+              List.map (fun value -> upcast value ~to_typ:typ_inner ~ctx) values
+            in
+            Value.Make.list typ.it values
+        | _ -> assert false)
     | _ -> value
 
   let rec downcast (value : value) ~to_typ:(typ : typ) ~(ctx : Ctx.t) : value =
@@ -199,6 +217,26 @@ module Make (Ctx : Context) = struct
                 typs values
             in
             Value.Make.tuple typ.it values
+        | _ -> assert false)
+    | IterT { typ = typ_inner; iter = Opt } -> (
+        match value.it with
+        | OptV value_opt ->
+            let value_opt =
+              Option.map
+                (fun value -> downcast value ~to_typ:typ_inner ~ctx)
+                value_opt
+            in
+            Value.Make.opt typ.it value_opt
+        | _ -> assert false)
+    | IterT { typ = typ_inner; iter = List } -> (
+        match value.it with
+        | ListV values ->
+            let values =
+              List.map
+                (fun value -> downcast value ~to_typ:typ_inner ~ctx)
+                values
+            in
+            Value.Make.list typ.it values
         | _ -> assert false)
     | _ -> value
 
