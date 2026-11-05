@@ -4,6 +4,7 @@
     [value.note.vid]. Values built within one [Interp.with_target_state] call
     have distinct [vid] fields. The counter restarts for each call.
 
+    - {!Decoded}: decoded values whose origins a decoder reports.
     - {!Derived}: unary operators, length, type and pattern tests, casts that
       build new values, and values built while matching cons and iterated
       patterns.
@@ -24,6 +25,10 @@
 type callee = Func of string | Rel of string
 
 type t =
+  | Decoded of { value : Lang.Il.Value.t; origin : Origin.t }
+      (** A decoder that reports origins must emit this event for every value it
+          builds, including nested values. [origin] identifies the value by its
+          input label and path. *)
   | Derived of { value : Lang.Il.Value.t; source : Lang.Il.Value.t }
       (** [value] was built from [source]. *)
   | Constructed of {

@@ -1,6 +1,7 @@
 type callee = Func of string | Rel of string
 
 type t =
+  | Decoded of { value : Lang.Il.Value.t; origin : Origin.t }
   | Derived of { value : Lang.Il.Value.t; source : Lang.Il.Value.t }
   | Constructed of {
       value : Lang.Il.Value.t;

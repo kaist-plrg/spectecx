@@ -1,7 +1,7 @@
 (** Event runtime for instrumentation handlers. Drive instrumentation via
     {!Instrumentation.with_instrumentation}. Interpreters call {!emit} and
-    {!emit_value}. [init] fails if instrumentation is already active. [finish]
-    is idempotent. *)
+    {!emit_value}, and decoders call {!emit_value}. [init] fails if
+    instrumentation is already active. [finish] is idempotent. *)
 
 val init :
   spec:Instrumentation_api.Handler.spec ->
