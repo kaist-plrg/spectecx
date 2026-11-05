@@ -119,16 +119,6 @@ and insert_phantom' (senv : SEnv.t) (pathconds : pathcond list) (instr : instr)
       in
       let cases =
         let guards, blocks = List.split cases in
-        let guards =
-          List.map
-            (function
-              | BoolG b -> Sl.BoolG b
-              | CmpG (cmpop, optyp, exp) -> Sl.CmpG (cmpop, optyp, exp)
-              | SubG typ -> Sl.SubG typ
-              | MatchG pattern -> Sl.MatchG pattern
-              | MemG exp -> Sl.MemG exp)
-            guards
-        in
         let blocks =
           List.map2
             (fun pathcond_case instrs ->
@@ -175,16 +165,6 @@ and insert_nothing' (instr : instr) : Sl.instr =
   | CaseI (exp, cases, _total) ->
       let cases =
         let guards, blocks = List.split cases in
-        let guards =
-          List.map
-            (function
-              | BoolG b -> Sl.BoolG b
-              | CmpG (cmpop, optyp, exp) -> Sl.CmpG (cmpop, optyp, exp)
-              | SubG typ -> Sl.SubG typ
-              | MatchG pattern -> Sl.MatchG pattern
-              | MemG exp -> Sl.MemG exp)
-            guards
-        in
         let blocks = List.map insert_nothing blocks in
         List.combine guards blocks
       in

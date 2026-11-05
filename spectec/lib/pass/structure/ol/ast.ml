@@ -22,10 +22,3 @@ and instr' =
   | DebugI of exp * instr
 
 and case = guard * instr list
-
-and guard =
-  | BoolG of bool
-  | CmpG of cmpop * optyp * exp
-  | SubG of typ
-  | MatchG of pattern
-  | MemG of exp
