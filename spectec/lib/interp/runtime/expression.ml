@@ -254,7 +254,12 @@ module Make (Ctx : Context) = struct
     List.length typs = List.length values
     && List.for_all2 (fun typ value -> matches_type value ~typ ~ctx) typs values
 
-  let index_value (value : value) ~index ~at ~bounds_at : value =
+  let int_of_value (value : value) : int =
+    value |> Value.get_num |> Num.to_int |> Bigint.to_int_exn
+
+  let index_value (value : value) ~index:(value_index : value) ~at ~bounds_at :
+      value =
+    let index = int_of_value value_index in
     match value.it with
     | TextV text when index < 0 || index >= String.length text ->
         error bounds_at
@@ -273,9 +278,10 @@ module Make (Ctx : Context) = struct
              "indexing expects either a text or a list, but got %s"
              (Il.Print.string_of_value ~short:true value))
 
-  let slice_value (value : value) ~start ~length ~list_typ ~at ~bounds_at :
-      value =
-    let stop = start + length in
+  let slice_value (value : value) ~start:(value_start : value)
+      ~length:(value_length : value) ~list_typ ~at ~bounds_at : value =
+    let start = int_of_value value_start in
+    let stop = start + int_of_value value_length in
     match value.it with
     | TextV text when start < 0 || stop > String.length text ->
         error bounds_at
@@ -441,22 +447,17 @@ module Make (Ctx : Context) = struct
     and eval_idx_exp (ctx : Ctx.t) (exp_b : exp) (exp_i : exp) : value =
       let value_b = eval_exp ctx exp_b in
       let value_i = eval_exp ctx exp_i in
-      let idx = value_i |> Value.get_num |> Num.to_int |> Bigint.to_int_exn in
-      index_value value_b ~index:idx ~at:exp_b.at ~bounds_at:exp_i.at
+      index_value value_b ~index:value_i ~at:exp_b.at ~bounds_at:exp_i.at
     and eval_slice_exp (typ : typ') (ctx : Ctx.t) (exp_b : exp) (exp_i : exp)
         (exp_n : exp) : value =
       let value_b = eval_exp ctx exp_b in
       let value_i = eval_exp ctx exp_i in
-      let idx_l = value_i |> Value.get_num |> Num.to_int |> Bigint.to_int_exn in
       let value_len = eval_exp ctx exp_n in
-      let idx_n =
-        value_len |> Value.get_num |> Num.to_int |> Bigint.to_int_exn
-      in
       let bounds_at =
         match value_b.it with TextV _ -> exp_i.at | _ -> exp_n.at
       in
-      slice_value value_b ~start:idx_l ~length:idx_n ~list_typ:typ ~at:exp_b.at
-        ~bounds_at
+      slice_value value_b ~start:value_i ~length:value_len ~list_typ:typ
+        ~at:exp_b.at ~bounds_at
     and eval_upd_exp (ctx : Ctx.t) (exp_b : exp) (path : path) (exp_f : exp) :
         value =
       let rec eval_access_path ctx value_b path =
@@ -465,22 +466,13 @@ module Make (Ctx : Context) = struct
         | IdxP (path, exp_i) ->
             let value = eval_access_path ctx value_b path in
             let value_i = eval_exp ctx exp_i in
-            let idx =
-              value_i |> Value.get_num |> Num.to_int |> Bigint.to_int_exn
-            in
-            index_value value ~index:idx ~at:path.at ~bounds_at:exp_i.at
+            index_value value ~index:value_i ~at:path.at ~bounds_at:exp_i.at
         | SliceP (path, exp_i, exp_n) ->
             let value = eval_access_path ctx value_b path in
             let value_i = eval_exp ctx exp_i in
-            let idx_l =
-              value_i |> Value.get_num |> Num.to_int |> Bigint.to_int_exn
-            in
             let value_len = eval_exp ctx exp_n in
-            let idx_n =
-              value_len |> Value.get_num |> Num.to_int |> Bigint.to_int_exn
-            in
-            slice_value value ~start:idx_l ~length:idx_n ~list_typ:path.note
-              ~at:path.at ~bounds_at:exp_n.at
+            slice_value value ~start:value_i ~length:value_len
+              ~list_typ:path.note ~at:path.at ~bounds_at:exp_n.at
         | DotP (path, atom) ->
             let value = eval_access_path ctx value_b path in
             let fields = value |> Value.get_struct in
@@ -496,9 +488,7 @@ module Make (Ctx : Context) = struct
         | IdxP (path, exp_i) -> (
             let value = eval_access_path ctx value_b path in
             let value_i = eval_exp ctx exp_i in
-            let idx_target =
-              value_i |> Value.get_num |> Num.to_int |> Bigint.to_int_exn
-            in
+            let idx_target = int_of_value value_i in
             match value.it with
             | TextV s when idx_target < 0 || idx_target >= String.length s ->
                 error exp_i.at
@@ -542,13 +532,9 @@ module Make (Ctx : Context) = struct
         | SliceP (path, exp_i, exp_n) -> (
             let value = eval_access_path ctx value_b path in
             let value_i = eval_exp ctx exp_i in
-            let idx_l =
-              value_i |> Value.get_num |> Num.to_int |> Bigint.to_int_exn
-            in
+            let idx_l = int_of_value value_i in
             let value_len = eval_exp ctx exp_n in
-            let idx_n =
-              value_len |> Value.get_num |> Num.to_int |> Bigint.to_int_exn
-            in
+            let idx_n = int_of_value value_len in
             let idx_h = idx_l + idx_n in
             match value.it with
             | TextV s when idx_l < 0 || idx_h > String.length s ->
