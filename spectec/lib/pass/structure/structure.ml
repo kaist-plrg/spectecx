@@ -149,7 +149,7 @@ and struct_rel_def (rtenv : RTEnv.t) (senv : SEnv.t) (at : Location.t)
       (fun path -> struct_rule_path path |> Optimize.optimize rtenv senv)
       else_path_opt
   in
-  let block, elseblock_opt = Instrument.instrument senv block elseblock_opt in
+  let block, elseblock_opt = Instrument.instrument block elseblock_opt in
   let in_typs = Il.Mode.inputs reltyp.it in
   let exps_input =
     match rules with
@@ -197,7 +197,7 @@ and struct_dec_def (rtenv : RTEnv.t) (senv : SEnv.t) (at : Location.t)
       (fun path -> struct_clause_path path |> Optimize.optimize rtenv senv)
       else_path_opt
   in
-  let block, elseblock_opt = Instrument.instrument senv block elseblock_opt in
+  let block, elseblock_opt = Instrument.instrument block elseblock_opt in
   Sl.DecD (id_dec, tparams, args_input, block, elseblock_opt) $ at
 
 let load_def (rtenv : RTEnv.t) (senv : SEnv.t) (def : def) : RTEnv.t * SEnv.t =
