@@ -12,54 +12,13 @@ module SEnv = Envs.Il.SEnv
    Before [optimize_loop] combines rules, the renamer can therefore replace
    [y] with [x] throughout [let y = x]'s block without checking for a nested
    binding. *)
-let rec remove_let_alias (instrs : instr list) : instr list =
-  match instrs with
-  | [] -> []
-  | { it = IfI (exp_cond, iterexps, instrs_then); at; _ } :: instrs_t ->
-      let instrs_then = remove_let_alias instrs_then in
-      let instr_h = IfI (exp_cond, iterexps, instrs_then) $ at in
-      let instrs_t = remove_let_alias instrs_t in
-      instr_h :: instrs_t
-  | { it = RelAssertI { call; expect; iterexps; block = instrs_then }; at; _ }
-    :: instrs_t ->
-      let instrs_then = remove_let_alias instrs_then in
-      let instr_h =
-        RelAssertI { call; expect; iterexps; block = instrs_then } $ at
-      in
-      let instrs_t = remove_let_alias instrs_t in
-      instr_h :: instrs_t
-  | { it = CaseI (exp, cases, total); at; _ } :: instrs_t ->
-      let cases =
-        let guards, blocks = List.split cases in
-        let blocks = List.map remove_let_alias blocks in
-        List.combine guards blocks
-      in
-      let instr_h = CaseI (exp, cases, total) $ at in
-      let instrs_t = remove_let_alias instrs_t in
-      instr_h :: instrs_t
-  | ({ it = LetI (exp_l, exp_r, iterinstrs, block); _ } as instr_h) :: instrs_t
-    -> (
-      match (exp_l.it, exp_r.it) with
-      | VarE id_l, VarE id_r ->
+let remove_let_alias (instrs : instr list) : instr list =
+  Ol.Traverse.rewrite_siblings_preorder instrs ~f:(fun instr_h instrs_t ->
+      match instr_h.it with
+      | LetI ({ it = VarE id_l; _ }, { it = VarE id_r; _ }, _, block) ->
           let rename = Renamer.Rename.singleton id_l id_r in
-          let block =
-            block |> Renamer.rename_instrs rename |> remove_let_alias
-          in
-          let instrs_t = remove_let_alias instrs_t in
-          block @ instrs_t
-      | _ ->
-          let block = remove_let_alias block in
-          let instr_h = LetI (exp_l, exp_r, iterinstrs, block) $ instr_h.at in
-          let instrs_t = remove_let_alias instrs_t in
-          instr_h :: instrs_t)
-  | ({ it = RelI { call; iterinstrs; block }; _ } as instr_h) :: instrs_t ->
-      let block = remove_let_alias block in
-      let instr_h = RelI { call; iterinstrs; block } $ instr_h.at in
-      let instrs_t = remove_let_alias instrs_t in
-      instr_h :: instrs_t
-  | instr_h :: instrs_t ->
-      let instrs_t = remove_let_alias instrs_t in
-      instr_h :: instrs_t
+          Some (Renamer.rename_instrs rename block @ instrs_t)
+      | _ -> None)
 
 (* Matchify equals terminal *)
 
@@ -77,33 +36,13 @@ let matchify_exp_eq_terminal (exp : exp) : exp =
       UnE (`NotOp, `BoolT, exp) $$ (at, note)
   | _ -> exp
 
-let rec matchify_if_eq_terminal (instr : instr) : instr =
-  let at = instr.at in
-  match instr.it with
-  | IfI (exp_cond, iterexps, instrs_then) ->
-      let exp_cond = matchify_exp_eq_terminal exp_cond in
-      let instrs_then = matchify_if_eq_terminals instrs_then in
-      IfI (exp_cond, iterexps, instrs_then) $ at
-  | RelAssertI { call; expect; iterexps; block = instrs_then } ->
-      let instrs_then = matchify_if_eq_terminals instrs_then in
-      RelAssertI { call; expect; iterexps; block = instrs_then } $ at
-  | CaseI (exp, cases, total) ->
-      let cases =
-        let guards, blocks = List.split cases in
-        let blocks = List.map matchify_if_eq_terminals blocks in
-        List.combine guards blocks
-      in
-      CaseI (exp, cases, total) $ at
-  | LetI (exp_l, exp_r, iterinstrs, block) ->
-      let block = matchify_if_eq_terminals block in
-      LetI (exp_l, exp_r, iterinstrs, block) $ at
-  | RelI { call; iterinstrs; block } ->
-      let block = matchify_if_eq_terminals block in
-      RelI { call; iterinstrs; block } $ at
-  | _ -> instr
-
-and matchify_if_eq_terminals (instrs : instr list) : instr list =
-  List.map matchify_if_eq_terminal instrs
+let matchify_if_eq_terminals (instrs : instr list) : instr list =
+  Ol.Traverse.rewrite_instrs_postorder instrs ~f:(fun instr ->
+      match instr.it with
+      | IfI (exp_cond, iterexps, instrs_then) ->
+          let exp_cond = matchify_exp_eq_terminal exp_cond in
+          { instr with it = IfI (exp_cond, iterexps, instrs_then) }
+      | _ -> instr)
 
 (* Let and relation bindings *)
 
@@ -261,7 +200,7 @@ module Bind = struct
     | _ -> None
 end
 
-(* Condition analysis and case analysis insertion *)
+(* Block and binding merges *)
 
 let rec merge_block (instrs_a : instr list) (instrs_b : instr list) : instr list
     =
@@ -275,6 +214,13 @@ let rec merge_block (instrs_a : instr list) (instrs_b : instr list) : instr list
       merge_block (instr_h :: instrs_a) instrs_b
   | _ -> instrs_a @ instrs_b
 
+let merge_into_block (instr : instr) ~(later : instr list) : instr =
+  match instr.it with
+  | RelI _ | RelAssertI _ | IfI _ | LetI _ ->
+      Ol.Traverse.map_instr_blocks instr ~f:(fun block ->
+          merge_block block later)
+  | CaseI _ | ResultI _ | ReturnI _ | DebugI _ -> assert false
+
 let as_binding_with_block_opt (instr : instr) ~(rtenv : RTEnv.t) :
     (Bind.t * instr list) option =
   match instr.it with
@@ -284,71 +230,21 @@ let as_binding_with_block_opt (instr : instr) ~(rtenv : RTEnv.t) :
       Some (Bind.init_rel_bind rtenv call.relid call.notexp iterinstrs, block)
   | _ -> None
 
-let downstream_binding (rtenv : RTEnv.t) (bind : Bind.t) (instrs : instr list) :
-    (instr list * instr list) option =
-  match instrs with
-  | instr_h :: instrs_t -> (
-      match as_binding_with_block_opt instr_h ~rtenv with
-      | Some (bind_target, block) ->
-          Bind.collapse_bind bind bind_target
-          |> Option.map (fun rename ->
-                 (Renamer.rename_instrs rename block, instrs_t))
-      | None -> None)
-  | [] -> None
-
-let rec merge_binding (rtenv : RTEnv.t) (instrs : instr list) : instr list =
-  match instrs with
-  | [] -> []
-  | { it = IfI (exp_cond, iterexps, instrs_then); at; _ } :: instrs_t ->
-      let instrs_then = merge_binding rtenv instrs_then in
-      let instr_h = IfI (exp_cond, iterexps, instrs_then) $ at in
-      let instrs_t = merge_binding rtenv instrs_t in
-      instr_h :: instrs_t
-  | { it = RelAssertI { call; expect; iterexps; block = instrs_then }; at; _ }
-    :: instrs_t ->
-      let instrs_then = merge_binding rtenv instrs_then in
-      let instr_h =
-        RelAssertI { call; expect; iterexps; block = instrs_then } $ at
-      in
-      let instrs_t = merge_binding rtenv instrs_t in
-      instr_h :: instrs_t
-  | { it = CaseI (exp, cases, total); at; _ } :: instrs_t ->
-      let cases =
-        let guards, blocks = List.split cases in
-        let blocks = List.map (merge_binding rtenv) blocks in
-        List.combine guards blocks
-      in
-      let instr_h = CaseI (exp, cases, total) $ at in
-      let instrs_t = merge_binding rtenv instrs_t in
-      instr_h :: instrs_t
-  | ({ it = LetI (exp_l, exp_r, iterinstrs, block); _ } as instr_h) :: instrs_t
-    -> (
-      let bind = Bind.init_let_bind exp_l exp_r iterinstrs in
-      match downstream_binding rtenv bind instrs_t with
-      | Some (block_merge, instrs_t) ->
-          let block = merge_block block block_merge in
-          let instr_h = LetI (exp_l, exp_r, iterinstrs, block) $ instr_h.at in
-          merge_binding rtenv (instr_h :: instrs_t)
-      | None ->
-          let block = merge_binding rtenv block in
-          let instr_h = LetI (exp_l, exp_r, iterinstrs, block) $ instr_h.at in
-          let instrs_t = merge_binding rtenv instrs_t in
-          instr_h :: instrs_t)
-  | ({ it = RelI { call; iterinstrs; block }; _ } as instr_h) :: instrs_t -> (
-      let bind = Bind.init_rel_bind rtenv call.relid call.notexp iterinstrs in
-      match downstream_binding rtenv bind instrs_t with
-      | Some (block_merge, instrs_t) ->
-          let block = merge_block block block_merge in
-          let instr_h = RelI { call; iterinstrs; block } $ instr_h.at in
-          merge_binding rtenv (instr_h :: instrs_t)
-      | None ->
-          let block = merge_binding rtenv block in
-          let instr_h = RelI { call; iterinstrs; block } $ instr_h.at in
-          let instrs_t = merge_binding rtenv instrs_t in
-          instr_h :: instrs_t)
-  | instr_h :: instrs_t ->
-      let instrs_t = merge_binding rtenv instrs_t in
-      instr_h :: instrs_t
+let merge_binding (rtenv : RTEnv.t) (instrs : instr list) : instr list =
+  Ol.Traverse.merge_siblings_preorder instrs
+    ~f:(fun instr_earlier instr_later ->
+      match
+        ( as_binding_with_block_opt instr_earlier ~rtenv,
+          as_binding_with_block_opt instr_later ~rtenv )
+      with
+      | Some (bind_earlier, _), Some (bind_later, block_later) -> (
+          match Bind.collapse_bind bind_earlier bind_later with
+          | Some rename ->
+              Take
+                (merge_into_block instr_earlier
+                   ~later:(Renamer.rename_instrs rename block_later))
+          | None -> Stop)
+      | _ -> Stop)
 
 (* Syntactic analysis of conditions
 
@@ -545,192 +441,49 @@ let overlap_guard (senv : SEnv.t) (exp : exp) (guard_a : guard)
   let exp_b = guard_as_exp exp guard_b in
   overlap_exp senv exp_a exp_b
 
-(* Merge consecutive if statements with the same condition
+(* Merge sibling if statements with the same condition *)
 
-   This handles if statements that are not categorized as case analysis,
-   either because the condition itself is complex or because it is iterated *)
+let merge_if (senv : SEnv.t) (instrs : instr list) : instr list =
+  Ol.Traverse.merge_siblings_preorder instrs
+    ~f:(fun instr_earlier instr_later ->
+      match (instr_earlier.it, instr_later.it) with
+      | ( IfI (exp_cond_earlier, iterexps_earlier, _),
+          IfI (exp_cond_later, iterexps_later, instrs_then_later) ) -> (
+          let eq_iterexps = Sl.Eq.eq_iterexps iterexps_later iterexps_earlier in
+          match
+            (eq_iterexps, overlap_exp senv exp_cond_earlier exp_cond_later)
+          with
+          | true, Identical ->
+              Take (merge_into_block instr_earlier ~later:instrs_then_later)
+          | _ -> Skip)
+      | _ -> Stop)
 
-let rec merge_identical_if (senv : SEnv.t) (at : Location.t)
-    (exp_cond_target : exp) (iterexps_target : iterexp list)
-    (instrs_then_target : instr list) (instrs : instr list) : instr list option
-    =
-  merge_identical_if' senv exp_cond_target iterexps_target [] instrs
-  |> Option.map (fun (instrs_then, instrs_leftover) ->
-         let instr =
-           let instrs_then = merge_block instrs_then_target instrs_then in
-           IfI (exp_cond_target, iterexps_target, instrs_then) $ at
-         in
-         instr :: instrs_leftover)
+(* Merge sibling relation assertions with the same call *)
 
-and merge_identical_if' (senv : SEnv.t) (exp_cond_target : exp)
-    (iterexps_target : iterexp list) (instrs_leftover : instr list)
-    (instrs : instr list) : (instr list * instr list) option =
-  match instrs with
-  | ({ it = IfI (exp_cond, iterexps, instrs_then); _ } as instr_h) :: instrs_t
-    -> (
-      let eq_iterexps = Sl.Eq.eq_iterexps iterexps iterexps_target in
-      let overlap_exp_cond = overlap_exp senv exp_cond_target exp_cond in
-      match (eq_iterexps, overlap_exp_cond) with
-      | true, Identical ->
-          let instrs_leftover = instrs_leftover @ instrs_t in
-          Some (instrs_then, instrs_leftover)
-      | _ ->
-          let instrs_leftover = instrs_leftover @ [ instr_h ] in
-          merge_identical_if' senv exp_cond_target iterexps_target
-            instrs_leftover instrs_t)
-  | _ -> None
-
-let rec merge_if (senv : SEnv.t) (instrs : instr list) : instr list =
-  match instrs with
-  | [] -> []
-  | { it = IfI (exp_cond, iterexps, instrs_then); at; _ } :: instrs_t -> (
-      match
-        merge_identical_if senv at exp_cond iterexps instrs_then instrs_t
-      with
-      | Some instrs -> merge_if senv instrs
-      | None ->
-          let instr_h =
-            let instrs_then = merge_if senv instrs_then in
-            IfI (exp_cond, iterexps, instrs_then) $ at
-          in
-          let instrs_t = merge_if senv instrs_t in
-          instr_h :: instrs_t)
-  | { it = RelAssertI { call; expect; iterexps; block = instrs_then }; at; _ }
-    :: instrs_t ->
-      let instr_h =
-        let instrs_then = merge_if senv instrs_then in
-        RelAssertI { call; expect; iterexps; block = instrs_then } $ at
-      in
-      let instrs_t = merge_if senv instrs_t in
-      instr_h :: instrs_t
-  | { it = CaseI (exp, cases, total); at; _ } :: instrs_t ->
-      let instr_h =
-        let guards, blocks = List.split cases in
-        let blocks = List.map (merge_if senv) blocks in
-        let cases = List.combine guards blocks in
-        CaseI (exp, cases, total) $ at
-      in
-      let instrs_t = merge_if senv instrs_t in
-      instr_h :: instrs_t
-  | ({ it = LetI (exp_l, exp_r, iterinstrs, block); _ } as instr_h) :: instrs_t
-    ->
-      let block = merge_if senv block in
-      let instr_h = LetI (exp_l, exp_r, iterinstrs, block) $ instr_h.at in
-      let instrs_t = merge_if senv instrs_t in
-      instr_h :: instrs_t
-  | ({ it = RelI { call; iterinstrs; block }; _ } as instr_h) :: instrs_t ->
-      let block = merge_if senv block in
-      let instr_h = RelI { call; iterinstrs; block } $ instr_h.at in
-      let instrs_t = merge_if senv instrs_t in
-      instr_h :: instrs_t
-  | instr_h :: instrs_t ->
-      let instrs_t = merge_if senv instrs_t in
-      instr_h :: instrs_t
-
-(* Merge consecutive relation assertions with the same call *)
-
-let rec merge_identical_rel_assert (at : Location.t) (call_target : relcall)
-    (iterexps_target : iterexp list) (instrs_then_target : instr list)
-    (instrs : instr list) : instr list option =
-  merge_identical_rel_assert' call_target iterexps_target [] instrs
-  |> Option.map (fun (instrs_then, instrs_leftover) ->
-         let instr =
-           let instrs_then = merge_block instrs_then_target instrs_then in
-           RelAssertI
-             {
-               call = call_target;
-               expect = true;
-               iterexps = iterexps_target;
-               block = instrs_then;
-             }
-           $ at
-         in
-         instr :: instrs_leftover)
-
-and merge_identical_rel_assert' (call_target : relcall)
-    (iterexps_target : iterexp list) (instrs_leftover : instr list)
-    (instrs : instr list) : (instr list * instr list) option =
-  match instrs with
-  | ({
-       it = RelAssertI { call; expect = true; iterexps; block = instrs_then };
-       _;
-     } as instr_h)
-    :: instrs_t ->
-      if
-        Sl.Eq.eq_relcall call call_target
-        && Sl.Eq.eq_iterexps iterexps iterexps_target
-      then
-        let instrs_leftover = instrs_leftover @ instrs_t in
-        Some (instrs_then, instrs_leftover)
-      else
-        let instrs_leftover = instrs_leftover @ [ instr_h ] in
-        merge_identical_rel_assert' call_target iterexps_target instrs_leftover
-          instrs_t
-  | _ -> None
-
-let rec merge_rel_assert (instrs : instr list) : instr list =
-  match instrs with
-  | [] -> []
-  | { it = IfI (exp_cond, iterexps, instrs_then); at; _ } :: instrs_t ->
-      let instr_h =
-        let instrs_then = merge_rel_assert instrs_then in
-        IfI (exp_cond, iterexps, instrs_then) $ at
-      in
-      let instrs_t = merge_rel_assert instrs_t in
-      instr_h :: instrs_t
-  | {
-      it = RelAssertI { call; expect = true; iterexps; block = instrs_then };
-      at;
-      _;
-    }
-    :: instrs_t -> (
-      match
-        merge_identical_rel_assert at call iterexps instrs_then instrs_t
-      with
-      | Some instrs -> merge_rel_assert instrs
-      | None ->
-          let instr_h =
-            let instrs_then = merge_rel_assert instrs_then in
-            RelAssertI { call; expect = true; iterexps; block = instrs_then }
-            $ at
-          in
-          let instrs_t = merge_rel_assert instrs_t in
-          instr_h :: instrs_t)
-  | {
-      it = RelAssertI { call; expect = false; iterexps; block = instrs_then };
-      at;
-      _;
-    }
-    :: instrs_t ->
-      let instr_h =
-        let instrs_then = merge_rel_assert instrs_then in
-        RelAssertI { call; expect = false; iterexps; block = instrs_then } $ at
-      in
-      let instrs_t = merge_rel_assert instrs_t in
-      instr_h :: instrs_t
-  | { it = CaseI (exp, cases, total); at; _ } :: instrs_t ->
-      let instr_h =
-        let guards, blocks = List.split cases in
-        let blocks = List.map merge_rel_assert blocks in
-        let cases = List.combine guards blocks in
-        CaseI (exp, cases, total) $ at
-      in
-      let instrs_t = merge_rel_assert instrs_t in
-      instr_h :: instrs_t
-  | ({ it = LetI (exp_l, exp_r, iterinstrs, block); _ } as instr_h) :: instrs_t
-    ->
-      let block = merge_rel_assert block in
-      let instr_h = LetI (exp_l, exp_r, iterinstrs, block) $ instr_h.at in
-      let instrs_t = merge_rel_assert instrs_t in
-      instr_h :: instrs_t
-  | ({ it = RelI { call; iterinstrs; block }; _ } as instr_h) :: instrs_t ->
-      let block = merge_rel_assert block in
-      let instr_h = RelI { call; iterinstrs; block } $ instr_h.at in
-      let instrs_t = merge_rel_assert instrs_t in
-      instr_h :: instrs_t
-  | instr_h :: instrs_t ->
-      let instrs_t = merge_rel_assert instrs_t in
-      instr_h :: instrs_t
+let merge_rel_assert (instrs : instr list) : instr list =
+  Ol.Traverse.merge_siblings_preorder instrs
+    ~f:(fun instr_earlier instr_later ->
+      match (instr_earlier.it, instr_later.it) with
+      | ( RelAssertI
+            {
+              call = call_earlier;
+              expect = true;
+              iterexps = iterexps_earlier;
+              _;
+            },
+          RelAssertI
+            {
+              call = call_later;
+              expect = true;
+              iterexps = iterexps_later;
+              block = block_later;
+            } ) ->
+          if
+            Sl.Eq.eq_relcall call_later call_earlier
+            && Sl.Eq.eq_iterexps iterexps_later iterexps_earlier
+          then Take (merge_into_block instr_earlier ~later:block_later)
+          else Skip
+      | _ -> Stop)
 
 (* if-and-if to case analysis *)
 
@@ -871,124 +624,42 @@ let casify_case_case (senv : SEnv.t) (at : Location.t) (exp_target : exp)
       Some instr
   | None -> None
 
-(* Casifying from an if statement *)
+(* Casifying an if or case statement with a later sibling *)
 
-let rec casify_from_if (senv : SEnv.t) (at : Location.t) (exp_cond_target : exp)
-    (iterexps_target : iterexp list) (instrs_then_target : instr list)
-    (instrs : instr list) : instr list option =
-  match iterexps_target with
-  | [] -> casify_from_if' senv at exp_cond_target instrs_then_target [] instrs
-  | _ -> None
+let casify_sibling ~(senv : SEnv.t) (instr_earlier : instr)
+    (instr_later : instr) : Ol.Traverse.sibling_decision =
+  let at = instr_earlier.at in
+  let instr_opt =
+    match (instr_earlier.it, instr_later.it) with
+    | ( IfI (exp_cond_earlier, [], instrs_then_earlier),
+        IfI (exp_cond_later, [], instrs_then_later) ) ->
+        Some
+          (casify_if_if senv at exp_cond_earlier instrs_then_earlier
+             exp_cond_later instrs_then_later)
+    | ( IfI (exp_cond_earlier, [], instrs_then_earlier),
+        CaseI (exp_later, cases_later, total_later) ) ->
+        Some
+          (casify_if_case senv at exp_cond_earlier instrs_then_earlier exp_later
+             cases_later total_later)
+    | ( CaseI (exp_earlier, cases_earlier, total_earlier),
+        IfI (exp_cond_later, [], instrs_then_later) ) ->
+        Some
+          (casify_case_if senv at exp_earlier cases_earlier total_earlier
+             exp_cond_later instrs_then_later)
+    | ( CaseI (exp_earlier, cases_earlier, total_earlier),
+        CaseI (exp_later, cases_later, _) ) ->
+        Some
+          (casify_case_case senv at exp_earlier cases_earlier total_earlier
+             exp_later cases_later)
+    | _ -> None
+  in
+  match instr_opt with
+  | Some (Some instr) -> Take instr
+  | Some None -> Skip
+  | None -> Stop
 
-and casify_from_if' (senv : SEnv.t) (at : Location.t) (exp_cond_target : exp)
-    (instrs_then_target : instr list) (instrs_leftover : instr list)
-    (instrs : instr list) : instr list option =
-  match instrs with
-  | ({ it = IfI (exp_cond, [], instrs_then); _ } as instr_h) :: instrs_t -> (
-      let instr_h_opt =
-        casify_if_if senv at exp_cond_target instrs_then_target exp_cond
-          instrs_then
-      in
-      match instr_h_opt with
-      | Some instr_h -> Some ([ instr_h ] @ instrs_leftover @ instrs_t)
-      | None ->
-          let instrs_leftover = instrs_leftover @ [ instr_h ] in
-          casify_from_if' senv at exp_cond_target instrs_then_target
-            instrs_leftover instrs_t)
-  | ({ it = CaseI (exp, cases, total); _ } as instr_h) :: instrs_t -> (
-      let instr_h_opt =
-        casify_if_case senv at exp_cond_target instrs_then_target exp cases
-          total
-      in
-      match instr_h_opt with
-      | Some instr_h -> Some ([ instr_h ] @ instrs_leftover @ instrs_t)
-      | None ->
-          let instrs_leftover = instrs_leftover @ [ instr_h ] in
-          casify_from_if' senv at exp_cond_target instrs_then_target
-            instrs_leftover instrs_t)
-  | _ -> None
-
-(* Casifying from a case statement *)
-
-let rec casify_from_case (senv : SEnv.t) (at : Location.t) (exp_target : exp)
-    (cases_target : case list) (total_target : bool) (instrs : instr list) :
-    instr list option =
-  casify_from_case' senv at exp_target cases_target total_target [] instrs
-
-and casify_from_case' (senv : SEnv.t) (at : Location.t) (exp_target : exp)
-    (cases_target : case list) (total_target : bool)
-    (instrs_leftover : instr list) (instrs : instr list) : instr list option =
-  match instrs with
-  | ({ it = IfI (exp_cond, [], instrs_then); _ } as instr_h) :: instrs_t -> (
-      let instr_h_opt =
-        casify_case_if senv at exp_target cases_target total_target exp_cond
-          instrs_then
-      in
-      match instr_h_opt with
-      | Some instr_h -> Some ([ instr_h ] @ instrs_leftover @ instrs_t)
-      | None ->
-          let instrs_leftover = instrs_leftover @ [ instr_h ] in
-          casify_from_case' senv at exp_target cases_target total_target
-            instrs_leftover instrs_t)
-  | ({ it = CaseI (exp, cases, _total); _ } as instr_h) :: instrs_t -> (
-      let instr_h_opt =
-        casify_case_case senv at exp_target cases_target total_target exp cases
-      in
-      match instr_h_opt with
-      | Some instr_h -> Some ([ instr_h ] @ instrs_leftover @ instrs_t)
-      | None ->
-          let instrs_leftover = instrs_leftover @ [ instr_h ] in
-          casify_from_case' senv at exp_target cases_target total_target
-            instrs_leftover instrs_t)
-  | _ -> None
-
-let rec casify (senv : SEnv.t) (instrs : instr list) : instr list =
-  match instrs with
-  | [] -> []
-  | { it = IfI (exp_cond, iterexps, instrs_then); at; _ } :: instrs_t -> (
-      match casify_from_if senv at exp_cond iterexps instrs_then instrs_t with
-      | Some instrs -> casify senv instrs
-      | None ->
-          let instr_h =
-            let instrs_then = casify senv instrs_then in
-            IfI (exp_cond, iterexps, instrs_then) $ at
-          in
-          let instrs_t = casify senv instrs_t in
-          instr_h :: instrs_t)
-  | { it = RelAssertI { call; expect; iterexps; block = instrs_then }; at; _ }
-    :: instrs_t ->
-      let instr_h =
-        let instrs_then = casify senv instrs_then in
-        RelAssertI { call; expect; iterexps; block = instrs_then } $ at
-      in
-      let instrs_t = casify senv instrs_t in
-      instr_h :: instrs_t
-  | { it = CaseI (exp, cases, total); at; _ } :: instrs_t -> (
-      match casify_from_case senv at exp cases total instrs_t with
-      | Some instrs -> casify senv instrs
-      | None ->
-          let instr_h =
-            let guards, blocks = List.split cases in
-            let blocks = List.map (casify senv) blocks in
-            let cases = List.combine guards blocks in
-            CaseI (exp, cases, total) $ at
-          in
-          let instrs_t = casify senv instrs_t in
-          instr_h :: instrs_t)
-  | ({ it = LetI (exp_l, exp_r, iterinstrs, block); _ } as instr_h) :: instrs_t
-    ->
-      let block = casify senv block in
-      let instr_h = LetI (exp_l, exp_r, iterinstrs, block) $ instr_h.at in
-      let instrs_t = casify senv instrs_t in
-      instr_h :: instrs_t
-  | ({ it = RelI { call; iterinstrs; block }; _ } as instr_h) :: instrs_t ->
-      let block = casify senv block in
-      let instr_h = RelI { call; iterinstrs; block } $ instr_h.at in
-      let instrs_t = casify senv instrs_t in
-      instr_h :: instrs_t
-  | instr_h :: instrs_t ->
-      let instrs_t = casify senv instrs_t in
-      instr_h :: instrs_t
+let casify (senv : SEnv.t) (instrs : instr list) : instr list =
+  Ol.Traverse.merge_siblings_preorder instrs ~f:(casify_sibling ~senv)
 
 (* Totalize case analysis of variant matches *)
 
@@ -1006,55 +677,27 @@ let find_variant_case_analysis (senv : SEnv.t) (cases : case list) :
       | None -> None)
     (Some []) cases
 
-let rec totalize_case_analysis (senv : SEnv.t) (instrs : instr list) :
-    instr list =
-  List.map (totalize_case_analysis' senv) instrs
+let totalize_case_analysis (senv : SEnv.t) (instrs : instr list) : instr list =
+  Ol.Traverse.rewrite_instrs_postorder instrs ~f:(fun instr ->
+      match instr.it with
+      | CaseI (exp, cases, false) -> (
+          match find_variant_case_analysis senv cases with
+          | Some mixops_case ->
+              let module Set = Set.Make (struct
+                type t = Il.Mixfix.mixop
 
-and totalize_case_analysis' (senv : SEnv.t) (instr : instr) : instr =
-  let at = instr.at in
-  match instr.it with
-  | IfI (exp_cond, iterexps, instrs_then) ->
-      let instrs_then = totalize_case_analysis senv instrs_then in
-      IfI (exp_cond, iterexps, instrs_then) $ at
-  | RelAssertI { call; expect; iterexps; block = instrs_then } ->
-      let instrs_then = totalize_case_analysis senv instrs_then in
-      RelAssertI { call; expect; iterexps; block = instrs_then } $ at
-  | CaseI (exp, cases, false) -> (
-      let cases =
-        let guards, blocks = List.split cases in
-        let blocks = List.map (totalize_case_analysis senv) blocks in
-        List.combine guards blocks
-      in
-      match find_variant_case_analysis senv cases with
-      | Some mixops_case ->
-          let module Set = Set.Make (struct
-            type t = Il.Mixfix.mixop
-
-            let compare = Il.Mixfix.compare_mixop
-          end) in
-          let mixops_total =
-            let typ = exp.note.typ $ exp.at in
-            typ |> typ_as_variant senv |> Option.get
-          in
-          let mixops_total = Set.of_list mixops_total in
-          let mixops_case = Set.of_list mixops_case in
-          let total = Set.equal mixops_case mixops_total in
-          CaseI (exp, cases, total) $ at
-      | None -> CaseI (exp, cases, false) $ at)
-  | CaseI (exp, cases, true) ->
-      let cases =
-        let guards, blocks = List.split cases in
-        let blocks = List.map (totalize_case_analysis senv) blocks in
-        List.combine guards blocks
-      in
-      CaseI (exp, cases, true) $ at
-  | LetI (exp_l, exp_r, iterinstrs, block) ->
-      let block = totalize_case_analysis senv block in
-      LetI (exp_l, exp_r, iterinstrs, block) $ at
-  | RelI { call; iterinstrs; block } ->
-      let block = totalize_case_analysis senv block in
-      RelI { call; iterinstrs; block } $ at
-  | _ -> instr
+                let compare = Il.Mixfix.compare_mixop
+              end) in
+              let mixops_total =
+                let typ = exp.note.typ $ exp.at in
+                typ |> typ_as_variant senv |> Option.get
+              in
+              let mixops_total = Set.of_list mixops_total in
+              let mixops_case = Set.of_list mixops_case in
+              let total = Set.equal mixops_case mixops_total in
+              { instr with it = CaseI (exp, cases, total) }
+          | None -> instr)
+      | _ -> instr)
 
 (* Apply optimizations until it reaches a fixed point *)
 
