@@ -299,6 +299,11 @@ let operations_report_their_operands () =
     ]
 
 let casts_report_rebuilt_values () =
+  let typ_nat = Lang.Il.Typ.nat $ Common.Location.Unknown in
+  let typ_int = Lang.Il.Typ.int $ Common.Location.Unknown in
+  let ints ns =
+    V.list typ_int (List.map (fun n -> V.int (Bigint.of_int n)) ns)
+  in
   List.iter
     (fun (relation, args) ->
       check_result_events ~relation ~args ~check:(fun ~inputs ~output ~events ->
@@ -312,11 +317,13 @@ let casts_report_rebuilt_values () =
                  events
             &&
             match (source.it, value.it) with
-            | TupleV sources, TupleV values ->
+            | TupleV sources, TupleV values | ListV sources, ListV values ->
                 List.length sources = List.length values
                 && List.for_all2
                      (fun source value -> reported value ~source)
                      sources values
+            | OptV None, OptV None -> true
+            | OptV (Some source), OptV (Some value) -> reported value ~source
             | NumV _, NumV _ -> true
             | _ -> false
           in
@@ -328,6 +335,15 @@ let casts_report_rebuilt_values () =
       ( "Narrow_pair",
         fun () ->
           [ V.tuple [ V.int (Bigint.of_int 3); V.int (Bigint.of_int 4) ] ] );
+      ("Widen_list", fun () -> [ nats [ 3; 4 ] ]);
+      ("Widen_list", fun () -> [ nats [] ]);
+      ("Narrow_list", fun () -> [ ints [ 3; 4 ] ]);
+      ("Narrow_list", fun () -> [ ints [] ]);
+      ("Widen_option", fun () -> [ V.opt typ_nat (Some (nat 3)) ]);
+      ("Widen_option", fun () -> [ V.opt typ_nat None ]);
+      ( "Narrow_option",
+        fun () -> [ V.opt typ_int (Some (V.int (Bigint.of_int 3))) ] );
+      ("Narrow_option", fun () -> [ V.opt typ_int None ]);
     ]
 
 let patterns_report_derived_values () =

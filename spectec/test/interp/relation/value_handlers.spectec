@@ -23,11 +23,17 @@ rule Shift:
 syntax numbers = nat*
 syntax natpair = (nat, nat)
 syntax intpair = (int, int)
+syntax natlist = nat*
+syntax intlist = int*
+syntax natoption = nat?
+syntax intoption = int?
 syntax envelope = { INNER point }
 
 var t : text
 var ns : numbers
 var np : natpair
+var nl : natlist
+var no : natoption
 var e : envelope
 
 relation Text_index:
@@ -78,6 +84,34 @@ relation Narrow_pair:
 
 rule Narrow_pair:
   np |- np
+
+relation Widen_list:
+  natlist |- intlist
+  hint(input %0)
+
+rule Widen_list:
+  nl |- nl
+
+relation Narrow_list:
+  intlist |- natlist
+  hint(input %0)
+
+rule Narrow_list:
+  nl |- nl
+
+relation Widen_option:
+  natoption |- intoption
+  hint(input %0)
+
+rule Widen_option:
+  no |- no
+
+relation Narrow_option:
+  intoption |- natoption
+  hint(input %0)
+
+rule Narrow_option:
+  no |- no
 
 relation Tail:
   numbers |- numbers

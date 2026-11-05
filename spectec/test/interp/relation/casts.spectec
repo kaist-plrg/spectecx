@@ -1,0 +1,38 @@
+var n : nat
+
+builtin dec $count_ints(int*) : nat
+builtin dec $is_some_int(int?) : bool
+builtin dec $count_nats(nat*) : nat
+builtin dec $is_some_nat(nat?) : bool
+builtin dec $ints(nat) : int*
+builtin dec $some_int(nat) : int?
+
+relation ListCast:
+  nat |- nat
+  hint(input %0)
+
+rule ListCast:
+  n |- $count_ints([ 0, n ])
+
+relation OptionCast:
+  nat? |- bool
+  hint(input %0)
+
+rule OptionCast:
+  n? |- $is_some_int(n?)
+
+relation ListDowncast:
+  nat |- nat
+  hint(input %0)
+
+rule ListDowncast:
+  n |- $count_nats(n'*)
+  -- if n'* = $ints(n)
+
+relation OptionDowncast:
+  nat |- bool
+  hint(input %0)
+
+rule OptionDowncast:
+  n |- $is_some_nat(n'?)
+  -- if n'? = $some_int(n)
