@@ -3,6 +3,7 @@ open Error
 module Error = Error
 module Define = Define
 module Arg = Arg
+module Callback = Callback
 
 let ( let* ) = Result.bind
 
@@ -11,7 +12,8 @@ type 'a result = 'a Error.result
 module StringMap = Map.Make (String)
 
 type t = {
-  invoke : id -> targ list -> Value.t list -> Value.t result;
+  invoke :
+    callback:Callback.t -> id -> targ list -> Value.t list -> Value.t result;
   is_builtin : id -> bool;
 }
 
@@ -36,7 +38,7 @@ let make (builtins : (string * Define.t) list) : t =
 
   let is_builtin (id : id) : bool = StringMap.mem id.it funcs in
 
-  let invoke (id : id) (targs : targ list) (args : Value.t list) :
+  let invoke ~callback (id : id) (targs : targ list) (args : Value.t list) :
       Value.t Error.result =
     let func = StringMap.find_opt id.it funcs in
     if Option.is_none func then
@@ -44,7 +46,7 @@ let make (builtins : (string * Define.t) list) : t =
       |> missing_impl id.at |> Result.error
     else
       let func = Option.get func in
-      func ~at:id.at targs args
+      Define.invoke func ~callback ~at:id.at targs args
   in
 
   { invoke; is_builtin }

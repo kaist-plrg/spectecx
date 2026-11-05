@@ -130,6 +130,7 @@ end) : sig
 
   val call_builtin :
     t ->
+    callback:Builtins.Callback.t ->
     id:Lang.Il.id ->
     targs:Lang.Il.targ list ->
     values:Value.t list ->

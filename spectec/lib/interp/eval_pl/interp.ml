@@ -343,10 +343,16 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     value =
   let values_input = eval_args ctx args in
   let targs = Ctx.resolve_targs ctx ~targs in
+  invoke_func_values ctx id targs values_input
+
+and invoke_func_values (ctx : Ctx.t) (id : id) (targs : targ list)
+    (values_input : value list) : value =
   (* Builtin function invocation *)
   let invoke_func_builtin signature =
     let value_output =
-      Ctx.call_builtin ctx ~id ~targs ~values:values_input |> unwrap_builtin
+      Ctx.call_builtin ctx ~callback:(callback ctx) ~id ~targs
+        ~values:values_input
+      |> unwrap_builtin
     in
     (match
        Builtins.check_result ~opaque_types:(Ctx.opaque_types ctx)
@@ -404,7 +410,7 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     let invoke () =
       let v =
         match Ctx.find_func_opt ctx ~id with
-        | Some (Ctx.Func.Builtin (tparams, typ)) ->
+        | Some (Ctx.Func.Builtin (tparams, _, typ)) ->
             check (Ctx.has_builtin ctx ~id) id.at
               (F.asprintf
                  "builtin $%s is declared in the spec but not implemented" id.it);
@@ -444,6 +450,17 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     (Events.Func_exit { id = id.it; at = id.at; output = Some result });
   result
 
+and callback (ctx : Ctx.t) : Builtins.Callback.t =
+ fun id targs values ->
+  let ctx = Ctx.for_call ctx in
+  let signature =
+    match Ctx.find_func_opt ctx ~id with
+    | Some func -> Ctx.Func.signature func
+    | None -> error id.at ("unknown function " ^ id.it)
+  in
+  Ctx.check_inputs_exn ctx ~kind:`Function ~id ~signature ~targs ~values;
+  invoke_func_values ctx id targs values
+
 (* Load definitions into the context *)
 
 (* PL relations carry the mode as a mixop plus input-position indices and the
@@ -472,8 +489,9 @@ let global_definition_of_def ~opaque_types (def : def) : Ctx.Global.definition =
   | RelD (id, (mixop, inputs), exps, block, elseblock_opt) ->
       let mode = mode_of_relsig mixop inputs exps in
       Ctx.Global.Relation (id, (mode, block, elseblock_opt))
-  | BuiltinDecD (id, tparams, _, typ) ->
-      Ctx.Global.Function (id, Ctx.Func.Builtin (tparams, typ))
+  | BuiltinDecD (id, tparams, args, typ) ->
+      let typs = List.map Il.Expression.typ_of_arg args in
+      Ctx.Global.Function (id, Ctx.Func.Builtin (tparams, typs, typ))
   | DecD (id, tparams, args_input, block, elseblock_opt) ->
       Ctx.Global.Function
         (id, Ctx.Func.Defined (tparams, args_input, block, elseblock_opt))

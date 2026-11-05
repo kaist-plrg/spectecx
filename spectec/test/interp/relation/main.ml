@@ -1,6 +1,7 @@
 let () =
   Opaque_values.run ();
   Opaque.run ();
+  Callbacks.run ();
   Value_types.run ();
   Iteration.run ();
   Optional_iteration.run ();

@@ -4,8 +4,13 @@ open Lang.Sl.Print
 (* Function *)
 
 type t =
-  | Builtin of tparam list * typ
+  | Builtin of tparam list * typ list * typ
   | Defined of tparam list * arg list * block * elseblock option
+
+let signature = function
+  | Builtin (tparams, typs, _) -> (tparams, typs)
+  | Defined (tparams, args, _, _) ->
+      (tparams, List.map Lang.Il.Expression.typ_of_arg args)
 
 let to_string = function
   | Builtin _ -> "builtin function"
