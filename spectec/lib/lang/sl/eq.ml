@@ -181,7 +181,6 @@ and eq_instr (instr_a : instr) (instr_b : instr) : bool =
     ->
       eq_exp exp_a exp_b && eq_cases cases_a cases_b
       && eq_phantom_opt phantom_opt_a phantom_opt_b
-  | OtherwiseI instr_a, OtherwiseI instr_b -> eq_instr instr_a instr_b
   | ( LetI (exp_l_a, exp_r_a, iterinstrs_a, block_a),
       LetI (exp_l_b, exp_r_b, iterinstrs_b, block_b) ) ->
       eq_exp exp_l_a exp_l_b && eq_exp exp_r_a exp_r_b

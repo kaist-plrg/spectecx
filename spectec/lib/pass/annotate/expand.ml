@@ -490,9 +490,6 @@ and expand_sub_blocks relmodes (ids_used : IdSet.t) (instr : instr) :
           ids_used cases
       in
       (ids_used, rebuild (CaseI (exp, cases, phantom)))
-  | OtherwiseI instr_inner ->
-      let ids_used, instr_inner = expand_instr relmodes ids_used instr_inner in
-      (ids_used, rebuild (OtherwiseI instr_inner))
   | LetI (exp_l, exp_r, iterinstrs, block) ->
       let ids_used, block = expand_block relmodes ids_used block in
       (ids_used, rebuild (LetI (exp_l, exp_r, iterinstrs, block)))

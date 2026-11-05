@@ -142,7 +142,6 @@ and instr' =
     }
   | IfI of exp * iterexp list * instr list * phantom option
   | CaseI of exp * case list * phantom option
-  | OtherwiseI of instr
   | LetI of exp * exp * iterinstr list * instr list
   | ResultI of exp list
   | ReturnI of exp

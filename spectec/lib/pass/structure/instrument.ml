@@ -146,9 +146,6 @@ and insert_phantom' (senv : SEnv.t) (pathconds : pathcond list) (instr : instr)
           Some (pid, pathcond)
       in
       Sl.CaseI (exp, cases, phantom_opt) $ at
-  | OtherwiseI instr ->
-      let instr = insert_phantom' senv pathconds instr in
-      Sl.OtherwiseI instr $ at
   | LetI (exp_l, exp_r, iterinstrs, block) ->
       let block = insert_phantom senv pathconds block in
       Sl.LetI (exp_l, exp_r, iterinstrs, block) $ at
@@ -192,9 +189,6 @@ and insert_nothing' (instr : instr) : Sl.instr =
         List.combine guards blocks
       in
       Sl.CaseI (exp, cases, None) $ at
-  | OtherwiseI instr ->
-      let instr = insert_nothing' instr in
-      Sl.OtherwiseI instr $ at
   | LetI (exp_l, exp_r, iterinstrs, block) ->
       let block = insert_nothing block in
       Sl.LetI (exp_l, exp_r, iterinstrs, block) $ at
@@ -214,13 +208,5 @@ let instrument (senv : SEnv.t) (block : instr list)
       let elseblock = insert_nothing elseblock in
       (block, Some elseblock)
   | None ->
-      let block =
-        if
-          List.exists
-            (fun instr ->
-              match instr.it with OtherwiseI _ -> true | _ -> false)
-            block
-        then insert_nothing block
-        else insert_phantom senv [] block
-      in
+      let block = insert_phantom senv [] block in
       (block, None)

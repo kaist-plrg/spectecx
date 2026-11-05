@@ -56,7 +56,6 @@ and eq_instr (instr_a : instr) (instr_b : instr) : bool =
       && eq_instrs instrs_then_a instrs_then_b
   | CaseI (exp_a, cases_a, total_a), CaseI (exp_b, cases_b, total_b) ->
       Sl.Eq.eq_exp exp_a exp_b && eq_cases cases_a cases_b && total_a = total_b
-  | OtherwiseI instr_a, OtherwiseI instr_b -> eq_instr instr_a instr_b
   | ( LetI (exp_l_a, exp_r_a, iterinstrs_a, block_a),
       LetI (exp_l_b, exp_r_b, iterinstrs_b, block_b) ) ->
       Sl.Eq.eq_exp exp_l_a exp_l_b

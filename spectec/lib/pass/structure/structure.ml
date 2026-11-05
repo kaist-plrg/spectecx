@@ -33,7 +33,6 @@ and struct_prems' (prems_internalized : (prem * iterinstr list) list)
     (instr_ret : Ol.Ast.instr) : Ol.Ast.instr =
   match prems_internalized with
   | [] -> instr_ret
-  | [ ({ it = ElsePr; at; _ }, []) ] -> Ol.Ast.OtherwiseI instr_ret $ at
   | (prem_h, iterinstrs_h) :: prems_internalized_t -> (
       let at = prem_h.at in
       match prem_h.it with
@@ -99,11 +98,6 @@ let struct_rule_path ((prems, exps_output) : prem list * exp list) :
     else exps_output |> List.map at |> Location.cover
   in
   let instr_ret = Ol.Ast.ResultI exps_output $ at in
-  let prems =
-    match List.rev prems with
-    | { it = ElsePr; _ } :: prems_rev -> List.rev prems_rev
-    | _ -> prems
-  in
   [ struct_prems prems instr_ret ]
 
 (* Structuring clauses *)
@@ -112,11 +106,6 @@ let struct_clause_path ((prems, exp_output) : prem list * exp) :
     Ol.Ast.instr list =
   let at = exp_output.at in
   let instr_ret = Ol.Ast.ReturnI exp_output $ at in
-  let prems =
-    match List.rev prems with
-    | { it = ElsePr; _ } :: prems_rev -> List.rev prems_rev
-    | _ -> prems
-  in
   [ struct_prems prems instr_ret ]
 
 (* Structuring definitions *)

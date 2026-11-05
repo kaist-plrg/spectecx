@@ -27,9 +27,6 @@ let rec linearize_instr (instr : Sl.instr) : Ll.block =
           cases
       in
       [ Ll.CaseI (exp, cases_ll, phantom_opt) $ at ]
-  | Sl.OtherwiseI instr_inner ->
-      let block_ll = linearize_instr instr_inner in
-      [ Ll.OtherwiseI block_ll $ at ]
   | Sl.LetI (exp_l, exp_r, iterinstrs, block) ->
       let block_ll = linearize_block block in
       let instr_ll = Ll.LetI (exp_l, exp_r, iterinstrs) $ at in

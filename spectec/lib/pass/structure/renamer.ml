@@ -188,9 +188,6 @@ and rename_instr (rename : t) (instr : instr) : instr =
       let exp = rename_exp rename exp in
       let cases = List.map (rename_case rename) cases in
       CaseI (exp, cases, total) $ at
-  | OtherwiseI instr ->
-      let instr = rename_instr rename instr in
-      OtherwiseI instr $ at
   | LetI (exp_l, exp_r, iterinstrs, block) ->
       let exp_l = rename_exp rename exp_l in
       let exp_r = rename_exp rename exp_r in
