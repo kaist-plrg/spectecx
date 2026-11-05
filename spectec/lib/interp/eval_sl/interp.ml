@@ -259,6 +259,7 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
 and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     value =
   let values_input = eval_args ctx args in
+  let targs = Ctx.resolve_targs ctx ~targs in
   (* Builtin function invocation *)
   let invoke_func_builtin signature =
     let value_output =
@@ -279,7 +280,6 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     checkf
       (List.length targs = List.length tparams)
       id.at "arity mismatch in type arguments";
-    let targs = Ctx.resolve_targs ctx ~targs in
     let ctx_local =
       List.fold_left2
         (fun ctx_local tparam targ ->

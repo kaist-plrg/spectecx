@@ -8,6 +8,7 @@ let () =
   Nested_call_expansion.run ();
   Expressions.run ();
   Builtin_arities.run ();
+  Builtin_type_arguments.run ();
   Determinism.run ();
   Structuring.run ();
   Value_handlers.run ()
