@@ -1,0 +1,4 @@
+# include/control/forwarding.p4 indents an #ifdef block. With -traditional-cpp,
+# GCC recognizes only directives that start in the first column, so the block
+# stays in the program and fails to parse. Clang removes the block.
+p4_16_samples/fabric_20190420/fabric.p4
