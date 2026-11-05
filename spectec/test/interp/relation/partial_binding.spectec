@@ -1,0 +1,15 @@
+var n : nat
+var o : nat
+
+syntax box = BOX nat nat?
+
+var bx : box
+
+relation First_if_three:
+  nat; nat? |- nat
+  hint(input %0 %1)
+
+rule First_if_three:
+  n; o? |- n_1
+  -- if bx = BOX n o?
+  -- if BOX n_1 3 = bx

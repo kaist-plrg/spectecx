@@ -84,8 +84,6 @@ let gen_prem_bound (dctx : Dctx.t) (to_ : To.t) (exp_from : exp)
            && not (is_singleton_case dctx (exp_from.note.typ $ exp_from.at)) ->
         MatchE (exp_l, CaseP (Mixop.to_mixop notexp))
         $$ (exp_from.at, { typ = BoolT; annot = () })
-    | OptE (Some _) ->
-        MatchE (exp_l, OptP `Some) $$ (exp_from.at, { typ = BoolT; annot = () })
     | OptE None ->
         MatchE (exp_l, OptP `None) $$ (exp_from.at, { typ = BoolT; annot = () })
     | ListE [] ->
