@@ -135,17 +135,27 @@ end) : sig
     values:Value.t list ->
     Value.t Builtins.result
 
+  (** Return [f ()] or a cached result for the same [id] and equal [values]. The
+      second component is [true] for a cache hit. *)
   val memoize_func :
     t ->
     id:FId.t ->
     values:Value.t list ->
     f:(unit -> (Value.t, 'error) result) ->
-    (Value.t, 'error) result
+    (Value.t, 'error) result * bool
 
+  (** Like {!memoize_func}, for relation outputs. *)
   val memoize_rel :
     t ->
     id:RId.t ->
     values:Value.t list ->
     f:(unit -> (Value.t list, 'error) result) ->
-    (Value.t list, 'error) result
+    (Value.t list, 'error) result * bool
+
+  (** Emit a [Combined] value event for [value], built by an iteration of kind
+      [iter] over [vars]. The event's sources are the lists or options bound to
+      [vars] in the context, followed by the elements or content of [value].
+      Does nothing when no value handler subscribes. *)
+  val emit_iteration :
+    t -> vars:Lang.Il.var list -> iter:Lang.Il.iter -> value:Value.t -> unit
 end

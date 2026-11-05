@@ -35,12 +35,22 @@ module type Context = sig
     vars:Lang.Il.var list ->
     (Envs.Interp.Var.t * Lang.Il.value) list
 
+  val emit_iteration :
+    t ->
+    vars:Lang.Il.var list ->
+    iter:Lang.Il.iter ->
+    value:Lang.Il.value ->
+    unit
+
   (** Raise the native interpreter's failure exception on [Error]. *)
   val get_exn : 'a Common.Attempt.attempt -> 'a
 
   val error : Common.Location.t -> string -> 'a
 end
 
+(** The evaluator emits the value events described in
+    {!Instrumentation_api.Value_event} for expression evaluation and pattern
+    matching. *)
 module Make (Ctx : Context) : sig
   type exp = Ctx.annotation Lang.Il.Expression.t
   type arg = Ctx.annotation Lang.Il.Expression.arg

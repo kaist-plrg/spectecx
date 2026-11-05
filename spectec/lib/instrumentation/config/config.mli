@@ -15,8 +15,7 @@ val handlers : t -> (module Instrumentation_api.Handler.S) list
 (** Whether a handler with the given [name] is configured. *)
 val has_handler : t -> name:string -> bool
 
-(** [Error msg] naming every configured handler that does not support [mode]. No
-    handler observes the PL interpreter, so [`PL] rejects them all. *)
+(** [Error msg] names every configured handler that does not support [mode]. *)
 val validate_mode : t -> mode:[ `IL | `SL | `PL ] -> (unit, string) result
 
 val close_outputs : t -> unit

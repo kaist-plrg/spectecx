@@ -325,8 +325,11 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
       | None -> Error ()
     in
     match Ctx.memoize_rel ctx ~id ~values:values_input ~f:invoke with
-    | Ok values_output -> Some values_output
-    | Error _ -> None
+    | Ok values_output, cached ->
+        Interp_runtime.Emit_value.invoked ~callee:(Rel id.it)
+          ~inputs:values_input ~outputs:values_output ~cached;
+        Some values_output
+    | Error _, _ -> None
   in
   Instrumentation.Dispatcher.emit_on_demand (fun () ->
       let outs =
@@ -444,15 +447,18 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
           match value.it with Lang.Il.FuncV _ -> true | _ -> false)
         values
     in
-    let value_output_result =
+    let value_output_result, cached =
       (* Cache keys omit type arguments and local function definitions. *)
       if
         targs <> [] || Ctx.has_local_func ctx ~id
         || has_function_arguments values_input
-      then invoke ()
+      then (invoke (), false)
       else Ctx.memoize_func ctx ~id ~values:values_input ~f:invoke
     in
-    value_output_result |> Result.get_ok
+    let value_output = Result.get_ok value_output_result in
+    Interp_runtime.Emit_value.invoked ~callee:(Func id.it) ~inputs:values_input
+      ~outputs:[ value_output ] ~cached;
+    value_output
   in
   let result = invoke_func' () in
   Instrumentation.Dispatcher.emit

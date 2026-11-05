@@ -49,23 +49,23 @@ let clear t =
 let with_cache_unconditional cache (id, values) compute =
   let key = (id, values) in
   match Table.find_opt !cache key with
-  | Some v -> Ok v
+  | Some v -> (Ok v, true)
   | None ->
       let result = compute () in
       (match result with Ok v -> Table.add !cache key v | _ -> ());
-      result
+      (result, false)
 
 (* Cache with purity guard — only store if no side effects occurred *)
 let with_cache_guarded version cache (id, values) compute =
   let key = (id, values) in
   match Table.find_opt !cache key with
-  | Some v -> Ok v
+  | Some v -> (Ok v, true)
   | None ->
       let snap = !version in
       let result = compute () in
       (if !version = snap then
          match result with Ok v -> Table.add !cache key v | _ -> ());
-      result
+      (result, false)
 
 let with_func_cache t (id, values) compute =
   if t.is_impure_func id then

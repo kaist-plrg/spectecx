@@ -281,6 +281,22 @@ struct
         ((varid, iters), collect_iteration_value values ~iter ~result_typ:typ))
       vars
 
+  let emit_iteration ctx ~vars ~iter ~value =
+    if Instrumentation_dispatcher.Dispatcher.has_value_handlers () then
+      let ranged =
+        List.map
+          (fun { Il.varid; iters; _ } ->
+            find_value_exn ctx ~var:(varid, iters @ [ iter ]))
+          vars
+      in
+      let produced =
+        match value.it with
+        | Il.ListV values -> values
+        | Il.OptV value_opt -> Option.to_list value_opt
+        | _ -> []
+      in
+      ignore (Emit_value.combined value ~sources:(ranged @ produced))
+
   let iteration_outputs ctx ~iterinstr:Il.{ iter; vars_input; vars_output } ~f =
     let* ctxs = expand_iteration_inputs ctx ~iter ~vars:vars_input in
     let* ctxs_output_rev =
@@ -292,7 +308,13 @@ struct
         (Ok []) ctxs
     in
     let ctxs_output = List.rev ctxs_output_rev in
-    Ok (collect_iteration_bindings ctxs_output ~iter ~vars:vars_output)
+    let bindings =
+      collect_iteration_bindings ctxs_output ~iter ~vars:vars_output
+    in
+    List.iter
+      (fun (_, value) -> emit_iteration ctx ~vars:vars_input ~iter ~value)
+      bindings;
+    Ok bindings
 
   let eval_iterations ctx ~iterinstrs ~f =
     let iterate body iterinstr ctx =

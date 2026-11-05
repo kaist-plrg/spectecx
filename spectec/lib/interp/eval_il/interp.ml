@@ -227,7 +227,12 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
     in
     Ctx.memoize_rel ctx ~id ~values:values_input ~f:attempt_rules
   in
-  let result = invoke_rel' () in
+  let result, cached = invoke_rel' () in
+  (match result with
+  | Ok values_output ->
+      Interp_runtime.Emit_value.invoked ~callee:(Rel id.it) ~inputs:values_input
+        ~outputs:values_output ~cached
+  | Error _ -> ());
   Instrumentation.Dispatcher.emit_on_demand (fun () ->
       let outs =
         match result with
@@ -379,7 +384,7 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     attempt_clauses ()
   in
   (* Main dispatch *)
-  let result =
+  let result, cached =
     let invoke_func' () =
       match Ctx.find_func_opt ctx ~id with
       | Some (Ctx.Func.Builtin (tparams, typ)) ->
@@ -406,9 +411,14 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     if
       targs <> [] || Ctx.has_local_func ctx ~id
       || has_function_arguments values_input
-    then invoke_func' ()
+    then (invoke_func' (), false)
     else Ctx.memoize_func ctx ~id ~values:values_input ~f:invoke_func'
   in
+  (match result with
+  | Ok value_output ->
+      Interp_runtime.Emit_value.invoked ~callee:(Func id.it)
+        ~inputs:values_input ~outputs:[ value_output ] ~cached
+  | Error _ -> ());
   let output = match result with Ok v -> Some v | Error _ -> None in
   Instrumentation.Dispatcher.emit
     (Events.Func_exit { id = id.it; at = id.at; output });
