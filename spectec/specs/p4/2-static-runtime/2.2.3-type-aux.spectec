@@ -12,11 +12,11 @@ def $unroll_typeIR(typeIR) = typeIR
 ;; Unrolling outer aliases
 ;;
 
-dec $unroll_aliasType(typeIR) : typeIR
+dec $unroll_aliasTypeIR(typeIR) : typeIR
   hint(prose_in %0 "with aliases unrolled")
-def $unroll_aliasType(TYPE _ typeIR) = $unroll_aliasType(typeIR)
-def $unroll_aliasType(TYPEDEF _ typeIR) = $unroll_aliasType(typeIR)
-def $unroll_aliasType(typeIR) = typeIR
+def $unroll_aliasTypeIR(TYPE _ typeIR) = $unroll_aliasTypeIR(typeIR)
+def $unroll_aliasTypeIR(TYPEDEF _ typeIR) = $unroll_aliasTypeIR(typeIR)
+def $unroll_aliasTypeIR(typeIR) = typeIR
   -- otherwise
 
 ;;
@@ -46,13 +46,15 @@ def $is_defaultable_typeIR(integerTypeIR) = true
 def $is_defaultable_typeIR(TYPEDEF _ typeIR) = $is_defaultable_typeIR(typeIR)
 def $is_defaultable_typeIR(TYPE _ typeIR) = $is_defaultable_typeIR(typeIR)
 def $is_defaultable_typeIR(TUPLE `< typeIR* `>) = $forall_($is_defaultable_typeIR(typeIR)*)
-def $is_defaultable_typeIR(typeIR `[ _ `]) = $is_defaultable_typeIR(typeIR)
+def $is_defaultable_typeIR(ARRAY typeIR `[ _ `]) = $is_defaultable_typeIR(typeIR)
+def $is_defaultable_typeIR(HEADER_STACK typeIR `[ _ `]) = $is_defaultable_typeIR(typeIR)
 def $is_defaultable_typeIR(STRUCT _ `< _ `> `{ (_ typeIR _ ';')* `}) = $forall_($is_defaultable_typeIR(typeIR)*)
 def $is_defaultable_typeIR(HEADER _ `< _ `> `{ (_ typeIR _ ';')* `}) = $forall_($is_defaultable_typeIR(typeIR)*)
 def $is_defaultable_typeIR(HEADER_UNION _ `< _ `> `{ (_ typeIR _ ';')* `}) = $forall_($is_defaultable_typeIR(typeIR)*)
 def $is_defaultable_typeIR(ENUM _ `{ _ `}) = true
 def $is_defaultable_typeIR(ENUM _ `< typeIR `> `{ _ `}) = $is_defaultable_typeIR(typeIR)
 def $is_defaultable_typeIR(_) = false
+  -- otherwise
 
 ;;; Equals
 
@@ -74,6 +76,7 @@ def $is_equalable_typeIR(HEADER_INVALID) = false
 def $is_equalable_typeIR(setTypeIR) = false
 def $is_equalable_typeIR(tableMetadataTypeIR) = false
 def $is_equalable_typeIR(_) = true
+  -- otherwise
 
 ;;; Assignable
 
@@ -87,3 +90,46 @@ def $is_assignable_typeIR(TYPEDEF _ typeIR) = $is_assignable_typeIR(typeIR)
 def $is_assignable_typeIR(objectTypeIR) = false
 def $is_assignable_typeIR(synthesizedTypeIR) = false
 def $is_assignable_typeIR(_) = true
+  -- otherwise
+
+;;; Castable
+
+dec $is_castable_typeIR(typeIR) : bool
+  hint(prose_true %0 "can be the target type of an explicit cast")
+  hint(prose_false %0 "cannot be the target type of an explicit cast")
+def $is_castable_typeIR(BOOL) = true
+def $is_castable_typeIR(INT) = true
+def $is_castable_typeIR(INT `< _ `>) = true
+def $is_castable_typeIR(BIT `< _ `>) = true
+def $is_castable_typeIR(TYPEDEF _ typeIR) = $is_castable_typeIR(typeIR)
+def $is_castable_typeIR(TYPE _ _) = true
+def $is_castable_typeIR(ENUM _ `< _ `> `{ _ `}) = true
+def $is_castable_typeIR(LIST `< _ `>) = true
+def $is_castable_typeIR(ARRAY _ `[ _ `]) = true
+def $is_castable_typeIR(HEADER_STACK _ `[ _ `]) = true
+def $is_castable_typeIR(STRUCT _ `< _ `> `{ _ `}) = true
+def $is_castable_typeIR(HEADER _ `< _ `> `{ _ `}) = true
+def $is_castable_typeIR(HEADER_UNION _ `< _ `> `{ _ `}) = true
+def $is_castable_typeIR(_) = false
+  -- otherwise
+
+;;; Serializable
+
+dec $is_serializable_typeIR(typeIR) : bool
+  hint(prose_true %0 "has a defined size")
+  hint(prose_false %0 "has no defined size")
+def $is_serializable_typeIR(BOOL) = true
+def $is_serializable_typeIR(INT `< _ `>) = true
+def $is_serializable_typeIR(BIT `< _ `>) = true
+def $is_serializable_typeIR(VARBIT `< _ `>) = true
+def $is_serializable_typeIR(TYPEDEF _ typeIR) = $is_serializable_typeIR(typeIR)
+def $is_serializable_typeIR(TYPE _ typeIR) = $is_serializable_typeIR(typeIR)
+def $is_serializable_typeIR(ENUM _ `< typeIR `> `{ _ `}) = $is_serializable_typeIR(typeIR)
+def $is_serializable_typeIR(TUPLE `< typeIR* `>) = $forall_($is_serializable_typeIR(typeIR)*)
+def $is_serializable_typeIR(ARRAY typeIR `[ _ `]) = $is_serializable_typeIR(typeIR)
+def $is_serializable_typeIR(HEADER_STACK typeIR `[ _ `]) = $is_serializable_typeIR(typeIR)
+def $is_serializable_typeIR(STRUCT _ `< _ `> `{ (_ typeIR _ ';')* `}) = $forall_($is_serializable_typeIR(typeIR)*)
+def $is_serializable_typeIR(HEADER _ `< _ `> `{ (_ typeIR _ ';')* `}) = $forall_($is_serializable_typeIR(typeIR)*)
+def $is_serializable_typeIR(HEADER_UNION _ `< _ `> `{ (_ typeIR _ ';')* `}) = $forall_($is_serializable_typeIR(typeIR)*)
+def $is_serializable_typeIR(_) = false
+  -- otherwise

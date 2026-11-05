@@ -127,14 +127,31 @@ rule Type_ok/specializedType:
       p TC |- typeArgumentList : typeIR_arg* '#' typeId_fresh*
   -- if typeIR = $specialize_typeDefIR(typeDefIR, typeIR_arg*)
 
-;;;; headerStackType
-;;;; syntax headerStackType = namedType `[ expression ]
+;;;; arrayType
+;;;; syntax arrayType = type `[ expression ]
 
 rule Type_ok/headerStackType:
-  p TC |- namedType `[ expression_size `]
-        : (typeIR_base `[ n_size `]) '#' typeId_fresh*
+  p TC |- type `[ expression_size `]
+        : (HEADER_STACK typeIR_base `[ n_size `]) '#' typeId_fresh*
   ---- ;; check base type
-  -- Type_ok: p TC |- namedType : typeIR_base '#' typeId_fresh*
+  -- Type_ok: p TC |- type : typeIR_base '#' typeId_fresh*
+  -- if typeIR_base' = $unroll_typeIR(typeIR_base)
+  -- if typeIR_base' <: headerTypeIR \/ typeIR_base' <: headerUnionTypeIR
+  ---- ;; check size
+  -- Expr_ok: p TC |- expression_size : typedExpressionIR_size
+  -- if LCTK = $ctk_of_typedExpressionIR(typedExpressionIR_size)
+  -- Expr_eval_lctk:
+      p TC |- typedExpressionIR_size ~> integerValue_size
+  -- if n_size = $nat_of_integerValue(integerValue_size)
+  -- if $(n_size > 0)
+
+rule Type_ok/arrayType:
+  p TC |- type `[ expression_size `]
+        : (ARRAY typeIR_base `[ n_size `]) '#' typeId_fresh*
+  ---- ;; check base type
+  -- Type_ok: p TC |- type : typeIR_base '#' typeId_fresh*
+  -- if typeIR_base' = $unroll_typeIR(typeIR_base)
+  -- if ~(typeIR_base' <: headerTypeIR \/ typeIR_base' <: headerUnionTypeIR)
   ---- ;; check size
   -- Expr_ok: p TC |- expression_size : typedExpressionIR_size
   -- if LCTK = $ctk_of_typedExpressionIR(typedExpressionIR_size)

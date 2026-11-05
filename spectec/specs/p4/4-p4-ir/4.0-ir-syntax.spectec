@@ -3,22 +3,22 @@
 ;;
 
 syntax prefixedNameIR =
-  | _NAME nameIR
+  | _BARE nameIR   hint(print %0)
   | '.' nameIR
 
 dec $prefixedNonTypeName(prefixedNonTypeName) : prefixedNameIR
   hint(prose_in "the prefixed name of " %0)
-def $prefixedNonTypeName(nonTypeName) = _NAME $name(nonTypeName)
+def $prefixedNonTypeName(nonTypeName) = _BARE $name(nonTypeName)
 def $prefixedNonTypeName(_ID '.' nonTypeName) = '.' $name(nonTypeName)
 
 dec $prefixedTypeName(prefixedTypeName) : prefixedNameIR
   hint(prose_in "the prefixed name of " %0)
-def $prefixedTypeName(typeName) = _NAME $name(typeName)
+def $prefixedTypeName(typeName) = _BARE $name(typeName)
 def $prefixedTypeName(_TID '.' typeName) = '.' $name(typeName)
 
 dec $flatten_prefixedNameIR(prefixedNameIR) : nameIR
   hint(prose_in "the string form of " %0)
-def $flatten_prefixedNameIR(_NAME nameIR) = nameIR
+def $flatten_prefixedNameIR(_BARE nameIR) = nameIR
 def $flatten_prefixedNameIR('.' nameIR) = "." ++ nameIR
 
 syntax nameListIR = nameIR*
@@ -134,8 +134,7 @@ syntax indexAccessExpressionIR =
   typedExpressionIR `[ typedExpressionIR `]
 
 syntax sliceAccessExpressionIR =
-  | typedExpressionIR `[ typedExpressionIR ':' typedExpressionIR `]
-  | typedExpressionIR `[ typedExpressionIR '+': typedExpressionIR `]
+  typedExpressionIR `[ typedExpressionIR sliceop typedExpressionIR `]
 
 syntax accessExpressionIR =
   | errorAccessExpressionIR
@@ -266,8 +265,7 @@ syntax lvalueIR =
   | referenceExpressionIR
   | typedLvalueIR '.' nameIR
   | typedLvalueIR `[ typedExpressionIR `]
-  | typedLvalueIR `[ typedExpressionIR ':' typedExpressionIR `]
-  | typedLvalueIR `[ typedExpressionIR '+': typedExpressionIR `]
+  | typedLvalueIR `[ typedExpressionIR sliceop typedExpressionIR `]
   | `( typedLvalueIR `)
 
 syntax lvalueNoteIR = `( typeIR `)
@@ -304,8 +302,8 @@ def $typedLvalueIR_as_typedExpressionIR(
   -- if typedExpressionIR_base
       = $typedLvalueIR_as_typedExpressionIR(typedLvalueIR_base)
 def $typedLvalueIR_as_typedExpressionIR(
-    (typedLvalueIR_base `[ typedExpressionIR_l '+': typedExpressionIR_w `]) '#' `( typeIR `))
-  = (typedExpressionIR_base `[ typedExpressionIR_l '+': typedExpressionIR_w `]) '#' `( typeIR DYN `)
+    (typedLvalueIR_base `[ typedExpressionIR_l '+:' typedExpressionIR_w `]) '#' `( typeIR `))
+  = (typedExpressionIR_base `[ typedExpressionIR_l '+:' typedExpressionIR_w `]) '#' `( typeIR DYN `)
   -- if typedExpressionIR_base
       = $typedLvalueIR_as_typedExpressionIR(typedLvalueIR_base)
 
@@ -331,8 +329,8 @@ def $typedExpressionIR_as_typedLvalueIR(
   -- if typedLvalueIR_base
       = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR_base)
 def $typedExpressionIR_as_typedLvalueIR(
-    (typedExpressionIR_base `[ typedExpressionIR_l '+': typedExpressionIR_w `]) '#' `( typeIR _ `))
-  = (typedLvalueIR_base `[ typedExpressionIR_l '+': typedExpressionIR_w `]) '#' `( typeIR `)
+    (typedExpressionIR_base `[ typedExpressionIR_l '+:' typedExpressionIR_w `]) '#' `( typeIR _ `))
+  = (typedLvalueIR_base `[ typedExpressionIR_l '+:' typedExpressionIR_w `]) '#' `( typeIR `)
   -- if typedLvalueIR_base
       = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR_base)
 def $typedExpressionIR_as_typedLvalueIR(
@@ -449,6 +447,11 @@ syntax switchLabelIR =
 syntax switchCaseIR =
   | switchLabelIR ':' blockStatementIR
   | switchLabelIR ':'
+
+dec $switchLabelIR_of_switchCaseIR(switchCaseIR) : switchLabelIR
+  hint(prose_in "the label of" %0)
+def $switchLabelIR_of_switchCaseIR(switchLabelIR ':' _) = switchLabelIR
+def $switchLabelIR_of_switchCaseIR(switchLabelIR ':') = switchLabelIR
 
 syntax switchCaseListIR = switchCaseIR*
 
@@ -686,18 +689,18 @@ syntax parserTypeDeclarationIR =
 ;;;;;; Parser declarations
 ;;
 
-syntax parserStatementIR, parserStatementListIR
+syntax parserBlockElementStatementIR, parserStatementIR
+
+syntax parserBlockElementStatementListIR = parserBlockElementStatementIR*
 
 syntax parserBlockStatementIR =
-  annotationList `{ parserStatementListIR `}
+  annotationList `{ parserBlockElementStatementListIR `}
 
 syntax parserConditionalStatementIR =
   | IF `( typedExpressionIR `) parserStatementIR
   | IF `( typedExpressionIR `) parserStatementIR ELSE parserStatementIR
 
 syntax parserStatementIR =
-  | constantDeclarationIR
-  | variableDeclarationIR
   | emptyStatementIR
   | assignmentStatementIR
   | callStatementIR
@@ -705,11 +708,14 @@ syntax parserStatementIR =
   | parserBlockStatementIR
   | parserConditionalStatementIR
 
-syntax parserStatementListIR = parserStatementIR*
+syntax parserBlockElementStatementIR =
+  | constantDeclarationIR
+  | variableDeclarationIR
+  | parserStatementIR
 
 syntax parserStateIR =
   annotationList STATE nameIR
-    `{ parserStatementListIR transitionStatementIR `}
+    `{ parserBlockElementStatementListIR transitionStatementIR `}
 
 syntax parserStateListIR = parserStateIR*
 

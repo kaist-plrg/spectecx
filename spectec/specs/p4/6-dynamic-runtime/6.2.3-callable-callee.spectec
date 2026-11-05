@@ -30,9 +30,20 @@ syntax functionCallee =
 ;;;; Method callees
 ;;
 
+syntax builtinIsValidMethodCallee    = BUILTIN_IS_VALID storageReference
+syntax builtinSetValidMethodCallee   = BUILTIN_SET_VALID storageReference
+syntax builtinSetInvalidMethodCallee = BUILTIN_SET_INVALID storageReference
+syntax builtinPushFrontMethodCallee  = BUILTIN_PUSH_FRONT storageReference
+syntax builtinPopFrontMethodCallee   = BUILTIN_POP_FRONT storageReference
+syntax builtinSizeMethodCallee       = BUILTIN_SIZE_OF nameIR typeIR
+
 syntax builtinMethodCallee =
-  BUILTIN_METHOD storageReference '.' nameIR
-    `< typeArgumentListIR `> `( parameterListIR `)
+  | builtinIsValidMethodCallee
+  | builtinSetValidMethodCallee
+  | builtinSetInvalidMethodCallee
+  | builtinPushFrontMethodCallee
+  | builtinPopFrontMethodCallee
+  | builtinSizeMethodCallee
 
 syntax externMethodCallee =
   EXTERN_METHOD objectId '.' nameIR `< typeParameterListIR `>

@@ -4,20 +4,6 @@
 ;; syntax parserStatementIR
 ;;
 
-;;; constantDeclarationIR
-
-rule ParserStmt_inst/constantDeclarationIR:
-  IC_0 STO |- constantDeclarationIR
-            : IC_1 STO constantDeclarationIR
-  -- ConstDecl_inst:
-      LOCAL IC_0 |- constantDeclarationIR : IC_1
-
-;;; variableDeclarationIR
-
-rule ParserStmt_inst/variableDeclarationIR:
-  IC STO |- variableDeclarationIR
-          : IC STO variableDeclarationIR
-
 ;;; emptyStatementIR
 
 rule ParserStmt_inst/emptyStatementIR:
@@ -61,14 +47,13 @@ rule ParserStmt_inst/directApplicationStatementIR:
 ;;; parserBlockStatementIR
 
 rule ParserStmt_inst/parserBlockStatementIR:
-  IC_0 STO_0 |- annotationList `{ parserStatementListIR `}
-              : IC_1 STO_1 parserBlockStatementIR_inst
-  ---- ;; instantiate inner statements
-  -- ParserStmts_inst:
-      IC_0 STO_0 |- parserStatementListIR
-                  : IC_1 STO_1 parserStatementListIR_inst
-  -- if parserBlockStatementIR_inst
-      = annotationList `{ parserStatementListIR_inst `}
+  IC_0 STO_0 |- parserBlockStatementIR
+              : IC_3 STO_1 parserBlockStatementIR_inst
+  -- if IC_1 = $enter_i(IC_0)
+  -- ParserBlock_inst:
+      IC_1 STO_0 |- parserBlockStatementIR
+                  : IC_2 STO_1 parserBlockStatementIR_inst
+  -- if IC_3 = $exit_i(IC_2)
 
 ;;; parserConditionalStatementIR
 ;;; syntax parserConditionalStatementIR
@@ -99,19 +84,65 @@ rule ParserStmt_inst/else:
 
 
 ;;
-;; Parser statement list instantiation
+;; Parser block statement instantiation
 ;;
-;; syntax parserStatementListIR
+
+;;
+;; syntax parserBlockElementStatementIR
+;;
+
+;;; constantDeclarationIR
+;;; variableDeclarationIR
+;;; parserStatementIR
+
+
+rule ParserBlockElementStmt_inst/constantDeclarationIR:
+  IC_0 STO_0 |- constantDeclarationIR
+              : IC_1 STO_0 constantDeclarationIR
+  -- ConstDecl_inst:
+      LOCAL IC_0 |- constantDeclarationIR : IC_1
+
+rule ParserBlockElementStmt_inst/variableDeclarationIR:
+  IC STO |- variableDeclarationIR
+          : IC STO variableDeclarationIR
+
+rule ParserBlockElementStmt_inst/parserStatementIR:
+  IC_0 STO_0 |- parserStatementIR
+              : IC_1 STO_1 parserStatementIR_inst
+  -- ParserStmt_inst: IC_0 STO_0 |- parserStatementIR
+                                  : IC_1 STO_1 parserStatementIR_inst
+
+
+;;
+;; syntax parserBlockElementStatementListIR
 ;;
 
 
-rule ParserStmts_inst/nil:
+rule ParserBlockElementStmtList_inst/nil:
   IC STO |- eps : IC STO eps
 
-rule ParserStmts_inst/cons:
-  IC_0 STO_0 |- parserStatementIR_h :: parserStatementIR_t*
-              : IC_2 STO_2 (parserStatementIR_h_inst :: parserStatementIR_t_inst*)
-  -- ParserStmt_inst: IC_0 STO_0 |- parserStatementIR_h
-                                  : IC_1 STO_1 parserStatementIR_h_inst
-  -- ParserStmts_inst: IC_1 STO_1 |- parserStatementIR_t*
-                                   : IC_2 STO_2 parserStatementIR_t_inst*
+rule ParserBlockElementStmtList_inst/cons:
+  IC_0 STO_0 |- parserBlockElementStatementIR_h :: parserBlockElementStatementIR_t*
+              : IC_2 STO_2 (parserBlockElementStatementIR_h_inst
+                            :: parserBlockElementStatementIR_t_inst*)
+  -- ParserBlockElementStmt_inst:
+      IC_0 STO_0 |- parserBlockElementStatementIR_h
+                  : IC_1 STO_1 parserBlockElementStatementIR_h_inst
+  -- ParserBlockElementStmtList_inst:
+      IC_1 STO_1 |- parserBlockElementStatementIR_t*
+                  : IC_2 STO_2 parserBlockElementStatementIR_t_inst*
+
+
+;;
+;; syntax parserBlockStatmentIR
+;;
+
+;;; syntax parserBlockStatmentIR
+;;;      = annotationList `{ parserBlockElementStatementListIR }
+
+rule ParserBlock_inst:
+  IC_0 STO_0 |- annotationList `{ parserBlockElementStatementListIR `}
+              : IC_1 STO_1 (annotationList `{ parserBlockElementStatementListIR_inst `})
+  -- ParserBlockElementStmtList_inst:
+      IC_0 STO_0 |- parserBlockElementStatementListIR
+                  : IC_1 STO_1 parserBlockElementStatementListIR_inst

@@ -7,28 +7,23 @@
 ;;; realTypeArgument
 ;;; syntax realTypeArgument
 
-;;;;  type
 
 rule TypeArgument_ok/type:
   p TC |- type : typeIR '#' typeId_impl*
   -- Type_ok: p TC |- type : typeIR '#' typeId_impl*
 
-;;;;  VOID
-
 rule TypeArgument_ok/void:
   p TC |- VOID : VOID '#' eps
-
-;;;;  '_'
 
 rule TypeArgument_ok/dontcare:
   p TC |- '_' : (_NAME typeId_impl) '#' typeId_impl
   -- if typeId_impl = $fresh_typeId()
 
-;;; nonTypeName
-
 rule TypeArgument_ok/nonTypeName:
   p TC |- nonTypeName : (_NAME typeId) '#' eps
   -- if typeId = $name(nonTypeName)
+  -- Type_wf: $bound(p, TC) |- _NAME typeId
+
 
 ;;
 ;; Type argument list typing

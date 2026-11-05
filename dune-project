@@ -69,8 +69,7 @@
   (name spectec-target-p4)
   (synopsis "P4 target for SpecTecX")
   (sites
-    (share specs)
-    (share old_specs))
+    (share specs))
   (depends
     (ocaml (>= 5.1.0))
     (menhir (and :build (>= 20240715)))

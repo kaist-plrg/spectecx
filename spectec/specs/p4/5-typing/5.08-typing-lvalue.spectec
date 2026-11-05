@@ -25,8 +25,8 @@ rule Lvalue_ok/headerStackTypeIR-next-last:
   ---- ;; check base lvaue
   -- Lvalue_ok: p TC |- lvalue_base : typedLvalueIR_base
   -- if _ '#' `( typeIR_base `) = typedLvalueIR_base
-  ---- ;; check that the lvalue is a struct
-  -- if typeIR `[ _ `] = $unroll_typeIR(typeIR_base)
+  ---- ;; check that the lvalue is a header stack
+  -- if HEADER_STACK typeIR `[ _ `] = $unroll_typeIR(typeIR_base)
   ---- ;; check that the field is "next" or "last"
   -- if nameIR = $name(member)
   -- if nameIR = "next" \/ nameIR = "last"
@@ -86,13 +86,13 @@ rule Lvalue_ok/headerUnionTypeIR:
 ;;; lvalue `[ expression ]
 
 
-rule Lvalue_ok/lctk:
+rule Lvalue_ok/array-lctk:
   p TC |- lvalue_base `[ expression_index `] : typedLvalueIR
   ---- ;; check base lvalue
   -- Lvalue_ok: p TC |- lvalue_base : typedLvalueIR_base
   -- if _ '#' `( typeIR_base `) = typedLvalueIR_base
-  ---- ;; check that the lvalue is a header stack
-  -- if typeIR `[ n_size `] = $unroll_typeIR(typeIR_base)
+  ---- ;; check that the lvalue is an array
+  -- if ARRAY typeIR `[ n_size `] = $unroll_typeIR(typeIR_base)
   ---- ;; check index expression
   -- Expr_ok: p TC |- expression_index : typedExpressionIR_index
   -- if _ '#' `( typeIR_index ctk_index `) = typedExpressionIR_index
@@ -112,13 +112,62 @@ rule Lvalue_ok/lctk:
       = (typedLvalueIR_base `[ typedExpressionIR_index_reduced `])
           '#' `( typeIR `)
 
-rule Lvalue_ok/non-lctk:
+rule Lvalue_ok/array-non-lctk:
+  p TC |- lvalue_base `[ expression_index `] : typedLvalueIR
+  ---- ;; check base lvalue
+  -- Lvalue_ok: p TC |- lvalue_base : typedLvalueIR_base
+  -- if _ '#' `( typeIR_base `) = typedLvalueIR_base
+  ---- ;; check that the lvalue is an array
+  -- if ARRAY typeIR `[ n_size `] = $unroll_typeIR(typeIR_base)
+  ---- ;; check index expression
+  -- Expr_ok: p TC |- expression_index : typedExpressionIR_index
+  -- if _ '#' `( typeIR_index ctk_index `) = typedExpressionIR_index
+  ---- ;; check that the index is compatible
+  ---- ;; while inserting implicit casts if necessary
+  -- if typedExpressionIR_index_reduced
+      = $reduce_serenum_unary(
+          typedExpressionIR_index,
+          def $compat_array_index)
+  ---- ;; if the index is not local compile-time known, no range check is done
+  -- if ctk_index =/= LCTK
+  ---- ;; create typed lvalue
+  -- if typedLvalueIR
+      = (typedLvalueIR_base `[ typedExpressionIR_index_reduced `])
+          '#' `( typeIR `)
+
+rule Lvalue_ok/headerStack-lctk:
   p TC |- lvalue_base `[ expression_index `] : typedLvalueIR
   ---- ;; check base lvalue
   -- Lvalue_ok: p TC |- lvalue_base : typedLvalueIR_base
   -- if _ '#' `( typeIR_base `) = typedLvalueIR_base
   ---- ;; check that the lvalue is a header stack
-  -- if typeIR `[ n_size `] = $unroll_typeIR(typeIR_base)
+  -- if HEADER_STACK typeIR `[ n_size `] = $unroll_typeIR(typeIR_base)
+  ---- ;; check index expression
+  -- Expr_ok: p TC |- expression_index : typedExpressionIR_index
+  -- if _ '#' `( typeIR_index ctk_index `) = typedExpressionIR_index
+  ---- ;; check that the index is compatible
+  ---- ;; while inserting implicit casts if necessary
+  -- if typedExpressionIR_index_reduced
+      = $reduce_serenum_unary(
+          typedExpressionIR_index,
+          def $compat_array_index)
+  ---- ;; if the index is local compile-time known, then it must be in range
+  -- if ctk_index = LCTK
+  -- Expr_eval_lctk: p TC |- typedExpressionIR_index_reduced ~> integerValue_index
+  -- if n_index = $nat_of_integerValue(integerValue_index)
+  -- if $(n_index < n_size)
+  ---- ;; create typed lvalue
+  -- if typedLvalueIR
+      = (typedLvalueIR_base `[ typedExpressionIR_index_reduced `])
+          '#' `( typeIR `)
+
+rule Lvalue_ok/headerStack-non-lctk:
+  p TC |- lvalue_base `[ expression_index `] : typedLvalueIR
+  ---- ;; check base lvalue
+  -- Lvalue_ok: p TC |- lvalue_base : typedLvalueIR_base
+  -- if _ '#' `( typeIR_base `) = typedLvalueIR_base
+  ---- ;; check that the lvalue is a header stack
+  -- if HEADER_STACK typeIR `[ n_size `] = $unroll_typeIR(typeIR_base)
   ---- ;; check index expression
   -- Expr_ok: p TC |- expression_index : typedExpressionIR_index
   -- if _ '#' `( typeIR_index ctk_index `) = typedExpressionIR_index
@@ -136,9 +185,10 @@ rule Lvalue_ok/non-lctk:
           '#' `( typeIR `)
 
 
-;;; lvalue `[ expression ':' expression ]
+;;; lvalue `[ expression sliceop expression ]
 
-rule Lvalue_ok/sliceAccess-range:
+
+rule Lvalue_ok/range:
   p TC |- lvalue_base `[ expression_hi ':' expression_lo `] : typedLvalueIR
   ---- ;; check base lvalue
   -- Lvalue_ok: p TC |- lvalue_base : typedLvalueIR_base
@@ -180,10 +230,8 @@ rule Lvalue_ok/sliceAccess-range:
           `[ typedExpressionIR_hi_reduced ':' typedExpressionIR_lo_reduced `])
           '#' `( typeIR `)
 
-;;; lvalue `[ expression '+': expression ]
-
-rule Lvalue_ok/sliceAccess-offset:
-  p TC |- lvalue_base `[ expression_l '+': expression_w `] : typedLvalueIR
+rule Lvalue_ok/offset:
+  p TC |- lvalue_base `[ expression_l '+:' expression_w `] : typedLvalueIR
   ---- ;; check base lvalue
   -- Lvalue_ok: p TC |- lvalue_base : typedLvalueIR_base
   -- if _ '#' `( typeIR_base `) = typedLvalueIR_base
@@ -207,7 +255,7 @@ rule Lvalue_ok/sliceAccess-offset:
       = typedExpressionIR_l_reduced
   -- if _ '#' `( typeIR_w_reduced ctk_w_reduced `)
       = typedExpressionIR_w_reduced
-  ---- ;; check that the indices are wcal compile-time known
+  ---- ;; check that the indices are local compile-time known
   -- if ctk_w_reduced = LCTK
   -- Expr_eval_lctk: p TC |- typedExpressionIR_w_reduced ~> integerValue_w
   -- if n_w = $nat_of_integerValue(integerValue_w)
@@ -215,8 +263,9 @@ rule Lvalue_ok/sliceAccess-offset:
   -- if typeIR = BIT `< n_w `>
   -- if typedLvalueIR
       = (typedLvalueIR_base
-          `[ typedExpressionIR_l_reduced '+': typedExpressionIR_w_reduced `])
+          `[ typedExpressionIR_l_reduced '+:' typedExpressionIR_w_reduced `])
           '#' `( typeIR `)
+
 
 ;;; `( lvalue )
 

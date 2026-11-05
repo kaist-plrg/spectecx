@@ -67,8 +67,12 @@ rule Type_alpha/tupleTypeIR:
   (TUPLE `< typeIR_a* `>) ~~ (TUPLE `< typeIR_b* `>)
   -- (Type_alpha: typeIR_a ~~ typeIR_b)*
 
+rule Type_alpha/arrayTypeIR:
+  (ARRAY typeIR_a `[ n_size `]) ~~ (ARRAY typeIR_b `[ n_size `])
+  -- Type_alpha: typeIR_a ~~ typeIR_b
+
 rule Type_alpha/headerStackTypeIR:
-  (typeIR_a `[ n_size `]) ~~ (typeIR_b `[ n_size `])
+  (HEADER_STACK typeIR_a `[ n_size `]) ~~ (HEADER_STACK typeIR_b `[ n_size `])
   -- Type_alpha: typeIR_a ~~ typeIR_b
 
 rule Type_alpha/structTypeIR:
@@ -99,19 +103,23 @@ rule Type_alpha/serializable:
 ;;; Object types
 
 rule Type_alpha/externObjectTypeIR:
-  (EXTERN typeId `< typeArgumentIR_a* `> _) ~~ (EXTERN typeId `< typeArgumentIR_b* `> _)
+  (EXTERN typeId `< typeArgumentIR_a* `> _)
+  ~~ (EXTERN typeId `< typeArgumentIR_b* `> _)
   -- (Type_alpha: typeArgumentIR_a ~~ typeArgumentIR_b)*
 
 rule Type_alpha/parserObjectTypeIR:
-  (PARSER _ `< _ `> `( parameterIR_a* `)) ~~ (PARSER _ `< _ `> `( parameterIR_b* `))
+  (PARSER _ `< _ `> `( parameterIR_a* `))
+  ~~ (PARSER _ `< _ `> `( parameterIR_b* `))
   -- (ParameterType_alpha: parameterIR_a ~~ parameterIR_b)*
 
 rule Type_alpha/controlObjectTypeIR:
-  (CONTROL _ `< _ `> `( parameterIR_a* `)) ~~ (CONTROL _ `< _ `> `( parameterIR_b* `))
+  (CONTROL _ `< _ `> `( parameterIR_a* `))
+  ~~ (CONTROL _ `< _ `> `( parameterIR_b* `))
   -- (ParameterType_alpha: parameterIR_a ~~ parameterIR_b)*
 
-rule Type_alpha/packetObjectTypeIR:
-  (PACKAGE _ `< _ `> `{ typeIR_a* `}) ~~ (PACKAGE _ `< _ `> `{ typeIR_b* `})
+rule Type_alpha/packageObjectTypeIR:
+  (PACKAGE _ `< _ `> `{ typeIR_a* `})
+  ~~ (PACKAGE _ `< _ `> `{ typeIR_b* `})
   -- (Type_alpha: typeIR_a ~~ typeIR_b)*
 
 rule Type_alpha/tableObjectTypeIR:
@@ -170,15 +178,13 @@ rule ParameterType_alpha:
 rule ExternMethodType_alpha/non-abstract:
   (EXTERN_METHOD nameIR `( parameterIR_a* `) ':' typeIR_a)
   ~~ (EXTERN_METHOD nameIR `( parameterIR_b* `) ':' typeIR_b)
-  -- (ParameterType_alpha:
-        parameterIR_a ~~ parameterIR_b)*
+  -- (ParameterType_alpha: parameterIR_a ~~ parameterIR_b)*
   -- Type_alpha: typeIR_a ~~ typeIR_b
 
 rule ExternMethodType_alpha/abstract:
   (EXTERN_METHOD ABSTRACT nameIR `( parameterIR_a* `) ':' typeIR_a)
   ~~ (EXTERN_METHOD ABSTRACT nameIR `( parameterIR_b* `) ':' typeIR_b)
-  -- (ParameterType_alpha:
-        parameterIR_a ~~ parameterIR_b)*
+  -- (ParameterType_alpha: parameterIR_a ~~ parameterIR_b)*
   -- Type_alpha: typeIR_a ~~ typeIR_b
 
 

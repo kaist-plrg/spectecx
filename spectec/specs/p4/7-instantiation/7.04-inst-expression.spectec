@@ -160,7 +160,7 @@ rule Expr_inst/default:
 rule Expr_inst/errorAccessExpressionIR:
   p IC STO |- (ERROR '.' nameIR) '#' _ : STO value_error
   -- if nameIR_error = "error." ++ nameIR
-  -- if value_error = $find_var_i(_NAME nameIR_error, p, IC)
+  -- if value_error = $find_var_i(_BARE nameIR_error, p, IC)
 
 ;;;;; memberAccessExpressionIR
 ;;;;; syntax memberAccessExpressionIR = memberAccessBaseIR '.' nameIR
@@ -172,14 +172,17 @@ rule Expr_inst/errorAccessExpressionIR:
 rule Expr_inst/enum:
   p IC STO |- ((TYPE prefixedNameIR) '.' nameIR) '#' _
           : STO (typeId '.' nameIR)
-  -- if ENUM typeId `{ _ `}
-      = $find_typeDef_i(p, IC, prefixedNameIR)
+  -- if typeDefIR_base = $find_typeDef_i(p, IC, prefixedNameIR)
+  -- if typeIR_base = $typeIR_of_typeDefIR(typeDefIR_base)
+  -- if ENUM typeId `{ _ `} = $unroll_typeIR(typeIR_base)
 
 rule Expr_inst/serenum:
   p IC STO |- ((TYPE prefixedNameIR) '.' nameIR) '#' _
           : STO (typeId '.' nameIR '.' value)
+  -- if typeDefIR_base = $find_typeDef_i(p, IC, prefixedNameIR)
+  -- if typeIR_base = $typeIR_of_typeDefIR(typeDefIR_base)
   -- if ENUM typeId `< _ `> `{ (id_member '=' value_member ';')* `}
-      = $find_typeDef_i(p, IC, prefixedNameIR)
+      = $unroll_typeIR(typeIR_base)
   -- if value = $assoc_<nameIR, value>(nameIR, (id_member, value_member)*)
 
 
@@ -188,9 +191,9 @@ rule Expr_inst/serenum:
 
 rule Expr_inst/header-stack-size:
   p IC STO |- (typedExpressionIR_base '.' nameIR) '#' _
-            : STO (D n_size)
+            : STO (32 W n_size)
   -- if typeIR_base = $type_of_typedExpressionIR(typedExpressionIR_base)
-  -- if _ `[ n_size `] = $unroll_typeIR(typeIR_base)
+  -- if HEADER_STACK _ `[ n_size `] = $unroll_typeIR(typeIR_base)
   -- if nameIR = "size"
 
 rule Expr_inst/struct:
@@ -230,12 +233,22 @@ rule Expr_inst/tuple:
   -- if $(n_index < |value_e*|)
   -- if value = value_e*[n_index]
 
-rule Expr_inst/indexAccessExpressionIR-stack:
+rule Expr_inst/array:
   p IC STO_0 |- (typedExpressionIR_base `[ typedExpressionIR_index `]) '#' _
               : STO_2 value
   -- Expr_inst: p IC STO_0 |- typedExpressionIR_base : STO_1 value_base
   -- Expr_inst: p IC STO_1 |- typedExpressionIR_index : STO_2 integerValue_index
-  -- if HEADER_STACK `[ value_e* `( _ ';' _ `) `] = value_base
+  -- if ARRAY `[ value_e* `] = value_base
+  -- if n_index = $nat_of_integerValue(integerValue_index)
+  -- if $(n_index < |value_e*|)
+  -- if value = value_e*[n_index]
+
+rule Expr_inst/stack:
+  p IC STO_0 |- (typedExpressionIR_base `[ typedExpressionIR_index `]) '#' _
+              : STO_2 value
+  -- Expr_inst: p IC STO_0 |- typedExpressionIR_base : STO_1 value_base
+  -- Expr_inst: p IC STO_1 |- typedExpressionIR_index : STO_2 integerValue_index
+  -- if HEADER_STACK `[ value_e* `( _ `) `] = value_base
   -- if n_index = $nat_of_integerValue(integerValue_index)
   -- if $(n_index < |value_e*|)
   -- if value = value_e*[n_index]
@@ -244,7 +257,7 @@ rule Expr_inst/indexAccessExpressionIR-stack:
 ;;;;; sliceAccessExpressionIR
 ;;;;; syntax sliceAccessExpressionIR =
 ;;;;;; typedExpressionIR `[ typedExpressionIR ':' typedExpressionIR ]
-;;;;;; typedExpressionIR `[ typedExpressionIR '+': typedExpressionIR ]
+;;;;;; typedExpressionIR `[ typedExpressionIR '+:' typedExpressionIR ]
 
 
 rule Expr_inst/range:
@@ -255,7 +268,7 @@ rule Expr_inst/range:
   -- Expr_inst: p IC STO_2 |- typedExpressionIR_lo : STO_3 value_lo
 
 rule Expr_inst/offset:
-  p IC STO_0 |- (typedExpressionIR_base `[ typedExpressionIR_l ':' typedExpressionIR_w `]) '#' _
+  p IC STO_0 |- (typedExpressionIR_base `[ typedExpressionIR_l '+:' typedExpressionIR_w `]) '#' _
               : STO_3 $bitacc_offset_op(value_base, value_l, value_w)
   -- Expr_inst: p IC STO_0 |- typedExpressionIR_base : STO_1 value_base
   -- Expr_inst: p IC STO_1 |- typedExpressionIR_l : STO_2 value_l
@@ -354,3 +367,4 @@ rule Exprs_inst/cons:
               : STO_2 (value_h :: value_t*)
   -- Expr_inst: p IC STO_0 |- typedExpressionIR_h : STO_1 value_h
   -- Exprs_inst: p IC STO_1 |- typedExpressionIR_t* : STO_2 value_t*
+

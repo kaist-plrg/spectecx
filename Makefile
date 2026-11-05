@@ -79,7 +79,7 @@ vsix:
 
 # Tests
 #
-# Individual tests (run against the new p4 spec by default):
+# Individual tests:
 #   make test-lang       - Shared language operations
 #   make test-elab       - Elaboration test (both p4 and p4-old)
 #   make test-struct     - Structuring test (both p4 and p4-old)
@@ -95,10 +95,6 @@ vsix:
 #   make test-pl-pos     - PL interpreter positive tests (slow)
 #   make test-pl-neg     - PL interpreter negative tests
 #
-# p4-old interpreter tests:
-#   make test-il-pos-old / test-il-neg-old / test-sl-pos-old / test-sl-neg-old
-#   make test-pl-pos-old / test-pl-neg-old
-#
 # Relation and per-case interpreter tests:
 #   make test-interp-relation - Relation tests across IL/SL/PL
 #   make test-interp-neg      - Per-case impty IL negative tests
@@ -110,14 +106,10 @@ vsix:
 #
 # Grouped tests:
 #   make test-quick      - Fast tests, including P4 instantiation across IL/SL/PL
-#   make test-interp     - Current-target interpreter tests, including P4 instantiation
-#   make test-il         - IL tests for new p4 (pos + neg)
-#   make test-sl         - SL tests for new p4 (pos + neg)
-#   make test-pl         - PL tests for new p4 (pos + neg)
-#   make test-il-old     - IL tests for p4-old (pos + neg)
-#   make test-sl-old     - SL tests for p4-old (pos + neg)
-#   make test-pl-old     - PL tests for p4-old (pos + neg)
-#   make test-old        - All p4-old interpreter tests
+#   make test-interp     - Interpreter tests for p4, impty, and Mini-ML, including P4 instantiation
+#   make test-il         - IL tests for p4 (pos + neg)
+#   make test-sl         - SL tests for p4 (pos + neg)
+#   make test-pl         - PL tests for p4 (pos + neg)
 #
 # impty interpreter tests (per-variant: base, closure):
 #   make test-impty-<v>-il-pos / -il-neg / -sl-pos / -sl-neg
@@ -136,9 +128,6 @@ vsix:
 .PHONY: test-il test-il-pos test-il-neg
 .PHONY: test-sl test-sl-pos test-sl-neg
 .PHONY: test-pl test-pl-pos test-pl-neg
-.PHONY: test-old test-il-old test-il-pos-old test-il-neg-old
-.PHONY: test-sl-old test-sl-pos-old test-sl-neg-old
-.PHONY: test-pl-old test-pl-pos-old test-pl-neg-old
 .PHONY: test-impty test-impty-base test-impty-closure
 .PHONY: test-impty-base-il test-impty-base-sl test-impty-base-pl
 .PHONY: test-impty-closure-il test-impty-closure-sl test-impty-closure-pl
@@ -213,8 +202,8 @@ test-package:
 	@echo "#### Running package ownership and plugin discovery tests"
 	@$(DUNE) build --promote-install-files=false @test/package/runtest --profile=release && echo OK
 
-# $(1): target prefix (p4 / p4-old)
-# $(2): il / sl
+# $(1): target prefix, such as p4 or impty-base
+# $(2): il / sl / pl
 # $(3): pos / neg
 define run_interp_test
 	@echo "#### Running $(2) interpreter $(3) tests ($(1))"
@@ -241,24 +230,6 @@ test-pl-pos:
 test-pl-neg:
 	$(call run_interp_test,p4,pl,neg)
 
-test-il-pos-old:
-	$(call run_interp_test,p4-old,il,pos)
-
-test-il-neg-old:
-	$(call run_interp_test,p4-old,il,neg)
-
-test-sl-pos-old:
-	$(call run_interp_test,p4-old,sl,pos)
-
-test-sl-neg-old:
-	$(call run_interp_test,p4-old,sl,neg)
-
-test-pl-pos-old:
-	$(call run_interp_test,p4-old,pl,pos)
-
-test-pl-neg-old:
-	$(call run_interp_test,p4-old,pl,neg)
-
 test-quick: test-context test-lang test-elab test-elab-neg test-interp-relation test-interp-neg test-cli test-launcher test-lsp test-struct test-annotate test-roundtrip-il test-roundtrip-el test-impty test-miniml test-parsegen test-package
 	@$(DUNE) build @test/interp/p4/runtest --profile=release
 	@echo "#### Quick tests passed"
@@ -275,18 +246,6 @@ test-sl: test-sl-pos test-sl-neg
 
 test-pl: test-pl-pos test-pl-neg
 	@echo "#### PL tests passed"
-
-test-il-old: test-il-pos-old test-il-neg-old
-	@echo "#### IL (p4-old) tests passed"
-
-test-sl-old: test-sl-pos-old test-sl-neg-old
-	@echo "#### SL (p4-old) tests passed"
-
-test-pl-old: test-pl-pos-old test-pl-neg-old
-	@echo "#### PL (p4-old) tests passed"
-
-test-old: test-il-old test-sl-old test-pl-old
-	@echo "#### p4-old interpreter tests passed"
 
 test-impty-base-il-pos:
 	$(call run_interp_test,impty-base,il,pos)

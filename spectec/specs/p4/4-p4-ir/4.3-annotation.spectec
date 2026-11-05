@@ -4,103 +4,9 @@
 
 ;;; Name annotation helpers
 
-dec $name_annotationToken(annotationToken) : nameIR
-
 dec $name_annotation(annotationList) : nameIR*
 dec $name_annotation_opt(annotation) : nameIR?
 dec $name_annotation_default(annotationList, nameIR) : nameIR
-
-def $name_annotationToken(_ID text) = text
-def $name_annotationToken(_TID text) = text
-def $name_annotationToken('"' text '"') = "\"" ++ text ++ "\""
-def $name_annotationToken(D i) = $int_to_text(i)
-def $name_annotationToken(n W i) = $int_to_text(n) ++ "w" ++ $int_to_text(i)
-def $name_annotationToken(n S i) = $int_to_text(n) ++ "s" ++ $int_to_text(i)
-def $name_annotationToken(UNEXPECTED_TOKEN) = "unexpected_token"
-def $name_annotationToken(ABSTRACT) = "abstract"
-def $name_annotationToken(ACTION) = "action"
-def $name_annotationToken(ACTIONS) = "actions"
-def $name_annotationToken(APPLY) = "apply"
-def $name_annotationToken(BOOL) = "bool"
-def $name_annotationToken(BIT) = "bit"
-def $name_annotationToken(BREAK) = "break"
-def $name_annotationToken(CONST) = "const"
-def $name_annotationToken(CONTINUE) = "continue"
-def $name_annotationToken(CONTROL) = "control"
-def $name_annotationToken(DEFAULT) = "default"
-def $name_annotationToken(ELSE) = "else"
-def $name_annotationToken(ENTRIES) = "entries"
-def $name_annotationToken(ENUM) = "enum"
-def $name_annotationToken(ERROR) = "error"
-def $name_annotationToken(EXIT) = "exit"
-def $name_annotationToken(EXTERN) = "extern"
-def $name_annotationToken(FALSE) = "false"
-def $name_annotationToken(FOR) = "for"
-def $name_annotationToken(HEADER) = "header"
-def $name_annotationToken(HEADER_UNION) = "header_union"
-def $name_annotationToken(IF) = "if"
-def $name_annotationToken(IN) = "in"
-def $name_annotationToken(INOUT) = "inout"
-def $name_annotationToken(INT) = "int"
-def $name_annotationToken(KEY) = "key"
-def $name_annotationToken(MATCH_KIND) = "match_kind"
-def $name_annotationToken(TYPE) = "type"
-def $name_annotationToken(OUT) = "out"
-def $name_annotationToken(PARSER) = "parser"
-def $name_annotationToken(PACKAGE) = "package"
-def $name_annotationToken(PRAGMA) = "pragma"
-def $name_annotationToken(RETURN) = "return"
-def $name_annotationToken(SELECT) = "select"
-def $name_annotationToken(STATE) = "state"
-def $name_annotationToken(STRING) = "string"
-def $name_annotationToken(STRUCT) = "struct"
-def $name_annotationToken(SWITCH) = "switch"
-def $name_annotationToken(TABLE) = "table"
-def $name_annotationToken(THIS) = "this"
-def $name_annotationToken(TRANSITION) = "transition"
-def $name_annotationToken(TRUE) = "true"
-def $name_annotationToken(TUPLE) = "tuple"
-def $name_annotationToken(TYPEDEF) = "typedef"
-def $name_annotationToken(VARBIT) = "varbit"
-def $name_annotationToken(VALUE_SET) = "value_set"
-def $name_annotationToken(LIST) = "list"
-def $name_annotationToken(VOID) = "void"
-def $name_annotationToken('_') = "_"
-def $name_annotationToken('&&&') = "&&&"
-def $name_annotationToken('..') = ".."
-def $name_annotationToken('<<') = "<<"
-def $name_annotationToken('&&') = "&&"
-def $name_annotationToken('||') = "||"
-def $name_annotationToken('==') = "=="
-def $name_annotationToken('!=') = "!="
-def $name_annotationToken('>=') = ">="
-def $name_annotationToken('<=') = "<="
-def $name_annotationToken('++') = "++"
-def $name_annotationToken('+') = "+"
-def $name_annotationToken('|+|') = "|+|"
-def $name_annotationToken('-') = "-"
-def $name_annotationToken('|-|') = "|-|"
-def $name_annotationToken('*') = "*"
-def $name_annotationToken('/') = "/"
-def $name_annotationToken('%') = "%"
-def $name_annotationToken('|') = "|"
-def $name_annotationToken('&') = "&"
-def $name_annotationToken('^') = "^"
-def $name_annotationToken('~') = "~"
-def $name_annotationToken('[') = "["
-def $name_annotationToken(']') = "]"
-def $name_annotationToken('{') = "{"
-def $name_annotationToken('}') = "}"
-def $name_annotationToken('<') = "<"
-def $name_annotationToken('>') = ">"
-def $name_annotationToken('!') = "!"
-def $name_annotationToken(':') = ":"
-def $name_annotationToken(',') = ","
-def $name_annotationToken('?') = "?"
-def $name_annotationToken('.') = "."
-def $name_annotationToken('=') = "="
-def $name_annotationToken(';') = ";"
-def $name_annotationToken('@') = "@"
 
 def $name_annotation(annotationList)
   = $concat_<nameIR>(nameIR_found**)
@@ -109,11 +15,10 @@ def $name_annotation(annotationList)
   -- if nameIR_found**
       = $opt_as_seq_<nameIR>(nameIR_opt?)*
 
-def $name_annotation_opt('@' name `( annotationBody `))
-  = $strip_prefix($strip_suffix(nameIR, "\""), "\"")
+def $name_annotation_opt('@' name `( annotationBody `)) = text
   -- if "name" = $name(name)
   -- if _EMPTY annotationToken = annotationBody
-  -- if nameIR = $name_annotationToken(annotationToken)
+  -- if '"' text '"' = annotationToken
 def $name_annotation_opt(annotation) = eps
   -- otherwise
 
@@ -121,6 +26,14 @@ def $name_annotation_default(annotationList, nameIR) = nameIR_found
   -- if nameIR_found = $name_annotation(annotationList)
 def $name_annotation_default(annotationList, nameIR) = nameIR
   -- if eps = $name_annotation(annotationList)
+
+;;; Checking name annotation multiplicity
+
+dec $has_at_most_one_name_annotation(annotationList) : bool
+  hint(prose_true %0 "has at most one name annotation")
+  hint(prose_false %0 "has more than one name annotation")
+def $has_at_most_one_name_annotation(annotationList)
+  = $(|$name_annotation(annotationList)| <= 1)
 
 ;;; Finding name annotation
 

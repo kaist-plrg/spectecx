@@ -158,7 +158,7 @@ rule Expr_eval_lctk/default:
 rule Expr_eval_lctk/errorAccessExpressionIR:
   p TC |- (ERROR '.' nameIR) '#' `( _ _ `) ~> value_error
   -- if nameIR_error = "error." ++ nameIR
-  -- if value_error = $find_var_value_t(_NAME nameIR_error, p, TC)
+  -- if value_error = $find_var_value_t(_BARE nameIR_error, p, TC)
 
 ;;;;; memberAccessExpressionIR
 ;;;;; syntax memberAccessExpressionIR = memberAccessBaseIR '.' nameIR
@@ -193,9 +193,9 @@ rule Expr_eval_lctk/serenum:
 
 rule Expr_eval_lctk/header-stack-size:
   p TC |- (typedExpressionIR_base '.' nameIR) '#' _
-       ~> D n_size
+       ~> 32 W n_size
   -- if typeIR_base = $type_of_typedExpressionIR(typedExpressionIR_base)
-  -- if _ `[ n_size `] = $unroll_typeIR(typeIR_base)
+  -- if HEADER_STACK _ `[ n_size `] = $unroll_typeIR(typeIR_base)
   -- if nameIR = "size"
 
 rule Expr_eval_lctk/struct:
@@ -235,12 +235,22 @@ rule Expr_eval_lctk/tuple:
   -- if $(n_index < |value_e*|)
   -- if value = value_e*[n_index]
 
-rule Expr_eval_lctk/indexAccessExpressionIR-stack:
+rule Expr_eval_lctk/array:
   p TC |- (typedExpressionIR_base `[ typedExpressionIR_index `]) '#' _
        ~> value
   -- Expr_eval_lctk: p TC |- typedExpressionIR_base ~> value_base
   -- Expr_eval_lctk: p TC |- typedExpressionIR_index ~> integerValue_index
-  -- if HEADER_STACK `[ value_e* `( _ ';' _ `) `] = value_base
+  -- if ARRAY `[ value_e* `] = value_base
+  -- if n_index = $nat_of_integerValue(integerValue_index)
+  -- if $(n_index < |value_e*|)
+  -- if value = value_e*[n_index]
+
+rule Expr_eval_lctk/stack:
+  p TC |- (typedExpressionIR_base `[ typedExpressionIR_index `]) '#' _
+       ~> value
+  -- Expr_eval_lctk: p TC |- typedExpressionIR_base ~> value_base
+  -- Expr_eval_lctk: p TC |- typedExpressionIR_index ~> integerValue_index
+  -- if HEADER_STACK `[ value_e* `( _ `) `] = value_base
   -- if n_index = $nat_of_integerValue(integerValue_index)
   -- if $(n_index < |value_e*|)
   -- if value = value_e*[n_index]
@@ -249,7 +259,7 @@ rule Expr_eval_lctk/indexAccessExpressionIR-stack:
 ;;;;; sliceAccessExpressionIR
 ;;;;; syntax sliceAccessExpressionIR =
 ;;;;;;  typedExpressionIR `[ typedExpressionIR ':' typedExpressionIR ]
-;;;;;;  typedExpressionIR `[ typedExpressionIR '+': typedExpressionIR ]
+;;;;;;  typedExpressionIR `[ typedExpressionIR '+:' typedExpressionIR ]
 
 
 rule Expr_eval_lctk/range:
@@ -260,7 +270,7 @@ rule Expr_eval_lctk/range:
   -- Expr_eval_lctk: p TC |- typedExpressionIR_lo ~> value_lo
 
 rule Expr_eval_lctk/offset:
-  p TC |- (typedExpressionIR_base `[ typedExpressionIR_l '+': typedExpressionIR_w `]) '#' _
+  p TC |- (typedExpressionIR_base `[ typedExpressionIR_l '+:' typedExpressionIR_w `]) '#' _
        ~> $bitacc_offset_op(value_base, value_l, value_w)
   -- Expr_eval_lctk: p TC |- typedExpressionIR_base ~> value_base
   -- Expr_eval_lctk: p TC |- typedExpressionIR_l ~> value_l
@@ -297,7 +307,7 @@ rule Expr_eval_lctk/static_assert:
   ---- ;; create callee context
   -- if TC_callee_0 = $empty_typingContext
   ---- ;; align parameters with arguments
-  -- if GIVEN parameterIR_aligned* DEFAULT eps
+  -- if GIVEN parameterIR_aligned* DEFAULT eps OPTIONAL _
       = $align_parameterListIR(parameterIR*, argumentIR*, id_default*, id_optional*)
   ---- ;; evaluate arguments
   -- (Argument_eval_lctk: p TC |- argumentIR ~> value_argument)*
@@ -363,18 +373,16 @@ rule Expr_eval_lctk/parenthesizedExpressionIR:
 ;; syntax argumentIR
 ;;
 
-;;; typedExpressionIR
+
 
 rule Argument_eval_lctk/typedExpressionIR:
   p TC |- typedExpressionIR ~> value
   -- Expr_eval_lctk: p TC |- typedExpressionIR ~> value
 
-;;; nameIR '=' typedExpressionIR
-
 rule Argument_eval_lctk/namedArgumentIR:
   p TC |- nameIR '=' typedExpressionIR ~> value
   -- Expr_eval_lctk: p TC |- typedExpressionIR ~> value
 
-;;; nameIR '=' '_'
-;;; '_'
+
+;;; nameIR '=' '_' and '_'
 ;;; don't care arguments are not evaluated statically

@@ -2,22 +2,21 @@
 ;; Parser state typing
 ;;
 ;; syntax parserState =
-;;   annotationList STATE name `{ parserStatementList transitionStatement }
+;;   annotationList STATE name `{ parserBlockElementStatementList transitionStatement }
 ;;
 
 rule ParserState_ok:
   TC_0 nameIR_state* |- parserState : parserStateIR
   -- if annotationList STATE name
-          `{ parserStatementList transitionStatement `}
+          `{ parserBlockElementStatementList transitionStatement `}
       = parserState
   ----
   -- if nameIR = $name(name)
   ---- ;; enter block scope
   -- if TC_1 = $enter_t(TC_0)
   ---- ;; check parser statements
-  -- if parserStatement*
-      = $flatten_parserStatementList(parserStatementList)
-  -- ParserStmts_ok: TC_1 |- parserStatement* : TC_2 parserStatementIR*
+  -- ParserBlockElementStmtList_ok:
+      TC_1 |- parserBlockElementStatementList : TC_2 parserBlockElementStatementIR*
   ---- ;; check transition statement
   -- ParserTransition_ok: TC_2 nameIR_state* |- transitionStatement
                                               : transitionStatementIR
@@ -25,7 +24,7 @@ rule ParserState_ok:
   -- if TC_3 = $exit_t(TC_2)
   ---- ;; create IR
   -- if parserStateIR
-      = annotationList STATE nameIR `{ parserStatementIR* transitionStatementIR `}
+      = annotationList STATE nameIR `{ parserBlockElementStatementIR* transitionStatementIR `}
 
 ;;
 ;; Parser state list typing

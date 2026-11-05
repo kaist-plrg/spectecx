@@ -129,3 +129,4 @@ rule ControlLocalDecls_inst/cons-some:
   -- ControlLocalDecls_inst:
       IC_1 STO_1 |- controlLocalDeclarationIR_t*
                   : IC_2 STO_2 controlLocalDeclarationIR_t_inst*
+

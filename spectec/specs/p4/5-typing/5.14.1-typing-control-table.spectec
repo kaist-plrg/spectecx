@@ -13,8 +13,10 @@ def $compat_table_exact_optional_key(TYPE _ typeIR) = $compat_table_exact_option
 def $compat_table_exact_optional_key(ENUM _ `{ _ `}) = true
 def $compat_table_exact_optional_key(ENUM _ `< typeIR `> `{ _ `}) = $compat_table_exact_optional_key(typeIR)
 def $compat_table_exact_optional_key(_) = false
+  -- otherwise
 
 dec $compat_table_lpm_ternary_range_key(typeIR) : bool
+def $compat_table_lpm_ternary_range_key(BOOL) = true
 def $compat_table_lpm_ternary_range_key(INT) = true
 def $compat_table_lpm_ternary_range_key(INT `< _ `>) = true
 def $compat_table_lpm_ternary_range_key(BIT `< _ `>) = true
@@ -22,6 +24,7 @@ def $compat_table_lpm_ternary_range_key(TYPEDEF _ typeIR) = $compat_table_lpm_te
 def $compat_table_lpm_ternary_range_key(TYPE _ typeIR) = $compat_table_lpm_ternary_range_key(typeIR)
 def $compat_table_lpm_ternary_range_key(ENUM _ `< typeIR `> `{ _ `}) = $compat_table_lpm_ternary_range_key(typeIR)
 def $compat_table_lpm_ternary_range_key(_) = false
+  -- otherwise
 
 dec $compat_table_key(nameIR, typeIR) : bool
   hint(prose_true %1 "can be used with match kind" %0)
@@ -42,6 +45,10 @@ def $compat_table_key(nameIR, typeIR) = false
 ;;; serving as the fallback when no @name annotation is provided.
 ;;; The result need not be valid P4 source -- only a deterministic
 ;;; readable identifier derived from the expression's structure.
+
+dec $name_sliceop(sliceop) : nameIR
+def $name_sliceop(':') = ":"
+def $name_sliceop('+:') = "+:"
 
 dec $name_expression(expression) : nameIR
 
@@ -68,14 +75,10 @@ def $name_expression(expression '.' member)
 def $name_expression(expression_base `[ expression_index `])
   = $name_expression(expression_base)
     ++ "[" ++ $name_expression(expression_index) ++ "]"
-def $name_expression(expression_base `[ expression_hi ':' expression_lo `])
+def $name_expression(expression_base `[ expression_l sliceop expression_r `])
   = $name_expression(expression_base) ++ "["
-    ++ $name_expression(expression_hi) ++ ":"
-    ++ $name_expression(expression_lo) ++ "]"
-def $name_expression(expression_base `[ expression_l '+': expression_w `])
-  = $name_expression(expression_base) ++ "["
-    ++ $name_expression(expression_l) ++ "+:"
-    ++ $name_expression(expression_w) ++ "]"
+    ++ $name_expression(expression_l) ++ $name_sliceop(sliceop)
+    ++ $name_expression(expression_r) ++ "]"
 
 ;; parenthesized expression
 def $name_expression(`( expression `)) = "(" ++ $name_expression(expression) ++ ")"
@@ -101,7 +104,7 @@ rule TableKey_ok:
   ---- ;; check match kind
   -- if nameIR_matchkind = $name(name_matchkind)
   -- if MATCH_KIND '.' nameIR_matchkind
-      = $find_var_value_t(_NAME nameIR_matchkind, LOCAL, TC)
+      = $find_var_value_t(_BARE nameIR_matchkind, LOCAL, TC)
   ---- ;; check compatibility with the match kind
   -- if $compat_table_key(nameIR_matchkind, typeIR)
   ---- ;; update table context
@@ -326,6 +329,9 @@ relation TableEntry_keyset_simple_ok:
   typingContext tableContext |- matchKey '@' simpleKeysetExpression
                               : tableEntryState simpleKeysetExpressionIR
   hint(input %0 %1 %2 %3)
+  hint(prose_in "typing" %2 "against" %3 "under context"
+                %0 "and table context" %1)
+  hint(prose_out "table entry state" %4 "and" %5)
 
 ;;;;;; expression
 
@@ -354,7 +360,7 @@ rule TableEntry_keyset_simple_ok/lpm:
   -- if typeIR = $type_of_typedExpressionIR(typedExpressionIR)
   -- if ctk = $ctk_of_typedExpressionIR(typedExpressionIR)
   ---- ;; check compatibility with the key type
-  -- Cast_impl: typeIR -> typeIR_key
+  -- Cast_impl: typeIR -> typeIR_key : OK _
   ---- ;; lift the expression to set type
   -- if typeIR_set = SET `< typeIR_key `>
   -- if typedExpressionIR_set
@@ -373,7 +379,7 @@ rule TableEntry_keyset_simple_ok/non-lpm-singleton-seq:
   -- if typeIR = $type_of_typedExpressionIR(typedExpressionIR)
   -- if ctk = $ctk_of_typedExpressionIR(typedExpressionIR)
   ---- ;; check compatibility with the key type
-  -- Cast_impl: typeIR -> typeIR_key
+  -- Cast_impl: typeIR -> typeIR_key : OK _
   ---- ;; lift the expression to set type
   -- if typeIR_set = SET `< typeIR_key `>
   -- if typedExpressionIR_set
@@ -391,7 +397,7 @@ rule TableEntry_keyset_simple_ok/non-lpm-non-singleton-seq:
   -- if typeIR = $type_of_typedExpressionIR(typedExpressionIR)
   -- if ctk = $ctk_of_typedExpressionIR(typedExpressionIR)
   ---- ;; check compatibility with the key type
-  -- Cast_impl: typeIR -> typeIR_key
+  -- Cast_impl: typeIR -> typeIR_key : OK _
   ---- ;; lift the expression to set type
   -- if typeIR_set = SET `< typeIR_key `>
   -- if typedExpressionIR_set
@@ -515,6 +521,9 @@ relation TableEntry_keysets_simple_ok:
   |- matchKey* '@' simpleKeysetExpression*
    : tableEntryState simpleKeysetExpressionIR*
   hint(input %0 %1 %2 %3 %4)
+  hint(prose_in "typing" %3 "against" %4 "under context"
+                %0#", table context" %1#", and table entry state" %2)
+  hint(prose_out "table entry state" %5 "and" %6)
 
 
 rule TableEntry_keysets_simple_ok/nil:
@@ -653,7 +662,7 @@ rule TableEntry_keyset_ok/tuple-non-noprilpm:
 
 ;;;;; `( simpleKeysetExpression ',' simpleKeysetExpressionList )
 
-rule TableEntry_keyset_ok/list:
+rule TableEntry_keyset_ok/tuple:
   TC TBLC |- `( simpleKeysetExpression_h ',' simpleKeysetExpressionList_t `)
            : TBLS (`( simpleKeysetExpressionIR* `))
   ---- ;; check arity
@@ -714,12 +723,12 @@ rule TableEntry_action_ok/prefixedNonTypeName-argumentList:
 ;;
 
 ;;;;; PRIORITY '=' number ':'
+;;;;; PRIORITY '=' `( expression ) ':'
+
 
 rule TableEntry_priority_ok/number:
   TC |- PRIORITY '=' integerLiteral ':'
       : PRIORITY '=' integerLiteral ':'
-
-;;;;; PRIORITY '=' `( expression ) ':'
 
 rule TableEntry_priority_ok/expression:
   TC |- PRIORITY '=' `( expression `) ':'
@@ -728,6 +737,7 @@ rule TableEntry_priority_ok/expression:
   -- if LCTK = $ctk_of_typedExpressionIR(typedExpressionIR)
   -- Expr_eval_lctk: LOCAL TC |- typedExpressionIR ~> integerValue
   -- if n = $nat_of_integerValue(integerValue)
+
 
 ;;; constOpt tableEntryPriority
 ;;;   keysetExpression ':' tableActionReference annotationList ';'
@@ -891,6 +901,7 @@ rule TableProperty_ok/size:
   -- if typeIR_unroll = $unroll_typeIR(typeIR)
   -- if (typeIR_unroll <: integerTypeIR)
         /\ ~(typeIR_unroll <: varBitTypeIR)
+  -- if DYN =/= $ctk_of_typedExpressionIR(typedExpressionIR)
   ---- ;; create IR
   -- if constOptIR = $flatten_constOpt(constOpt)
   -- if tablePropertyIR
@@ -955,6 +966,12 @@ def $is_tableDefaultActionProperty(_ _ tableCustomName _ ';') = true
 def $is_tableDefaultActionProperty(_) = false
   -- otherwise
 
+dec $is_tableLargestPriorityWinsProperty(tableProperty) : bool
+def $is_tableLargestPriorityWinsProperty(_ _ tableCustomName _ ';') = true
+  -- if "largest_priority_wins" = $tableCustomName(tableCustomName)
+def $is_tableLargestPriorityWinsProperty(_) = false
+  -- otherwise
+
 dec $insert_NoAction_tablePropertyIR(
     tableContext,
     tablePropertyIR*)
@@ -1007,12 +1024,17 @@ rule Table_ok/zero-default-action:
   ---- ;; check that the table no default action property
   -- if |$filter_<tableProperty>(
           tableProperty*, $is_tableDefaultActionProperty(tableProperty)*)| = 0
+  ---- ;; check that the table has at most one largest_priority_wins property
+  -- if $(|$filter_<tableProperty>(
+            tableProperty*, $is_tableLargestPriorityWinsProperty(tableProperty)*)| <= 1)
   ---- ;; check table properties
   -- if TBLC_0 = $empty_tableContext
   -- TableProperties_ok: TC TBLC_0 |- tableProperty* : TBLC_1 tablePropertyIR*
   ---- ;; insert NoAction as default_action
+  -- if (_, _ ACTION _ `( eps `))
+      = $find_callableDef_non_overloaded_t(LOCAL, TC, '.' "NoAction")
   -- if tablePropertyIR_default_action
-      = _EMPTY eps DEFAULT_ACTION '=' ((_NAME "NoAction") eps `( eps `)) ';'
+      = _EMPTY eps DEFAULT_ACTION '=' ((_BARE "NoAction") eps `( eps `)) ';'
   -- if (TBLC_2, tablePropertyIR_updated*)
       = $insert_NoAction_tablePropertyIR(TBLC_1, tablePropertyIR*)
 
@@ -1027,6 +1049,9 @@ rule Table_ok/one-default-action:
   ---- ;; check that the table has one default action property
   -- if |$filter_<tableProperty>(
           tableProperty*, $is_tableDefaultActionProperty(tableProperty)*)| = 1
+  ---- ;; check that the table has at most one largest_priority_wins property
+  -- if $(|$filter_<tableProperty>(
+            tableProperty*, $is_tableLargestPriorityWinsProperty(tableProperty)*)| <= 1)
   ---- ;; check table properties
   -- if TBLC_0 = $empty_tableContext
   -- TableProperties_ok: TC TBLC_0 |- tableProperty* : TBLC_1 tablePropertyIR*

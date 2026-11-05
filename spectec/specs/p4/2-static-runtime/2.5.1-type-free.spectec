@@ -13,6 +13,8 @@ dec $free_typeDefIR(typeDefIR) : bound
 
 dec $free_parameterIR(parameterIR) : bound
   hint(prose_in "free type identifiers in" %0)
+dec $free_parameterIRs(parameterIR*) : bound
+  hint(prose_in "free type identifiers in" %0)
 dec $free_callableTypeIR(callableTypeIR) : bound
   hint(prose_in "free type identifiers in" %0)
 dec $free_callableTypeDefIR(callableTypeDefIR) : bound
@@ -43,7 +45,9 @@ def $free_typeIR(LIST `< typeIR `>) = $free_typeIR(typeIR)
 def $free_typeIR(TUPLE `< typeIR* `>)
   = $unions_set<typeId>($free_typeIR(typeIR)*)
 
-def $free_typeIR(typeIR `[ _ `]) = $free_typeIR(typeIR)
+def $free_typeIR(ARRAY typeIR `[ _ `]) = $free_typeIR(typeIR)
+
+def $free_typeIR(HEADER_STACK typeIR `[ _ `]) = $free_typeIR(typeIR)
 
 def $free_typeIR(STRUCT _ `< typeArgumentIR* `> `{ (_ typeIR_field _ ';')* `})
   = $union_set<typeId>(
@@ -129,6 +133,9 @@ def $free_typeDefIR(typeDefIR)
 
 def $free_parameterIR(_ _ typeIR _ _) = $free_typeIR(typeIR)
 
+def $free_parameterIRs(parameterIR*)
+  = $unions_set<typeId>($free_parameterIR(parameterIR)*)
+
 ;;
 ;;;; Free type variables in callable types
 ;;
@@ -158,12 +165,7 @@ def $free_callableTypeIR(
 
 ;;; Method types
 
-def $free_callableTypeIR(
-    BUILTIN_METHOD _ `( parameterIR* `) ':' typeIR)
-  = $union_set<typeId>(B_params, B_ret)
-  -- if B_params
-      = $unions_set<typeId>($free_parameterIR(parameterIR)*)
-  -- if B_ret = $free_typeIR(typeIR)
+def $free_callableTypeIR(builtinMethodTypeIR) = `{ eps `}
 
 def $free_callableTypeIR(
     EXTERN_METHOD _ `( parameterIR* `) ':' typeIR)

@@ -90,6 +90,7 @@ def $nestable_typedef(parserObjectTypeIR) = true
 def $nestable_typedef(controlObjectTypeIR) = true
 def $nestable_typedef(packageObjectTypeIR) = true
 def $nestable_typedef(_) = false
+  -- otherwise
 
 rule Type_wf/typedefTypeIR:
   B |- TYPEDEF _ typeIR
@@ -107,6 +108,7 @@ def $nestable_new(nameTypeIR) = true
 def $nestable_new(TYPEDEF _ typeIR) = $nestable_new(typeIR)
 def $nestable_new(newTypeIR) = true
 def $nestable_new(_) = false
+  -- otherwise
 
 rule Type_wf/newTypeIR:
   B |- TYPE _ typeIR
@@ -127,8 +129,15 @@ def $nestable_list(integerTypeIR) = true
 def $nestable_list(nameTypeIR) = true
 def $nestable_list(TYPEDEF _ typeIR) = $nestable_list(typeIR)
 def $nestable_list(newTypeIR) = true
-def $nestable_list(dataTypeIR) = true
+def $nestable_list(listTypeIR) = true
+def $nestable_list(tupleTypeIR) = true
+def $nestable_list(headerStackTypeIR) = true
+def $nestable_list(structTypeIR) = true
+def $nestable_list(headerTypeIR) = true
+def $nestable_list(headerUnionTypeIR) = true
+def $nestable_list(enumTypeIR) = true
 def $nestable_list(_) = false
+  -- otherwise
 
 rule Type_wf/listTypeIR:
   B |- LIST `< typeIR `>
@@ -138,6 +147,9 @@ rule Type_wf/listTypeIR:
 dec $nestable_tuple(typeIR) : bool
   hint(prose_true %0 "can be nested in a tuple type")
   hint(prose_false %0 "cannot be nested in a tuple type")
+dec $nestable_array_in_tuple(typeIR) : bool
+  hint(prose_true %0 "can be used in an array nested in a tuple type")
+  hint(prose_false %0 "cannot be used in an array nested in a tuple type")
 
 def $nestable_tuple(BOOL) = true
 def $nestable_tuple(ERROR) = true
@@ -148,17 +160,55 @@ def $nestable_tuple(nameTypeIR) = true
 def $nestable_tuple(TYPEDEF _ typeIR) = $nestable_tuple(typeIR)
 def $nestable_tuple(newTypeIR) = true
 def $nestable_tuple(tupleTypeIR) = true
+def $nestable_tuple(ARRAY typeIR `[ _ `]) = $nestable_array_in_tuple(typeIR)
 def $nestable_tuple(headerStackTypeIR) = true
 def $nestable_tuple(structTypeIR) = true
 def $nestable_tuple(headerTypeIR) = true
 def $nestable_tuple(headerUnionTypeIR) = true
 def $nestable_tuple(enumTypeIR) = true
 def $nestable_tuple(_) = false
+  -- otherwise
+
+def $nestable_array_in_tuple(BOOL) = true
+def $nestable_array_in_tuple(INT `< _ `>) = true
+def $nestable_array_in_tuple(BIT `< _ `>) = true
+def $nestable_array_in_tuple(VARBIT `< _ `>) = true
+def $nestable_array_in_tuple(nameTypeIR) = true
+def $nestable_array_in_tuple(TYPEDEF _ typeIR) = $nestable_array_in_tuple(typeIR)
+def $nestable_array_in_tuple(newTypeIR) = true
+def $nestable_array_in_tuple(ARRAY typeIR `[ _ `]) = $nestable_array_in_tuple(typeIR)
+def $nestable_array_in_tuple(structTypeIR) = true
+def $nestable_array_in_tuple(enumTypeIR) = true
+def $nestable_array_in_tuple(_) = false
+  -- otherwise
 
 rule Type_wf/tupleTypeIR:
   B |- TUPLE `< typeIR* `>
   -- if $nestable_tuple(typeIR)*
   -- (Type_wf: B |- typeIR)*
+
+dec $nestable_array(typeIR) : bool
+  hint(prose_true %0 "can be nested in an array type")
+  hint(prose_false %0 "cannot be nested in an array type")
+
+def $nestable_array(BOOL) = true
+def $nestable_array(INT `< _ `>) = true
+def $nestable_array(BIT `< _ `>) = true
+def $nestable_array(VARBIT `< _ `>) = true
+def $nestable_array(nameTypeIR) = true
+def $nestable_array(TYPEDEF _ typeIR) = $nestable_array(typeIR)
+def $nestable_array(newTypeIR) = true
+def $nestable_array(arrayTypeIR) = true
+def $nestable_array(structTypeIR) = true
+def $nestable_array(enumTypeIR) = true
+def $nestable_array(externObjectTypeIR) = true
+def $nestable_array(_) = false
+  -- otherwise
+
+rule Type_wf/arrayTypeIR:
+  B |- ARRAY typeIR `[ _ `]
+  -- if $nestable_array(typeIR)
+  -- Type_wf: B |- typeIR
 
 dec $nestable_headerStack(typeIR) : bool
   hint(prose_true %0 "can be nested in a header stack type")
@@ -169,9 +219,10 @@ def $nestable_headerStack(TYPEDEF _ typeIR) = $nestable_headerStack(typeIR)
 def $nestable_headerStack(headerTypeIR) = true
 def $nestable_headerStack(headerUnionTypeIR) = true
 def $nestable_headerStack(_) = false
+  -- otherwise
 
 rule Type_wf/headerStackTypeIR:
-  B |- typeIR `[ _ `]
+  B |- HEADER_STACK typeIR `[ _ `]
   -- if $nestable_headerStack(typeIR)
   -- Type_wf: B |- typeIR
 
@@ -193,6 +244,9 @@ dec $nestable_header(typeIR) : bool
 dec $nestable_struct_in_header(typeIR) : bool
   hint(prose_true %0 "can be used in a struct nested in a header type")
   hint(prose_false %0 "cannot be used in a struct nested in a header type")
+dec $nestable_array_in_header(typeIR) : bool
+  hint(prose_true %0 "can be used in an array nested in a header type")
+  hint(prose_false %0 "cannot be used in an array nested in a header type")
 
 def $nestable_header(BOOL) = true
 def $nestable_header(INT `< _ `>) = true
@@ -203,7 +257,9 @@ def $nestable_header(TYPEDEF _ typeIR) = $nestable_header(typeIR)
 def $nestable_header(newTypeIR) = true
 def $nestable_header(ENUM _ `< _ `> `{ _ `}) = true
 def $nestable_header(STRUCT _ `< _ `> `{ (_ typeIR_field _ ';')* `}) = $forall_($nestable_struct_in_header(typeIR_field)*)
+def $nestable_header(ARRAY typeIR `[ _ `]) = $nestable_array_in_header(typeIR)
 def $nestable_header(_) = false
+  -- otherwise
 
 def $nestable_struct_in_header(BOOL) = true
 def $nestable_struct_in_header(INT `< _ `>) = true
@@ -214,6 +270,20 @@ def $nestable_struct_in_header(newTypeIR) = true
 def $nestable_struct_in_header(ENUM _ `< _ `> `{ _ `}) = true
 def $nestable_struct_in_header(STRUCT _ `< _ `> `{ (_ typeIR_field _ ';')* `}) = $forall_($nestable_struct_in_header(typeIR_field)*)
 def $nestable_struct_in_header(_) = false
+  -- otherwise
+
+def $nestable_array_in_header(BOOL) = true
+def $nestable_array_in_header(INT `< _ `>) = true
+def $nestable_array_in_header(BIT `< _ `>) = true
+def $nestable_array_in_header(VARBIT `< _ `>) = true
+def $nestable_array_in_header(nameTypeIR) = true
+def $nestable_array_in_header(TYPEDEF _ typeIR) = $nestable_array_in_header(typeIR)
+def $nestable_array_in_header(newTypeIR) = true
+def $nestable_array_in_header(ARRAY typeIR `[ _ `]) = $nestable_array_in_header(typeIR)
+def $nestable_array_in_header(structTypeIR) = true
+def $nestable_array_in_header(enumTypeIR) = true
+def $nestable_array_in_header(_) = false
+  -- otherwise
 
 rule Type_wf/headerTypeIR:
   B |- HEADER _ `< _ `> `{ (_ typeIR_field nameIR_field ';')* `}
@@ -227,9 +297,9 @@ dec $nestable_headerUnion(typeIR) : bool
 
 def $nestable_headerUnion(nameTypeIR) = true
 def $nestable_headerUnion(TYPEDEF _ typeIR) = $nestable_headerUnion(typeIR)
-def $nestable_headerUnion(newTypeIR) = true
 def $nestable_headerUnion(headerTypeIR) = true
 def $nestable_headerUnion(_) = false
+  -- otherwise
 
 rule Type_wf/headerUnionTypeIR:
   B |- HEADER_UNION _ `< _ `> `{ (_ typeIR_field nameIR_field ';')* `}
@@ -250,6 +320,7 @@ def $nestable_enum_serializable(nameTypeIR) = true
 def $nestable_enum_serializable(TYPEDEF _ typeIR) = $nestable_enum_serializable(typeIR)
 def $nestable_enum_serializable(TYPE _ typeIR) = $nestable_new_in_enum_serializable(typeIR)
 def $nestable_enum_serializable(_) = false
+  -- otherwise
 
 def $nestable_new_in_enum_serializable(INT `< _ `>) = true
 def $nestable_new_in_enum_serializable(BIT `< _ `>) = true
@@ -257,6 +328,7 @@ def $nestable_new_in_enum_serializable(nameTypeIR) = true
 def $nestable_new_in_enum_serializable(TYPEDEF _ typeIR) = $nestable_new_in_enum_serializable(typeIR)
 def $nestable_new_in_enum_serializable(newTypeIR) = true
 def $nestable_new_in_enum_serializable(_) = false
+  -- otherwise
 
 
 rule Type_wf/non-serializable:
@@ -343,6 +415,7 @@ def $nestable_set(TUPLE `< typeIR* `>) = $forall_($nestable_tuple_in_set(typeIR)
 def $nestable_set(enumTypeIR) = true
 def $nestable_set(SEQ `< typeIR* `>) = $forall_($nestable_sequence_in_set(typeIR)*)
 def $nestable_set(_) = false
+  -- otherwise
 
 def $nestable_tuple_in_set(BOOL) = true
 def $nestable_tuple_in_set(INT `< _ `>) = true
@@ -353,6 +426,7 @@ def $nestable_tuple_in_set(newTypeIR) = true
 def $nestable_tuple_in_set(TUPLE `< typeIR* `>) = $forall_($nestable_tuple_in_set(typeIR)*)
 def $nestable_tuple_in_set(enumTypeIR) = true
 def $nestable_tuple_in_set(_) = false
+  -- otherwise
 
 def $nestable_sequence_in_set(BOOL) = true
 def $nestable_sequence_in_set(INT `< _ `>) = true
@@ -364,6 +438,7 @@ def $nestable_sequence_in_set(TUPLE `< typeIR* `>) = $forall_($nestable_sequence
 def $nestable_sequence_in_set(enumTypeIR) = true
 def $nestable_sequence_in_set(SEQ `< typeIR* `>) = $forall_($nestable_sequence_in_set(typeIR)*)
 def $nestable_sequence_in_set(_) = false
+  -- otherwise
 
 rule Type_wf/setTypeIR:
   B |- SET `< typeIR `>
@@ -469,6 +544,7 @@ def $nestable_action(TYPEDEF _ typeIR) = $nestable_action(typeIR)
 def $nestable_action(objectTypeIR) = false
 def $nestable_action(synthesizedTypeIR) = false
 def $nestable_action(_) = true
+  -- otherwise
 
 rule CallableType_wf/actionTypeIR:
   B |- _ ACTION _ `( parameterIR* `)
@@ -488,6 +564,7 @@ def $nestable_definedFunction(TYPEDEF _ typeIR) = $nestable_definedFunction(type
 def $nestable_definedFunction(objectTypeIR) = false
 def $nestable_definedFunction(synthesizedTypeIR) = false
 def $nestable_definedFunction(_) = true
+  -- otherwise
 
 rule CallableType_wf/definedFunctionTypeIR:
   B |- FUNCTION _ `( parameterIR* `) ':' typeIR_ret
@@ -507,6 +584,7 @@ def $nestable_externFunction(controlObjectTypeIR) = false
 def $nestable_externFunction(packageObjectTypeIR) = false
 def $nestable_externFunction(tableObjectTypeIR) = false
 def $nestable_externFunction(_) = true
+  -- otherwise
 
 rule CallableType_wf/externFunctionTypeIR:
   B |- EXTERN_FUNCTION _ `( parameterIR* `) ':' typeIR_ret
@@ -518,10 +596,7 @@ rule CallableType_wf/externFunctionTypeIR:
 ;;; Method types
 
 rule CallableType_wf/builtinMethodTypeIR:
-  B |- BUILTIN_METHOD _ `( parameterIR* `) ':' typeIR_ret
-  -- (ParameterType_wf: B |- parameterIR)*
-  -- if (~$is_optional_parameterIR(parameterIR))*
-  -- ReturnType_wf: B |- typeIR_ret
+  B |- builtinMethodTypeIR
 
 dec $nestable_externMethod(typeIR) : bool
   hint(prose_true %0 "can be used in an extern method type")
@@ -533,6 +608,7 @@ def $nestable_externMethod(controlObjectTypeIR) = false
 def $nestable_externMethod(packageObjectTypeIR) = false
 def $nestable_externMethod(tableObjectTypeIR) = false
 def $nestable_externMethod(_) = true
+  -- otherwise
 
 
 rule CallableType_wf/non-abstract:
@@ -561,6 +637,7 @@ def $nestable_parserApplyMethod(controlObjectTypeIR) = false
 def $nestable_parserApplyMethod(packageObjectTypeIR) = false
 def $nestable_parserApplyMethod(tableObjectTypeIR) = false
 def $nestable_parserApplyMethod(_) = true
+  -- otherwise
 
 rule CallableType_wf/parserApplyMethodTypeIR:
   B |- PARSER_APPLY `( parameterIR* `)
@@ -578,6 +655,7 @@ def $nestable_controlApplyMethod(parserObjectTypeIR) = false
 def $nestable_controlApplyMethod(packageObjectTypeIR) = false
 def $nestable_controlApplyMethod(tableObjectTypeIR) = false
 def $nestable_controlApplyMethod(_) = true
+  -- otherwise
 
 rule CallableType_wf/controlApplyMethodTypeIR:
   B |- CONTROL_APPLY `( parameterIR* `)
@@ -629,6 +707,7 @@ def $nestable_constructor_extern(controlObjectTypeIR) = false
 def $nestable_constructor_extern(packageObjectTypeIR) = false
 def $nestable_constructor_extern(tableObjectTypeIR) = false
 def $nestable_constructor_extern(_) = true
+  -- otherwise
 
 rule ConstructorType_wf/externObjectTypeIR:
   B |- CONSTRUCTOR `( parameterIR* `) ':' typeIR_object
@@ -647,6 +726,7 @@ def $nestable_constructor_parser(controlObjectTypeIR) = false
 def $nestable_constructor_parser(packageObjectTypeIR) = false
 def $nestable_constructor_parser(tableObjectTypeIR) = false
 def $nestable_constructor_parser(_) = true
+  -- otherwise
 
 rule ConstructorType_wf/parserObjectTypeIR:
   B |- CONSTRUCTOR `( parameterIR* `) ':' typeIR_object
@@ -665,6 +745,7 @@ def $nestable_constructor_control(parserObjectTypeIR) = false
 def $nestable_constructor_control(packageObjectTypeIR) = false
 def $nestable_constructor_control(tableObjectTypeIR) = false
 def $nestable_constructor_control(_) = true
+  -- otherwise
 
 rule ConstructorType_wf/controlObjectTypeIR:
   B |- CONSTRUCTOR `( parameterIR* `) ':' typeIR_object
@@ -686,6 +767,7 @@ dec $nestable_constructor_package(typeIR) : bool
 def $nestable_constructor_package(TYPEDEF _ typeIR) = $nestable_constructor_package(typeIR)
 def $nestable_constructor_package(tableObjectTypeIR) = false
 def $nestable_constructor_package(_) = true
+  -- otherwise
 
 rule ConstructorType_wf/packageObjectTypeIR:
   B |- CONSTRUCTOR `( parameterIR* `) ':' typeIR_object
@@ -709,6 +791,7 @@ def $definable_constructor(parserObjectTypeIR) = true
 def $definable_constructor(controlObjectTypeIR) = true
 def $definable_constructor(packageObjectTypeIR) = true
 def $definable_constructor(_) = false
+  -- otherwise
 
 rule ConstructorTypeDef_wf:
   B |- constructorTypeDefIR

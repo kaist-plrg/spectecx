@@ -63,23 +63,27 @@ relation TypeArgumentList_ok:
 ;;;; Casting, explicit and implicit
 ;;
 
-relation Cast_expl: typeIR -> typeIR
-  hint(input %0 %1)
-  hint(prose_true %0 "can be explicitly cast to" %1)
-  hint(prose_false %0 "cannot be explicitly cast to" %1)
-relation Cast_expl_neq: typeIR -> typeIR
-  hint(input %0 %1)
-  hint(prose_true %0 "can be explicitly cast to" %1 "(when unequal)")
-  hint(prose_false %0 "cannot be explicitly cast to" %1 "(when unequal)")
+syntax castResult =
+  | OK typeIR*
+  | FAIL
 
-relation Cast_impl: typeIR -> typeIR
+relation Cast_expl: typeIR -> typeIR : castResult
   hint(input %0 %1)
-  hint(prose_true %0 "can be implicitly cast to" %1)
-  hint(prose_false %0 "cannot be implicitly cast to" %1)
-relation Cast_impl_neq: typeIR -> typeIR
+  hint(prose_in "checking if" %0 "can be explicitly cast to" %1)
+  hint(prose_out "casts" %2)
+relation Cast_expl_neq: typeIR -> typeIR : castResult
   hint(input %0 %1)
-  hint(prose_true %0 "can be implicitly cast to" %1 "(when unequal)")
-  hint(prose_false %0 "cannot be implicitly cast to" %1 "(when unequal)")
+  hint(prose_in "checking if" %0 "can be explicitly cast to" %1 "(when unequal)")
+  hint(prose_out "casts" %2)
+
+relation Cast_impl: typeIR -> typeIR : castResult
+  hint(input %0 %1)
+  hint(prose_in "checking if" %0 "can be implicitly cast to" %1)
+  hint(prose_out "casts" %2)
+relation Cast_impl_neq: typeIR -> typeIR : castResult
+  hint(input %0 %1)
+  hint(prose_in "checking if" %0 "can be implicitly cast to" %1 "(when unequal)")
+  hint(prose_out "casts" %2)
 
 ;;
 ;;;; Expression typing
@@ -121,51 +125,33 @@ relation Lvalue_ok:
 ;;;; Statement typing
 ;;
 
-syntax loopctxt = LOOP | NOLOOP
-
-var l : loopctxt
-
 relation Stmt_ok:
-  cursor typingContext flow loopctxt |- statement
-                                      : typingContext flow statementIR
-  hint(input %0 %1 %2 %3 %4)
-  hint(prose_in
-        "typing" %4#", under context"%1#", abstract control flow" %2#", and loop context" %3
-        "at" %0)
-  hint(prose_out
-        "context" %5#", abstract control flow" %6#", and" %7)
+  cursor typingContext |- statement
+                        : typingContext statementIR
+  hint(input %0 %1 %2)
+  hint(prose_in "typing" %2#", under context" %1 "at" %0)
+  hint(prose_out "context" %3 "and" %4)
 
 relation BlockElementStmt_ok:
-  typingContext flow loopctxt |- blockElementStatement
-                               : typingContext flow blockElementStatementIR
-  hint(input %0 %1 %2 %3)
-  hint(prose_in
-        "typing" %3#", under context"
-        %0#", abstract control flow" %1#", and loop context" %2)
-  hint(prose_out
-        "context" %4#", abstract control flow" %5#
-        ", and" %6)
+  typingContext |- blockElementStatement
+                 : typingContext blockElementStatementIR
+  hint(input %0 %1)
+  hint(prose_in "typing" %1 "under context" %0)
+  hint(prose_out "context" %2 "and" %3)
 
 relation BlockElementStmtList_ok:
-  typingContext flow loopctxt |- blockElementStatementList
-                               : typingContext flow blockElementStatementIR*
-  hint(input %0 %1 %2 %3)
-  hint(prose_in
-        "typing" %3#", under context"
-        %0#", abstract control flow" %1#", and loop context" %2)
-  hint(prose_out
-        "context" %4#", abstract control flow" %5#", and" %6)
+  typingContext |- blockElementStatementList
+                 : typingContext blockElementStatementIR*
+  hint(input %0 %1)
+  hint(prose_in "typing" %1 "under context" %0)
+  hint(prose_out "context" %2 "and" %3)
 
 relation Block_ok:
-  typingContext flow loopctxt |- blockStatement
-                               : typingContext flow blockStatementIR
-  hint(input %0 %1 %2 %3)
-  hint(prose_in
-        "typing" %3#", under context"
-        %0#", abstract control flow" %1#", and loop context" %2)
-  hint(prose_out
-        "context" %4#", abstract control flow"
-        %5#", and" %6)
+  typingContext |- blockStatement
+                 : typingContext blockStatementIR
+  hint(input %0 %1)
+  hint(prose_in "typing" %1 "under context" %0)
+  hint(prose_out "context" %2 "and" %3)
 
 ;;
 ;;;; Parameter typing
@@ -174,10 +160,10 @@ relation Block_ok:
 
 relation Parameter_ok:
   cursor typingContext |- parameter
-                        : typingContext parameterIR '#' typeId*
+                        : parameterIR '#' typeId*
   hint(input %0 %1 %2)
   hint(prose_in "typing" %2#", under context" %1 "at" %0)
-  hint(prose_out "context" %3#"," %4#", and fresh type variables" %5)
+  hint(prose_out "parameter" %3#", and fresh type variables" %4)
 
 relation ParameterList_ok:
   cursor typingContext |- parameterList
@@ -277,11 +263,26 @@ relation ParserStmt_ok:
   hint(prose_in "typing" %1#", under context" %0)
   hint(prose_out "context" %2 "and typed parser statement" %3)
 
-relation ParserStmtList_ok:
-  typingContext |- parserStatementList : typingContext parserStatementIR*
+relation ParserBlockElementStmt_ok:
+  typingContext |- parserBlockElementStatement
+                 : typingContext parserBlockElementStatementIR
   hint(input %0 %1)
-  hint(prose_in "typing" %1#", under context" %0)
-  hint(prose_out "context" %2 "and typed parser statements" %3)
+  hint(prose_in "typing" %1 "under context" %0)
+  hint(prose_out "context" %2 "and" %3)
+
+relation ParserBlockElementStmtList_ok:
+  typingContext |- parserBlockElementStatementList
+                 : typingContext parserBlockElementStatementIR*
+  hint(input %0 %1)
+  hint(prose_in "typing" %1 "under context" %0)
+  hint(prose_out "context" %2 "and" %3)
+
+relation ParserBlock_ok:
+  typingContext |- parserBlockStatement
+                 : typingContext parserBlockStatementIR
+  hint(input %0 %1)
+  hint(prose_in "typing" %1 "under context" %0)
+  hint(prose_out "context" %2 "and" %3)
 
 relation ParserState_ok:
   typingContext nameIR* |- parserState : parserStateIR
@@ -494,13 +495,15 @@ relation Call_convention_expr_ok:
   hint(input %0 %1 %2 %3 %4)
   hint(prose_in "checking calling convention of" %4 "applied to" %3
              #", under context" %1 "and action context" %2 "at" %0)
+  hint(prose_out "casted" %5)
 
-relation Call_convention_argument_ok:
+relation Call_convention_arg_ok:
   cursor typingContext actctxt |- parameterIR '@' argumentIR
                                 : argumentIR
   hint(input %0 %1 %2 %3 %4)
   hint(prose_in "checking calling convention of" %4 "applied to parameter type" %3
              #", under context" %1 "and action context" %2 "at" %0)
+  hint(prose_out "casted" %5)
 
 relation Call_convention_ok:
   cursor typingContext actctxt |- parameterIR* '@' argumentListIR
@@ -522,9 +525,7 @@ dec $is_static_callableTypeIR(callableTypeIR) : ctk
   hint(prose_in "compile-time known-ness of" %0)
 def $is_static_callableTypeIR(EXTERN_FUNCTION "static_assert" `( _ `) ':' _)
   = LCTK
-def $is_static_callableTypeIR(BUILTIN_METHOD nameIR `( _ `) ':' _) = LCTK
-  -- if nameIR <- [ "minSizeInBits", "minSizeInBytes",
-                    "maxSizeInBits", "maxSizeInBytes" ]
+def $is_static_callableTypeIR(builtinSizeMethodTypeIR) = LCTK
 def $is_static_callableTypeIR(_) = DYN
   -- otherwise
 

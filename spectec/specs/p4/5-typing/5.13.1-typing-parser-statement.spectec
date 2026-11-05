@@ -32,7 +32,7 @@ rule SelectCase_keyset_simple_ok/set-subtype:
   -- if SET `< typeIR_base `> = $unroll_typeIR(typeIR)
   ---- ;; if the keyset type is a subtype of the key type
   -- Type_alpha:/ typeIR_base ~~ typeIR_key
-  -- Cast_impl: typeIR_base -> typeIR_key
+  -- Cast_impl: typeIR_base -> typeIR_key : OK _
   ---- ;; cast the expression to the key type
   -- if typeIR_cast = SET `< typeIR_key `>
   -- if typedExpressionIR_cast
@@ -47,7 +47,7 @@ rule SelectCase_keyset_simple_ok/non-set:
   -- if typeIR_unroll = $unroll_typeIR(typeIR)
   -- if ~(typeIR_unroll <: setTypeIR)
   ---- ;; if the keyset type is a subtype of the key type
-  -- Cast_impl: typeIR -> typeIR_key
+  -- Cast_impl: typeIR -> typeIR_key : OK _
   ---- ;; cast the expression to the key type
   -- if typeIR_cast = SET `< typeIR_key `>
   -- if typedExpressionIR_cast
@@ -60,9 +60,13 @@ dec $compat_mask(typeIR, typeIR) : bool
 def $compat_mask(INT, INT) = true
 def $compat_mask(INT `< w_l `>, INT `< w_r `>) = $(w_l = w_r)
 def $compat_mask(BIT `< w_l `>, BIT `< w_r `>) = $(w_l = w_r)
-def $compat_mask(TYPEDEF _ typeIR_l, typeIR_r) = $compat_mask(typeIR_l, typeIR_r)
-def $compat_mask(typeIR_l, TYPEDEF _ typeIR_r) = $compat_mask(typeIR_l, typeIR_r)
+def $compat_mask(TYPEDEF _ typeIR_l, typeIR_r)
+  = $compat_mask(typeIR_l, typeIR_r)
+def $compat_mask(typeIR_l, TYPEDEF _ typeIR_r)
+  = $compat_mask(typeIR_l, typeIR_r)
+  -- if ~(typeIR_l <: typedefTypeIR)
 def $compat_mask(_, _) = false
+  -- otherwise
 
 rule SelectCase_keyset_simple_ok/mask:
   TC typeIR_key |- expression_l '&&&' expression_r
@@ -323,68 +327,48 @@ rule ParserTransition_ok/select:
 ;; syntax parserStatement
 ;;
 
-;;; constantDeclaration
-
-rule ParserStmt_ok/constantDeclaration:
-  TC_0 |- constantDeclaration
-        : TC_1 constantDeclarationIR
-  -- ConstDecl_ok: LOCAL TC_0 |- constantDeclaration
-                               : TC_1 constantDeclarationIR
-
-;;; variableDeclaration
-
-rule ParserStmt_ok/variableDeclaration:
-  TC_0 |- variableDeclaration
-        : TC_1 variableDeclarationIR
-  -- VarDecl_ok:
-      LOCAL TC_0 |- variableDeclaration
-                  : TC_1 variableDeclarationIR
-
 ;;; emptyStatement
 
 rule ParserStmt_ok/emptyStatement:
   TC |- emptyStatement
       : TC emptyStatementIR
-  -- Stmt_ok: LOCAL TC CONT NOLOOP |- emptyStatement
-                                    : TC CONT emptyStatementIR
+  -- Stmt_ok: LOCAL TC |- emptyStatement : TC emptyStatementIR
 
 ;;; assignmentStatement
 
 rule ParserStmt_ok/assignmentStatement:
   TC_0 |- assignmentStatement
         : TC_1 assignmentStatementIR
-  -- Stmt_ok: LOCAL TC_0 CONT NOLOOP |- assignmentStatement
-                                      : TC_1 CONT assignmentStatementIR
+  -- Stmt_ok: LOCAL TC_0 |- assignmentStatement
+                          : TC_1 assignmentStatementIR
 
 ;;; callStatement
 
 rule ParserStmt_ok/callStatement:
   TC_0 |- callStatement
         : TC_1 callStatementIR
-  -- Stmt_ok: LOCAL TC_0 CONT NOLOOP |- callStatement
-                                      : TC_1 CONT callStatementIR
+  -- Stmt_ok: LOCAL TC_0 |- callStatement
+                          : TC_1 callStatementIR
 
 ;;; directApplicationStatement
 
 rule ParserStmt_ok/directApplicationStatement:
   TC_0 |- directApplicationStatement
         : TC_1 directApplicationStatementIR
-  -- Stmt_ok: LOCAL TC_0 CONT NOLOOP |- directApplicationStatement
-                                      : TC_1 CONT directApplicationStatementIR
+  -- Stmt_ok: LOCAL TC_0 |- directApplicationStatement
+                          : TC_1 directApplicationStatementIR
 
 ;;; parserBlockStatement
 ;;; syntax parserBlockStatement = annotationList `{ parserStatementList }
 
 rule ParserStmt_ok/parserBlockStatement:
-  TC_0 |- annotationList `{ parserStatementList `}
-        : TC_1 parserBlockStatementIR
+  TC_0 |- parserBlockStatement
+        : TC_3 parserBlockStatementIR
   ---- ;; check statements in nested context
   -- if TC_1 = $enter_t(TC_0)
-  -- ParserStmtList_ok:
-      TC_1 |- parserStatementList : TC_2 parserStatementIR*
+  -- ParserBlock_ok:
+      TC_1 |- parserBlockStatement : TC_2 parserBlockStatementIR
   -- if TC_3 = $exit_t(TC_2)
-  ---- ;; create IR
-  -- if parserBlockStatementIR = annotationList `{ parserStatementIR* `}
 
 ;;; parserConditionalStatement
 ;;; syntax parserConditionalStatement
@@ -425,33 +409,81 @@ rule ParserStmt_ok/else:
 
 
 ;;
-;; Parser statement list typing
-;;
-;; syntax parserStatementList
+;; syntax parserBlockElementStatement
 ;;
 
-relation ParserStmts_ok:
-  typingContext |- parserStatement* : typingContext parserStatementIR*
+;;; constantDeclaration
+;;; variableDeclaration
+;;; parserStatement
+
+
+rule ParserBlockElementStmt_ok/constantDeclaration:
+  TC_0 |- constantDeclaration : TC_1 constantDeclarationIR
+  -- ConstDecl_ok:
+      LOCAL TC_0 |- constantDeclaration
+                  : TC_1 constantDeclarationIR
+
+rule ParserBlockElementStmt_ok/variableDeclaration:
+  TC_0 |- variableDeclaration : TC_1 variableDeclarationIR
+  -- VarDecl_ok:
+      LOCAL TC_0 |- variableDeclaration
+                  : TC_1 variableDeclarationIR
+
+rule ParserBlockElementStmt_ok/parserStatement:
+  TC_0 |- parserStatement : TC_1 parserStatementIR
+  -- ParserStmt_ok:
+      TC_0 |- parserStatement : TC_1 parserStatementIR
+
+
+;;
+;; syntax blockElementStatementList
+;;
+
+relation ParserBlockElementStmts_ok:
+  typingContext |- parserBlockElementStatement*
+                 : typingContext parserBlockElementStatementIR*
   hint(input %0 %1)
-  hint(prose_in "typing" %1#", under context" %0)
-  hint(prose_out "the updated context" %2 "and the typed parser statements" %3)
+  hint(prose_in "typing" %1 "under context" %0)
+  hint(prose_out "context" %2 "and" %3)
 
 
-rule ParserStmts_ok/nil:
+
+rule ParserBlockElementStmts_ok/nil:
   TC |- eps : TC eps
 
-rule ParserStmts_ok/cons:
-  TC_0 |- parserStatement_h :: parserStatement_t*
-        : TC_2 (parserStatementIR_h :: parserStatementIR_t*)
-  -- ParserStmt_ok: TC_0 |- parserStatement_h
-                          : TC_1 parserStatementIR_h
-  -- ParserStmts_ok: TC_1 |- parserStatement_t*
-                           : TC_2 parserStatementIR_t*
+rule ParserBlockElementStmts_ok/cons:
+  TC_0 |- parserBlockElementStatement_h :: parserBlockElementStatement_t*
+        : TC_2 (parserBlockElementStatementIR_h :: parserBlockElementStatementIR_t*)
+  -- ParserBlockElementStmt_ok:
+      TC_0 |- parserBlockElementStatement_h
+            : TC_1 parserBlockElementStatementIR_h
+  -- ParserBlockElementStmts_ok:
+      TC_1 |- parserBlockElementStatement_t*
+            : TC_2 parserBlockElementStatementIR_t*
 
 
-rule ParserStmtList_ok:
-  TC_0 |- parserStatementList
-        : TC_1 parserStatementIR*
-  -- if parserStatement* = $flatten_parserStatementList(parserStatementList)
-  ---- ;; check statements
-  -- ParserStmts_ok: TC_0 |- parserStatement* : TC_1 parserStatementIR*
+rule ParserBlockElementStmtList_ok:
+  TC_0 |- parserBlockElementStatementList
+        : TC_1 parserBlockElementStatementIR*
+  -- if parserBlockElementStatement*
+      = $flatten_parserBlockElementStatementList(parserBlockElementStatementList)
+  -- ParserBlockElementStmts_ok:
+      TC_0 |- parserBlockElementStatement* : TC_1 parserBlockElementStatementIR*
+
+;;
+;; syntax parserBlockStatement
+;;
+
+;;; syntax parserBlockStatement
+;;;      = annotationList `{ parserBlockElementStatementList }
+
+rule ParserBlock_ok:
+  TC_0 |- annotationList `{ parserBlockElementStatementList `}
+        : TC_1 parserBlockStatementIR
+  ---- ;; check block element statements in nested context
+  -- ParserBlockElementStmtList_ok:
+      TC_0 |- parserBlockElementStatementList
+            : TC_1 parserBlockElementStatementIR*
+  ---- ;; create IR
+  -- if parserBlockStatementIR
+      = annotationList `{ parserBlockElementStatementIR* `}

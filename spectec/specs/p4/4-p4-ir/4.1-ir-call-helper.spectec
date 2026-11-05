@@ -52,7 +52,7 @@ def $partition_parameterListIR(
 
 ;;; Aligning parameters with arguments
 
-syntax callAlign = GIVEN parameterIR* DEFAULT parameterIR*
+syntax callAlign = GIVEN parameterIR* DEFAULT parameterIR* OPTIONAL parameterIR*
 
 dec $align_parameterListIR(
     parameterIR*, argumentIR*, nameIR*, nameIR*)
@@ -65,7 +65,9 @@ dec $align_parameterListIR_given(
 
 def $align_parameterListIR(
     parameterIR*, argumentIR*, nameIR_default*, nameIR_optional*)
-  = GIVEN parameterIR_given_aligned* DEFAULT parameterIR_default*
+  = GIVEN parameterIR_given_aligned*
+    DEFAULT parameterIR_default*
+    OPTIONAL parameterIR_optional*
   ----
   -- if (parameterIR_given*, parameterIR_default*, parameterIR_optional*)
       = $partition_parameterListIR(

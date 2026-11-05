@@ -1,0 +1,2 @@
+p4c/testdata/p4_16_samples/constant_folding.p4
+p4c/testdata/p4_16_samples/gauntlet_various_ops-bmv2.p4

@@ -30,7 +30,8 @@ syntax value
 
 syntax listValue = LIST `[ value* `]
 syntax tupleValue = TUPLE `( value* `)
-syntax headerStackValue = HEADER_STACK `[ value* `( nat ';' nat `) `]
+syntax arrayValue = ARRAY `[ value* `]
+syntax headerStackValue = HEADER_STACK `[ value* `( nat `) `]
 
 syntax fieldValue = value nameIR ';'
 
@@ -45,6 +46,7 @@ syntax enumValue =
 syntax dataValue =
   | listValue
   | tupleValue
+  | arrayValue
   | headerStackValue
   | structValue
   | headerValue
