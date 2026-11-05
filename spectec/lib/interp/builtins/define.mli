@@ -1,7 +1,18 @@
 module Location = Common.Location
 open Lang.Il
 
-type t = at:Location.t -> targ list -> value list -> Value.t Error.result
+type implementation =
+  at:Location.t -> targ list -> value list -> Value.t Error.result
+
+type t
+
+val make : implementation -> t
+
+(** [args] is a [T0], [T1], or [T2] function with its readers supplied. *)
+val make_with_callback :
+  args:('impl -> t) -> (callback:Callback.t -> 'impl) -> t
+
+val invoke : t -> callback:Callback.t -> implementation
 
 (* Builtins with no type arguments *)
 module T0 : sig

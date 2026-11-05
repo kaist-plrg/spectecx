@@ -41,7 +41,9 @@ let expected_state size =
   in
   let builtins = B.make Ebpf.builtins in
   match
-    builtins.invoke ("init_objectState" $ at) []
+    builtins.invoke
+      ~callback:(fun _ _ _ -> failwith "init_objectState does not call back")
+      ("init_objectState" $ at) []
       [
         V.text "CounterArray";
         V.list (Typ.var "typeIR" [] $ at) [];
@@ -137,7 +139,10 @@ let check_min_nat () =
   let builtins = B.make P4.Builtins.builtins in
   let nats = List.map (fun n -> V.nat (Bigint.of_int n)) [ 3; 5 ] in
   match
-    builtins.invoke ("min_nat" $ at) [] [ V.list (Lang.Il.Typ.nat $ at) nats ]
+    builtins.invoke
+      ~callback:(fun _ _ _ -> failwith "min_nat does not call back")
+      ("min_nat" $ at) []
+      [ V.list (Lang.Il.Typ.nat $ at) nats ]
   with
   | Ok value when V.eq value (V.nat (Bigint.of_int 3)) -> ()
   | _ -> failwith "min_nat did not return the smallest element"

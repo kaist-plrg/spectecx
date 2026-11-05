@@ -158,6 +158,11 @@ module Expression = struct
     | ExpA of 'ann t                           (* exp *)
     | DefA of id                               (* `$`id *)
 
+  let typ_of_arg (arg : _ arg) =
+    match arg.it with
+    | ExpA exp -> exp.note.typ $ exp.at
+    | DefA _ -> FuncT $ arg.at
+
   (** Replace annotations throughout an expression, including expressions in paths
       and arguments. The callback receives each original expression. Syntax,
       types and source locations are preserved. Callback order among

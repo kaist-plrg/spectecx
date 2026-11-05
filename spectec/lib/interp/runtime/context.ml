@@ -347,7 +347,9 @@ struct
   let has_determinism_checks ctx = ctx.check_determinism
   let opaque_types ctx = ctx.opaque_types
   let has_builtin ctx ~id = ctx.builtins.is_builtin id
-  let call_builtin ctx ~id ~targs ~values = ctx.builtins.invoke id targs values
+
+  let call_builtin ctx ~callback ~id ~targs ~values =
+    ctx.builtins.invoke ~callback id targs values
 
   let check_inputs_exn ctx ~kind ~id ~signature:(tparams, typs) ~targs ~values =
     let result =

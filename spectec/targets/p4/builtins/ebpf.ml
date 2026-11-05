@@ -74,7 +74,7 @@ let init_object_state_builtin ~at targs args =
 
 let builtins =
   [
-    ("init_objectState", init_object_state_builtin);
+    ("init_objectState", Define.make init_object_state_builtin);
     ( "init_archState",
       Define.T0.a0 (fun ~at:_ -> Ok (Value.opaque typdef_arch_state ())) );
   ]
