@@ -15,7 +15,7 @@ let nats ns =
 
 let spec = H.compile_file "value_handlers.spectec"
 
-type input = { relation : string; decode : unit -> V.t list }
+type input = { relation : string; decode : unit -> (V.t list, string) result }
 
 module Target : Spectec.Target.S = struct
   include H.Pure_target
@@ -40,7 +40,13 @@ module Task : Spectec.Task.S with type input = input = struct
 
   let parse_string ~spec:_ ~filename:_ _ = Ok []
   let unparse ~spec:_ _ = ""
-  let parse_input ~spec:_ { relation; decode } = Ok (relation, decode ())
+
+  let parse_input ~spec:_ { relation; decode } =
+    match decode () with
+    | Ok values -> Ok (relation, values)
+    | Error message ->
+        Error (Spectec.Error.TaskParseError (Common.Location.Unknown, message))
+
   let source { relation; _ } = relation
   let expectation _ = Spectec.Task.Positive
   let collect ?dir:_ () = []
@@ -48,7 +54,7 @@ module Task : Spectec.Task.S with type input = input = struct
   let save_output _ _ = ()
 end
 
-let input relation values = { relation; decode = values }
+let input relation values = { relation; decode = (fun () -> Ok (values ())) }
 
 let modes =
   [
@@ -522,6 +528,58 @@ let handler_failure_finishes_handlers () =
         |> values_exn ~name ~mode_name))
     modes
 
+let decoder_events_reach_handlers () =
+  let name = "events emitted while decoding reach handlers" in
+  List.iter
+    (fun (mode_name, mode) ->
+      let x = nat 1 and y = nat 2 in
+      let decoded = V.record "point" [ field "X" x; field "Y" y ] in
+      let event =
+        Value_event.Constructed { value = decoded; components = [ x; y ] }
+      in
+      let input =
+        {
+          relation = "Shift";
+          decode =
+            (fun () ->
+              Instrumentation.Dispatcher.emit_value event;
+              Ok [ decoded; nats [ 5 ] ]);
+        }
+      in
+      let log = ref [] in
+      ignore
+        (evaluate ~config:[ recorder ~name:"recorder" ~log ] mode input
+        |> values_exn ~name ~mode_name);
+      if not (List.exists (fun (_, received) -> received == event) !log) then
+        fail_check ~name ~mode_name
+          "the decoder's event did not reach the handler")
+    modes
+
+let decode_failures_finish_handlers () =
+  let name = "decoding failures finish handlers" in
+  List.iter
+    (fun (mode_name, mode) ->
+      let finished = ref 0 in
+      let config =
+        [ handler_config ~name:"counter" ~finish:(fun () -> incr finished) () ]
+      in
+      (match
+         evaluate ~config mode
+           { relation = "Shift"; decode = (fun () -> Error "malformed") }
+       with
+      | Error (Spectec.Error.TaskParseError (_, "malformed")) -> ()
+      | _ -> fail_check ~name ~mode_name "the parse error was not returned");
+      (match
+         evaluate ~config mode
+           { relation = "Shift"; decode = (fun () -> raise Exit) }
+       with
+      | exception Exit -> ()
+      | _ -> fail_check ~name ~mode_name "the decoder exception was lost");
+      if !finished <> 2 then
+        fail_check ~name ~mode_name
+          "the handler was not finished after each run")
+    modes
+
 let run () =
   handlers_preserve_results ();
   composed_handlers_receive_events_in_order ();
@@ -537,4 +595,6 @@ let run () =
   slice_updates_report_base_and_replacement ();
   update_paths_report_intermediate_values ();
   iteration_events_include_body_results ();
-  handler_failure_finishes_handlers ()
+  handler_failure_finishes_handlers ();
+  decoder_events_reach_handlers ();
+  decode_failures_finish_handlers ()
