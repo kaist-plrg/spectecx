@@ -10,6 +10,7 @@ module TDEnv = Envs.Il.TDEnv
 module VEnv = Envs.Interp.VEnv
 module IdHashtbl = Envs.Make.IdHashtbl
 module FIdMap = Envs.Make.FIdMap
+module TIdMap = Envs.Make.TIdMap
 
 exception Error of Location.t * string
 
@@ -211,8 +212,19 @@ struct
   let for_call ctx = { ctx with local = empty_local }
   let without_values ctx = replace_values ctx VEnv.empty
 
-  let fold_local_typdefs ctx ~init ~f =
-    TDEnv.fold (fun id typdef acc -> f acc id typdef) ctx.local.syntaxes init
+  let resolve_targs ctx ~targs =
+    match targs with
+    | [] -> []
+    | targs ->
+        let theta =
+          TDEnv.fold
+            (fun tid (tparams, deftyp) theta ->
+              match (tparams, deftyp.it) with
+              | [], Il.PlainT typ -> TIdMap.add tid typ theta
+              | _ -> theta)
+            ctx.local.syntaxes TIdMap.empty
+        in
+        Envs.Il.Typ.subst_targs theta targs
 
   let for_optional_iteration ctx ~vars =
     let values =

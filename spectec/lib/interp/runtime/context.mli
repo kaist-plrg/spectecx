@@ -75,8 +75,8 @@ end) : sig
   (** Retain local types and functions, without local value bindings. *)
   val without_values : t -> t
 
-  val fold_local_typdefs :
-    t -> init:'a -> f:('a -> TId.t -> Typdef.t -> 'a) -> 'a
+  (** Substitute local type bindings in [targs]. *)
+  val resolve_targs : t -> targs:Lang.Il.targ list -> Lang.Il.targ list
 
   (** {2 Iteration}
 

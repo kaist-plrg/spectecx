@@ -5,8 +5,6 @@ module Mixop = Lang.Il.Mixfix
 module Value = Lang.Il.Value
 open Il.Expression
 open Lang.Sl
-open Envs.Make
-module Typ = Envs.Il.Typ
 open Error
 module Events = Instrumentation.Event
 module F = Format
@@ -281,20 +279,7 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     checkf
       (List.length targs = List.length tparams)
       id.at "arity mismatch in type arguments";
-    let targs =
-      match targs with
-      | [] -> []
-      | targs ->
-          let theta =
-            Ctx.fold_local_typdefs ctx ~init:TIdMap.empty
-              ~f:(fun theta tid typdef ->
-                let tparams, deftyp = typdef in
-                match (tparams, deftyp.it) with
-                | [], Il.PlainT typ -> TIdMap.add tid typ theta
-                | _ -> theta)
-          in
-          List.map (Typ.subst_typ theta) targs
-    in
+    let targs = Ctx.resolve_targs ctx ~targs in
     let ctx_local =
       List.fold_left2
         (fun ctx_local tparam targ ->
