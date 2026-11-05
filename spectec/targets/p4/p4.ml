@@ -154,11 +154,16 @@ module Instantiate = struct
   let format_output _values = "Instantiation succeeded"
 end
 
-let cli_flags =
+let program_flags =
   let open Core.Command.Let_syntax in
   let open Core.Command.Param in
   let%map includes = flag "-i" (listed string) ~doc:"DIR P4 include paths"
   and filename = flag "-p" (required string) ~doc:"FILE P4 file to process" in
+  (includes, filename)
+
+let cli_flags =
+  let open Core.Command.Let_syntax in
+  let%map includes, filename = program_flags in
   { Typecheck.includes; filename; expect = Spectec.Task.Positive }
 
 module Typecheck_cli : Cli.Task_cli.S = struct
