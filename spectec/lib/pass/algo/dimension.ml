@@ -167,7 +167,7 @@ let rec annotate_exp (bounds : VEnv.t) (exp : exp) : VEnv.t * exp =
       let itervars = collect_itervars bounds occurs iter in
       match itervars with
       | [] ->
-          error at "empty iteration" ~code:Dataflow_empty_iter_expression
+          error at "empty iteration" ~code:Empty_iter_expression
             ~detail:
               "Each iteration consumes one `*` (or `?`) from a variable inside \
                it. Here, no variable has an iteration left to consume: either \
@@ -282,7 +282,7 @@ and annotate_prem (dctx : Dctx.t) (bounds : VEnv.t) (prem : prem) :
       in
       match (vars_input, vars_output) with
       | [], [] ->
-          error at "empty iteration" ~code:Dataflow_empty_iter_premise
+          error at "empty iteration" ~code:Empty_iter_premise
             ~detail:
               "Each iteration consumes one `*` (or `?`) from a variable inside \
                it. Here, no variable has an iteration left to consume: either \
@@ -294,7 +294,7 @@ and annotate_prem (dctx : Dctx.t) (bounds : VEnv.t) (prem : prem) :
             ^ String.concat ", " (List.map Il.Print.string_of_var itervars)
             ^ " "
             ^ Al.Print.string_of_prem prem)
-            ~code:Dataflow_iter_binding_only
+            ~code:Iter_binding_only
             ~detail:
               "An iteration needs a loop variable inside it: a variable \
                already bound outside whose values it iterates over. Here, \
@@ -342,7 +342,7 @@ let analyze (annotate : VEnv.t -> 'a -> VEnv.t * 'a) (bounds : VEnv.t)
              "mismatched iteration dimensions for identifier `%s`: expected \
               %s, but got %s"
              (Id.to_string id) (Typ.to_string typ_expect) (Typ.to_string typ))
-          ~code:Dataflow_iter_dimension_mismatch)
+          ~code:Iter_dimension_mismatch)
     occurs;
   construct
 

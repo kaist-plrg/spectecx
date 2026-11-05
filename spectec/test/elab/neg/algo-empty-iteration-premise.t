@@ -1,6 +1,6 @@
-  $ ./main.exe dataflow-empty-iteration-premise.spectec 2>&1
-  error[elab/dataflow-empty-iter-premise]: empty iteration
-    --> dataflow-empty-iteration-premise.spectec:13:7
+  $ ./main.exe algo-empty-iteration-premise.spectec 2>&1
+  error[algo/empty-iter-premise]: empty iteration
+    --> algo-empty-iteration-premise.spectec:13:7
      |
   13 |   -- (if true)*
      |       ^^^^^^^

@@ -1,6 +1,6 @@
-  $ ./main.exe dataflow-empty-iteration-expression.spectec 2>&1
-  error[elab/dataflow-empty-iter-expression]: empty iteration
-    --> dataflow-empty-iteration-expression.spectec:7:10
+  $ ./main.exe algo-empty-iteration-expression.spectec 2>&1
+  error[algo/empty-iter-expression]: empty iteration
+    --> algo-empty-iteration-expression.spectec:7:10
     |
   7 | def $f = 0*
     |          ^^

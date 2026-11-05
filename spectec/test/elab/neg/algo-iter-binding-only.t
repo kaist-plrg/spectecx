@@ -1,6 +1,6 @@
-  $ ./main.exe dataflow-iter-binding-only.spectec 2>&1
-  error[elab/dataflow-iter-binding-only]: cannot determine dimension of binding identifier(s) only: x let x = 0
-    --> dataflow-iter-binding-only.spectec:13:7
+  $ ./main.exe algo-iter-binding-only.spectec 2>&1
+  error[algo/iter-binding-only]: cannot determine dimension of binding identifier(s) only: x let x = 0
+    --> algo-iter-binding-only.spectec:13:7
      |
   13 |   -- (if x = 0)*
      |       ^^^^^^^^

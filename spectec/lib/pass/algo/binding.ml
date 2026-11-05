@@ -75,7 +75,7 @@ let analyze_exp_as_bound (dctx : Dctx.t) (exp : exp) : unit =
     error exp.at
       (Format.asprintf "expression has free variable(s): %s"
          (BEnv.to_string binds))
-      ~code:Dataflow_free_variable_in_output
+      ~code:Free_variable_in_output
       ~detail:
         "Every variable here must already be bound by an earlier part of the \
          rule (the conclusion's input slot or a preceding premise)."
@@ -155,7 +155,7 @@ and analyze_if_eq_prem (dctx : Dctx.t) (at : Location.t) (note : typ')
         (Format.asprintf
            "cannot bind on both sides of an equality: (left) %s, (right) %s"
            (BEnv.to_string binds_l) (BEnv.to_string binds_r))
-        ~code:Dataflow_bind_both_sides_of_equality
+        ~code:Bind_both_sides_of_equality
         ~detail:
           "An `=` premise reads as a comparison when both sides are already \
            bound, or as a binder when one side is. With new variables on both \
