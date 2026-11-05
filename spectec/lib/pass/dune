@@ -6,5 +6,6 @@
   spectec.hints
   parse
   elaborate
+  algo
   structure
   annotate))

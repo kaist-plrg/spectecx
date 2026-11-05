@@ -2152,20 +2152,14 @@ let validate_hints_def (def : def) : unit =
 
 let validate_hints_spec (spec : spec) : unit = List.iter validate_hints_def spec
 
-let elab_spec (spec : spec) : Lang.Il.spec Diagnostic.result =
+let elab_spec (spec : spec) : Lang.Il.spec * Diagnostic.error =
   try
     validate_hints_spec spec;
     let ctx = Ctx.init () in
     let ctx, spec_il, errors = elab_defs_with_errors ctx spec in
     let spec_il = spec_il |> populate_rules ctx |> populate_clauses ctx in
     warn_missing_rules_and_clauses spec_il ~source:spec;
-    let errors = check_fallbacks spec ~declared:spec_il @ errors in
-    let spec_il, errors_dataflow = Dataflow.Analysis.analyze_spec spec_il in
-    let errors = errors_dataflow @ errors in
-    if errors = [] then Ok spec_il else Error errors
-  with Diagnostic.ElabError e -> Error [ e ]
+    (spec_il, check_fallbacks spec ~declared:spec_il @ errors)
+  with Diagnostic.ElabError e -> ([], [ e ])
 
 type error = Diagnostic.error
-type 'a result = 'a Diagnostic.result
-
-let error_to_diagnostics = Diagnostic.to_diagnostics

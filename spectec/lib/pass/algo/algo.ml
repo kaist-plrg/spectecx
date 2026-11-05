@@ -2,7 +2,7 @@ open Common.Annotated
 open Lang.Il
 module Mixop = Lang.Il.Mixfix
 
-(* Entry point of dataflow analysis *)
+type error = Diagnostic.error
 
 (* Re-tag the checks synthesized from a rule/clause input pattern as guards. *)
 let rec as_guard (prem : prem) : prem =
@@ -101,7 +101,7 @@ let map_collecting_errors ~(f : 'a -> 'a) (constructs : 'a list) :
     (fun construct ->
       match f construct with
       | result -> Either.Left result
-      | exception Diagnostic.ElabError e -> Either.Right e)
+      | exception Diagnostic.AlgoError e -> Either.Right e)
     constructs
 
 let analyze_def (env : Dctx.env) (def : def) : def * Diag.t list =
@@ -118,7 +118,7 @@ let analyze_def (env : Dctx.env) (def : def) : def * Diag.t list =
       (DecD { defid; tparams; params; typ; clauses } $ def.at, errors)
   | TypD _ | BuiltinDecD _ -> (def, [])
 
-let analyze_spec (spec : spec) : spec * Diag.t list =
+let algo_spec (spec : spec) : spec * Diag.t list =
   let env = Dctx.make_env spec in
   let spec, errors = List.map (analyze_def env) spec |> List.split in
   (spec, List.concat errors)

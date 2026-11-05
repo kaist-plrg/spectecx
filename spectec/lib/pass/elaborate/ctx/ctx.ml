@@ -289,7 +289,6 @@ let update_typdef (ctx : t) (tid : TId.t) (td : Typdef.t) : t =
   let tdenv = TDEnv.add tid td ctx.tdenv in
   { ctx with tdenv }
 
-module Typ = Typ
 module Typdef = Typdef
 module Func = Func
 module Rel = Rel

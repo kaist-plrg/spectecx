@@ -1,5 +1,5 @@
-(** The pipeline passes (parse, elaborate, structure, ...) behind one signature,
-    with parse and elaborate failures unified under a single {!error}. *)
+(** The pipeline passes share one {!error} type for parse, elaboration and algo
+    failures. *)
 
 type error
 type spec_source = Parse.spec_source = { filename : string; contents : string }

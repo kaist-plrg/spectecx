@@ -6,7 +6,7 @@ open Envs.Make
 (* Environments *)
 
 (* Identifier type and dimension environment *)
-module VEnv = MakeIdMap (Ctx.Typ)
+module VEnv = MakeIdMap (Typ)
 module RTEnv = Envs.RTEnv
 module TDEnv = Envs.Il.TDEnv
 
@@ -14,7 +14,7 @@ module TDEnv = Envs.Il.TDEnv
 
 type env = { rtenv : RTEnv.t; tdenv : TDEnv.t }
 
-(* Context for dataflow analysis of one rule or clause *)
+(* Context of the algo pass for one rule or clause *)
 
 type t = {
   env : env;
@@ -61,4 +61,4 @@ let find_reltyp (dctx : t) (id : Id.t) : Il.reltyp =
 let find_typdef_opt (dctx : t) (tid : TId.t) : Envs.Il.Typdef.t option =
   TDEnv.find_opt tid dctx.env.tdenv
 
-module Typ = Ctx.Typ
+module Typ = Typ

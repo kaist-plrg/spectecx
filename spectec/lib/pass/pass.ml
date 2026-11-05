@@ -1,4 +1,4 @@
-type error = ParseError of Parse.error | ElaborateError of Elaborate.error
+type error = ParseError of Parse.error | SemanticError of Diag.t list
 type spec_source = Parse.spec_source = { filename : string; contents : string }
 
 let parse_files filenames =
@@ -11,7 +11,11 @@ let parse_sources sources =
   Parse.parse_sources sources |> Result.map_error (fun e -> ParseError e)
 
 let elaborate spec_el =
-  Elaborate.elab_spec spec_el |> Result.map_error (fun e -> ElaborateError e)
+  let spec_il, errors_elab = Elaborate.elab_spec spec_el in
+  let spec_il, errors_algo = Algo.algo_spec spec_il in
+  match errors_algo @ errors_elab with
+  | [] -> Ok spec_il
+  | errors -> Error (SemanticError errors)
 
 let structure spec = Structure.struct_spec spec
 let henv_of_el_spec spec = Hints.Henv.of_el_spec spec
@@ -25,4 +29,4 @@ let shorten spec = Annotate.Shorthand.shorten_spec spec
 
 let error_to_diagnostics = function
   | ParseError e -> Diag.Bag.singleton (Parse.error_to_diagnostic e)
-  | ElaborateError e -> Elaborate.error_to_diagnostics e
+  | SemanticError errors -> Diag.Bag.of_list errors

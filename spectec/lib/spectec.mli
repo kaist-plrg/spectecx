@@ -1,7 +1,7 @@
 (** Spectec - Entrypoint API facade.
 
-    Provides the core pipeline (parse, elaborate, structure), a unified
-    interpreter entry point, and the core type modules (Error, Task, Target). *)
+    Provides the core pipeline, a unified interpreter entry point, and the core
+    type modules (Error, Task, Target). *)
 
 module Error = Error
 module Task = Task

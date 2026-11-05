@@ -126,7 +126,7 @@ The [ITPL specifications](spectec/specs/itpl/README.md) follow the languages in 
 Integrations for `.spectec` files live in `editors/`:
 
 - **Syntax highlighting** for VS Code, Emacs, and Vim/Neovim, one per subdirectory.
-- **Diagnostics**: `make lsp` builds `spectecx-lsp`, a language server that reports parse and elaboration errors as you edit.
+- **Diagnostics**: `make lsp` builds `spectecx-lsp`, a language server that reports parse, elaboration and algo errors as you edit.
 
 See [editors/README.md](editors/README.md) for installing a highlighter and turning on the language server.
 
