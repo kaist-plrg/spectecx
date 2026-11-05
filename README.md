@@ -77,9 +77,11 @@ The target-specific examples require the corresponding target package.
 
 ```bash
 # print out the IL representation of a SpecTec spec
-./spectecx elab spec/*.spectec
+./spectecx elab spectec/specs/impty/base/spec.spectec
+# print the AL representation of a SpecTec spec
+./spectecx algo spectec/specs/impty/base/spec.spectec
 # print the SL representation of a SpecTec spec
-./spectecx struct spec/*.spectec
+./spectecx struct spectec/specs/impty/base/spec.spectec
 
 ## P4-specific commands
 

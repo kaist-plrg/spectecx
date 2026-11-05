@@ -20,6 +20,21 @@ let elab_command =
     let* spec_al = elaborate_and_algorithmize spec in
     Ok spec_al
 
+let algo_command =
+  Core.Command.basic ~summary:"parse, elaborate and algorithmize a spec"
+  @@
+  let open Core.Command.Let_syntax in
+  let open Core.Command.Param in
+  let%map filenames = anon (sequence ("spec files" %: string))
+  and color = Cli.Cli_args.Output.color_flag in
+  fun () ->
+    Cli.Error_handling.guard ~color ~on_ok:(fun spec_al ->
+        Format.printf "%s\n" (Lang.Al.Print.string_of_spec spec_al))
+    @@ fun () ->
+    let* spec = parse_spec_files filenames in
+    let* spec_al = elaborate_and_algorithmize spec in
+    Ok spec_al
+
 let unparse_roundtrip filenames =
   let* spec_el = parse_spec_files filenames in
   let printed = Lang.El.Unparse.string_of_spec spec_el in
@@ -182,6 +197,7 @@ let command =
     ([
        ("unparse", unparse_command);
        ("elab", elab_command);
+       ("algo", algo_command);
        ("grammar", grammar_command);
        ("struct", structure_command);
        ("annotate", annotate_command);
