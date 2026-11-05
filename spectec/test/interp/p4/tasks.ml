@@ -6,13 +6,14 @@ module B = Interp.Builtins
 let ( $ ) = Common.Annotated.( $ )
 let at = Common.Location.Unknown
 
+let render error =
+  Spectec.Error.to_diagnostics error
+  |> Spectec.Diagnostic.Render.render_bag ~ansi:Spectec.Diagnostic.Ansi.plain
+
 let unwrap = function
   | Ok value -> value
   | Error error ->
-      prerr_endline
-        (Spectec.Error.to_diagnostics error
-        |> Spectec.Diagnostic.Render.render_bag
-             ~ansi:Spectec.Diagnostic.Ansi.plain);
+      prerr_endline (render error);
       exit 1
 
 let compile () =
@@ -93,6 +94,38 @@ let run spec_il mode filename =
   in
   Spectec.eval_task (module P4.Instantiate) ~mode ~spec_il input
 
+let samples = "../../../testdata/interp/p4/p4c/p4_16_samples/"
+
+let simulate spec_il mode filename ~stf =
+  let input : P4.Sim.input =
+    { includes = [ "../../../testdata/interp/p4/p4c/includes" ]; filename; stf }
+  in
+  Spectec.eval_task (module P4.Sim) ~check_determinism:true ~mode ~spec_il input
+
+let check_simulation spec_il mode filename ~stf =
+  simulate spec_il mode filename ~stf |> unwrap |> ignore
+
+let check_malformed spec_il mode =
+  match
+    simulate spec_il mode "sim-operations.p4"
+      ~stf:"sim-operations-malformed.stf"
+  with
+  | Error (Spectec.Error.TaskParseError (_, message))
+    when P4.contains_substring message "malformed expect statement" ->
+      ()
+  | Ok _ -> failwith "a malformed expect line was accepted"
+  | Error error -> failwith (render error)
+
+let check_mismatch spec_il mode =
+  match
+    simulate spec_il mode "sim-operations.p4" ~stf:"sim-operations-mismatch.stf"
+  with
+  | Error (Spectec.Error.TaskError (_, message))
+    when P4.contains_substring message "but expected" ->
+      ()
+  | Ok _ -> failwith "a mismatched expect line was accepted"
+  | Error error -> failwith (render error)
+
 let check_nested_store mode = function
   | [ _global; store ] ->
       let objects =
@@ -161,17 +194,20 @@ let () =
       |> check_store name
            [ ("defaults", 2); ("named_defaults", 1); ("all_defaults", 2) ];
       run spec_il mode "counter-nested.p4" |> unwrap |> check_nested_store name;
+      check_simulation spec_il mode
+        (samples ^ "valid_ebpf.p4")
+        ~stf:(samples ^ "valid_ebpf.stf");
+      check_simulation spec_il mode "sim-operations.p4"
+        ~stf:"sim-operations.stf";
       match run spec_il mode "unsupported.p4" with
       | Ok _ -> failwith (name ^ ": unsupported object was instantiated")
       | Error error ->
-          let diagnostics =
-            Spectec.Error.to_diagnostics error
-            |> Spectec.Diagnostic.Render.render_bag
-                 ~ansi:Spectec.Diagnostic.Ansi.plain
-          in
+          let diagnostics = render error in
           if
             not
               (P4.contains_substring diagnostics
                  "unsupported eBPF extern object: Unsupported")
           then failwith diagnostics)
-    [ ("IL", Spectec.Interp_mode.Il); ("SL", Sl); ("PL", Pl henv) ]
+    [ ("IL", Spectec.Interp_mode.Il); ("SL", Sl); ("PL", Pl henv) ];
+  check_mismatch spec_il Spectec.Interp_mode.Sl;
+  check_malformed spec_il Spectec.Interp_mode.Sl
