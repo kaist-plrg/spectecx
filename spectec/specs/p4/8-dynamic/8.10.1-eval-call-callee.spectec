@@ -1,0 +1,371 @@
+;;
+;; Callee evaluation
+;;
+;; syntax routineTargetIR
+;;
+
+;;; referenceExpressionIR
+
+;;;; Action call
+
+rule Callee_eval/actionCallee:
+  p EC ARCH |- referenceExpressionIR `< '_' `> `( argumentListIR `)
+             : EC ARCH (_CONT actionCallee)
+  ---- ;; find the action definition being called
+  ---- ;; (TODO) Is it correct to call overload resolution here
+  -- if _ ':' (p_ref, actionDef) '#' id_default* '#' _
+      = $find_callableDef_overloaded_e(
+          p, EC, referenceExpressionIR, argumentListIR)
+  ---- ;; prepare the callee
+  -- if _ ACTION nameIR `( parameterListIR `) blockStatementIR = actionDef
+  -- if actionCallee
+      = ACTION p_ref '.' nameIR `( parameterListIR '#' id_default* `) blockStatementIR
+
+;;;; Extern function call
+
+rule Callee_eval/externFunctionCallee:
+  p EC ARCH |- referenceExpressionIR `< '_' `> `( argumentListIR `)
+             : EC ARCH (_CONT externFunctionCallee)
+  ---- ;; find the extern function definition being called
+  -- if _ ':' (_, externFunctionDef) '#' id_default* '#' id_optional*
+      = $find_callableDef_overloaded_e(
+          p, EC, referenceExpressionIR, argumentListIR)
+  ---- ;; prepare the callee
+  -- if EXTERN_FUNCTION nameIR `< typeParameterListIR `> `( parameterListIR `)
+      = externFunctionDef
+  -- if externFunctionCallee
+      = EXTERN_FUNCTION nameIR `< typeParameterListIR `>
+          `( parameterListIR '#' id_default* '#' id_optional* `)
+
+;;;; Defined function call
+
+rule Callee_eval/definedFunctionCallee:
+  p EC ARCH |- referenceExpressionIR `< '_' `> `( argumentListIR `)
+             : EC ARCH (_CONT definedFunctionCallee)
+  ---- ;; find the function definition being called
+  -- if _ ':' (_, definedFunctionDef) '#' id_default* '#' _
+      = $find_callableDef_overloaded_e(p, EC, referenceExpressionIR, argumentListIR)
+  ---- ;; prepare the callee
+  -- if FUNCTION nameIR `< typeParameterListIR `> `( parameterListIR `) blockStatementIR
+      = definedFunctionDef
+  -- if definedFunctionCallee
+      = FUNCTION nameIR `< typeParameterListIR `> `( parameterListIR '#' id_default* `) blockStatementIR
+
+;;; typedExpressionIR '.' nameIR
+
+;;;; Builtin method call
+
+
+rule Callee_eval/abort:
+  p EC_0 ARCH_0 |- (typedExpressionIR '.' "push_front") `< '_' `> `( argumentListIR `)
+                 : EC_1 ARCH_1 abortResult
+  ---- ;; get storage reference of expression base
+  -- if typedLvalueIR
+      = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval:
+      p EC_0 ARCH_0 |- typedLvalueIR
+                     : EC_1 ARCH_1 abortResult
+
+rule Callee_eval/cont:
+  p EC_0 ARCH_0 |- (typedExpressionIR '.' "push_front") `< '_' `> `( argumentIR `)
+                 : EC_1 ARCH_1 (_CONT builtinPushFrontMethodCallee)
+  ---- ;; get storage reference of expression base
+  -- if typedLvalueIR
+      = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval:
+      p EC_0 ARCH_0 |- typedLvalueIR
+                     : EC_1 ARCH_1 (_CONT storageReference)
+  ---- ;; prepare the callee
+  -- if builtinPushFrontMethodCallee = BUILTIN_PUSH_FRONT storageReference
+
+
+
+rule Callee_eval/abort:
+  p EC_0 ARCH_0 |- (typedExpressionIR '.' "pop_front") `< '_' `> `( argumentListIR `)
+                 : EC_1 ARCH_1 abortResult
+  ---- ;; get storage reference of expression base
+  -- if typedLvalueIR
+      = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval:
+      p EC_0 ARCH_0 |- typedLvalueIR
+                     : EC_1 ARCH_1 abortResult
+
+rule Callee_eval/cont:
+  p EC_0 ARCH_0 |- (typedExpressionIR '.' "pop_front") `< '_' `> `( argumentIR `)
+                 : EC_1 ARCH_1 (_CONT builtinPopFrontMethodCallee)
+  ---- ;; get storage reference of expression base
+  -- if typedLvalueIR
+      = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval:
+      p EC_0 ARCH_0 |- typedLvalueIR
+                     : EC_1 ARCH_1 (_CONT storageReference)
+  ---- ;; prepare the callee
+  -- if builtinPopFrontMethodCallee = BUILTIN_POP_FRONT storageReference
+
+
+
+rule Callee_eval/abort:
+  p EC_0 ARCH_0 |- (typedExpressionIR '.' "isValid") `< '_' `> `( argumentListIR `)
+                 : EC_1 ARCH_1 abortResult
+  ---- ;; get storage reference of expression base
+  -- if typedLvalueIR
+      = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval:
+      p EC_0 ARCH_0 |- typedLvalueIR
+                     : EC_1 ARCH_1 abortResult
+
+rule Callee_eval/cont:
+  p EC_0 ARCH_0 |- (typedExpressionIR '.' "isValid") `< '_' `> `( eps `)
+                 : EC_1 ARCH_1 (_CONT builtinIsValidMethodCallee)
+  ---- ;; get storage reference of expression base
+  -- if typedLvalueIR
+      = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval:
+      p EC_0 ARCH_0 |- typedLvalueIR
+                     : EC_1 ARCH_1 (_CONT storageReference)
+  ---- ;; prepare the callee
+  -- if builtinIsValidMethodCallee = BUILTIN_IS_VALID storageReference
+
+
+
+rule Callee_eval/abort:
+  p EC_0 ARCH_0 |- (typedExpressionIR '.' "setValid") `< '_' `> `( argumentListIR `)
+                 : EC_1 ARCH_1 abortResult
+  ---- ;; get storage reference of expression base
+  -- if typedLvalueIR
+      = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval:
+      p EC_0 ARCH_0 |- typedLvalueIR
+                     : EC_1 ARCH_1 abortResult
+
+rule Callee_eval/cont:
+  p EC_0 ARCH_0 |- (typedExpressionIR '.' "setValid") `< '_' `> `( eps `)
+                 : EC_1 ARCH_1 (_CONT builtinSetValidMethodCallee)
+  ---- ;; get storage reference of expression base
+  -- if typedLvalueIR
+      = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval:
+      p EC_0 ARCH_0 |- typedLvalueIR
+                     : EC_1 ARCH_1 (_CONT storageReference)
+  ---- ;; prepare the callee
+  -- if builtinSetValidMethodCallee = BUILTIN_SET_VALID storageReference
+
+
+
+rule Callee_eval/abort:
+  p EC_0 ARCH_0 |- (typedExpressionIR '.' "setInvalid") `< '_' `> `( argumentListIR `)
+                 : EC_1 ARCH_1 abortResult
+  ---- ;; get storage reference of expression base
+  -- if typedLvalueIR
+      = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval:
+      p EC_0 ARCH_0 |- typedLvalueIR
+                     : EC_1 ARCH_1 abortResult
+
+rule Callee_eval/cont:
+  p EC_0 ARCH_0 |- (typedExpressionIR '.' "setInvalid") `< '_' `> `( eps `)
+                 : EC_1 ARCH_1 (_CONT builtinSetInvalidMethodCallee)
+  ---- ;; get storage reference of expression base
+  -- if typedLvalueIR
+      = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval:
+      p EC_0 ARCH_0 |- typedLvalueIR
+                    : EC_1 ARCH_1 (_CONT storageReference)
+  ---- ;; prepare the callee
+  -- if builtinSetInvalidMethodCallee = BUILTIN_SET_INVALID storageReference
+
+
+;;;; Builtin size method call
+
+
+rule Callee_eval/cont:
+  p EC ARCH |- (typedExpressionIR_base '.' nameIR) `< '_' `> `( eps `)
+             : EC ARCH (_CONT builtinSizeMethodCallee)
+  ---- ;; if the method is min/maxSizeInBits/Bytes builtin
+  -- if nameIR <- [ "minSizeInBits", "minSizeInBytes",
+                    "maxSizeInBits", "maxSizeInBytes" ]
+  ---- ;; read the receiver's static type from the note
+  -- if _ '#' `( typeIR_base _ `) = typedExpressionIR_base
+  ---- ;; prepare the callee
+  -- if builtinSizeMethodCallee = BUILTIN_SIZE_OF nameIR typeIR_base
+
+
+;;;; Extern method call
+
+
+rule Callee_eval/abort:
+  p EC_0 ARCH_0 |- (typedExpressionIR '.' nameIR) `< '_' `> `( argumentListIR `)
+                 : EC_1 ARCH_1 abortResult
+  ---- ;; get storage reference of expression base
+  -- if typedLvalueIR
+      = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval:
+      p EC_0 ARCH_0 |- typedLvalueIR
+                     : EC_1 ARCH_1 abortResult
+
+rule Callee_eval/cont:
+  p EC_0 ARCH_0 |- (typedExpressionIR '.' nameIR) `< '_' `> `( argumentListIR `)
+                 : EC_1 ARCH_1 (_CONT externMethodCallee)
+  ---- ;; get storage reference of expression base
+  -- if typedLvalueIR
+      = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval:
+      p EC_0 ARCH_0 |- typedLvalueIR
+                     : EC_1 ARCH_1 (_CONT storageReference)
+  ---- ;; read value of storage reference
+  -- Lvalue_read:
+      p EC_1 ARCH_1 |- storageReference : (REF objectId)
+  ---- ;; if the value is an object reference to an extern
+  -- if EXTERN _ `< theta `> `{ _ frame externMethodDefEnv `}
+      = $find_object_e(ARCH_1, objectId)
+  ---- ;; find the method being called
+  -- if callTargetKey = $callTargetKey(nameIR, argumentListIR)
+  -- if _ ':' externMethodDef '#' id_default* '#' id_optional*
+      = $find_overloaded<externMethodDef>(
+          externMethodDefEnv, callTargetKey,
+          def $parameterListIR_of_externMethodDef)
+  ---- ;; prepare the callee
+  -- if EXTERN_METHOD nameIR `< typeParameterListIR `>
+          `( parameterListIR `) blockStatementIR?
+      = externMethodDef
+  -- if externMethodCallee
+      = EXTERN_METHOD objectId '.' nameIR `< typeParameterListIR `>
+          `( parameterListIR '#' id_default* '#' id_optional* `)
+          `{ theta ';' frame ';' blockStatementIR? `}
+
+
+;;;; Parser apply method call
+
+
+rule Callee_eval/abort:
+  p EC_0 ARCH_0 |- (typedExpressionIR '.' "apply") `< '_' `> `( argumentListIR `)
+                 : EC_1 ARCH_1 abortResult
+  ---- ;; get storage reference of expression base
+  -- if typedLvalueIR
+      = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval:
+      p EC_0 ARCH_0 |- typedLvalueIR
+                     : EC_1 ARCH_1 abortResult
+
+rule Callee_eval/cont:
+  p EC_0 ARCH_0 |- (typedExpressionIR '.' "apply") `< '_' `> `( argumentListIR `)
+                 : EC_1 ARCH_1 (_CONT parserApplyMethodCallee)
+  ---- ;; get storage reference of expression base
+  -- if typedLvalueIR
+      = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval:
+      p EC_0 ARCH_0 |- typedLvalueIR
+                     : EC_1 ARCH_1 (_CONT storageReference)
+  ---- ;; read value of storage reference
+  ---- ;; if the value is an object reference to a parser
+  -- Lvalue_read:
+      p EC_1 ARCH_1 |- storageReference : (REF objectId)
+  -- if PARSER `< theta `> `( parameterListIR `)
+          `{ frame parserLocalDeclarationListIR stateEnv `}
+      = $find_object_e(ARCH_1, objectId)
+  ---- ;; perform default resolution
+  -- if callableId = $callableId_IR("apply", parameterListIR)
+  -- if parserApplyMethodDef
+      = PARSER_APPLY `( parameterListIR `)
+          `{ parserLocalDeclarationListIR ';' stateEnv `}
+  -- if callTargetKey = $callTargetKey("apply", argumentListIR)
+  -- if _ ':' _ '#' id_default* '#' _
+      = $find_overloaded<parserApplyMethodDef>(
+          `{ (callableId ':' parserApplyMethodDef) `},
+          callTargetKey,
+          def $parameterListIR_of_parserApplyMethodDef)
+  ---- ;; prepare the callee
+  -- if parserApplyMethodCallee
+      = PARSER objectId '.' APPLY `( parameterListIR '#' id_default* `)
+          `{ theta ';' frame ';' parserLocalDeclarationListIR ';' stateEnv `}
+
+
+;;;; Control apply method call
+
+
+rule Callee_eval/abort:
+  p EC_0 ARCH_0 |- (typedExpressionIR '.' "apply") `< '_' `> `( argumentListIR `)
+                 : EC_1 ARCH_1 abortResult
+  ---- ;; get storage reference of expression base
+  -- if typedLvalueIR
+      = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval:
+      p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 abortResult
+
+rule Callee_eval/cont:
+  p EC_0 ARCH_0 |- (typedExpressionIR '.' "apply") `< '_' `> `( argumentListIR `)
+                 : EC_1 ARCH_1 (_CONT controlApplyMethodCallee)
+  ---- ;; get storage reference of expression base
+  -- if typedLvalueIR
+      = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval:
+      p EC_0 ARCH_0 |- typedLvalueIR
+                     : EC_1 ARCH_1 (_CONT storageReference)
+  ---- ;; read value of storage reference
+  -- Lvalue_read:
+      p EC_1 ARCH_1 |- storageReference : (REF objectId)
+  ---- ;; if the value is an object reference to a control
+  -- if CONTROL `< theta `> `( parameterListIR `)
+          `{ frame controlLocalDeclarationListIR
+             actionDefEnv controlBodyIR `}
+      = $find_object_e(ARCH_1, objectId)
+  ---- ;; perform default resolution
+  -- if callableId = $callableId_IR("apply", parameterListIR)
+  -- if controlApplyMethodDef
+      = CONTROL_APPLY `( parameterListIR `)
+          `{ controlLocalDeclarationListIR ';' actionDefEnv ';' controlBodyIR `}
+  -- if callTargetKey = $callTargetKey("apply", argumentListIR)
+  -- if _ ':' _ '#' id_default* '#' _
+      = $find_overloaded<controlApplyMethodDef>(
+          `{ (callableId ':' controlApplyMethodDef) `},
+          callTargetKey,
+          def $parameterListIR_of_controlApplyMethodDef)
+  ---- ;; prepare the callee
+  -- if controlApplyMethodCallee
+      = CONTROL objectId '.' APPLY `( parameterListIR '#' id_default* `)
+          `{ theta ';' frame ';' controlLocalDeclarationListIR ';'
+             actionDefEnv ';' controlBodyIR `}
+
+
+;;;; Table apply method call
+
+
+rule Callee_eval/abort:
+  p EC_0 ARCH_0 |- (typedExpressionIR '.' "apply") `< '_' `> `( eps `)
+                 : EC_1 ARCH_1 abortResult
+  ---- ;; get storage reference of expression base
+  -- if typedLvalueIR
+      = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval:
+      p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 abortResult
+
+rule Callee_eval/cont:
+  p EC_0 ARCH_0 |- (typedExpressionIR '.' "apply") `< '_' `> `( eps `)
+                 : EC_1 ARCH_1 (_CONT tableApplyMethodCallee)
+  ---- ;; get storage reference of expression base
+  -- if typedLvalueIR
+      = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval:
+      p EC_0 ARCH_0 |- typedLvalueIR
+                     : EC_1 ARCH_1 (_CONT storageReference)
+  ---- ;; read value of storage reference
+  -- Lvalue_read:
+      p EC_1 ARCH_1 |- storageReference : (REF objectId)
+  ---- ;; if the value is an object reference to a table
+  -- if TABLE typeId `{ frame TBL `}
+      = $find_object_e(ARCH_1, objectId)
+  ---- ;; prepare the callee
+  -- if tableApplyMethodCallee
+      = TABLE objectId '.' APPLY `{ frame ';' TBL `}
+
+
+;;; TYPE prefixedNameIR '.' nameIR
+
+;;; `( callableTargetIR )
+
+rule Callee_eval/parenthesized:
+  p EC_0 ARCH_0 |- (`( callableTargetIR `)) `< '_' `> `( argumentListIR `)
+                 : EC_1 ARCH_1 calleeResult
+  -- Callee_eval:
+      p EC_0 ARCH_0 |- callableTargetIR `< '_' `> `( argumentListIR `)
+                     : EC_1 ARCH_1 calleeResult

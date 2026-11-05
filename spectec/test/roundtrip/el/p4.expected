@@ -21364,3 +21364,5209 @@ rule Constructor_call/packageConstructorDef:
   -- if theta_package = IC_callee_3.BLOCK.TYPE
   -- if frame_package = IC_callee_3.BLOCK.FRAME
   -- if object_package = PACKAGE `<theta_package`> `{frame_package`}
+;; === 8-dynamic/8.01.1-eval-context.spectec ===
+syntax globalEvalLayer = globalInstLayer
+
+syntax blockEvalLayer = blockInstLayer
+
+syntax localEvalLayer = localInstLayer
+
+syntax evalContext =
+  {GLOBAL globalEvalLayer, BLOCK blockEvalLayer, LOCAL localEvalLayer}
+
+var EC : evalContext
+
+dec $enter_e(evalContext) : evalContext
+  hint(prose_in %0 "with a new local frame")
+
+def $enter_e(EC) = EC[.LOCAL.FRAMES = $empty_frame :: EC.LOCAL.FRAMES]
+
+dec $exit_e(evalContext) : evalContext
+  hint(prose_in %0 "with the innermost frame removed")
+
+def $exit_e(EC) = EC[.LOCAL.FRAMES = frame_t*]
+  -- if EC.LOCAL.FRAMES = frame_h :: frame_t*
+
+dec $inherit_e(cursor, evalContext) : evalContext
+  hint(prose_in "copy of" %1 "from the" %0 "layer")
+
+def $inherit_e(GLOBAL, EC)
+  = EC[.BLOCK = blockEvalLayer][.LOCAL = localEvalLayer]
+  -- if blockEvalLayer
+        = {TYPE $empty_theta,
+           CALLABLE $empty_callableDefEnv,
+           STATE $empty_stateEnv,
+           FRAME $empty_frame}
+  -- if localEvalLayer = {TYPE $empty_theta, FRAMES ([$empty_frame])}
+
+def $inherit_e(BLOCK, EC) = EC[.LOCAL = localEvalLayer]
+  -- if localEvalLayer = {TYPE $empty_theta, FRAMES ([$empty_frame])}
+
+def $inherit_e(LOCAL, EC) = EC
+
+dec $copy_e(cursor, evalContext, evalContext) : evalContext
+
+def $copy_e(GLOBAL, EC_from, EC_to) = EC_to[.GLOBAL = EC_from.GLOBAL]
+
+def $copy_e(BLOCK, EC_from, EC_to)
+  = EC_to[.GLOBAL = EC_from.GLOBAL][.BLOCK = EC_from.BLOCK]
+
+def $copy_e(LOCAL, EC_from, EC_to)
+  = EC_to[.GLOBAL = EC_from.GLOBAL][.BLOCK = EC_from.BLOCK][.LOCAL = EC_from.LOCAL]
+
+dec $add_var_e(cursor, evalContext, prefixedNameIR, value) : evalContext
+  hint(prose_in %1 "where" %2 "to" %3 "is added to the" %0 "layer")
+
+dec $add_vars_e(cursor, evalContext, prefixedNameIR*, value*) : evalContext
+
+def $add_var_e(GLOBAL, EC, '.' id, value) = EC[.GLOBAL.FRAME = frame]
+  -- if frame = $add_map<id, value>(EC.GLOBAL.FRAME, id, value)
+
+def $add_var_e(GLOBAL, EC, _BARE id, value) = EC[.GLOBAL.FRAME = frame]
+  -- if frame = $add_map<id, value>(EC.GLOBAL.FRAME, id, value)
+
+def $add_var_e(BLOCK, EC, _BARE id, value) = EC[.BLOCK.FRAME = frame]
+  -- if frame = $add_map<id, value>(EC.BLOCK.FRAME, id, value)
+
+def $add_var_e(LOCAL, EC, _BARE id, value)
+  = EC[.LOCAL.FRAMES = frame_h' :: frame_t*]
+  -- if EC.LOCAL.FRAMES = frame_h :: frame_t*
+  -- if frame_h' = $add_map<id, value>(frame_h, id, value)
+
+def $add_vars_e(p, EC, eps, eps) = EC
+
+def $add_vars_e(p,
+                EC,
+                prefixedNameIR_h :: prefixedNameIR_t*,
+                value_h :: value_t*)
+  = EC''
+  -- if EC' = $add_var_e(p, EC, prefixedNameIR_h, value_h)
+  -- if EC'' = $add_vars_e(p, EC', prefixedNameIR_t*, value_t*)
+
+dec $update_var_e(cursor, evalContext, prefixedNameIR, value) : evalContext
+  hint(prose_in %1 "where" %2 "is updated to" %3 "from the" %0 "layer")
+
+def $update_var_e(p, EC, '.' id, value) = EC[.GLOBAL.FRAME = frame]
+  -- if frame = $update_map<id, value>(EC.GLOBAL.FRAME, id, value)
+
+def $update_var_e(GLOBAL, EC, _BARE id, value) = EC[.GLOBAL.FRAME = frame']
+  -- if frame = EC.GLOBAL.FRAME
+  -- if $in_set<id>(id, $dom_map<id, value>(frame))
+  -- if frame' = $update_map<id, value>(frame, id, value)
+
+def $update_var_e(BLOCK, EC, _BARE id, value) = EC[.BLOCK.FRAME = frame']
+  -- if frame = EC.BLOCK.FRAME
+  -- if $in_set<id>(id, $dom_map<id, value>(frame))
+  -- if frame' = $update_map<id, value>(frame, id, value)
+
+def $update_var_e(BLOCK, EC, _BARE id, value)
+  = $update_var_e(GLOBAL, EC, _BARE id, value)
+  -- if frame = EC.BLOCK.FRAME
+  -- if ~$in_set<id>(id, $dom_map<id, value>(frame))
+
+def $update_var_e(LOCAL, EC, _BARE id, value)
+  = $update_var_e(BLOCK, EC, _BARE id, value)
+  -- if eps = EC.LOCAL.FRAMES
+
+def $update_var_e(LOCAL, EC, _BARE id, value)
+  = EC[.LOCAL.FRAMES = frame_h' :: frame_t*]
+  -- if frame_h :: frame_t* = EC.LOCAL.FRAMES
+  -- if $in_set<id>(id, $dom_map<id, value>(frame_h))
+  -- if frame_h' = $update_map<id, value>(frame_h, id, value)
+
+def $update_var_e(LOCAL, EC, _BARE id, value)
+  = EC_pop'[.LOCAL.FRAMES = frame_h :: EC_pop'.LOCAL.FRAMES]
+  -- if frame_h :: frame_t* = EC.LOCAL.FRAMES
+  -- if ~$in_set<id>(id, $dom_map<id, value>(frame_h))
+  -- if EC_pop = EC[.LOCAL.FRAMES = frame_t*]
+  -- if EC_pop' = $update_var_e(LOCAL, EC_pop, _BARE id, value)
+
+dec $find_var_e(prefixedNameIR, cursor, evalContext) : value
+  hint(prose_in "the value of" %0 "from the" %1 "layer of" %2)
+
+def $find_var_e('.' id, p, EC) = value
+  -- if value = $find_map<id, value>(EC.GLOBAL.FRAME, id)
+
+def $find_var_e(_BARE id, GLOBAL, EC) = value
+  -- if value = $find_map<id, value>(EC.GLOBAL.FRAME, id)
+
+def $find_var_e(_BARE id, BLOCK, EC) = value
+  -- if value = $find_map<id, value>(EC.BLOCK.FRAME, id)
+
+def $find_var_e(_BARE id, BLOCK, EC) = $find_var_e(_BARE id, GLOBAL, EC)
+  -- if eps = $find_map<id, value>(EC.BLOCK.FRAME, id)
+
+def $find_var_e(_BARE id, LOCAL, EC) = value
+  -- if value = $find_maps<id, value>(EC.LOCAL.FRAMES, id)
+
+def $find_var_e(_BARE id, LOCAL, EC) = $find_var_e(_BARE id, BLOCK, EC)
+  -- if eps = $find_maps<id, value>(EC.LOCAL.FRAMES, id)
+
+dec $find_typeDef_e(cursor, evalContext, prefixedNameIR) : typeDefIR?
+
+def $find_typeDef_e(_, EC, _BARE nameIR)
+  = $find_map<typeId, typeDefIR>(EC.GLOBAL.TYPE, nameIR)
+
+def $find_typeDef_e(_, EC, '.' nameIR)
+  = $find_map<typeId, typeDefIR>(EC.GLOBAL.TYPE, nameIR)
+
+dec $find_type_e(cursor, evalContext, nameIR) : typeIR?
+
+def $find_type_e(BLOCK, EC, nameIR)
+  = $find_map<typeId, typeIR>(EC.BLOCK.TYPE, nameIR)
+
+def $find_type_e(LOCAL, EC, nameIR) = typeIR
+  -- if typeIR = $find_map<typeId, typeIR>(EC.LOCAL.TYPE, nameIR)
+
+def $find_type_e(LOCAL, EC, nameIR) = $find_type_e(BLOCK, EC, nameIR)
+  -- if eps = $find_map<typeId, typeIR>(EC.LOCAL.TYPE, nameIR)
+
+dec $find_callableDef_overloaded_e(cursor,
+                                   evalContext,
+                                   prefixedNameIR,
+                                   argumentIR*)
+  : callResolution<(cursor, callableDef)>?
+  hint(prose_in "the overloaded callable definition of" %2#"("
+                %3
+                ")"
+                "in the"
+                %0
+                "layer of"
+                %1)
+
+def $find_callableDef_overloaded_e(GLOBAL, EC, _BARE nameIR, argumentIR*)
+  = callableId ':' (GLOBAL, callableDef) '#' id_default* '#' id_optional*
+  -- if callTargetKey = $callTargetKey(nameIR, argumentIR*)
+  -- if callableId ':' callableDef '#' id_default* '#' id_optional*
+        = $find_overloaded<callableDef>(EC.GLOBAL.CALLABLE,
+                                        callTargetKey,
+                                        def $parameterListIR_of_callableDef)
+
+def $find_callableDef_overloaded_e(GLOBAL, EC, _BARE nameIR, argumentIR*) = eps
+  -- if callTargetKey = $callTargetKey(nameIR, argumentIR*)
+  -- if eps
+        = $find_overloaded<callableDef>(EC.GLOBAL.CALLABLE,
+                                        callTargetKey,
+                                        def $parameterListIR_of_callableDef)
+
+def $find_callableDef_overloaded_e(GLOBAL, EC, '.' nameIR, argumentIR*)
+  = callableId ':' (GLOBAL, callableDef) '#' id_default* '#' id_optional*
+  -- if callTargetKey = $callTargetKey(nameIR, argumentIR*)
+  -- if callableId ':' callableDef '#' id_default* '#' id_optional*
+        = $find_overloaded<callableDef>(EC.GLOBAL.CALLABLE,
+                                        callTargetKey,
+                                        def $parameterListIR_of_callableDef)
+
+def $find_callableDef_overloaded_e(GLOBAL, EC, '.' nameIR, argumentIR*) = eps
+  -- if callTargetKey = $callTargetKey(nameIR, argumentIR*)
+  -- if eps
+        = $find_overloaded<callableDef>(EC.GLOBAL.CALLABLE,
+                                        callTargetKey,
+                                        def $parameterListIR_of_callableDef)
+
+def $find_callableDef_overloaded_e(BLOCK, EC, _BARE nameIR, argumentIR*)
+  = callableId ':' (BLOCK, callableDef) '#' id_default* '#' id_optional*
+  -- if callTargetKey = $callTargetKey(nameIR, argumentIR*)
+  -- if callableId ':' callableDef '#' id_default* '#' id_optional*
+        = $find_overloaded<callableDef>(EC.BLOCK.CALLABLE,
+                                        callTargetKey,
+                                        def $parameterListIR_of_callableDef)
+
+def $find_callableDef_overloaded_e(BLOCK, EC, _BARE nameIR, argumentIR*)
+  = $find_callableDef_overloaded_e(GLOBAL, EC, _BARE nameIR, argumentIR*)
+  -- if callTargetKey = $callTargetKey(nameIR, argumentIR*)
+  -- if eps
+        = $find_overloaded<callableDef>(EC.BLOCK.CALLABLE,
+                                        callTargetKey,
+                                        def $parameterListIR_of_callableDef)
+
+def $find_callableDef_overloaded_e(LOCAL, EC, _BARE nameIR, argumentIR*)
+  = $find_callableDef_overloaded_e(BLOCK, EC, _BARE nameIR, argumentIR*)
+
+def $find_callableDef_overloaded_e(BLOCK, EC, '.' nameIR, argumentIR*)
+  = $find_callableDef_overloaded_e(GLOBAL, EC, '.' nameIR, argumentIR*)
+
+def $find_callableDef_overloaded_e(LOCAL, EC, '.' nameIR, argumentIR*)
+  = $find_callableDef_overloaded_e(GLOBAL, EC, '.' nameIR, argumentIR*)
+
+dec $find_constructorDef_e(evalContext, prefixedNameIR, argumentIR*)
+  : callResolution<constructorDef>?
+
+def $find_constructorDef_e(EC, _BARE nameIR, argumentIR*)
+  = $find_overloaded<constructorDef>(EC.GLOBAL.CONSTRUCTOR,
+                                     callTargetKey,
+                                     def $parameterListIR_of_constructorDef)
+  -- if callTargetKey = $callTargetKey(nameIR, argumentIR*)
+
+def $find_constructorDef_e(EC, '.' nameIR, argumentIR*)
+  = $find_overloaded<constructorDef>(EC.GLOBAL.CONSTRUCTOR,
+                                     callTargetKey,
+                                     def $parameterListIR_of_constructorDef)
+  -- if callTargetKey = $callTargetKey(nameIR, argumentIR*)
+
+dec $find_parserState_e(evalContext, nameIR) : parserStateIR?
+  hint(prose_in "the parser state of" %1 "in" %0)
+
+def $find_parserState_e(EC, nameIR)
+  = $find_map<nameIR, parserStateIR>(EC.BLOCK.STATE, nameIR)
+
+dec $subst_type_e(cursor, evalContext, typeIR) : typeIR
+  hint(prose_in %2
+                "substituted by bound type variables in"
+                %1
+                "from the"
+                %0
+                "layer")
+
+def $subst_type_e(GLOBAL, EC, typeIR) = typeIR
+
+def $subst_type_e(BLOCK, EC, typeIR) = typeIR_subst
+  -- if theta = EC.BLOCK.TYPE
+  -- if typeIR_subst = $subst_typeIR(theta, typeIR)
+
+def $subst_type_e(LOCAL, EC, typeIR) = typeIR_subst
+  -- if theta_block = EC.BLOCK.TYPE
+  -- if theta_local = EC.LOCAL.TYPE
+  -- if theta = $extend_map<typeId, typeIR>(theta_block, theta_local)
+  -- if typeIR_subst = $subst_typeIR(theta, typeIR)
+;; === 8-dynamic/8.01.2-eval-arch.spectec ===
+opaque syntax archState
+
+builtin dec $init_archState : archState
+
+syntax arch = {STATE archState, STORE store}
+
+var ARCH : arch
+
+dec $add_object_e(arch, objectId, object) : arch
+
+def $add_object_e(ARCH, objectId, object) = ARCH[.STORE = STO]
+  -- if STO = $add_map<objectId, object>(ARCH.STORE, objectId, object)
+
+dec $find_archState_e(arch) : archState
+
+def $find_archState_e(ARCH) = ARCH.STATE
+
+dec $find_object_e(arch, objectId) : object?
+  hint(prose_in "the object" %1 "in" %0)
+
+def $find_object_e(ARCH, objectId)
+  = $find_map<objectId, object>(ARCH.STORE, objectId)
+
+dec $find_object_qualified_e(arch, objectId) : object?
+
+def $find_object_qualified_e(ARCH, objectId) = $find_object_e(ARCH, objectId)
+
+dec $find_object_unqualified_e(arch, id) : object?
+
+def $find_object_unqualified_e(ARCH, id) = object_id_found
+  -- if `{(objectId ':' object)*`} = ARCH.STORE
+  -- (if (object_id?
+         = $ite<object?>($objectId_ends_with(objectId, id), object, eps)))*
+  -- if object_id_found = $filter_<object?>(object_id?*, (object_id? =/= eps)*)
+
+def $find_object_unqualified_e(ARCH, id) = eps
+  -- otherwise
+
+dec $find_objectState_e(arch, objectId) : objectState?
+
+def $find_objectState_e(ARCH, objectId) = objectState
+  -- if externObject = $find_object_e(ARCH, objectId)
+  -- if EXTERN _ `<_`> `{objectState _ _`} = externObject
+
+def $find_objectState_e(ARCH, objectId) = eps
+  -- otherwise
+
+dec $update_archState_e(arch, archState) : arch
+
+def $update_archState_e(ARCH, archState) = ARCH[.STATE = archState]
+
+dec $update_object_qualified_e(arch, objectId, object) : arch
+
+def $update_object_qualified_e(ARCH_0, objectId, object) = ARCH_1
+  -- if eps =/= $find_object_qualified_e(ARCH_0, objectId)
+  -- if ARCH_1 = $add_object_e(ARCH_0, objectId, object)
+
+dec $update_object_unqualified_e(arch, id, object) : arch
+
+def $update_object_unqualified_e(ARCH_0, id, object) = ARCH_1
+  -- if `{(objectId ':' _)*`} = ARCH_0.STORE
+  -- (if (objectId_id?
+         = $ite<objectId?>($objectId_ends_with(objectId, id), objectId, eps)))*
+  -- if objectId_found
+        = $filter_<objectId?>(objectId_id?*, (objectId_id? =/= eps)*)
+  -- if ARCH_1 = $add_object_e(ARCH_0, objectId_found, object)
+
+dec $update_objectState_e(arch, objectId, objectState) : arch?
+
+def $update_objectState_e(ARCH_0, objectId, objectState) = ARCH_1
+  -- if externObject = $find_object_e(ARCH_0, objectId)
+  -- if EXTERN typeId `<theta`> `{_ frame externMethodDefEnv`} = externObject
+  -- if externObject_update
+        = EXTERN typeId `<theta`> `{objectState frame externMethodDefEnv`}
+  -- if ARCH_1 = $add_object_e(ARCH_0, objectId, externObject_update)
+
+def $update_objectState_e(ARCH, objectId, objectState) = eps
+  -- otherwise
+;; === 8-dynamic/8.02-evaluation-relation.spectec ===
+syntax continueEmptyResult =
+  | _EMPTY
+
+syntax continueResult<X> =
+  | _CONT X
+
+syntax exitResult =
+  | EXIT
+
+syntax returnResult =
+  | RETURN value?
+
+syntax acceptTransitionResult =
+  | ACCEPT
+
+syntax rejectTransitionResult =
+  | REJECT errorValue
+
+syntax stateTransitionResult =
+  | STATE id
+
+syntax abortResult =
+  | exitResult
+  | rejectTransitionResult
+
+syntax expressionResult =
+  | continueResult<value>
+  | abortResult
+
+relation Expr_eval:
+  cursor evalContext arch
+    |- typedExpressionIR
+    : evalContext arch expressionResult
+  hint(input %0 %1 %2 %3)
+  hint(prose_in "evaluating" %3#", under context" %1 "and state" %2 "at" %0)
+  hint(prose_out "context" %4#", state" %5#" and" %6)
+
+syntax expressionListResult =
+  | continueResult<value*>
+  | abortResult
+
+relation Exprs_eval:
+  cursor evalContext arch
+    |- typedExpressionIR*
+    : evalContext arch expressionListResult
+  hint(input %0 %1 %2 %3)
+  hint(prose_in "evaluating" %3#", under context" %1 "and state" %2 "at" %0)
+  hint(prose_out "context" %4#", state" %5#" and" %6)
+
+syntax keysetExpressionResult =
+  | continueResult<setValue*>
+  | abortResult
+
+relation Eval_keyset:
+  evalContext arch
+    |- keysetExpressionIR
+    : evalContext arch keysetExpressionResult
+  hint(input %0 %1 %2)
+  hint(prose_in "evaluating" %2#", under context" %0 "and state" %1)
+  hint(prose_out "context" %3#", state" %4#", and result" %5)
+
+relation Argument_eval:
+  cursor evalContext arch |- argumentIR : evalContext arch expressionResult
+  hint(input %0 %1 %2 %3)
+
+syntax storageReferenceResult =
+  | continueResult<storageReference?>
+  | abortResult
+
+relation Argument_eval_lvalue:
+  cursor evalContext arch
+    |- argumentIR
+    : evalContext arch storageReferenceResult
+  hint(input %0 %1 %2 %3)
+
+relation Lvalue_eval:
+  cursor evalContext arch
+    |- typedLvalueIR
+    : evalContext arch storageReferenceResult
+  hint(input %0 %1 %2 %3)
+  hint(prose_in "evaluating" %3#", under context" %1 "and state" %2 "at" %0)
+  hint(prose_out "context" %4#", state" %5#", and result" %6)
+
+relation Lvalue_read: cursor evalContext arch |- storageReference : value
+  hint(input %0 %1 %2 %3)
+  hint(prose_in "reading from" %3#", under context" %1 "and state" %2 "at" %0)
+  hint(prose_out "value" %4)
+
+relation Lvalue_write:
+  cursor evalContext arch |- storageReference := value : evalContext
+  hint(input %0 %1 %2 %3 %4)
+  hint(prose_in "writing" %4#" to" %3#", under context"
+                %1
+                "and state"
+                %2
+                "at"
+                %0)
+  hint(prose_out "context" %5)
+
+syntax callResult =
+  | abortResult
+  | returnResult
+
+syntax forBreakResult =
+  | BREAK
+
+syntax forContinueResult =
+  | CONTINUE
+
+syntax forResult =
+  | forBreakResult
+  | forContinueResult
+
+syntax statementResult =
+  | continueEmptyResult
+  | callResult
+  | forResult
+
+relation Stmt_eval:
+  cursor evalContext arch |- statementIR : evalContext arch statementResult
+  hint(input %0 %1 %2 %3)
+  hint(prose_in "runtime evaluation of" %3#", under context"
+                %1
+                "and state"
+                %2
+                "at"
+                %0)
+  hint(prose_out "context" %4#", state" %5#", and" %6)
+
+relation BlockElementStmt_eval:
+  evalContext arch |- blockElementStatementIR : evalContext arch statementResult
+  hint(input %0 %1 %2)
+  hint(prose_in "runtime evaluation of" %2#", under context" %0#", and state" %1)
+  hint(prose_out "context" %3#", state" %4#", and" %5)
+
+relation BlockElementStmtList_eval:
+  evalContext arch
+    |- blockElementStatementListIR
+    : evalContext arch statementResult
+  hint(input %0 %1 %2)
+  hint(prose_in "runtime evaluation of" %2#", under context" %0#", and state" %1)
+  hint(prose_out "context" %3#", state" %4#", and" %5)
+
+relation Block_eval:
+  evalContext arch |- blockStatementIR : evalContext arch statementResult
+  hint(input %0 %1 %2)
+  hint(prose_in "runtime evaluation of" %2#", under context" %0#", and state" %1)
+  hint(prose_out "context" %3#", state" %4#", and" %5)
+
+syntax parserStatementResult =
+  | continueEmptyResult
+  | rejectTransitionResult
+
+relation ParserStmt_eval:
+  evalContext arch |- parserStatementIR : evalContext arch parserStatementResult
+  hint(input %0 %1 %2)
+  hint(prose_in "runtime evaluation of" %2#", under context" %0 "and state" %1)
+  hint(prose_out "context" %3#", state" %4#", and" %5)
+
+relation ParserBlockElementStmt_eval:
+  evalContext arch
+    |- parserBlockElementStatementIR
+    : evalContext arch parserStatementResult
+  hint(input %0 %1 %2)
+  hint(prose_in "runtime evaluation of" %2#", under context" %0#", and state" %1)
+  hint(prose_out "context" %3#", state" %4#", and" %5)
+
+relation ParserBlockElementStmtList_eval:
+  evalContext arch
+    |- parserBlockElementStatementListIR
+    : evalContext arch parserStatementResult
+  hint(input %0 %1 %2)
+  hint(prose_in "runtime evaluation of" %2#", under context" %0#", and state" %1)
+  hint(prose_out "context" %3#", state" %4#", and" %5)
+
+relation ParserBlock_eval:
+  evalContext arch
+    |- parserBlockStatementIR
+    : evalContext arch parserStatementResult
+  hint(input %0 %1 %2)
+  hint(prose_in "runtime evaluation of" %2#", under context" %0#", and state" %1)
+  hint(prose_out "context" %3#", state" %4#", and" %5)
+
+syntax transitionResult =
+  | acceptTransitionResult
+  | rejectTransitionResult
+  | stateTransitionResult
+
+relation ParserSelect_eval:
+  evalContext arch |- selectExpressionIR : evalContext arch transitionResult
+  hint(input %0 %1 %2)
+  hint(prose_in "runtime evaluation of" %2#", under context" %0 "and state" %1)
+  hint(prose_out "context" %3#", state" %4#", and" %5)
+
+relation ParserTransition_eval:
+  evalContext arch |- transitionStatementIR : evalContext arch transitionResult
+  hint(input %0 %1 %2)
+  hint(prose_in "runtime evaluation of" %2#", under context" %0 "and state" %1)
+  hint(prose_out "context" %3#", state" %4#", and" %5)
+
+relation ParserState_eval:
+  evalContext arch |- parserStateIR : evalContext arch transitionResult
+  hint(input %0 %1 %2)
+  hint(prose_in "evaluating parser state" %2#", under context" %0#", and state"
+                %1)
+  hint(prose_out "context" %3#", state" %4#", and" %5)
+
+relation ParserState_trans:
+  evalContext arch |- TRANSITION nameIR : evalContext arch transitionResult
+  hint(input %0 %1 %2)
+  hint(prose_in "runtime evaluation of parser transition" %2#", under context"
+                %0
+                "and state"
+                %1)
+  hint(prose_out "context" %3#", state" %4#", and" %5)
+
+syntax parserDeclarationResult = parserStatementResult
+
+relation ParserLocalDecl_eval:
+  evalContext arch
+    |- parserLocalDeclarationIR
+    : evalContext arch parserDeclarationResult
+  hint(input %0 %1 %2)
+  hint(prose_in "evaluating parser local declaration" %2#", under context" %0#", and state"
+                %1)
+  hint(prose_out "context" %3#", state" %4#", and result" %5)
+
+relation ParserLocalDecls_eval:
+  evalContext arch
+    |- parserLocalDeclarationIR*
+    : evalContext arch parserDeclarationResult
+  hint(input %0 %1 %2)
+  hint(prose_in "evaluating parser local declarations" %2#", under context" %0#", and state"
+                %1)
+  hint(prose_out "context" %3#", state" %4#", and result" %5)
+
+syntax tableResult =
+  | exitResult
+  | returnResult
+
+relation Table_eval:
+  evalContext arch |- typeId tableObjectProperty : evalContext arch tableResult
+  hint(input %0 %1 %2 %3)
+
+syntax controlBodyResult =
+  | exitResult
+  | returnResult
+
+relation ControlBody_eval:
+  evalContext arch |- controlBodyIR : evalContext arch controlBodyResult
+  hint(input %0 %1 %2)
+  hint(prose_in "evaluating" %2#", under context" %0#", and state" %1)
+  hint(prose_out "context" %3#", state" %4#", and result" %5)
+
+syntax controlLocalDeclarationResult =
+  | continueEmptyResult
+  | exitResult
+
+relation ControlLocalDecl_eval:
+  evalContext arch
+    |- controlLocalDeclarationIR
+    : evalContext arch controlLocalDeclarationResult
+  hint(input %0 %1 %2)
+  hint(prose_in "evaluating" %2#", under context" %0#", and state" %1)
+  hint(prose_out "context" %3#", state" %4#", and result" %5)
+
+relation ControlLocalDecls_eval:
+  evalContext arch
+    |- controlLocalDeclarationIR*
+    : evalContext arch controlLocalDeclarationResult
+  hint(input %0 %1 %2)
+  hint(prose_in "evaluating" %2#", under context" %0#", and state" %1)
+  hint(prose_out "context" %3#", state" %4#", and result" %5)
+
+syntax declarationResult =
+  | continueEmptyResult
+  | abortResult
+
+relation VarDecl_eval:
+  cursor evalContext arch
+    |- variableDeclarationIR
+    : evalContext arch declarationResult
+  hint(input %0 %1 %2 %3)
+  hint(prose_in "evaluating" %3#", under context" %1 "and state" %2 "at" %0)
+  hint(prose_out "context" %4#", state" %5#", and result" %6)
+
+relation ConstDecl_eval:
+  cursor evalContext |- constantDeclarationIR : evalContext
+  hint(input %0 %1 %2)
+  hint(prose_in "evaluating" %2#", under context" %1 "at" %0)
+  hint(prose_out "context" %3)
+
+syntax calleeResult =
+  | continueResult<callee>
+  | abortResult
+
+relation Callee_eval:
+  cursor evalContext arch
+    |- callableTargetIR `<'_'`> `(argumentListIR`)
+    : evalContext arch calleeResult
+  hint(input %0 %1 %2 %3 %4)
+  hint(prose_in "finding callee" %3 `(%4`)#", under context"
+                %1
+                "and state"
+                %2
+                "at"
+                %0)
+  hint(prose_out "context" %5#", state" %6#", and callee" %7)
+
+syntax copyInArgumentResult =
+  | continueResult<storageReference?>
+  | abortResult
+
+relation Copy_in_arg:
+  arch
+    |- cursor evalContext parameterIR '@' cursor evalContext argumentIR
+    ~> arch evalContext evalContext '#' copyInArgumentResult
+  hint(input %0 %1 %2 %3 %4 %5 %6)
+  hint(prose_in "copy-in from" %6 "at" %4 "of" %5 "to" %3 "in" %1 "at" %2#", under state"
+                %0)
+  hint(prose_out "\nstate" %7#"," "\n caller's context" %8#","
+                 "\n callee's context"
+                 %9#","
+                 "\n and copy-in result"
+                 %10)
+
+syntax copyInResult =
+  | continueResult<storageReference?*>
+  | abortResult
+
+relation Copy_in:
+  cursor arch
+    |- cursor evalContext parameterListIR '@' cursor evalContext argumentListIR
+    ~> arch evalContext evalContext '#' copyInResult
+  hint(input %0 %1 %2 %3 %4 %5 %6 %7)
+  hint(prose_in "copy-in from" %7 "at" %5 "of" %6 "to" %4 "in" %2 "at" %3#", under state"
+                %1
+                "at shared"
+                %0)
+  hint(prose_out "\nstate" %8#"," "\n caller's context" %9#","
+                 "\n callee's context"
+                 %10#","
+                 "\n and copy-in result"
+                 %11)
+
+relation Copy_in_default: parameterListIR '@' cursor evalContext ~> evalContext
+  hint(input %0 %1 %2)
+  hint(prose_in "copying defaults for" %0#", under context" %1 "and context" %2)
+  hint(prose_out %3)
+
+relation Copy_out_argument:
+  arch
+    |- cursor evalContext parameterIR '@' cursor evalContext storageReference?
+    ~> evalContext
+  hint(input %0 %1 %2 %3 %4 %5 %6)
+  hint(prose_in "copy-out from" %4 "at" %2 "of" %3 "to" %1 "at shared" %0#", under state"
+                %1
+                "at shared"
+                %0)
+  hint(prose_out "context" %7)
+
+relation Copy_out:
+  cursor arch
+    |- cursor
+       evalContext
+       parameterListIR
+       '@'
+       cursor
+       evalContext
+       storageReference?*
+    ~> evalContext
+  hint(input %0 %1 %2 %3 %4 %5 %6 %7)
+  hint(prose_in "copy-out from" %4 "at" %2 "of" %3 "to" %7 "at" %5 "of" %6#", under state"
+                %1
+                "at shared"
+                %0)
+  hint(prose_out %8)
+
+relation Call_eval:
+  cursor evalContext arch
+    |- callee '@' `<typeArgumentListIR`> `(argumentListIR`)
+    : evalContext arch callResult
+  hint(input %0 %1 %2 %3 %4 %5)
+  hint(prose_in "calling" %3 `<%4`> `(%5`)#", under context"
+                %1
+                "and state"
+                %2
+                "at"
+                %0)
+  hint(prose_out "context" %6#", state" %7#", and call result" %8)
+
+relation ExternFunctionCall_eval:
+  evalContext arch |- nameIR `(nameIR*`) : evalContext arch callResult
+  hint(input %0 %1 %2 %3)
+  hint(prose_in "calling an extern function" %2 `(%3`)#", under context" %0#", and state"
+                %1)
+  hint(prose_out "context" %4#", state" %5#", and call result" %6)
+
+relation ExternMethodCall_eval:
+  evalContext arch
+    |- objectId '.' nameIR `(nameIR*`)
+    : evalContext arch callResult
+  hint(input %0 %1 %2 %3 %4)
+  hint(prose_in "calling an extern method" %3 `(%4`) "on object" %2#", under context"
+                %0#", and state"
+                %1)
+  hint(prose_out "context" %5#", state" %6#", and call result" %7)
+;; === 8-dynamic/8.03.1-eval-expression.spectec ===
+rule Expr_eval/booleanLiteral:
+  p EC ARCH |- booleanLiteral '#' _ : EC ARCH expressionResult
+  -- if boolValue = $ite<boolValue>(booleanLiteral = TRUE, _B true, _B false)
+  -- if expressionResult = _CONT boolValue
+
+rule Expr_eval/integerLiteral:
+  p EC ARCH |- integerLiteral '#' _ : EC ARCH expressionResult
+  -- if expressionResult = _CONT integerLiteral
+
+rule Expr_eval/stringLiteral:
+  p EC ARCH |- stringLiteral '#' _ : EC ARCH expressionResult
+  -- if expressionResult = _CONT stringLiteral
+
+rule Expr_eval/referenceExpressionIR:
+  p EC ARCH |- prefixedNameIR '#' _ : EC ARCH expressionResult
+  -- if value = $find_var_e(prefixedNameIR, p, EC)
+  -- if expressionResult = _CONT value
+
+rule Expr_eval/defaultExpressionIR:
+  p EC ARCH |- '...' '#' _ : EC ARCH expressionResult
+  -- if expressionResult = _CONT DEFAULT
+
+rule Expr_eval/abort:
+  p EC_0 ARCH_0 |- (unop typedExpressionIR) '#' _ : EC_1 ARCH_1 abortResult
+  -- Expr_eval: p EC_0 ARCH_0 |- typedExpressionIR : EC_1 ARCH_1 abortResult
+
+rule Expr_eval/cont:
+  p EC_0 ARCH_0 |- (unop typedExpressionIR) '#' _ : EC_1 ARCH_1 expressionResult
+  -- Expr_eval: p EC_0 ARCH_0 |- typedExpressionIR : EC_1 ARCH_1 (_CONT value)
+  -- if expressionResult = _CONT $un_op(unop, value)
+
+rule Expr_eval/non-short-circuit-abort:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR_l binop typedExpressionIR_r) '#' _
+    : EC_1 ARCH_1 abortResult
+  -- if ~(binop <- ['&&', '||'])
+  -- Exprs_eval:
+       p EC_0 ARCH_0
+         |- [typedExpressionIR_l, typedExpressionIR_r]
+         : EC_1 ARCH_1 abortResult
+
+rule Expr_eval/non-short-circuit-cont:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR_l binop typedExpressionIR_r) '#' _
+    : EC_1 ARCH_1 expressionResult
+  -- if ~(binop <- ['&&', '||'])
+  -- Exprs_eval:
+       p EC_0 ARCH_0
+         |- [typedExpressionIR_l, typedExpressionIR_r]
+         : EC_1 ARCH_1 (_CONT ([value_l, value_r]))
+  -- if expressionResult = _CONT $bin_op(binop, value_l, value_r)
+
+rule Expr_eval/land-abort:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR_l '&&' typedExpressionIR_r) '#' _
+    : EC_1 ARCH_1 abortResult
+  -- Expr_eval: p EC_0 ARCH_0 |- typedExpressionIR_l : EC_1 ARCH_1 abortResult
+
+rule Expr_eval/land-false:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR_l '&&' typedExpressionIR_r) '#' _
+    : EC_1 ARCH_1 expressionResult
+  -- Expr_eval:
+       p EC_0 ARCH_0 |- typedExpressionIR_l : EC_1 ARCH_1 (_CONT (_B false))
+  -- if expressionResult = _CONT (_B false)
+
+rule Expr_eval/land-true:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR_l '&&' typedExpressionIR_r) '#' _
+    : EC_2 ARCH_2 expressionResult_r
+  -- Expr_eval:
+       p EC_0 ARCH_0 |- typedExpressionIR_l : EC_1 ARCH_1 (_CONT (_B true))
+  -- Expr_eval:
+       p EC_1 ARCH_1 |- typedExpressionIR_r : EC_2 ARCH_2 expressionResult_r
+
+rule Expr_eval/lor-abort:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR_l '||' typedExpressionIR_r) '#' _
+    : EC_1 ARCH_1 abortResult
+  -- Expr_eval: p EC_0 ARCH_0 |- typedExpressionIR_l : EC_1 ARCH_1 abortResult
+
+rule Expr_eval/lor-true:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR_l '||' typedExpressionIR_r) '#' _
+    : EC_1 ARCH_1 expressionResult
+  -- Expr_eval:
+       p EC_0 ARCH_0 |- typedExpressionIR_l : EC_1 ARCH_1 (_CONT (_B true))
+  -- if expressionResult = _CONT (_B true)
+
+rule Expr_eval/lor-false:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR_l '||' typedExpressionIR_r) '#' _
+    : EC_2 ARCH_2 expressionResult_r
+  -- Expr_eval:
+       p EC_0 ARCH_0 |- typedExpressionIR_l : EC_1 ARCH_1 (_CONT (_B false))
+  -- Expr_eval:
+       p EC_1 ARCH_1 |- typedExpressionIR_r : EC_2 ARCH_2 expressionResult_r
+
+rule Expr_eval/cond-abort:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR_cond
+        '?'
+        typedExpressionIR_true
+        ':'
+        typedExpressionIR_false)
+       '#'
+       _
+    : EC_1 ARCH_1 abortResult
+  -- Expr_eval:
+       p EC_0 ARCH_0 |- typedExpressionIR_cond : EC_1 ARCH_1 abortResult
+
+rule Expr_eval/cond-true:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR_cond
+        '?'
+        typedExpressionIR_true
+        ':'
+        typedExpressionIR_false)
+       '#'
+       _
+    : EC_2 ARCH_2 expressionResult_true
+  -- Expr_eval:
+       p EC_0 ARCH_0 |- typedExpressionIR_cond : EC_1 ARCH_1 (_CONT (_B true))
+  -- Expr_eval:
+       p EC_1 ARCH_1
+         |- typedExpressionIR_true
+         : EC_2 ARCH_2 expressionResult_true
+
+rule Expr_eval/cond-false:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR_cond
+        '?'
+        typedExpressionIR_true
+        ':'
+        typedExpressionIR_false)
+       '#'
+       _
+    : EC_2 ARCH_2 expressionResult_false
+  -- Expr_eval:
+       p EC_0 ARCH_0 |- typedExpressionIR_cond : EC_1 ARCH_1 (_CONT (_B false))
+  -- Expr_eval:
+       p EC_1 ARCH_1
+         |- typedExpressionIR_false
+         : EC_2 ARCH_2 expressionResult_false
+
+rule Expr_eval/abort:
+  p EC_0 ARCH_0
+    |- (`(typeIR`) typedExpressionIR) '#' _
+    : EC_1 ARCH_1 abortResult
+  -- Expr_eval: p EC_0 ARCH_0 |- typedExpressionIR : EC_1 ARCH_1 abortResult
+
+rule Expr_eval/cont:
+  p EC_0 ARCH_0
+    |- (`(typeIR`) typedExpressionIR) '#' _
+    : EC_1 ARCH_1 (_CONT value_cast)
+  -- Expr_eval: p EC_0 ARCH_0 |- typedExpressionIR : EC_1 ARCH_1 (_CONT value)
+  -- if value_cast = $cast_op(typeIR, value)
+
+rule Expr_eval/invalidHeaderExpressionIR:
+  p EC ARCH |- '{#}' '#' _ : EC ARCH expressionResult
+  -- if expressionResult = _CONT '{#}'
+
+rule Expr_eval/non-default-abort:
+  p EC_0 ARCH_0
+    |- (SEQ `{typedExpressionListIR`}) '#' _
+    : EC_1 ARCH_1 abortResult
+  -- Exprs_eval:
+       p EC_0 ARCH_0 |- typedExpressionListIR : EC_1 ARCH_1 abortResult
+
+rule Expr_eval/non-default-cont:
+  p EC_0 ARCH_0
+    |- (SEQ `{typedExpressionListIR`}) '#' _
+    : EC_1 ARCH_1 expressionResult
+  -- Exprs_eval:
+       p EC_0 ARCH_0 |- typedExpressionListIR : EC_1 ARCH_1 (_CONT value*)
+  -- if expressionResult = _CONT (SEQ `(value*`))
+
+rule Expr_eval/default-abort:
+  p EC_0 ARCH_0
+    |- (SEQ `{typedExpressionListIR ',' '...'`}) '#' _
+    : EC_1 ARCH_1 abortResult
+  -- Exprs_eval:
+       p EC_0 ARCH_0 |- typedExpressionListIR : EC_1 ARCH_1 abortResult
+
+rule Expr_eval/default-cont:
+  p EC_0 ARCH_0
+    |- (SEQ `{typedExpressionListIR ',' '...'`}) '#' _
+    : EC_1 ARCH_1 expressionResult
+  -- Exprs_eval:
+       p EC_0 ARCH_0 |- typedExpressionListIR : EC_1 ARCH_1 (_CONT value*)
+  -- if expressionResult = _CONT (SEQ `(value* ',' '...'`))
+
+rule Expr_eval/non-default-abort:
+  p EC_0 ARCH_0
+    |- (RECORD `{(nameIR '=' typedExpressionIR)*`}) '#' _
+    : EC_1 ARCH_1 abortResult
+  -- Exprs_eval: p EC_0 ARCH_0 |- typedExpressionIR* : EC_1 ARCH_1 abortResult
+
+rule Expr_eval/non-default-cont:
+  p EC_0 ARCH_0
+    |- (RECORD `{(nameIR '=' typedExpressionIR)*`}) '#' _
+    : EC_1 ARCH_1 expressionResult
+  -- Exprs_eval:
+       p EC_0 ARCH_0 |- typedExpressionIR* : EC_1 ARCH_1 (_CONT value*)
+  -- if expressionResult = _CONT (RECORD `{(value nameIR ';')*`})
+
+rule Expr_eval/default-abort:
+  p EC_0 ARCH_0
+    |- (RECORD `{(nameIR '=' typedExpressionIR)* ',' '...'`}) '#' _
+    : EC_1 ARCH_1 abortResult
+  -- Exprs_eval: p EC_0 ARCH_0 |- typedExpressionIR* : EC_1 ARCH_1 abortResult
+
+rule Expr_eval/default-cont:
+  p EC_0 ARCH_0
+    |- (RECORD `{(nameIR '=' typedExpressionIR)* ',' '...'`}) '#' _
+    : EC_1 ARCH_1 expressionResult
+  -- Exprs_eval:
+       p EC_0 ARCH_0 |- typedExpressionIR* : EC_1 ARCH_1 (_CONT value*)
+  -- if expressionResult = _CONT (RECORD `{(value nameIR ';')* ',' '...'`})
+
+rule Expr_eval/errorAccessExpressionIR:
+  p EC ARCH |- (ERROR '.' nameIR) '#' _ : EC ARCH expressionResult
+  -- if nameIR_error = "error." ++ nameIR
+  -- if value_error = $find_var_e(_BARE nameIR_error, p, EC)
+  -- if expressionResult = _CONT value_error
+
+rule Expr_eval/enum:
+  p EC ARCH
+    |- ((TYPE prefixedNameIR) '.' nameIR) '#' _
+    : EC ARCH expressionResult
+  -- if typeDefIR_base = $find_typeDef_e(p, EC, prefixedNameIR)
+  -- if typeIR_base = $typeIR_of_typeDefIR(typeDefIR_base)
+  -- if ENUM typeId `{_`} = $unroll_typeIR(typeIR_base)
+  -- if expressionResult = _CONT (typeId '.' nameIR)
+
+rule Expr_eval/serenum:
+  p EC ARCH
+    |- ((TYPE prefixedNameIR) '.' nameIR) '#' _
+    : EC ARCH expressionResult
+  -- if typeDefIR_base = $find_typeDef_e(p, EC, prefixedNameIR)
+  -- if typeIR_base = $typeIR_of_typeDefIR(typeDefIR_base)
+  -- if ENUM typeId `<_`> `{(nameIR_member '=' value_member ';')*`}
+        = $unroll_typeIR(typeIR_base)
+  -- if value = $assoc_<nameIR, value>(nameIR, (nameIR_member, value_member)*)
+  -- if expressionResult = _CONT (typeId '.' nameIR '.' value)
+
+rule Expr_eval/abort:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR_base '.' nameIR) '#' `(typeIR_base _`)
+    : EC_1 ARCH_1 abortResult
+  -- Expr_eval:
+       p EC_0 ARCH_0 |- typedExpressionIR_base : EC_1 ARCH_1 abortResult
+
+rule Expr_eval/stack-size:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR_base '.' nameIR) '#' `(typeIR_base _`)
+    : EC_1 ARCH_1 expressionResult
+  -- Expr_eval:
+       p EC_0 ARCH_0
+         |- typedExpressionIR_base
+         : EC_1 ARCH_1 (_CONT headerStackValue_base)
+  -- if HEADER_STACK `[value_elem* `(_`)`] = headerStackValue_base
+  -- if nameIR = "size"
+  -- if n_size = |value_elem*|
+  -- if expressionResult = _CONT (32 W n_size)
+
+rule Expr_eval/stack-last-out-of-bounds:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR_base '.' nameIR) '#' `(typeIR_base _`)
+    : EC_1 ARCH_1 rejectTransitionResult
+  -- Expr_eval:
+       p EC_0 ARCH_0
+         |- typedExpressionIR_base
+         : EC_1 ARCH_1 (_CONT headerStackValue_base)
+  -- if HEADER_STACK `[value_elem* `(n_idx`)`] = headerStackValue_base
+  -- if nameIR = "last"
+  -- if n_size = |value_elem*|
+  -- if b_out_of_bounds = ($(n_idx < 1) \/ $(n_idx > n_size))
+  -- if b_out_of_bounds
+  -- if rejectTransitionResult = REJECT (ERROR '.' "StackOutOfBounds")
+
+rule Expr_eval/stack-last-in-bounds:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR_base '.' nameIR) '#' `(typeIR_base _`)
+    : EC_1 ARCH_1 expressionResult
+  -- Expr_eval:
+       p EC_0 ARCH_0
+         |- typedExpressionIR_base
+         : EC_1 ARCH_1 (_CONT headerStackValue_base)
+  -- if HEADER_STACK `[value_elem* `(n_idx`)`] = headerStackValue_base
+  -- if nameIR = "last"
+  -- if n_size = |value_elem*|
+  -- if b_out_of_bounds = ($(n_idx < 1) \/ $(n_idx > n_size))
+  -- if ~b_out_of_bounds
+  -- if n_idx_last = $(n_idx - 1)
+  -- if value_last = value_elem*[n_idx_last]
+  -- if expressionResult = _CONT value_last
+
+rule Expr_eval/stack-lastIndex:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR_base '.' nameIR) '#' `(typeIR_base _`)
+    : EC_1 ARCH_1 expressionResult
+  -- Expr_eval:
+       p EC_0 ARCH_0
+         |- typedExpressionIR_base
+         : EC_1 ARCH_1 (_CONT headerStackValue_base)
+  -- if HEADER_STACK `[value_elem* `(n_idx`)`] = headerStackValue_base
+  -- if nameIR = "lastIndex"
+  -- if n_idx_last = $($max_nat([n_idx, 1]) - 1)
+  -- if value_idx_last = 32 W n_idx_last
+  -- if expressionResult = _CONT value_idx_last
+
+rule Expr_eval/struct:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR_base '.' nameIR) '#' `(typeIR_base _`)
+    : EC_1 ARCH_1 expressionResult
+  -- Expr_eval:
+       p EC_0 ARCH_0
+         |- typedExpressionIR_base
+         : EC_1 ARCH_1 (_CONT structValue_base)
+  -- if STRUCT _ `{(value_field id_field ';')*`} = structValue_base
+  -- if value_member = $assoc_<nameIR, value>(nameIR, (id_field, value_field)*)
+  -- if expressionResult = _CONT value_member
+
+rule Expr_eval/header:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR_base '.' nameIR) '#' `(typeIR_base _`)
+    : EC_1 ARCH_1 expressionResult
+  -- Expr_eval:
+       p EC_0 ARCH_0
+         |- typedExpressionIR_base
+         : EC_1 ARCH_1 (_CONT headerValue_base)
+  -- if HEADER _ `{_ ';' (value_field id_field ';')*`} = headerValue_base
+  -- if value_member = $assoc_<nameIR, value>(nameIR, (id_field, value_field)*)
+  -- if expressionResult = _CONT value_member
+
+rule Expr_eval/headerunion:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR_base '.' nameIR) '#' `(typeIR_base _`)
+    : EC_1 ARCH_1 expressionResult
+  -- Expr_eval:
+       p EC_0 ARCH_0
+         |- typedExpressionIR_base
+         : EC_1 ARCH_1 (_CONT headerUnionValue_base)
+  -- if HEADER_UNION _ `{(value_field id_field ';')*`} = headerUnionValue_base
+  -- if value_member = $assoc_<nameIR, value>(nameIR, (id_field, value_field)*)
+  -- if expressionResult = _CONT value_member
+
+rule Expr_eval/tableMetadataStructValue-hit:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR_base '.' nameIR) '#' _
+    : EC_1 ARCH_1 expressionResult
+  -- Expr_eval:
+       p EC_0 ARCH_0
+         |- typedExpressionIR_base
+         : EC_1 ARCH_1 (_CONT tableMetadataStructValue_base)
+  -- if TABLE_STRUCT _ `{HIT boolValue_hit ';' MISS _ ';' ACTION_RUN _ ';'`}
+        = tableMetadataStructValue_base
+  -- if nameIR = "hit"
+  -- if expressionResult = _CONT boolValue_hit
+
+rule Expr_eval/tableMetadataStructValue-miss:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR_base '.' nameIR) '#' _
+    : EC_1 ARCH_1 expressionResult
+  -- Expr_eval:
+       p EC_0 ARCH_0
+         |- typedExpressionIR_base
+         : EC_1 ARCH_1 (_CONT tableMetadataStructValue_base)
+  -- if TABLE_STRUCT _ `{HIT _ ';' MISS boolValue_miss ';' ACTION_RUN _ ';'`}
+        = tableMetadataStructValue_base
+  -- if nameIR = "miss"
+  -- if expressionResult = _CONT boolValue_miss
+
+rule Expr_eval/tableMetadataStructValue-action_run:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR_base '.' nameIR) '#' _
+    : EC_1 ARCH_1 expressionResult
+  -- Expr_eval:
+       p EC_0 ARCH_0
+         |- typedExpressionIR_base
+         : EC_1 ARCH_1 (_CONT tableMetadataStructValue_base)
+  -- if TABLE_STRUCT
+        _
+        `{HIT _ ';' MISS _ ';' ACTION_RUN tableMetadataEnumValue ';'`}
+        = tableMetadataStructValue_base
+  -- if nameIR = "action_run"
+  -- if expressionResult = _CONT tableMetadataEnumValue
+
+rule Expr_eval/abort:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR_base `[typedExpressionIR_index`]) '#' _
+    : EC_1 ARCH_1 abortResult
+  -- Exprs_eval:
+       p EC_0 ARCH_0
+         |- [typedExpressionIR_base, typedExpressionIR_index]
+         : EC_1 ARCH_1 abortResult
+
+rule Expr_eval/tuple:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR_base `[typedExpressionIR_index`]) '#' _
+    : EC_1 ARCH_1 expressionResult
+  -- Exprs_eval:
+       p EC_0 ARCH_0
+         |- [typedExpressionIR_base, typedExpressionIR_index]
+         : EC_1 ARCH_1 (_CONT ([tupleValue_base, integerValue_index]))
+  -- if TUPLE `(value_elem*`) = tupleValue_base
+  -- if n_index = $nat_of_integerValue(integerValue_index)
+  -- if expressionResult = _CONT value_elem*[n_index]
+
+rule Expr_eval/array:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR_base `[typedExpressionIR_index`]) '#' _
+    : EC_1 ARCH_1 expressionResult
+  -- Exprs_eval:
+       p EC_0 ARCH_0
+         |- [typedExpressionIR_base, typedExpressionIR_index]
+         : EC_1 ARCH_1 (_CONT ([arrayValue_base, integerValue_index]))
+  -- if ARRAY `[value_elem*`] = arrayValue_base
+  -- if n_size = |value_elem*|
+  -- if i_index = $int_of_integerValue(integerValue_index)
+  -- if b_in_bounds = ($(i_index < n_size) /\ $(i_index >= 0))
+  -- if n_idx = $ite<int>(b_in_bounds, i_index, $(n_size - 1))
+  -- if expressionResult = _CONT value_elem*[n_idx]
+
+rule Expr_eval/headerStack:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR_base `[typedExpressionIR_index`]) '#' _
+    : EC_1 ARCH_1 expressionResult
+  -- Exprs_eval:
+       p EC_0 ARCH_0
+         |- [typedExpressionIR_base, typedExpressionIR_index]
+         : EC_1 ARCH_1 (_CONT ([headerStackValue_base, integerValue_index]))
+  -- if HEADER_STACK `[value_elem* `(_`)`] = headerStackValue_base
+  -- if n_size = |value_elem*|
+  -- if i_index = $int_of_integerValue(integerValue_index)
+  -- if b_in_bounds = ($(i_index < n_size) /\ $(i_index >= 0))
+  -- if n_idx = $ite<int>(b_in_bounds, i_index, $(n_size - 1))
+  -- if expressionResult = _CONT value_elem*[n_idx]
+
+rule Expr_eval/abort:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR_base
+        `[typedExpressionIR_hi sliceop typedExpressionIR_lo`])
+       '#'
+       _
+    : EC_1 ARCH_1 abortResult
+  -- Exprs_eval:
+       p EC_0 ARCH_0
+         |- [typedExpressionIR_base, typedExpressionIR_hi, typedExpressionIR_lo]
+         : EC_1 ARCH_1 abortResult
+
+rule Expr_eval/cont-range:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR_base `[typedExpressionIR_hi ':' typedExpressionIR_lo`])
+       '#'
+       _
+    : EC_1 ARCH_1 expressionResult
+  -- Exprs_eval:
+       p EC_0 ARCH_0
+         |- [typedExpressionIR_base, typedExpressionIR_hi, typedExpressionIR_lo]
+         : EC_1 ARCH_1 (_CONT ([value_base, value_hi, value_lo]))
+  -- if expressionResult
+        = _CONT $bitacc_range_op(value_base, value_hi, value_lo)
+
+rule Expr_eval/cont-offset:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR_base `[typedExpressionIR_l '+:' typedExpressionIR_w`])
+       '#'
+       _
+    : EC_1 ARCH_1 expressionResult
+  -- Exprs_eval:
+       p EC_0 ARCH_0
+         |- [typedExpressionIR_base, typedExpressionIR_l, typedExpressionIR_w]
+         : EC_1 ARCH_1 (_CONT ([value_base, value_l, value_w]))
+  -- if expressionResult = _CONT $bitacc_offset_op(value_base, value_l, value_w)
+
+rule Expr_eval/callee-abort:
+  p EC_0 ARCH_0
+    |- (callableTargetIR `<typeArgumentIR*`> `(argumentIR*`)) '#' _
+    : EC_1 ARCH_1 abortResult
+  -- Callee_eval:
+       p EC_0 ARCH_0
+         |- callableTargetIR `<'_'`> `(argumentIR*`)
+         : EC_1 ARCH_1 abortResult
+
+rule Expr_eval/callee-cont-call-abort:
+  p EC_0 ARCH_0
+    |- (callableTargetIR `<typeArgumentIR*`> `(argumentIR*`)) '#' _
+    : EC_2 ARCH_2 abortResult
+  -- Callee_eval:
+       p EC_0 ARCH_0
+         |- callableTargetIR `<'_'`> `(argumentIR*`)
+         : EC_1 ARCH_1 (_CONT callee)
+  -- Call_eval:
+       p EC_1 ARCH_1
+         |- callee '@' `<typeArgumentIR*`> `(argumentIR*`)
+         : EC_2 ARCH_2 abortResult
+
+rule Expr_eval/callee-cont-call-return:
+  p EC_0 ARCH_0
+    |- (callableTargetIR `<typeArgumentIR*`> `(argumentIR*`)) '#' _
+    : EC_2 ARCH_2 (_CONT value)
+  -- Callee_eval:
+       p EC_0 ARCH_0
+         |- callableTargetIR `<'_'`> `(argumentIR*`)
+         : EC_1 ARCH_1 (_CONT callee)
+  -- Call_eval:
+       p EC_1 ARCH_1
+         |- callee '@' `<typeArgumentIR*`> `(argumentIR*`)
+         : EC_2 ARCH_2 (RETURN value)
+
+rule Expr_eval/parenthesizedExpressionIR:
+  p EC_0 ARCH_0 |- (`(typedExpressionIR`)) '#' _ : EC_1 ARCH_1 expressionResult
+  -- Expr_eval:
+       p EC_0 ARCH_0 |- typedExpressionIR : EC_1 ARCH_1 expressionResult
+
+rule Exprs_eval/nil:
+  p EC ARCH |- eps : EC ARCH (_CONT eps)
+
+rule Exprs_eval/cons-head-abort:
+  p EC_0 ARCH_0
+    |- typedExpressionIR_h :: typedExpressionIR_t*
+    : EC_1 ARCH_1 abortResult
+  -- Expr_eval: p EC_0 ARCH_0 |- typedExpressionIR_h : EC_1 ARCH_1 abortResult
+
+rule Exprs_eval/cons-head-cont-tail-abort:
+  p EC_0 ARCH_0
+    |- typedExpressionIR_h :: typedExpressionIR_t*
+    : EC_2 ARCH_2 abortResult
+  -- Expr_eval:
+       p EC_0 ARCH_0 |- typedExpressionIR_h : EC_1 ARCH_1 (_CONT value_h)
+  -- Exprs_eval: p EC_1 ARCH_1 |- typedExpressionIR_t* : EC_2 ARCH_2 abortResult
+
+rule Exprs_eval/cons-head-cont-tail-cont:
+  p EC_0 ARCH_0
+    |- typedExpressionIR_h :: typedExpressionIR_t*
+    : EC_2 ARCH_2 (_CONT (value_h :: value_t*))
+  -- Expr_eval:
+       p EC_0 ARCH_0 |- typedExpressionIR_h : EC_1 ARCH_1 (_CONT value_h)
+  -- Exprs_eval:
+       p EC_1 ARCH_1 |- typedExpressionIR_t* : EC_2 ARCH_2 (_CONT value_t*)
+;; === 8-dynamic/8.03.2-eval-keyset-expression.spectec ===
+dec $match_keysets(setValue*, value*) : bool
+  hint(prose_true %1 "matches" %0)
+  hint(prose_false %1 "does not match" %0)
+
+dec $match_keyset(setValue, value) : bool
+
+def $match_keysets(eps, eps) = true
+
+def $match_keysets(SET `{'...'`}, value_key*) = true
+
+def $match_keysets(setValue, value_key) = $match_keyset(setValue, value_key)
+  -- if setValue =/= SET `{'...'`}
+
+def $match_keysets(setValue_h :: setValue_t*, value_key_h :: value_key_t*)
+  = $match_keysets(setValue_t*, value_key_t*)
+  -- if setValue_t* =/= eps
+  -- if value_key_t* =/= eps
+  -- if $match_keyset(setValue_h, value_key_h)
+
+def $match_keysets(setValue_h :: setValue_t*, value_key_h :: value_key_t*)
+  = false
+  -- if setValue_t* =/= eps
+  -- if value_key_t* =/= eps
+  -- if ~$match_keyset(setValue_h, value_key_h)
+
+def $match_keyset(SET `{'...'`}, value_key) = true
+
+def $match_keyset(SET `{value`}, value_key) = $bin_eq(value, value_key)
+
+def $match_keyset(SET `{value* `(_`)`}, value_key)
+  = $exists_($bin_eq(value, value_key)*)
+
+def $match_keyset(SET `{value_base '&&&' value_mask`}, value_key)
+  = $bin_eq($bin_band(value_base, value_mask), $bin_band(value_key, value_mask))
+
+def $match_keyset(SET `{value_base '..' value_limit`}, value_key)
+  = $bin_le(value_base, value_key) /\ $bin_le(value_key, value_limit)
+
+syntax simpleKeysetExpressionResult =
+  | continueResult<setValue>
+  | abortResult
+
+relation Eval_keyset_simple:
+  evalContext arch
+    |- simpleKeysetExpressionIR
+    : evalContext arch simpleKeysetExpressionResult
+  hint(input %0 %1 %2)
+  hint(prose_in "evaluating" %2#", under context" %0 "and state" %1)
+  hint(prose_out "context" %3#", state" %4#", and result" %5)
+
+rule Eval_keyset_simple/abort:
+  EC_0 ARCH_0 |- typedExpressionIR : EC_1 ARCH_1 abortResult
+  -- Expr_eval: LOCAL EC_0 ARCH_0 |- typedExpressionIR : EC_1 ARCH_1 abortResult
+
+rule Eval_keyset_simple/cont-setValue:
+  EC_0 ARCH_0 |- typedExpressionIR : EC_1 ARCH_1 (_CONT setValue)
+  -- Expr_eval:
+       LOCAL EC_0 ARCH_0 |- typedExpressionIR : EC_1 ARCH_1 (_CONT setValue)
+
+rule Eval_keyset_simple/cont-objectReferenceValue:
+  EC_0 ARCH_0 |- typedExpressionIR : EC_1 ARCH_1 (_CONT setValue)
+  -- Expr_eval:
+       LOCAL EC_0 ARCH_0
+         |- typedExpressionIR
+         : EC_1 ARCH_1 (_CONT (REF objectId))
+  -- if VALUE_SET `{value* `(n_size`)`} = $find_object_e(ARCH_1, objectId)
+  -- if setValue = SET `{value* `(n_size`)`}
+
+rule Eval_keyset_simple/left-abort:
+  EC_0 ARCH_0
+    |- typedExpressionIR_l '&&&' typedExpressionIR_r
+    : EC_1 ARCH_1 abortResult
+  -- Expr_eval:
+       LOCAL EC_0 ARCH_0 |- typedExpressionIR_l : EC_1 ARCH_1 abortResult
+
+rule Eval_keyset_simple/left-cont-right-abort:
+  EC_0 ARCH_0
+    |- typedExpressionIR_l '&&&' typedExpressionIR_r
+    : EC_2 ARCH_2 abortResult
+  -- Expr_eval:
+       LOCAL EC_0 ARCH_0 |- typedExpressionIR_l : EC_1 ARCH_1 (_CONT value_l)
+  -- Expr_eval:
+       LOCAL EC_1 ARCH_1 |- typedExpressionIR_r : EC_2 ARCH_2 abortResult
+
+rule Eval_keyset_simple/left-cont-right-cont:
+  EC_0 ARCH_0
+    |- typedExpressionIR_l '&&&' typedExpressionIR_r
+    : EC_2 ARCH_2 (_CONT setValue)
+  -- Expr_eval:
+       LOCAL EC_0 ARCH_0 |- typedExpressionIR_l : EC_1 ARCH_1 (_CONT value_l)
+  -- Expr_eval:
+       LOCAL EC_1 ARCH_1 |- typedExpressionIR_r : EC_2 ARCH_2 (_CONT value_r)
+  -- if setValue = SET `{value_l '&&&' value_r`}
+
+rule Eval_keyset_simple/left-abort:
+  EC_0 ARCH_0
+    |- typedExpressionIR_l '..' typedExpressionIR_r
+    : EC_1 ARCH_1 abortResult
+  -- Expr_eval:
+       LOCAL EC_0 ARCH_0 |- typedExpressionIR_l : EC_1 ARCH_1 abortResult
+
+rule Eval_keyset_simple/left-cont-right-abort:
+  EC_0 ARCH_0
+    |- typedExpressionIR_l '..' typedExpressionIR_r
+    : EC_2 ARCH_2 abortResult
+  -- Expr_eval:
+       LOCAL EC_0 ARCH_0 |- typedExpressionIR_l : EC_1 ARCH_1 (_CONT value_l)
+  -- Expr_eval:
+       LOCAL EC_1 ARCH_1 |- typedExpressionIR_r : EC_2 ARCH_2 abortResult
+
+rule Eval_keyset_simple/left-cont-right-cont:
+  EC_0 ARCH_0
+    |- typedExpressionIR_l '..' typedExpressionIR_r
+    : EC_2 ARCH_2 (_CONT setValue)
+  -- Expr_eval:
+       LOCAL EC_0 ARCH_0 |- typedExpressionIR_l : EC_1 ARCH_1 (_CONT value_l)
+  -- Expr_eval:
+       LOCAL EC_1 ARCH_1 |- typedExpressionIR_r : EC_2 ARCH_2 (_CONT value_r)
+  -- if setValue = SET `{value_l '..' value_r`}
+
+rule Eval_keyset_simple/default-any:
+  EC ARCH |- simpleKeysetExpressionIR : EC ARCH (_CONT setValue)
+  -- if simpleKeysetExpressionIR = DEFAULT \/ simpleKeysetExpressionIR = '_'
+  -- if setValue = SET `{'...'`}
+
+relation Eval_keysets_simple:
+  evalContext arch
+    |- simpleKeysetExpressionListIR
+    : evalContext arch keysetExpressionResult
+  hint(input %0 %1 %2)
+
+rule Eval_keysets_simple/nil:
+  EC ARCH |- eps : EC ARCH (_CONT eps)
+
+rule Eval_keysets_simple/cons-head-abort:
+  EC_0 ARCH_0
+    |- simpleKeysetExpressionIR_h :: simpleKeysetExpressionIR_t*
+    : EC_1 ARCH_1 abortResult
+  -- Eval_keyset_simple:
+       EC_0 ARCH_0 |- simpleKeysetExpressionIR_h : EC_1 ARCH_1 abortResult
+
+rule Eval_keysets_simple/cons-head-cont-tail-abort:
+  EC_0 ARCH_0
+    |- simpleKeysetExpressionIR_h :: simpleKeysetExpressionIR_t*
+    : EC_2 ARCH_2 abortResult
+  -- Eval_keyset_simple:
+       EC_0 ARCH_0
+         |- simpleKeysetExpressionIR_h
+         : EC_1 ARCH_1 (_CONT setValue_h)
+  -- Eval_keysets_simple:
+       EC_1 ARCH_1 |- simpleKeysetExpressionIR_t* : EC_2 ARCH_2 abortResult
+
+rule Eval_keysets_simple/cons-head-cont-tail-cont:
+  EC_0 ARCH_0
+    |- simpleKeysetExpressionIR_h :: simpleKeysetExpressionIR_t*
+    : EC_2 ARCH_2 keysetExpressionResult
+  -- Eval_keyset_simple:
+       EC_0 ARCH_0
+         |- simpleKeysetExpressionIR_h
+         : EC_1 ARCH_1 (_CONT setValue_h)
+  -- Eval_keysets_simple:
+       EC_1 ARCH_1
+         |- simpleKeysetExpressionIR_t*
+         : EC_2 ARCH_2 (_CONT setValue_t*)
+  -- if keysetExpressionResult = _CONT (setValue_h :: setValue_t*)
+
+rule Eval_keyset:
+  EC_0 ARCH_0 |- keysetExpressionIR : EC_1 ARCH_1 keysetExpressionResult
+  -- if simpleKeysetExpressionListIR
+        = $flatten_keysetExpressionIR(keysetExpressionIR)
+  -- Eval_keysets_simple:
+       EC_0 ARCH_0
+         |- simpleKeysetExpressionListIR
+         : EC_1 ARCH_1 keysetExpressionResult
+;; === 8-dynamic/8.04-eval-argument.spectec ===
+rule Argument_eval/typedExpressionIR:
+  p EC_0 ARCH_0 |- typedExpressionIR : EC_1 ARCH_1 expressionResult
+  -- Expr_eval:
+       p EC_0 ARCH_0 |- typedExpressionIR : EC_1 ARCH_1 expressionResult
+
+rule Argument_eval/nameIR-typedExpressionIR:
+  p EC_0 ARCH_0 |- nameIR '=' typedExpressionIR : EC_1 ARCH_1 expressionResult
+  -- Expr_eval:
+       p EC_0 ARCH_0 |- typedExpressionIR : EC_1 ARCH_1 expressionResult
+
+rule Argument_eval_lvalue/typedExpressionIR:
+  p EC_0 ARCH_0 |- typedExpressionIR : EC_1 ARCH_1 storageReferenceResult
+  -- if typedLvalueIR = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval:
+       p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 storageReferenceResult
+
+rule Argument_eval_lvalue/nameIR-typedExpressionIR:
+  p EC_0 ARCH_0
+    |- nameIR '=' typedExpressionIR
+    : EC_1 ARCH_1 storageReferenceResult
+  -- if typedLvalueIR = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval:
+       p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 storageReferenceResult
+
+rule Argument_eval_lvalue/nameIR-dontcare:
+  p EC ARCH |- nameIR '=' '_' : EC ARCH (_CONT eps)
+
+rule Argument_eval_lvalue/dontcare:
+  p EC ARCH |- '_' : EC ARCH (_CONT eps)
+;; === 8-dynamic/8.05-eval-lvalue.spectec ===
+rule Lvalue_eval/referenceExpressionIR:
+  p EC ARCH
+    |- referenceExpressionIR '#' _
+    : EC ARCH (_CONT referenceExpressionIR)
+
+rule Lvalue_eval/abort:
+  p EC_0 ARCH_0 |- (typedLvalueIR '.' nameIR) '#' _ : EC_1 ARCH_1 abortResult
+  -- Lvalue_eval: p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 abortResult
+
+rule Lvalue_eval/stack-next-out-of-bounds:
+  p EC_0 ARCH_0
+    |- (typedLvalueIR '.' nameIR) '#' _
+    : EC_1 ARCH_1 rejectTransitionResult
+  -- Lvalue_eval:
+       p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 (_CONT storageReference)
+  -- Lvalue_read: p EC_1 ARCH_1 |- storageReference : headerStackValue
+  -- if HEADER_STACK `[value_element* `(n_idx`)`] = headerStackValue
+  -- if nameIR = "next"
+  -- if n_size = |value_element*|
+  -- if $(n_idx >= n_size)
+  -- if rejectTransitionResult = REJECT (ERROR '.' "StackOutOfBounds")
+
+rule Lvalue_eval/stack-next-in-bounds:
+  p EC_0 ARCH_0
+    |- (typedLvalueIR '.' nameIR) '#' _
+    : EC_1 ARCH_1 storageReferenceResult
+  -- Lvalue_eval:
+       p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 (_CONT storageReference)
+  -- Lvalue_read: p EC_1 ARCH_1 |- storageReference : headerStackValue
+  -- if HEADER_STACK `[value_element* `(n_idx`)`] = headerStackValue
+  -- if n_size = |value_element*|
+  -- if nameIR = "next"
+  -- if $(n_idx < n_size)
+  -- if storageReferenceResult = _CONT (storageReference '.' nameIR)
+
+rule Lvalue_eval/stack-last-out-of-bounds:
+  p EC_0 ARCH_0
+    |- (typedLvalueIR '.' nameIR) '#' _
+    : EC_1 ARCH_1 rejectTransitionResult
+  -- Lvalue_eval:
+       p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 (_CONT storageReference)
+  -- Lvalue_read: p EC_1 ARCH_1 |- storageReference : headerStackValue
+  -- if HEADER_STACK `[value_element* `(n_idx`)`] = headerStackValue
+  -- if nameIR = "last"
+  -- if n_size = |value_element*|
+  -- if ($(n_idx < 1) \/ $(n_idx > n_size))
+  -- if rejectTransitionResult = REJECT (ERROR '.' "StackOutOfBounds")
+
+rule Lvalue_eval/stack-last-in-bounds:
+  p EC_0 ARCH_0
+    |- (typedLvalueIR '.' nameIR) '#' _
+    : EC_1 ARCH_1 storageReferenceResult
+  -- Lvalue_eval:
+       p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 (_CONT storageReference)
+  -- Lvalue_read: p EC_1 ARCH_1 |- storageReference : headerStackValue
+  -- if HEADER_STACK `[value_element* `(n_idx`)`] = headerStackValue
+  -- if n_size = |value_element*|
+  -- if nameIR = "last"
+  -- if ~($(n_idx < 1) \/ $(n_idx > n_size))
+  -- if storageReferenceResult = _CONT (storageReference '.' nameIR)
+
+rule Lvalue_eval/cont:
+  p EC_0 ARCH_0
+    |- (typedLvalueIR '.' nameIR) '#' _
+    : EC_1 ARCH_1 storageReferenceResult
+  -- Lvalue_eval:
+       p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 (_CONT storageReference)
+  -- Lvalue_read: p EC_1 ARCH_1 |- storageReference : value
+  -- if ~(value <: headerStackValue)
+  -- if storageReferenceResult = _CONT (storageReference '.' nameIR)
+
+rule Lvalue_eval/base-abort:
+  p EC_0 ARCH_0
+    |- (typedLvalueIR `[typedExpressionIR`]) '#' _
+    : EC_1 ARCH_1 abortResult
+  -- Lvalue_eval: p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 abortResult
+
+rule Lvalue_eval/base-cont-index-abort:
+  p EC_0 ARCH_0
+    |- (typedLvalueIR `[typedExpressionIR`]) '#' _
+    : EC_2 ARCH_2 abortResult
+  -- Lvalue_eval:
+       p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 (_CONT storageReference)
+  -- Expr_eval: p EC_1 ARCH_1 |- typedExpressionIR : EC_2 ARCH_2 abortResult
+
+rule Lvalue_eval/base-cont-index-cont:
+  p EC_0 ARCH_0
+    |- (typedLvalueIR `[typedExpressionIR`]) '#' _
+    : EC_2 ARCH_2 storageReferenceResult
+  -- Lvalue_eval:
+       p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 (_CONT storageReference)
+  -- Expr_eval:
+       p EC_1 ARCH_1
+         |- typedExpressionIR
+         : EC_2 ARCH_2 (_CONT integerValue_index)
+  -- if storageReferenceResult = _CONT (storageReference `[integerValue_index`])
+
+rule Lvalue_eval/abort:
+  p EC_0 ARCH_0
+    |- (typedLvalueIR `[typedExpressionIR_l sliceop typedExpressionIR_r`]) '#' _
+    : EC_1 ARCH_1 abortResult
+  -- Lvalue_eval: p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 abortResult
+
+rule Lvalue_eval/cont-abort:
+  p EC_0 ARCH_0
+    |- (typedLvalueIR `[typedExpressionIR_l sliceop typedExpressionIR_r`]) '#' _
+    : EC_2 ARCH_2 abortResult
+  -- Lvalue_eval:
+       p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 (_CONT storageReference)
+  -- Exprs_eval:
+       p EC_1 ARCH_1
+         |- [typedExpressionIR_l, typedExpressionIR_r]
+         : EC_2 ARCH_2 abortResult
+
+rule Lvalue_eval/cont-index:
+  p EC_0 ARCH_0
+    |- (typedLvalueIR `[typedExpressionIR_l sliceop typedExpressionIR_r`]) '#' _
+    : EC_1 ARCH_1 storageReferenceResult
+  -- Lvalue_eval:
+       p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 (_CONT storageReference)
+  -- Exprs_eval:
+       p EC_1 ARCH_1
+         |- [typedExpressionIR_l, typedExpressionIR_r]
+         : EC_2 ARCH_2 (_CONT ([value_l, value_r]))
+  -- if storageReferenceResult
+        = _CONT (storageReference `[value_l sliceop value_r`])
+
+rule Lvalue_eval/parenthesized:
+  p EC_0 ARCH_0
+    |- (`(typedLvalueIR`)) '#' _
+    : EC_1 ARCH_1 storageReferenceResult
+  -- Lvalue_eval:
+       p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 storageReferenceResult
+
+rule Lvalue_read/referenceExpressionIR:
+  p EC ARCH |- prefixedNameIR : value
+  -- if value = $find_var_e(prefixedNameIR, p, EC)
+
+rule Lvalue_read/package:
+  p EC_0 ARCH |- storageReference '.' nameIR : value
+  -- Lvalue_read: p EC_0 ARCH |- storageReference : value_base
+  -- if REF objectId = value_base
+  -- if PACKAGE `<_`> `{frame`} = $find_object_e(ARCH, objectId)
+  -- if value = $find_map<nameIR, value>(frame, nameIR)
+
+rule Lvalue_read/stack-next:
+  p EC_0 ARCH |- storageReference '.' nameIR : value
+  -- Lvalue_read: p EC_0 ARCH |- storageReference : headerStackValue_base
+  -- if HEADER_STACK `[value_element* `(n_idx`)`] = headerStackValue_base
+  -- if nameIR = "next"
+  -- if n_size = |value_element*|
+  -- if $(n_idx < n_size)
+  -- if value = value_element*[n_idx]
+
+rule Lvalue_read/stack-last:
+  p EC_0 ARCH |- storageReference '.' nameIR : value
+  -- Lvalue_read: p EC_0 ARCH |- storageReference : headerStackValue_base
+  -- if HEADER_STACK `[value_element* `(n_idx`)`] = headerStackValue_base
+  -- if nameIR = "last"
+  -- if n_size = |value_element*|
+  -- if ~($(n_idx < 1) \/ $(n_idx > n_size))
+  -- if n_idx_last = $(n_idx - 1)
+  -- if value = value_element*[n_idx_last]
+
+rule Lvalue_read/struct:
+  p EC_0 ARCH |- storageReference '.' nameIR : value
+  -- Lvalue_read: p EC_0 ARCH |- storageReference : structValue_base
+  -- if STRUCT _ `{(value_field nameIR_field ';')*`} = structValue_base
+  -- if value = $assoc_<id, value>(nameIR, (nameIR_field, value_field)*)
+
+rule Lvalue_read/header:
+  p EC_0 ARCH |- storageReference '.' nameIR : value
+  -- Lvalue_read: p EC_0 ARCH |- storageReference : headerValue_base
+  -- if HEADER _ `{_ ';' (value_field nameIR_field ';')*`} = headerValue_base
+  -- if value = $assoc_<id, value>(nameIR, (nameIR_field, value_field)*)
+
+rule Lvalue_read/header-union:
+  p EC_0 ARCH |- storageReference '.' nameIR : value
+  -- Lvalue_read: p EC_0 ARCH |- storageReference : headerUnionValue_base
+  -- if HEADER_UNION _ `{(value_field nameIR_field ';')*`}
+        = headerUnionValue_base
+  -- if value = $assoc_<id, value>(nameIR, (nameIR_field, value_field)*)
+
+rule Lvalue_read/array-in-bounds:
+  p EC_0 ARCH |- storageReference `[integerValue_index`] : value
+  -- Lvalue_read: p EC_0 ARCH |- storageReference : arrayValue_base
+  -- if ARRAY `[value_element*`] = arrayValue_base
+  -- if n_size = |value_element*|
+  -- if i_idx = $int_of_integerValue(integerValue_index)
+  -- if b_in_bounds = ($(i_idx < n_size) /\ $(i_idx >= 0))
+  -- if b_in_bounds
+  -- if n_idx = i_idx
+  -- if value = value_element*[n_idx]
+
+rule Lvalue_read/array-out-of-bounds:
+  p EC_0 ARCH |- storageReference `[integerValue_index`] : value
+  -- Lvalue_read: p EC_0 ARCH |- storageReference : arrayValue_base
+  -- if ARRAY `[value_element*`] = arrayValue_base
+  -- if n_size = |value_element*|
+  -- if i_idx = $int_of_integerValue(integerValue_index)
+  -- if b_in_bounds = ($(i_idx < n_size) /\ $(i_idx >= 0))
+  -- if ~b_in_bounds
+  -- if HEADER typeId `{b_valid ';' fieldValue*`} = value_element*[0]
+  -- if value = HEADER typeId `{false ';' fieldValue*`}
+
+rule Lvalue_read/stack-in-bounds:
+  p EC_0 ARCH |- storageReference `[integerValue_index`] : value
+  -- Lvalue_read: p EC_0 ARCH |- storageReference : headerStackValue_base
+  -- if HEADER_STACK `[value_element* `(_`)`] = headerStackValue_base
+  -- if n_size = |value_element*|
+  -- if i_idx = $int_of_integerValue(integerValue_index)
+  -- if b_in_bounds = ($(i_idx < n_size) /\ $(i_idx >= 0))
+  -- if b_in_bounds
+  -- if n_idx = i_idx
+  -- if value = value_element*[n_idx]
+
+rule Lvalue_read/stack-out-of-bounds:
+  p EC_0 ARCH |- storageReference `[integerValue_index`] : value
+  -- Lvalue_read: p EC_0 ARCH |- storageReference : headerStackValue_base
+  -- if HEADER_STACK `[value_element* `(_`)`] = headerStackValue_base
+  -- if n_size = |value_element*|
+  -- if i_idx = $int_of_integerValue(integerValue_index)
+  -- if b_in_bounds = ($(i_idx < n_size) /\ $(i_idx >= 0))
+  -- if ~b_in_bounds
+  -- if HEADER typeId `{b_valid ';' fieldValue*`} = value_element*[0]
+  -- if value = HEADER typeId `{false ';' fieldValue*`}
+
+rule Lvalue_read/range:
+  p EC_0 ARCH |- (storageReference `[value_hi ':' value_lo`]) : value
+  -- Lvalue_read: p EC_0 ARCH |- storageReference : value_base
+  -- if value = $bitacc_range_op(value_base, value_hi, value_lo)
+
+rule Lvalue_read/offset:
+  p EC_0 ARCH |- (storageReference `[value_l '+:' value_w`]) : value
+  -- Lvalue_read: p EC_0 ARCH |- storageReference : value_base
+  -- if value = $bitacc_offset_op(value_base, value_l, value_w)
+
+rule Lvalue_write/referenceExpressionIR:
+  p EC_0 ARCH |- prefixedNameIR := value : EC_1
+  -- if EC_1 = $update_var_e(p, EC_0, prefixedNameIR, value)
+
+rule Lvalue_write/stack-next:
+  p EC_0 ARCH |- (storageReference '.' nameIR) := value : EC_1
+  -- Lvalue_read: p EC_0 ARCH |- storageReference : headerStackValue_base
+  -- if HEADER_STACK `[value_element* `(n_idx`)`] = headerStackValue_base
+  -- if nameIR = "next"
+  -- if value_element_update* = value_element*[[n_idx] = value]
+  -- if headerStackValue_base_update
+        = HEADER_STACK `[value_element_update* `($(n_idx + 1)`)`]
+  -- Lvalue_write:
+       p EC_0 ARCH |- storageReference := headerStackValue_base_update : EC_1
+
+rule Lvalue_write/stack-last:
+  p EC_0 ARCH |- (storageReference '.' nameIR) := value : EC_1
+  -- Lvalue_read: p EC_0 ARCH |- storageReference : headerStackValue_base
+  -- if HEADER_STACK `[value_element* `(n_idx`)`] = headerStackValue_base
+  -- if nameIR = "last"
+  -- if n_idx_last = $(n_idx - 1)
+  -- if value_element_update* = value_element*[[n_idx_last] = value]
+  -- if headerStackValue_base_update
+        = HEADER_STACK `[value_element_update* `(n_idx`)`]
+  -- Lvalue_write:
+       p EC_0 ARCH |- storageReference := headerStackValue_base_update : EC_1
+
+rule Lvalue_write/struct:
+  p EC_0 ARCH |- (storageReference '.' nameIR) := value : EC_1
+  -- Lvalue_read: p EC_0 ARCH |- storageReference : structValue_base
+  -- if STRUCT typeId `{fieldValue*`} = structValue_base
+  -- if fieldValue_update* = $update_fieldValue(fieldValue*, nameIR, value)
+  -- if structValue_base_update = STRUCT typeId `{fieldValue_update*`}
+  -- Lvalue_write:
+       p EC_0 ARCH |- storageReference := structValue_base_update : EC_1
+
+rule Lvalue_write/header:
+  p EC_0 ARCH |- (storageReference '.' nameIR) := value : EC_1
+  -- Lvalue_read: p EC_0 ARCH |- storageReference : headerValue_base
+  -- if HEADER typeId `{b_valid ';' fieldValue*`} = headerValue_base
+  -- if fieldValue_update* = $update_fieldValue(fieldValue*, nameIR, value)
+  -- if headerValue_base_update
+        = HEADER typeId `{b_valid ';' fieldValue_update*`}
+  -- Lvalue_write:
+       p EC_0 ARCH |- storageReference := headerValue_base_update : EC_1
+
+rule Lvalue_write/header-union-keep-valid-header:
+  p EC_0 ARCH |- (storageReference '.' nameIR) := value : EC_1
+  -- Lvalue_read: p EC_0 ARCH |- storageReference : headerUnionValue_base
+  -- if HEADER_UNION typeId `{fieldValue*`} = headerUnionValue_base
+  -- if (value_field nameIR_field ';')* = fieldValue*
+  -- if value_old = $assoc_<nameIR, value>(nameIR, (nameIR_field, value_field)*)
+  -- if HEADER _ `{b_valid_old ';' _`} = value_old
+  -- if fieldValue_update* = $update_fieldValue(fieldValue*, nameIR, value)
+  -- if HEADER _ `{b_valid_new ';' _`} = value
+  -- if b_toggled
+        = ((~b_valid_old /\ b_valid_new) \/ (b_valid_old /\ ~b_valid_new))
+  -- if ~b_toggled
+  -- if headerUnionValue_base_update
+        = HEADER_UNION typeId `{fieldValue_update*`}
+  -- Lvalue_write:
+       p EC_0 ARCH |- storageReference := headerUnionValue_base_update : EC_1
+
+rule Lvalue_write/header-union-replace-valid-header:
+  p EC_0 ARCH |- (storageReference '.' nameIR) := value : EC_1
+  -- Lvalue_read: p EC_0 ARCH |- storageReference : headerUnionValue_base
+  -- if HEADER_UNION typeId `{fieldValue*`} = headerUnionValue_base
+  -- if (value_field nameIR_field ';')* = fieldValue*
+  -- if value_old = $assoc_<nameIR, value>(nameIR, (nameIR_field, value_field)*)
+  -- if HEADER _ `{b_valid_old ';' _`} = value_old
+  -- if fieldValue_update* = $update_fieldValue(fieldValue*, nameIR, value)
+  -- if HEADER _ `{b_valid_new ';' _`} = value
+  -- if b_toggled
+        = ((~b_valid_old /\ b_valid_new) \/ (b_valid_old /\ ~b_valid_new))
+  -- if b_toggled
+  -- if fieldValue_update'* = $update_headerUnion(fieldValue_update*, nameIR)
+  -- if headerUnionValue_base_update
+        = HEADER_UNION typeId `{fieldValue_update'*`}
+  -- Lvalue_write:
+       p EC_0 ARCH |- storageReference := headerUnionValue_base_update : EC_1
+
+rule Lvalue_write/array-in-bounds:
+  p EC_0 ARCH |- (storageReference `[integerValue_index`]) := value : EC_1
+  -- Lvalue_read: p EC_0 ARCH |- storageReference : arrayValue_base
+  -- if ARRAY `[value_element*`] = arrayValue_base
+  -- if n_size = |value_element*|
+  -- if i_idx = $int_of_integerValue(integerValue_index)
+  -- if b_in_bounds = ($(i_idx < n_size) /\ $(i_idx >= 0))
+  -- if b_in_bounds
+  -- if n_idx = i_idx
+  -- if value_element_update* = value_element*[[n_idx] = value]
+  -- if arrayValue_base_update = ARRAY `[value_element_update*`]
+  -- Lvalue_write:
+       p EC_0 ARCH |- storageReference := arrayValue_base_update : EC_1
+
+rule Lvalue_write/array-out-of-bounds:
+  p EC_0 ARCH |- (storageReference `[integerValue_index`]) := value : EC_0
+  -- Lvalue_read: p EC_0 ARCH |- storageReference : arrayValue_base
+  -- if ARRAY `[value_element*`] = arrayValue_base
+  -- if n_size = |value_element*|
+  -- if i_idx = $int_of_integerValue(integerValue_index)
+  -- if b_in_bounds = ($(i_idx < n_size) /\ $(i_idx >= 0))
+  -- if ~b_in_bounds
+
+rule Lvalue_write/stack-in-bounds:
+  p EC_0 ARCH |- (storageReference `[integerValue_index`]) := value : EC_1
+  -- Lvalue_read: p EC_0 ARCH |- storageReference : headerStackValue_base
+  -- if HEADER_STACK `[value_element* `(n_base_idx`)`] = headerStackValue_base
+  -- if n_size = |value_element*|
+  -- if i_idx = $int_of_integerValue(integerValue_index)
+  -- if b_in_bounds = ($(i_idx < n_size) /\ $(i_idx >= 0))
+  -- if b_in_bounds
+  -- if n_idx = i_idx
+  -- if value_element_update* = value_element*[[n_idx] = value]
+  -- if headerStackValue_base_update
+        = HEADER_STACK `[value_element_update* `(n_base_idx`)`]
+  -- Lvalue_write:
+       p EC_0 ARCH |- storageReference := headerStackValue_base_update : EC_1
+
+rule Lvalue_write/stack-out-of-bounds:
+  p EC_0 ARCH |- (storageReference `[integerValue_index`]) := value : EC_0
+  -- Lvalue_read: p EC_0 ARCH |- storageReference : headerStackValue_base
+  -- if HEADER_STACK `[value_element* `(_`)`] = headerStackValue_base
+  -- if n_size = |value_element*|
+  -- if i_idx = $int_of_integerValue(integerValue_index)
+  -- if b_in_bounds = ($(i_idx < n_size) /\ $(i_idx >= 0))
+  -- if ~b_in_bounds
+
+rule Lvalue_write/range:
+  p EC_0 ARCH |- (storageReference `[value_hi ':' value_lo`]) := value : EC_1
+  -- Lvalue_read: p EC_0 ARCH |- storageReference : value_base
+  -- if value_base_update
+        = $bitacc_range_replace_op(value_base, value_hi, value_lo, value)
+  -- Lvalue_write: p EC_0 ARCH |- storageReference := value_base_update : EC_1
+
+rule Lvalue_write/offset:
+  p EC_0 ARCH |- (storageReference `[value_l '+:' value_w`]) := value : EC_1
+  -- Lvalue_read: p EC_0 ARCH |- storageReference : value_base
+  -- if value_base_update
+        = $bitacc_offset_replace_op(value_base, value_l, value_w, value)
+  -- Lvalue_write: p EC_0 ARCH |- storageReference := value_base_update : EC_1
+;; === 8-dynamic/8.06-eval-statement.spectec ===
+rule Stmt_eval/emptyStatementIR:
+  p EC ARCH |- ';' : EC ARCH _EMPTY
+
+rule Stmt_eval/typedLvalueIR-abort:
+  p EC_0 ARCH_0
+    |- typedLvalueIR assignop typedExpressionIR ';'
+    : EC_1 ARCH_1 abortResult
+  -- Lvalue_eval: p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 abortResult
+
+rule Stmt_eval/typedLvalueIR-cont-eq-typedExpressionIR-abort:
+  p EC_0 ARCH_0
+    |- typedLvalueIR assignop typedExpressionIR ';'
+    : EC_2 ARCH_2 abortResult
+  -- Lvalue_eval:
+       p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 (_CONT storageReference)
+  -- if assignop = '='
+  -- Expr_eval: p EC_1 ARCH_1 |- typedExpressionIR : EC_2 ARCH_2 abortResult
+
+rule Stmt_eval/typedLvalueIR-cont-compound-typedExpressionIR-abort:
+  p EC_0 ARCH_0
+    |- typedLvalueIR assignop typedExpressionIR ';'
+    : EC_2 ARCH_2 abortResult
+  -- Lvalue_eval:
+       p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 (_CONT storageReference)
+  -- if assignop =/= '='
+  -- Expr_eval: p EC_1 ARCH_1 |- typedExpressionIR : EC_2 ARCH_2 abortResult
+
+rule Stmt_eval/typedLvalueIR-cont-eq-typedExpressionIR-cont:
+  p EC_0 ARCH_0
+    |- typedLvalueIR assignop typedExpressionIR ';'
+    : EC_3 ARCH_2 _EMPTY
+  -- Lvalue_eval:
+       p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 (_CONT storageReference)
+  -- if assignop = '='
+  -- Expr_eval: p EC_1 ARCH_1 |- typedExpressionIR : EC_2 ARCH_2 (_CONT value)
+  -- Lvalue_write: p EC_2 ARCH_2 |- storageReference := value : EC_3
+
+rule Stmt_eval/typedLvalueIR-cont-compound-typedExpressionIR-cont:
+  p EC_0 ARCH_0
+    |- typedLvalueIR assignop typedExpressionIR ';'
+    : EC_3 ARCH_2 _EMPTY
+  -- Lvalue_eval:
+       p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 (_CONT storageReference)
+  -- if assignop =/= '='
+  -- Expr_eval: p EC_1 ARCH_1 |- typedExpressionIR : EC_2 ARCH_2 (_CONT value)
+  -- Lvalue_read: p EC_2 ARCH_2 |- storageReference : value_lvalue
+  -- if binop = $assignop_as_binop(assignop)
+  -- if value_new = $bin_op(binop, value_lvalue, value)
+  -- Lvalue_write: p EC_2 ARCH_2 |- storageReference := value_new : EC_3
+
+rule Stmt_eval/callee-abort:
+  p EC_0 ARCH_0
+    |- callableTargetIR `<typeArgumentIR*`> `(argumentIR*`) ';'
+    : EC_1 ARCH_1 abortResult
+  -- Callee_eval:
+       p EC_0 ARCH_0
+         |- callableTargetIR `<'_'`> `(argumentIR*`)
+         : EC_1 ARCH_1 abortResult
+
+rule Stmt_eval/callee-cont-call-abort:
+  p EC_0 ARCH_0
+    |- callableTargetIR `<typeArgumentIR*`> `(argumentIR*`) ';'
+    : EC_2 ARCH_2 abortResult
+  -- Callee_eval:
+       p EC_0 ARCH_0
+         |- callableTargetIR `<'_'`> `(argumentIR*`)
+         : EC_1 ARCH_1 (_CONT callee)
+  -- Call_eval:
+       p EC_1 ARCH_1
+         |- callee '@' `<typeArgumentIR*`> `(argumentIR*`)
+         : EC_2 ARCH_2 abortResult
+
+rule Stmt_eval/callee-cont-call-return:
+  p EC_0 ARCH_0
+    |- callableTargetIR `<typeArgumentIR*`> `(argumentIR*`) ';'
+    : EC_2 ARCH_2 _EMPTY
+  -- Callee_eval:
+       p EC_0 ARCH_0
+         |- callableTargetIR `<'_'`> `(argumentIR*`)
+         : EC_1 ARCH_1 (_CONT callee)
+  -- Call_eval:
+       p EC_1 ARCH_1
+         |- callee '@' `<typeArgumentIR*`> `(argumentIR*`)
+         : EC_2 ARCH_2 returnResult
+
+rule Stmt_eval/non-expression:
+  LOCAL EC ARCH |- RETURN ';' : EC ARCH (RETURN eps)
+
+rule Stmt_eval/expression-abort:
+  LOCAL EC_0 ARCH_0 |- RETURN typedExpressionIR ';' : EC_1 ARCH_1 abortResult
+  -- Expr_eval: LOCAL EC_0 ARCH_0 |- typedExpressionIR : EC_1 ARCH_1 abortResult
+
+rule Stmt_eval/expression-cont:
+  LOCAL EC_0 ARCH_0 |- RETURN typedExpressionIR ';' : EC_1 ARCH_1 (RETURN value)
+  -- Expr_eval:
+       LOCAL EC_0 ARCH_0 |- typedExpressionIR : EC_1 ARCH_1 (_CONT value)
+
+rule Stmt_eval/exitStatementIR:
+  p EC ARCH |- EXIT ';' : EC ARCH EXIT
+
+rule Stmt_eval/blockStatementIR:
+  p EC_0 ARCH_0 |- blockStatementIR : EC_3 ARCH_1 statementResult
+  -- if EC_1 = $enter_e(EC_0)
+  -- Block_eval: EC_1 ARCH_0 |- blockStatementIR : EC_2 ARCH_1 statementResult
+  -- if EC_3 = $exit_e(EC_2)
+
+rule Stmt_eval/non-else-abort:
+  p EC ARCH
+    |- IF `(typedExpressionIR_cond`) statementIR_then
+    : EC_cond ARCH_cond abortResult
+  -- Expr_eval:
+       p EC ARCH |- typedExpressionIR_cond : EC_cond ARCH_cond abortResult
+
+rule Stmt_eval/non-else-cont-true:
+  p EC ARCH
+    |- IF `(typedExpressionIR_cond`) statementIR_then
+    : EC_then ARCH_then statementResult
+  -- Expr_eval:
+       p EC ARCH |- typedExpressionIR_cond : EC_cond ARCH_cond (_CONT (_B true))
+  -- Stmt_eval:
+       p EC_cond ARCH_cond
+         |- statementIR_then
+         : EC_then ARCH_then statementResult
+
+rule Stmt_eval/non-else-cont-false:
+  p EC ARCH
+    |- IF `(typedExpressionIR_cond`) statementIR_then
+    : EC_cond ARCH_cond _EMPTY
+  -- Expr_eval:
+       p EC ARCH
+         |- typedExpressionIR_cond
+         : EC_cond ARCH_cond (_CONT (_B false))
+
+rule Stmt_eval/else-abort:
+  p EC ARCH
+    |- IF `(typedExpressionIR_cond`) statementIR_then ELSE statementIR_else
+    : EC_cond ARCH_cond abortResult
+  -- Expr_eval:
+       p EC ARCH |- typedExpressionIR_cond : EC_cond ARCH_cond abortResult
+
+rule Stmt_eval/else-cont-true:
+  p EC ARCH
+    |- IF `(typedExpressionIR_cond`) statementIR_then ELSE statementIR_else
+    : EC_then ARCH_then statementResult
+  -- Expr_eval:
+       p EC ARCH |- typedExpressionIR_cond : EC_cond ARCH_cond (_CONT (_B true))
+  -- Stmt_eval:
+       p EC_cond ARCH_cond
+         |- statementIR_then
+         : EC_then ARCH_then statementResult
+
+rule Stmt_eval/else-cont-false:
+  p EC ARCH
+    |- IF `(typedExpressionIR_cond`) statementIR_then ELSE statementIR_else
+    : EC_else ARCH_else statementResult
+  -- Expr_eval:
+       p EC ARCH
+         |- typedExpressionIR_cond
+         : EC_cond ARCH_cond (_CONT (_B false))
+  -- Stmt_eval:
+       p EC_cond ARCH_cond
+         |- statementIR_else
+         : EC_else ARCH_else statementResult
+
+relation ForUpdateStmt_eval:
+  evalContext arch |- forUpdateStatementIR : evalContext arch statementResult
+  hint(input %0 %1 %2)
+  hint(prose_in "runtime evaluation of" %2#", under evaluation context"
+                %0
+                "and state"
+                %1)
+  hint(prose_out "\nthe updated evaluation context" %3#", state" %4#", and" %5)
+
+rule ForUpdateStmt_eval/call:
+  EC_0 ARCH_0
+    |- callableTargetIR `<typeArgumentListIR`> `(argumentListIR`)
+    : EC_1 ARCH_1 statementResult
+  -- Stmt_eval:
+       LOCAL EC_0 ARCH_0
+         |- callableTargetIR `<typeArgumentListIR`> `(argumentListIR`) ';'
+         : EC_1 ARCH_1 statementResult
+
+rule ForUpdateStmt_eval/assign:
+  EC_0 ARCH_0
+    |- typedLvalueIR assignop typedExpressionIR
+    : EC_1 ARCH_1 statementResult
+  -- Stmt_eval:
+       LOCAL EC_0 ARCH_0
+         |- typedLvalueIR assignop typedExpressionIR ';'
+         : EC_1 ARCH_1 statementResult
+
+relation ForUpdateStmts_eval:
+  evalContext arch
+    |- forUpdateStatementListIR
+    : evalContext arch statementResult
+  hint(input %0 %1 %2)
+  hint(prose_in "runtime evaluation of" %2#", under evaluation context"
+                %0
+                "and state"
+                %1)
+  hint(prose_out "\nthe updated evaluation context" %3#", state" %4#", and" %5)
+
+rule ForUpdateStmts_eval/nil:
+  EC ARCH |- eps : EC ARCH _EMPTY
+
+rule ForUpdateStmts_eval/cons-head-exit:
+  EC_0 ARCH_0
+    |- forUpdateStatementIR_h :: forUpdateStatementIR_t*
+    : EC_1 ARCH_1 EXIT
+  -- ForUpdateStmt_eval:
+       EC_0 ARCH_0 |- forUpdateStatementIR_h : EC_1 ARCH_1 EXIT
+
+rule ForUpdateStmts_eval/cons-head-cont:
+  EC_0 ARCH_0
+    |- forUpdateStatementIR_h :: forUpdateStatementIR_t*
+    : EC_2 ARCH_2 statementResult
+  -- ForUpdateStmt_eval:
+       EC_0 ARCH_0 |- forUpdateStatementIR_h : EC_1 ARCH_1 _EMPTY
+  -- ForUpdateStmts_eval:
+       EC_1 ARCH_1 |- forUpdateStatementIR_t* : EC_2 ARCH_2 statementResult
+
+relation ForInitStmt_eval:
+  evalContext arch |- forInitStatementIR : evalContext arch statementResult
+  hint(input %0 %1 %2)
+  hint(prose_in "runtime evaluation of" %2#", under evaluation context"
+                %0
+                "and state"
+                %1)
+  hint(prose_out "\nthe updated evaluation context" %3#", state" %4#", and" %5)
+
+rule ForInitStmt_eval/variableDeclarationIR-non-initializer:
+  EC_0 ARCH |- annotationList typeIR nameIR eps : EC_1 ARCH _EMPTY
+  -- if typeIR_subst = $subst_type_e(LOCAL, EC_0, typeIR)
+  -- if value_init = $default(typeIR_subst)
+  -- if EC_1 = $add_var_e(LOCAL, EC_0, _BARE nameIR, value_init)
+
+rule ForInitStmt_eval/variableDeclarationIR-initializer-abort:
+  EC_0 ARCH_0
+    |- annotationList typeIR nameIR ('=' typedExpressionIR_init)
+    : EC_1 ARCH_1 abortResult
+  -- Expr_eval:
+       LOCAL EC_0 ARCH_0 |- typedExpressionIR_init : EC_1 ARCH_1 abortResult
+
+rule ForInitStmt_eval/variableDeclarationIR-initializer-cont:
+  EC_0 ARCH_0
+    |- annotationList typeIR nameIR ('=' typedExpressionIR_init)
+    : EC_2 ARCH_1 _EMPTY
+  -- Expr_eval:
+       LOCAL EC_0 ARCH_0
+         |- typedExpressionIR_init
+         : EC_1 ARCH_1 (_CONT value_init)
+  -- if EC_2 = $add_var_e(LOCAL, EC_1, _BARE nameIR, value_init)
+
+rule ForInitStmt_eval/forUpdateStatementIR:
+  EC_0 ARCH_0 |- forUpdateStatementIR : EC_1 ARCH_1 statementResult
+  -- ForUpdateStmt_eval:
+       EC_0 ARCH_0 |- forUpdateStatementIR : EC_1 ARCH_1 statementResult
+
+relation ForInitStmts_eval:
+  evalContext arch |- forInitStatementListIR : evalContext arch statementResult
+  hint(input %0 %1 %2)
+  hint(prose_in "runtime evaluation of" %2#", under evaluation context"
+                %0
+                "and state"
+                %1)
+  hint(prose_out "\nthe updated evaluation context" %3#", state" %4#", and" %5)
+
+rule ForInitStmts_eval/nil:
+  EC ARCH |- eps : EC ARCH _EMPTY
+
+rule ForInitStmts_eval/cons-head-abort:
+  EC_0 ARCH_0
+    |- forInitStatementIR_h :: forInitStatementIR_t*
+    : EC_1 ARCH_1 abortResult
+  -- ForInitStmt_eval:
+       EC_0 ARCH_0 |- forInitStatementIR_h : EC_1 ARCH_1 abortResult
+
+rule ForInitStmts_eval/cons-head-cont:
+  EC_0 ARCH_0
+    |- forInitStatementIR_h :: forInitStatementIR_t*
+    : EC_2 ARCH_2 statementResult
+  -- ForInitStmt_eval: EC_0 ARCH_0 |- forInitStatementIR_h : EC_1 ARCH_1 _EMPTY
+  -- ForInitStmts_eval:
+       EC_1 ARCH_1 |- forInitStatementIR_t* : EC_2 ARCH_2 statementResult
+
+relation ForThreeClauseStmt_eval:
+  evalContext arch
+    |- typedExpressionIR statementIR forUpdateStatementListIR
+    : evalContext arch statementResult
+  hint(input %0 %1 %2 %3 %4)
+  hint(prose_in "looping" %3 "with condition" %2 "and updates" %4#", under evaluation context"
+                %0
+                "and state"
+                %1)
+  hint(prose_out "\nthe updated evaluation context" %5#", state" %6#", and" %7)
+
+rule ForThreeClauseStmt_eval/cond-abort:
+  EC_0 ARCH_0
+    |- typedExpressionIR statementIR forUpdateStatementListIR
+    : EC_1 ARCH_1 abortResult
+  -- Expr_eval: LOCAL EC_0 ARCH_0 |- typedExpressionIR : EC_1 ARCH_1 abortResult
+
+rule ForThreeClauseStmt_eval/cond-false:
+  EC_0 ARCH_0
+    |- typedExpressionIR statementIR forUpdateStatementListIR
+    : EC_1 ARCH_1 _EMPTY
+  -- Expr_eval:
+       LOCAL EC_0 ARCH_0 |- typedExpressionIR : EC_1 ARCH_1 (_CONT (_B false))
+
+rule ForThreeClauseStmt_eval/cond-true-loop-abort:
+  EC_0 ARCH_0
+    |- typedExpressionIR statementIR forUpdateStatementListIR
+    : EC_2 ARCH_2 abortResult
+  -- Expr_eval:
+       LOCAL EC_0 ARCH_0 |- typedExpressionIR : EC_1 ARCH_1 (_CONT (_B true))
+  -- Stmt_eval: LOCAL EC_1 ARCH_1 |- statementIR : EC_2 ARCH_2 abortResult
+
+rule ForThreeClauseStmt_eval/cond-true-loop-return:
+  EC_0 ARCH_0
+    |- typedExpressionIR statementIR forUpdateStatementListIR
+    : EC_2 ARCH_2 returnResult
+  -- Expr_eval:
+       LOCAL EC_0 ARCH_0 |- typedExpressionIR : EC_1 ARCH_1 (_CONT (_B true))
+  -- Stmt_eval: LOCAL EC_1 ARCH_1 |- statementIR : EC_2 ARCH_2 returnResult
+
+rule ForThreeClauseStmt_eval/cond-true-loop-break:
+  EC_0 ARCH_0
+    |- typedExpressionIR statementIR forUpdateStatementListIR
+    : EC_2 ARCH_2 _EMPTY
+  -- Expr_eval:
+       LOCAL EC_0 ARCH_0 |- typedExpressionIR : EC_1 ARCH_1 (_CONT (_B true))
+  -- Stmt_eval: LOCAL EC_1 ARCH_1 |- statementIR : EC_2 ARCH_2 BREAK
+
+rule ForThreeClauseStmt_eval/cond-true-loop-cont-update-exit:
+  EC_0 ARCH_0
+    |- typedExpressionIR statementIR forUpdateStatementListIR
+    : EC_3 ARCH_3 EXIT
+  -- Expr_eval:
+       LOCAL EC_0 ARCH_0 |- typedExpressionIR : EC_1 ARCH_1 (_CONT (_B true))
+  -- Stmt_eval:
+       LOCAL EC_1 ARCH_1 |- statementIR : EC_2 ARCH_2 statementResult_loop
+  -- if statementResult_loop = _EMPTY \/ statementResult_loop = CONTINUE
+  -- ForUpdateStmts_eval:
+       EC_2 ARCH_2 |- forUpdateStatementListIR : EC_3 ARCH_3 EXIT
+
+rule ForThreeClauseStmt_eval/cond-true-loop-cont-update-cont:
+  EC_0 ARCH_0
+    |- typedExpressionIR statementIR forUpdateStatementListIR
+    : EC_4 ARCH_4 statementResult
+  -- Expr_eval:
+       LOCAL EC_0 ARCH_0 |- typedExpressionIR : EC_1 ARCH_1 (_CONT (_B true))
+  -- Stmt_eval:
+       LOCAL EC_1 ARCH_1 |- statementIR : EC_2 ARCH_2 statementResult_loop
+  -- if statementResult_loop = _EMPTY \/ statementResult_loop = CONTINUE
+  -- ForUpdateStmts_eval:
+       EC_2 ARCH_2 |- forUpdateStatementListIR : EC_3 ARCH_3 _EMPTY
+  -- ForThreeClauseStmt_eval:
+       EC_3 ARCH_3
+         |- typedExpressionIR statementIR forUpdateStatementListIR
+         : EC_4 ARCH_4 statementResult
+
+rule Stmt_eval/init-abort:
+  LOCAL EC_0 ARCH_0
+    |- annotationList
+       FOR
+       `(forInitStatementListIR
+         ';'
+         typedExpressionIR
+         ';'
+         forUpdateStatementListIR`)
+       statementIR
+    : EC_3 ARCH_1 abortResult
+  -- if EC_1 = $enter_e(EC_0)
+  -- ForInitStmts_eval:
+       EC_1 ARCH_0 |- forInitStatementListIR : EC_2 ARCH_1 abortResult
+  -- if EC_3 = $exit_e(EC_2)
+
+rule Stmt_eval/init-cont:
+  LOCAL EC_0 ARCH_0
+    |- annotationList
+       FOR
+       `(forInitStatementListIR
+         ';'
+         typedExpressionIR
+         ';'
+         forUpdateStatementListIR`)
+       statementIR
+    : EC_4 ARCH_2 statementResult
+  -- if EC_1 = $enter_e(EC_0)
+  -- ForInitStmts_eval:
+       EC_1 ARCH_0 |- forInitStatementListIR : EC_2 ARCH_1 _EMPTY
+  -- ForThreeClauseStmt_eval:
+       EC_2 ARCH_1
+         |- typedExpressionIR statementIR forUpdateStatementListIR
+         : EC_3 ARCH_2 statementResult
+  -- if EC_4 = $exit_e(EC_3)
+
+relation ForCollectionExpr_eval:
+  evalContext arch
+    |- forCollectionExpressionIR
+    : evalContext arch expressionListResult
+  hint(input %0 %1 %2)
+  hint(prose_in "runtime evaluation of" %2#", under evaluation context"
+                %0
+                "and state"
+                %1)
+  hint(prose_out "\nthe updated evaluation context" %3#", state" %4#", and" %5)
+
+rule ForCollectionExpr_eval/abort:
+  EC_0 ARCH_0 |- typedExpressionIR : EC_1 ARCH_1 abortResult
+  -- Expr_eval: LOCAL EC_0 ARCH_0 |- typedExpressionIR : EC_1 ARCH_1 abortResult
+
+rule ForCollectionExpr_eval/list:
+  EC_0 ARCH_0 |- typedExpressionIR : EC_1 ARCH_1 (_CONT value*)
+  -- Expr_eval:
+       LOCAL EC_0 ARCH_0 |- typedExpressionIR : EC_1 ARCH_1 (_CONT listValue)
+  -- if LIST `[value*`] = listValue
+
+rule ForCollectionExpr_eval/array:
+  EC_0 ARCH_0 |- typedExpressionIR : EC_1 ARCH_1 (_CONT value*)
+  -- Expr_eval:
+       LOCAL EC_0 ARCH_0 |- typedExpressionIR : EC_1 ARCH_1 (_CONT arrayValue)
+  -- if ARRAY `[value*`] = arrayValue
+
+rule ForCollectionExpr_eval/header-stack:
+  EC_0 ARCH_0 |- typedExpressionIR : EC_1 ARCH_1 (_CONT value*)
+  -- Expr_eval:
+       LOCAL EC_0 ARCH_0
+         |- typedExpressionIR
+         : EC_1 ARCH_1 (_CONT headerStackValue)
+  -- if HEADER_STACK `[value* `(_`)`] = headerStackValue
+
+dec $values_of_setValue(setTypeIR, setValue) : value*
+  hint(prose_in "the values in" %1 "of type" %0)
+
+def $values_of_setValue(SET `<typeIR`>, SET `{value_l '..' value_r`})
+  = value_l :: $values_of_setValue(SET `<typeIR`>,
+                                   SET `{value_l_inc '..' value_r`})
+  -- if $bin_lt(value_l, value_r)
+  -- if value_one = $cast_op(typeIR, D 1)
+  -- if value_l_inc = $bin_plus(value_l, value_one)
+
+def $values_of_setValue(SET `<typeIR`>, SET `{value_l '..' value_r`}) = value_l
+  -- if $bin_eq(value_l, value_r)
+
+def $values_of_setValue(SET `<typeIR`>, SET `{value_l '..' value_r`}) = eps
+  -- if $bin_gt(value_l, value_r)
+
+rule ForCollectionExpr_eval/left-abort:
+  EC_0 ARCH_0
+    |- typedExpressionIR_l '..' typedExpressionIR_r
+    : EC_1 ARCH_1 abortResult
+  -- Expr_eval:
+       LOCAL EC_0 ARCH_0 |- typedExpressionIR_l : EC_1 ARCH_1 abortResult
+
+rule ForCollectionExpr_eval/left-cont-right-abort:
+  EC_0 ARCH_0
+    |- typedExpressionIR_l '..' typedExpressionIR_r
+    : EC_2 ARCH_2 abortResult
+  -- Expr_eval:
+       LOCAL EC_0 ARCH_0 |- typedExpressionIR_l : EC_1 ARCH_1 (_CONT value_l)
+  -- Expr_eval:
+       LOCAL EC_1 ARCH_1 |- typedExpressionIR_r : EC_2 ARCH_2 abortResult
+
+rule ForCollectionExpr_eval/left-cont-right-cont:
+  EC_0 ARCH_0
+    |- typedExpressionIR_l '..' typedExpressionIR_r
+    : EC_2 ARCH_2 (_CONT value*)
+  -- Expr_eval:
+       LOCAL EC_0 ARCH_0 |- typedExpressionIR_l : EC_1 ARCH_1 (_CONT value_l)
+  -- Expr_eval:
+       LOCAL EC_1 ARCH_1 |- typedExpressionIR_r : EC_2 ARCH_2 (_CONT value_r)
+  -- if typeIR = $type_of_typedExpressionIR(typedExpressionIR_l)
+  -- if value*
+        = $values_of_setValue(SET `<typeIR`>, SET `{value_l '..' value_r`})
+
+relation ForInStmt_eval:
+  evalContext arch
+    |- nameIR value* statementIR
+    : evalContext arch statementResult
+  hint(input %0 %1 %2 %3 %4)
+  hint(prose_in "looping over" %3 "with loop variable" %2 "and body" %4#", under evaluation context"
+                %0
+                "and state"
+                %1)
+  hint(prose_out "\nthe updated evaluation context" %5#", state" %6#", and" %7)
+
+rule ForInStmt_eval/nil:
+  EC ARCH |- nameIR eps statementIR : EC ARCH _EMPTY
+
+rule ForInStmt_eval/cons-loop-abort:
+  EC_0 ARCH_0
+    |- nameIR (value_h :: value_t*) statementIR
+    : EC_2 ARCH_1 abortResult
+  -- if EC_1 = $update_var_e(LOCAL, EC_0, _BARE nameIR, value_h)
+  -- Stmt_eval: LOCAL EC_1 ARCH_0 |- statementIR : EC_2 ARCH_1 abortResult
+
+rule ForInStmt_eval/cons-loop-return:
+  EC_0 ARCH_0
+    |- nameIR (value_h :: value_t*) statementIR
+    : EC_2 ARCH_1 returnResult
+  -- if EC_1 = $update_var_e(LOCAL, EC_0, _BARE nameIR, value_h)
+  -- Stmt_eval: LOCAL EC_1 ARCH_0 |- statementIR : EC_2 ARCH_1 returnResult
+
+rule ForInStmt_eval/cons-loop-break:
+  EC_0 ARCH_0 |- nameIR (value_h :: value_t*) statementIR : EC_2 ARCH_1 _EMPTY
+  -- if EC_1 = $update_var_e(LOCAL, EC_0, _BARE nameIR, value_h)
+  -- Stmt_eval: LOCAL EC_1 ARCH_0 |- statementIR : EC_2 ARCH_1 BREAK
+
+rule ForInStmt_eval/cons-loop-cont:
+  EC_0 ARCH_0
+    |- nameIR (value_h :: value_t*) statementIR
+    : EC_3 ARCH_2 statementResult
+  -- if EC_1 = $update_var_e(LOCAL, EC_0, _BARE nameIR, value_h)
+  -- Stmt_eval:
+       LOCAL EC_1 ARCH_0 |- statementIR : EC_2 ARCH_1 statementResult_loop
+  -- if statementResult_loop = _EMPTY \/ statementResult_loop = CONTINUE
+  -- ForInStmt_eval:
+       EC_2 ARCH_1 |- nameIR value_t* statementIR : EC_3 ARCH_2 statementResult
+
+rule Stmt_eval/no-annotations-collection-abort:
+  LOCAL EC_0 ARCH_0
+    |- annotationList
+       FOR
+       `(typeIR nameIR IN forCollectionExpressionIR`)
+       statementIR
+    : EC_3 ARCH_1 abortResult
+  -- if EC_1 = $enter_e(EC_0)
+  -- ForCollectionExpr_eval:
+       EC_1 ARCH_0 |- forCollectionExpressionIR : EC_2 ARCH_1 abortResult
+  -- if EC_3 = $exit_e(EC_2)
+
+rule Stmt_eval/no-annotations-collection-loop:
+  LOCAL EC_0 ARCH_0
+    |- annotationList
+       FOR
+       `(typeIR nameIR IN forCollectionExpressionIR`)
+       statementIR
+    : EC_5 ARCH_2 statementResult
+  -- if EC_1 = $enter_e(EC_0)
+  -- ForCollectionExpr_eval:
+       EC_1 ARCH_0 |- forCollectionExpressionIR : EC_2 ARCH_1 (_CONT value*)
+  -- if typeIR_subst = $subst_type_e(LOCAL, EC_0, typeIR)
+  -- if value_init = $default(typeIR_subst)
+  -- if EC_3 = $add_var_e(LOCAL, EC_2, _BARE nameIR, value_init)
+  -- ForInStmt_eval:
+       EC_3 ARCH_1 |- nameIR value* statementIR : EC_4 ARCH_2 statementResult
+  -- if EC_5 = $exit_e(EC_4)
+
+rule Stmt_eval/annotations:
+  LOCAL EC_0 ARCH_0
+    |- annotationList
+       FOR
+       `(annotationList_in typeIR nameIR IN forCollectionExpressionIR`)
+       statementIR
+    : EC_1 ARCH_1 statementResult
+  -- Stmt_eval:
+       LOCAL EC_0 ARCH_0
+         |- annotationList
+            FOR
+            `(typeIR nameIR IN forCollectionExpressionIR`)
+            statementIR
+         : EC_1 ARCH_1 statementResult
+
+rule Stmt_eval/breakStatementIR:
+  LOCAL EC ARCH |- BREAK ';' : EC ARCH BREAK
+
+rule Stmt_eval/continueStatementIR:
+  LOCAL EC ARCH |- CONTINUE ';' : EC ARCH CONTINUE
+
+relation Switch_table_eval:
+  evalContext arch
+    |- SWITCH `(id`) `{switchCaseIR*`}
+    : evalContext arch statementResult
+  hint(input %0 %1 %2 %3)
+
+dec $match_switchLabelIR_table(id, switchLabelIR) : bool
+  hint(prose_true %0 "matches" %1)
+  hint(prose_false %0 "does not match" %1)
+
+def $match_switchLabelIR_table(id, DEFAULT) = true
+
+def $match_switchLabelIR_table(id, (_BARE id) '#' _) = true
+
+def $match_switchLabelIR_table(id, _) = false
+  -- otherwise
+
+relation SwitchCases_table_eval: id |- switchCaseListIR : blockStatementIR?
+  hint(input %0 %1)
+  hint(prose_in "runtime evaluation of" %1 "for invocation of table" %0)
+  hint(prose_out "the matched block" %2)
+
+dec $is_non_fallthrough_switchCaseIR(switchCaseIR) : bool
+  hint(prose_true %0 "is not a fall-through case")
+  hint(prose_false %0 "is a fall-through case")
+
+def $is_non_fallthrough_switchCaseIR(switchLabelIR ':' blockStatementIR) = true
+
+def $is_non_fallthrough_switchCaseIR(switchLabelIR ':') = false
+
+rule SwitchCases_table_eval/nil:
+  id |- eps : eps
+
+rule SwitchCases_table_eval/cons-non-fallthrough-match:
+  id |- switchCaseIR_h :: switchCaseIR_t* : blockStatementIR_h
+  -- if switchLabelIR_h ':' blockStatementIR_h = switchCaseIR_h
+  -- if $match_switchLabelIR_table(id, switchLabelIR_h)
+
+rule SwitchCases_table_eval/cons-non-fallthrough-no-match:
+  id |- switchCaseIR_h :: switchCaseIR_t* : blockStatementIR?
+  -- if switchLabelIR_h ':' blockStatementIR_h = switchCaseIR_h
+  -- if ~$match_switchLabelIR_table(id, switchLabelIR_h)
+  -- SwitchCases_table_eval: id |- switchCaseIR_t* : blockStatementIR?
+
+rule SwitchCases_table_eval/cons-fallthrough-match:
+  id |- switchCaseIR_h :: switchCaseIR_t* : blockStatementIR
+  -- if switchLabelIR_h ':' = switchCaseIR_h
+  -- if $match_switchLabelIR_table(id, switchLabelIR_h)
+  -- if (_ ':' blockStatementIR) :: _
+        = $filter_<switchCaseIR>(switchCaseIR_t*,
+                                 $is_non_fallthrough_switchCaseIR(switchCaseIR_t)*)
+
+rule SwitchCases_table_eval/cons-fallthrough-match-no-block:
+  id |- switchCaseIR_h :: switchCaseIR_t* : eps
+  -- if switchLabelIR_h ':' = switchCaseIR_h
+  -- if $match_switchLabelIR_table(id, switchLabelIR_h)
+  -- if eps
+        = $filter_<switchCaseIR>(switchCaseIR_t*,
+                                 $is_non_fallthrough_switchCaseIR(switchCaseIR_t)*)
+
+rule SwitchCases_table_eval/cons-fallthrough-no-match:
+  id |- switchCaseIR_h :: switchCaseIR_t* : blockStatementIR?
+  -- if switchLabelIR_h ':' = switchCaseIR_h
+  -- if ~$match_switchLabelIR_table(id, switchLabelIR_h)
+  -- SwitchCases_table_eval: id |- switchCaseIR_t* : blockStatementIR?
+
+rule Switch_table_eval/no-match:
+  EC_0 ARCH_0 |- SWITCH `(id_enum`) `{switchCaseIR*`} : EC_0 ARCH_0 _EMPTY
+  -- SwitchCases_table_eval: id_enum |- switchCaseIR* : eps
+
+rule Switch_table_eval/match:
+  EC_0 ARCH_0
+    |- SWITCH `(id_enum`) `{switchCaseIR*`}
+    : EC_1 ARCH_1 statementResult
+  -- SwitchCases_table_eval: id_enum |- switchCaseIR* : blockStatementIR
+  -- Stmt_eval:
+       LOCAL EC_0 ARCH_0 |- blockStatementIR : EC_1 ARCH_1 statementResult
+
+relation Switch_general_eval:
+  evalContext arch
+    |- SWITCH `(value`) `{switchCaseIR*`}
+    : evalContext arch statementResult
+  hint(input %0 %1 %2 %3)
+
+relation SwitchLabel_general_eval:
+  cursor evalContext arch |- switchLabelIR : evalContext arch expressionResult
+  hint(input %0 %1 %2 %3)
+  hint(prose_in "runtime evaluation of" %2#", under evaluation context"
+                %0
+                "and state"
+                %1)
+  hint(prose_out "\nthe updated evaluation context" %4#", state" %5#", and" %6)
+
+rule SwitchLabel_general_eval/default:
+  LOCAL EC_0 ARCH_0 |- DEFAULT : EC_0 ARCH_0 (_CONT DEFAULT)
+
+rule SwitchLabel_general_eval/typedExpressionIR:
+  LOCAL EC_0 ARCH_0 |- typedExpressionIR : EC_1 ARCH_1 expressionResult
+  -- Expr_eval:
+       LOCAL EC_0 ARCH_0 |- typedExpressionIR : EC_1 ARCH_1 expressionResult
+
+dec $match_switchLabelIR_general(value, value) : bool
+  hint(prose_true %0 "matches" %1)
+  hint(prose_false %0 "does not match" %1)
+
+def $match_switchLabelIR_general(value, DEFAULT) = true
+
+def $match_switchLabelIR_general(value_a, value_b) = $bin_eq(value_a, value_b)
+  -- if value_b =/= DEFAULT
+
+relation SwitchCases_general_eval:
+  cursor evalContext arch value
+    |- switchCaseListIR
+    : evalContext arch blockStatementIR?
+  hint(input %0 %1 %2 %3 %4)
+  hint(prose_in "runtime evaluation of" %4#", under evaluation context"
+                %0
+                "and state"
+                %1
+                "with switch key"
+                %3)
+  hint(prose_out "\nthe updated evaluation context" %5#", state" %6#", and" %7)
+
+rule SwitchCases_general_eval/nil:
+  LOCAL EC_0 ARCH_0 value |- eps : EC_0 ARCH_0 eps
+
+rule SwitchCases_general_eval/cons-non-fallthrough-match:
+  LOCAL EC_0 ARCH_0 value
+    |- (switchCaseIR_h :: switchCaseIR_t*)
+    : EC_1 ARCH_1 blockStatementIR_h
+  -- if switchLabelIR_h ':' blockStatementIR_h = switchCaseIR_h
+  -- SwitchLabel_general_eval:
+       LOCAL EC_0 ARCH_0 |- switchLabelIR_h : EC_1 ARCH_1 (_CONT value_label)
+  -- if $match_switchLabelIR_general(value, value_label)
+
+rule SwitchCases_general_eval/cons-non-fallthrough-no-match:
+  LOCAL EC_0 ARCH_0 value
+    |- (switchCaseIR_h :: switchCaseIR_t*)
+    : EC_2 ARCH_2 blockStatementIR?
+  -- if switchLabelIR_h ':' blockStatementIR_h = switchCaseIR_h
+  -- SwitchLabel_general_eval:
+       LOCAL EC_0 ARCH_0 |- switchLabelIR_h : EC_1 ARCH_1 (_CONT value_label)
+  -- if ~$match_switchLabelIR_general(value, value_label)
+  -- SwitchCases_general_eval:
+       LOCAL EC_1 ARCH_1 value
+         |- switchCaseIR_t*
+         : EC_2 ARCH_2 blockStatementIR?
+
+rule SwitchCases_general_eval/cons-fallthrough-match:
+  LOCAL EC_0 ARCH_0 value
+    |- (switchCaseIR_h :: switchCaseIR_t*)
+    : EC_1 ARCH_1 blockStatementIR
+  -- if switchLabelIR_h ':' = switchCaseIR_h
+  -- SwitchLabel_general_eval:
+       LOCAL EC_0 ARCH_0 |- switchLabelIR_h : EC_1 ARCH_1 (_CONT value_label)
+  -- if $match_switchLabelIR_general(value, value_label)
+  -- if (_ ':' blockStatementIR) :: _
+        = $filter_<switchCaseIR>(switchCaseIR_t*,
+                                 $is_non_fallthrough_switchCaseIR(switchCaseIR_t)*)
+
+rule SwitchCases_general_eval/cons-fallthrough-match-no-block:
+  LOCAL EC_0 ARCH_0 value
+    |- (switchCaseIR_h :: switchCaseIR_t*)
+    : EC_1 ARCH_1 eps
+  -- if switchLabelIR_h ':' = switchCaseIR_h
+  -- SwitchLabel_general_eval:
+       LOCAL EC_0 ARCH_0 |- switchLabelIR_h : EC_1 ARCH_1 (_CONT value_label)
+  -- if $match_switchLabelIR_general(value, value_label)
+  -- if eps
+        = $filter_<switchCaseIR>(switchCaseIR_t*,
+                                 $is_non_fallthrough_switchCaseIR(switchCaseIR_t)*)
+
+rule SwitchCases_general_eval/cons-fallthrough-no-match:
+  LOCAL EC_0 ARCH_0 value
+    |- (switchCaseIR_h :: switchCaseIR_t*)
+    : EC_2 ARCH_2 blockStatementIR?
+  -- if switchLabelIR_h ':' = switchCaseIR_h
+  -- SwitchLabel_general_eval:
+       LOCAL EC_0 ARCH_0 |- switchLabelIR_h : EC_1 ARCH_1 (_CONT value_label)
+  -- if ~$match_switchLabelIR_general(value, value_label)
+  -- SwitchCases_general_eval:
+       LOCAL EC_1 ARCH_1 value
+         |- switchCaseIR_t*
+         : EC_2 ARCH_2 blockStatementIR?
+
+rule Switch_general_eval/no-match:
+  EC_0 ARCH_0 |- SWITCH `(value`) `{switchCaseIR*`} : EC_1 ARCH_1 _EMPTY
+  -- SwitchCases_general_eval:
+       LOCAL EC_0 ARCH_0 value |- switchCaseIR* : EC_1 ARCH_1 eps
+
+rule Switch_general_eval/match:
+  EC_0 ARCH_0
+    |- SWITCH `(value`) `{switchCaseIR*`}
+    : EC_2 ARCH_2 statementResult
+  -- SwitchCases_general_eval:
+       LOCAL EC_0 ARCH_0 value |- switchCaseIR* : EC_1 ARCH_1 blockStatementIR
+  -- Stmt_eval:
+       LOCAL EC_1 ARCH_1 |- blockStatementIR : EC_2 ARCH_2 statementResult
+
+rule Stmt_eval/target-abort:
+  LOCAL EC_0 ARCH_0
+    |- SWITCH `(typedExpressionIR`) `{switchCaseIR*`}
+    : EC_1 ARCH_1 abortResult
+  -- Expr_eval: LOCAL EC_0 ARCH_0 |- typedExpressionIR : EC_1 ARCH_1 abortResult
+
+rule Stmt_eval/target-cont-table:
+  LOCAL EC_0 ARCH_0
+    |- SWITCH `(typedExpressionIR`) `{switchCaseIR*`}
+    : EC_2 ARCH_2 statementResult
+  -- Expr_eval:
+       LOCAL EC_0 ARCH_0 |- typedExpressionIR : EC_1 ARCH_1 (_CONT value)
+  -- if TABLE_ENUM _ '.' id_enum = value
+  -- Switch_table_eval:
+       EC_1 ARCH_1
+         |- SWITCH `(id_enum`) `{switchCaseIR*`}
+         : EC_2 ARCH_2 statementResult
+
+rule Stmt_eval/target-cont-general:
+  LOCAL EC_0 ARCH_0
+    |- SWITCH `(typedExpressionIR`) `{switchCaseIR*`}
+    : EC_2 ARCH_2 statementResult
+  -- Expr_eval:
+       LOCAL EC_0 ARCH_0 |- typedExpressionIR : EC_1 ARCH_1 (_CONT value)
+  -- if ~(value <: tableMetadataEnumValue)
+  -- Switch_general_eval:
+       EC_1 ARCH_1
+         |- SWITCH `(value`) `{switchCaseIR*`}
+         : EC_2 ARCH_2 statementResult
+
+rule BlockElementStmt_eval/constantDeclarationIR:
+  EC_0 ARCH |- constantDeclarationIR : EC_1 ARCH _EMPTY
+  -- ConstDecl_eval: LOCAL EC_0 |- constantDeclarationIR : EC_1
+
+rule BlockElementStmt_eval/variableDeclarationIR:
+  EC_0 ARCH_0 |- variableDeclarationIR : EC_1 ARCH_1 declarationResult
+  -- VarDecl_eval:
+       LOCAL EC_0 ARCH_0
+         |- variableDeclarationIR
+         : EC_1 ARCH_1 declarationResult
+
+rule BlockElementStmt_eval/statementIR:
+  EC_0 ARCH_0 |- statementIR : EC_1 ARCH_1 statementResult
+  -- Stmt_eval: LOCAL EC_0 ARCH_0 |- statementIR : EC_1 ARCH_1 statementResult
+
+rule BlockElementStmtList_eval/nil:
+  EC ARCH |- eps : EC ARCH _EMPTY
+
+rule BlockElementStmtList_eval/cons-head-non-cont:
+  EC_0 ARCH_0
+    |- blockElementStatementIR_h :: blockElementStatementIR_t*
+    : EC_1 ARCH_1 statementResult
+  -- BlockElementStmt_eval:
+       EC_0 ARCH_0 |- blockElementStatementIR_h : EC_1 ARCH_1 statementResult
+  -- if statementResult =/= _EMPTY
+
+rule BlockElementStmtList_eval/cons-head-cont:
+  EC_0 ARCH_0
+    |- blockElementStatementIR_h :: blockElementStatementIR_t*
+    : EC_2 ARCH_2 statementResult
+  -- BlockElementStmt_eval:
+       EC_0 ARCH_0 |- blockElementStatementIR_h : EC_1 ARCH_1 _EMPTY
+  -- BlockElementStmtList_eval:
+       EC_1 ARCH_1 |- blockElementStatementIR_t* : EC_2 ARCH_2 statementResult
+
+rule Block_eval:
+  EC_0 ARCH_0
+    |- annotationList `{blockElementStatementListIR`}
+    : EC_1 ARCH_1 statementResult
+  -- BlockElementStmtList_eval:
+       EC_0 ARCH_0 |- blockElementStatementListIR : EC_1 ARCH_1 statementResult
+;; === 8-dynamic/8.07-eval-declaration.spectec ===
+rule VarDecl_eval/non-initializer:
+  p EC_0 ARCH |- annotationList typeIR nameIR eps ';' : EC_1 ARCH _EMPTY
+  -- if typeIR_subst = $subst_type_e(LOCAL, EC_0, typeIR)
+  -- if value_init = $default(typeIR_subst)
+  -- if EC_1 = $add_var_e(p, EC_0, _BARE nameIR, value_init)
+
+rule VarDecl_eval/initializer-abort:
+  p EC_0 ARCH_0
+    |- annotationList typeIR nameIR ('=' typedExpressionIR_init) ';'
+    : EC_1 ARCH_1 abortResult
+  -- Expr_eval:
+       p EC_0 ARCH_0 |- typedExpressionIR_init : EC_1 ARCH_1 abortResult
+
+rule VarDecl_eval/initializer-cont:
+  p EC_0 ARCH_0
+    |- annotationList typeIR nameIR ('=' typedExpressionIR_init) ';'
+    : EC_2 ARCH_1 _EMPTY
+  -- Expr_eval:
+       p EC_0 ARCH_0 |- typedExpressionIR_init : EC_1 ARCH_1 (_CONT value_init)
+  -- if EC_2 = $add_var_e(p, EC_1, _BARE nameIR, value_init)
+
+rule ConstDecl_eval:
+  p EC_0 |- annotationList CONST typeIR nameIR ('=' _VALUE value) ';' : EC_1
+  -- if EC_1 = $add_var_e(p, EC_0, _BARE nameIR, value)
+;; === 8-dynamic/8.08.1-eval-parser-statement.spectec ===
+syntax selectCaseMatchResult =
+  | continueResult<nameIR?>
+  | rejectTransitionResult
+
+relation SelectCase_match:
+  evalContext arch value*
+    |- selectCaseIR
+    : evalContext arch selectCaseMatchResult
+  hint(input %0 %1 %2 %3)
+  hint(prose_in "matching" %2 "against" %3 "under context" %0 "and state" %1)
+  hint(prose_out "the updated context" %4#", state" %5#", and" %6)
+
+rule SelectCase_match/reject:
+  EC_0 ARCH_0 value_key*
+    |- keysetExpressionIR ':' nameIR ';'
+    : EC_1 ARCH_1 rejectTransitionResult
+  -- Eval_keyset:
+       EC_0 ARCH_0 |- keysetExpressionIR : EC_1 ARCH_1 rejectTransitionResult
+
+rule SelectCase_match/no-match:
+  EC_0 ARCH_0 value_key*
+    |- keysetExpressionIR ':' nameIR ';'
+    : EC_1 ARCH_1 (_CONT eps)
+  -- Eval_keyset:
+       EC_0 ARCH_0 |- keysetExpressionIR : EC_1 ARCH_1 (_CONT setValue*)
+  -- if ~$match_keysets(setValue*, value_key*)
+
+rule SelectCase_match/match:
+  EC_0 ARCH_0 value_key*
+    |- keysetExpressionIR ':' nameIR ';'
+    : EC_1 ARCH_1 (_CONT nameIR)
+  -- Eval_keyset:
+       EC_0 ARCH_0 |- keysetExpressionIR : EC_1 ARCH_1 (_CONT setValue*)
+  -- if $match_keysets(setValue*, value_key*)
+
+relation SelectCases_match:
+  evalContext arch value*
+    |- selectCaseListIR
+    : evalContext arch selectCaseMatchResult
+  hint(input %0 %1 %2 %3)
+  hint(prose_in "matching" %2 "against" %3 "under context" %0 "and state" %1)
+  hint(prose_out "the updated context" %4#", state" %5#", and" %6)
+
+rule SelectCases_match/nil:
+  EC ARCH value_key* |- eps : EC ARCH (_CONT eps)
+
+rule SelectCases_match/cons-head-match:
+  EC_0 ARCH_0 value_key*
+    |- selectCaseIR_h :: selectCaseIR_t*
+    : EC_1 ARCH_1 rejectTransitionResult
+  -- SelectCase_match:
+       EC_0 ARCH_0 value_key*
+         |- selectCaseIR_h
+         : EC_1 ARCH_1 rejectTransitionResult
+
+rule SelectCases_match/cons-head-match:
+  EC_0 ARCH_0 value_key*
+    |- selectCaseIR_h :: selectCaseIR_t*
+    : EC_1 ARCH_1 (_CONT nameIR_state)
+  -- SelectCase_match:
+       EC_0 ARCH_0 value_key*
+         |- selectCaseIR_h
+         : EC_1 ARCH_1 (_CONT nameIR_state)
+
+rule SelectCases_match/cons-head-no-match:
+  EC_0 ARCH_0 value_key*
+    |- selectCaseIR_h :: selectCaseIR_t*
+    : EC_2 ARCH_2 selectCaseMatchResult
+  -- SelectCase_match:
+       EC_0 ARCH_0 value_key* |- selectCaseIR_h : EC_1 ARCH_1 (_CONT eps)
+  -- SelectCases_match:
+       EC_1 ARCH_1 value_key*
+         |- selectCaseIR_t*
+         : EC_2 ARCH_2 selectCaseMatchResult
+
+rule ParserSelect_eval/reject:
+  EC_0 ARCH_0 |- selectExpressionIR : EC_1 ARCH_1 rejectTransitionResult
+  -- if SELECT `(typedExpressionIR_key*`) `{selectCaseListIR`}
+        = selectExpressionIR
+  -- Exprs_eval:
+       LOCAL EC_0 ARCH_0
+         |- typedExpressionIR_key*
+         : EC_1 ARCH_1 rejectTransitionResult
+
+rule ParserSelect_eval/cont-selectCaseListIR-reject:
+  EC_0 ARCH_0 |- selectExpressionIR : EC_2 ARCH_2 rejectTransitionResult
+  -- if SELECT `(typedExpressionIR_key*`) `{selectCaseListIR`}
+        = selectExpressionIR
+  -- Exprs_eval:
+       LOCAL EC_0 ARCH_0
+         |- typedExpressionIR_key*
+         : EC_1 ARCH_1 (_CONT value_key*)
+  -- SelectCases_match:
+       EC_1 ARCH_1 value_key*
+         |- selectCaseListIR
+         : EC_2 ARCH_2 rejectTransitionResult
+
+rule ParserSelect_eval/no-match:
+  EC_0 ARCH_0 |- selectExpressionIR : EC_2 ARCH_2 rejectTransitionResult
+  -- if SELECT `(typedExpressionIR_key*`) `{selectCaseListIR`}
+        = selectExpressionIR
+  -- Exprs_eval:
+       LOCAL EC_0 ARCH_0
+         |- typedExpressionIR_key*
+         : EC_1 ARCH_1 (_CONT value_key*)
+  -- SelectCases_match:
+       EC_1 ARCH_1 value_key*
+         |- selectCaseListIR
+         : EC_2 ARCH_2 (_CONT nameIR_state?)
+  -- if eps = nameIR_state?
+  -- if rejectTransitionResult = REJECT (ERROR '.' "NoMatch")
+
+rule ParserSelect_eval/match:
+  EC_0 ARCH_0 |- selectExpressionIR : EC_3 ARCH_3 transitionResult
+  -- if SELECT `(typedExpressionIR_key*`) `{selectCaseListIR`}
+        = selectExpressionIR
+  -- Exprs_eval:
+       LOCAL EC_0 ARCH_0
+         |- typedExpressionIR_key*
+         : EC_1 ARCH_1 (_CONT value_key*)
+  -- SelectCases_match:
+       EC_1 ARCH_1 value_key*
+         |- selectCaseListIR
+         : EC_2 ARCH_2 (_CONT nameIR_state)
+  -- ParserTransition_eval:
+       EC_2 ARCH_2
+         |- TRANSITION (nameIR_state ';')
+         : EC_3 ARCH_3 transitionResult
+
+rule ParserTransition_eval/nameIR-accept:
+  EC ARCH |- TRANSITION (nameIR ';') : EC ARCH ACCEPT
+  -- if nameIR = "accept"
+
+rule ParserTransition_eval/nameIR-reject:
+  EC ARCH |- TRANSITION (nameIR ';') : EC ARCH (REJECT errorValue)
+  -- if nameIR = "reject"
+  -- if errorValue = ERROR '.' "NoError"
+
+rule ParserTransition_eval/nameIR-state:
+  EC ARCH |- TRANSITION (nameIR ';') : EC ARCH (STATE nameIR)
+  -- if nameIR =/= "accept" /\ nameIR =/= "reject"
+
+rule ParserTransition_eval/selectExpressionIR:
+  EC_0 ARCH_0 |- TRANSITION selectExpressionIR : EC_1 ARCH_1 transitionResult
+  -- ParserSelect_eval:
+       EC_0 ARCH_0 |- selectExpressionIR : EC_1 ARCH_1 transitionResult
+
+rule ParserStmt_eval/emptyStatementIR:
+  EC_0 ARCH_0 |- emptyStatementIR : EC_1 ARCH_1 _EMPTY
+  -- Stmt_eval: LOCAL EC_0 ARCH_0 |- emptyStatementIR : EC_1 ARCH_1 _EMPTY
+
+rule ParserStmt_eval/reject:
+  EC_0 ARCH_0 |- assignmentStatementIR : EC_1 ARCH_1 rejectTransitionResult
+  -- Stmt_eval:
+       LOCAL EC_0 ARCH_0
+         |- assignmentStatementIR
+         : EC_1 ARCH_1 rejectTransitionResult
+
+rule ParserStmt_eval/cont:
+  EC_0 ARCH_0 |- assignmentStatementIR : EC_1 ARCH_1 _EMPTY
+  -- Stmt_eval: LOCAL EC_0 ARCH_0 |- assignmentStatementIR : EC_1 ARCH_1 _EMPTY
+
+rule ParserStmt_eval/reject:
+  EC_0 ARCH_0 |- callStatementIR : EC_1 ARCH_1 rejectTransitionResult
+  -- Stmt_eval:
+       LOCAL EC_0 ARCH_0 |- callStatementIR : EC_1 ARCH_1 rejectTransitionResult
+
+rule ParserStmt_eval/cont:
+  EC_0 ARCH_0 |- callStatementIR : EC_1 ARCH_1 _EMPTY
+  -- Stmt_eval: LOCAL EC_0 ARCH_0 |- callStatementIR : EC_1 ARCH_1 _EMPTY
+
+rule ParserStmt_eval/parserBlockStatementIR:
+  EC_0 ARCH_0 |- parserBlockStatementIR : EC_3 ARCH_1 parserStatementResult
+  -- if EC_1 = $enter_e(EC_0)
+  -- ParserBlock_eval:
+       EC_1 ARCH_0 |- parserBlockStatementIR : EC_2 ARCH_1 parserStatementResult
+  -- if EC_3 = $exit_e(EC_2)
+
+rule ParserStmt_eval/non-else-reject:
+  EC ARCH
+    |- IF `(typedExpressionIR_cond`) parserStatementIR_then
+    : EC_cond ARCH_cond rejectTransitionResult
+  -- Expr_eval:
+       LOCAL EC ARCH
+         |- typedExpressionIR_cond
+         : EC_cond ARCH_cond rejectTransitionResult
+
+rule ParserStmt_eval/non-else-cont-true:
+  EC ARCH
+    |- IF `(typedExpressionIR_cond`) parserStatementIR_then
+    : EC_then ARCH_then parserStatementResult
+  -- Expr_eval:
+       LOCAL EC ARCH
+         |- typedExpressionIR_cond
+         : EC_cond ARCH_cond (_CONT (_B true))
+  -- ParserStmt_eval:
+       EC_cond ARCH_cond
+         |- parserStatementIR_then
+         : EC_then ARCH_then parserStatementResult
+
+rule ParserStmt_eval/non-else-cont-false:
+  EC ARCH
+    |- IF `(typedExpressionIR_cond`) parserStatementIR_then
+    : EC_cond ARCH_cond _EMPTY
+  -- Expr_eval:
+       LOCAL EC ARCH
+         |- typedExpressionIR_cond
+         : EC_cond ARCH_cond (_CONT (_B false))
+
+rule ParserStmt_eval/else-reject:
+  EC ARCH
+    |- IF
+       `(typedExpressionIR_cond`)
+       parserStatementIR_then
+       ELSE
+       parserStatementIR_else
+    : EC_cond ARCH_cond rejectTransitionResult
+  -- Expr_eval:
+       LOCAL EC ARCH
+         |- typedExpressionIR_cond
+         : EC_cond ARCH_cond rejectTransitionResult
+
+rule ParserStmt_eval/else-cont-true:
+  EC ARCH
+    |- IF
+       `(typedExpressionIR_cond`)
+       parserStatementIR_then
+       ELSE
+       parserStatementIR_else
+    : EC_then ARCH_then parserStatementResult
+  -- Expr_eval:
+       LOCAL EC ARCH
+         |- typedExpressionIR_cond
+         : EC_cond ARCH_cond (_CONT (_B true))
+  -- ParserStmt_eval:
+       EC_cond ARCH_cond
+         |- parserStatementIR_then
+         : EC_then ARCH_then parserStatementResult
+
+rule ParserStmt_eval/else-cont-false:
+  EC ARCH
+    |- IF
+       `(typedExpressionIR_cond`)
+       parserStatementIR_then
+       ELSE
+       parserStatementIR_else
+    : EC_else ARCH_else parserStatementResult
+  -- Expr_eval:
+       LOCAL EC ARCH
+         |- typedExpressionIR_cond
+         : EC_cond ARCH_cond (_CONT (_B false))
+  -- ParserStmt_eval:
+       EC_cond ARCH_cond
+         |- parserStatementIR_else
+         : EC_else ARCH_else parserStatementResult
+
+rule ParserBlockElementStmt_eval/constantDeclarationIR:
+  EC_0 ARCH |- constantDeclarationIR : EC_1 ARCH _EMPTY
+  -- ConstDecl_eval: LOCAL EC_0 |- constantDeclarationIR : EC_1
+
+rule ParserBlockElementStmt_eval/variableDeclarationIR-reject:
+  EC_0 ARCH_0 |- variableDeclarationIR : EC_1 ARCH_1 rejectTransitionResult
+  -- VarDecl_eval:
+       LOCAL EC_0 ARCH_0
+         |- variableDeclarationIR
+         : EC_1 ARCH_1 rejectTransitionResult
+
+rule ParserBlockElementStmt_eval/variableDeclarationIR-empty:
+  EC_0 ARCH_0 |- variableDeclarationIR : EC_1 ARCH_1 _EMPTY
+  -- VarDecl_eval:
+       LOCAL EC_0 ARCH_0 |- variableDeclarationIR : EC_1 ARCH_1 _EMPTY
+
+rule ParserBlockElementStmt_eval/statementIR:
+  EC_0 ARCH_0 |- parserStatementIR : EC_1 ARCH_1 parserStatementResult
+  -- ParserStmt_eval:
+       EC_0 ARCH_0 |- parserStatementIR : EC_1 ARCH_1 parserStatementResult
+
+rule ParserBlockElementStmtList_eval/nil:
+  EC ARCH |- eps : EC ARCH _EMPTY
+
+rule ParserBlockElementStmtList_eval/cons-head-non-cont:
+  EC_0 ARCH_0
+    |- parserBlockElementStatementIR_h :: parserBlockElementStatementIR_t*
+    : EC_1 ARCH_1 parserStatementResult
+  -- ParserBlockElementStmt_eval:
+       EC_0 ARCH_0
+         |- parserBlockElementStatementIR_h
+         : EC_1 ARCH_1 parserStatementResult
+  -- if parserStatementResult =/= _EMPTY
+
+rule ParserBlockElementStmtList_eval/cons-head-cont:
+  EC_0 ARCH_0
+    |- parserBlockElementStatementIR_h :: parserBlockElementStatementIR_t*
+    : EC_2 ARCH_2 parserStatementResult
+  -- ParserBlockElementStmt_eval:
+       EC_0 ARCH_0 |- parserBlockElementStatementIR_h : EC_1 ARCH_1 _EMPTY
+  -- ParserBlockElementStmtList_eval:
+       EC_1 ARCH_1
+         |- parserBlockElementStatementIR_t*
+         : EC_2 ARCH_2 parserStatementResult
+
+rule ParserBlock_eval:
+  EC_0 ARCH_0
+    |- annotationList `{parserBlockElementStatementListIR`}
+    : EC_1 ARCH_1 parserStatementResult
+  -- ParserBlockElementStmtList_eval:
+       EC_0 ARCH_0
+         |- parserBlockElementStatementListIR
+         : EC_1 ARCH_1 parserStatementResult
+;; === 8-dynamic/8.08.2-eval-parser-declaration.spectec ===
+rule ParserLocalDecl_eval/constantDeclarationIR:
+  EC_0 ARCH |- constantDeclarationIR : EC_1 ARCH _EMPTY
+  -- ConstDecl_eval: BLOCK EC_0 |- constantDeclarationIR : EC_1
+
+rule ParserLocalDecl_eval/reject:
+  EC_0 ARCH_0 |- variableDeclarationIR : EC_1 ARCH_1 rejectTransitionResult
+  -- VarDecl_eval:
+       BLOCK EC_0 ARCH_0
+         |- variableDeclarationIR
+         : EC_1 ARCH_1 rejectTransitionResult
+
+rule ParserLocalDecl_eval/cont:
+  EC_0 ARCH_0 |- variableDeclarationIR : EC_1 ARCH_1 _EMPTY
+  -- VarDecl_eval:
+       BLOCK EC_0 ARCH_0 |- variableDeclarationIR : EC_1 ARCH_1 _EMPTY
+
+rule ParserLocalDecls_eval/nil:
+  EC ARCH |- eps : EC ARCH _EMPTY
+
+rule ParserLocalDecls_eval/cons-reject:
+  EC_0 ARCH_0
+    |- parserLocalDeclarationIR_h :: parserLocalDeclarationListIR_t
+    : EC_1 ARCH_1 rejectTransitionResult
+  -- ParserLocalDecl_eval:
+       EC_0 ARCH_0
+         |- parserLocalDeclarationIR_h
+         : EC_1 ARCH_1 rejectTransitionResult
+
+rule ParserLocalDecls_eval/cons-cont:
+  EC_0 ARCH_0
+    |- parserLocalDeclarationIR_h :: parserLocalDeclarationListIR_t
+    : EC_2 ARCH_2 parserStatementResult
+  -- ParserLocalDecl_eval:
+       EC_0 ARCH_0
+         |- parserLocalDeclarationIR_h
+         : EC_1 ARCH_1 continueEmptyResult
+  -- ParserLocalDecls_eval:
+       EC_1 ARCH_1
+         |- parserLocalDeclarationListIR_t
+         : EC_2 ARCH_2 parserStatementResult
+;; === 8-dynamic/8.08.3-eval-parser-state.spectec ===
+rule ParserState_eval/reject:
+  EC_0 ARCH_0 |- parserStateIR : EC_3 ARCH_1 rejectTransitionResult
+  -- if annotationList
+        STATE
+        nameIR
+        `{parserBlockElementStatementListIR transitionStatementIR`}
+        = parserStateIR
+  -- if EC_1 = $enter_e(EC_0)
+  -- ParserBlockElementStmtList_eval:
+       EC_1 ARCH_0
+         |- parserBlockElementStatementListIR
+         : EC_2 ARCH_1 rejectTransitionResult
+  -- if EC_3 = $exit_e(EC_2)
+
+rule ParserState_eval/cont:
+  EC_0 ARCH_0 |- parserStateIR : EC_4 ARCH_2 transitionResult
+  -- if annotationList
+        STATE
+        nameIR
+        `{parserBlockElementStatementListIR transitionStatementIR`}
+        = parserStateIR
+  -- if EC_1 = $enter_e(EC_0)
+  -- ParserBlockElementStmtList_eval:
+       EC_1 ARCH_0 |- parserBlockElementStatementListIR : EC_2 ARCH_1 _EMPTY
+  -- ParserTransition_eval:
+       EC_2 ARCH_1 |- transitionStatementIR : EC_3 ARCH_2 transitionResult
+  -- if EC_4 = $exit_e(EC_3)
+
+rule ParserState_trans/accept:
+  EC_0 ARCH_0 |- TRANSITION nameIR : EC_1 ARCH_1 ACCEPT
+  -- if parserStateIR = $find_parserState_e(EC_0, nameIR)
+  -- ParserState_eval: EC_0 ARCH_0 |- parserStateIR : EC_1 ARCH_1 ACCEPT
+
+rule ParserState_trans/reject:
+  EC_0 ARCH_0 |- TRANSITION nameIR : EC_1 ARCH_1 rejectTransitionResult
+  -- if parserStateIR = $find_parserState_e(EC_0, nameIR)
+  -- ParserState_eval:
+       EC_0 ARCH_0 |- parserStateIR : EC_1 ARCH_1 rejectTransitionResult
+
+rule ParserState_trans/state:
+  EC_0 ARCH_0 |- TRANSITION nameIR : EC_2 ARCH_2 transitionResult
+  -- if parserStateIR = $find_parserState_e(EC_0, nameIR)
+  -- ParserState_eval:
+       EC_0 ARCH_0 |- parserStateIR : EC_1 ARCH_1 (STATE nameIR_next)
+  -- ParserState_trans:
+       EC_1 ARCH_1 |- TRANSITION nameIR_next : EC_2 ARCH_2 transitionResult
+;; === 8-dynamic/8.09.1-eval-control-table.spectec ===
+syntax tableKeyValue =
+  | value ':' nameIR
+
+syntax tableKeyResult =
+  | continueResult<tableKeyValue>
+  | exitResult
+
+relation TableKey_eval:
+  evalContext arch |- tableKeyIR : evalContext arch tableKeyResult
+  hint(input %0 %1 %2)
+  hint(prose_in "evaluating" %2 "under context" %0 "and state" %1)
+  hint(prose_out "context" %3#", state" %4 ", and result" %5)
+
+rule TableKey_eval/exit:
+  EC_0 ARCH_0 |- typedExpressionIR '#' _ ':' nameIR _ ';' : EC_1 ARCH_1 EXIT
+  -- Expr_eval: LOCAL EC_0 ARCH_0 |- typedExpressionIR : EC_1 ARCH_1 EXIT
+
+rule TableKey_eval/cont:
+  EC_0 ARCH_0
+    |- typedExpressionIR '#' _ ':' nameIR _ ';'
+    : EC_1 ARCH_1 (_CONT tableKeyValue)
+  -- Expr_eval:
+       LOCAL EC_0 ARCH_0 |- typedExpressionIR : EC_1 ARCH_1 (_CONT value)
+  -- if tableKeyValue = value ':' nameIR
+
+syntax tableKeysResult =
+  | continueResult<tableKeyValue*>
+  | exitResult
+
+relation TableKeys_eval:
+  evalContext arch |- tableKeyListIR : evalContext arch tableKeysResult
+  hint(input %0 %1 %2)
+  hint(prose_in "evaluating" %2 "under context" %0 "and state" %1)
+  hint(prose_out "context" %3#", state" %4 ", and result" %5)
+
+rule TableKeys_eval/nil:
+  EC ARCH |- eps : EC ARCH (_CONT eps)
+
+rule TableKeys_eval/cons-head-exit:
+  EC_0 ARCH_0 |- tableKeyIR_h :: tableKeyIR_t* : EC_1 ARCH_1 EXIT
+  -- TableKey_eval: EC_0 ARCH_0 |- tableKeyIR_h : EC_1 ARCH_1 EXIT
+
+rule TableKeys_eval/cons-head-cont-tail-exit:
+  EC_0 ARCH_0 |- tableKeyIR_h :: tableKeyIR_t* : EC_2 ARCH_2 EXIT
+  -- TableKey_eval:
+       EC_0 ARCH_0 |- tableKeyIR_h : EC_1 ARCH_1 (_CONT tableKeyValue_h)
+  -- TableKeys_eval: EC_1 ARCH_1 |- tableKeyIR_t* : EC_2 ARCH_2 EXIT
+
+rule TableKeys_eval/cons-head-cont-tail-cont:
+  EC_0 ARCH_0
+    |- tableKeyIR_h :: tableKeyIR_t*
+    : EC_2 ARCH_2 (_CONT tableKeyValue*)
+  -- TableKey_eval:
+       EC_0 ARCH_0 |- tableKeyIR_h : EC_1 ARCH_1 (_CONT tableKeyValue_h)
+  -- TableKeys_eval:
+       EC_1 ARCH_1 |- tableKeyIR_t* : EC_2 ARCH_2 (_CONT tableKeyValue_t*)
+  -- if tableKeyValue* = tableKeyValue_h :: tableKeyValue_t*
+
+dec $get_tableEntryPriority(tableEntryPriorityIR?) : nat?
+  hint(prose_in "the priority of" %0)
+
+def $get_tableEntryPriority(eps) = eps
+
+def $get_tableEntryPriority(PRIORITY '=' integerLiteral ':') = n
+  -- if n = $nat_of_integerValue(integerLiteral)
+
+syntax tableMatch =
+  | nat? ':' tableActionReferenceIR
+
+syntax tableMatchResult =
+  | continueResult<tableMatch?>
+  | exitResult
+
+relation TableMatch_eval:
+  evalContext arch
+    |- tableKeyValue* '@' tableEntryIR
+    : evalContext arch tableMatchResult
+  hint(input %0 %1 %2 %3)
+  hint(prose_in "evaluating table match for keys" %2 "against" %3#", under context"
+                %0
+                "and state"
+                %1)
+  hint(prose_out "context" %4#", state" %5 ", and result" %6)
+
+rule TableMatch_eval/exit:
+  EC_0 ARCH_0 |- tableKeyValue* '@' tableEntryIR : EC_1 ARCH_1 EXIT
+  -- if _
+        tableEntryPriorityIR?
+        keysetExpressionIR
+        ':'
+        tableActionReferenceIR
+        _
+        ';'
+        = tableEntryIR
+  -- if n_priority? = $get_tableEntryPriority(tableEntryPriorityIR?)
+  -- Eval_keyset: EC_0 ARCH_0 |- keysetExpressionIR : EC_1 ARCH_1 EXIT
+
+rule TableMatch_eval/no-match:
+  EC_0 ARCH_0 |- tableKeyValue* '@' tableEntryIR : EC_1 ARCH_1 (_CONT eps)
+  -- if _
+        tableEntryPriorityIR?
+        keysetExpressionIR
+        ':'
+        tableActionReferenceIR
+        _
+        ';'
+        = tableEntryIR
+  -- if n_priority? = $get_tableEntryPriority(tableEntryPriorityIR?)
+  -- Eval_keyset:
+       EC_0 ARCH_0 |- keysetExpressionIR : EC_1 ARCH_1 (_CONT setValue*)
+  -- (if (value_key ':' _ = tableKeyValue))*
+  -- if ~$match_keysets(setValue*, value_key*)
+
+rule TableMatch_eval/match:
+  EC_0 ARCH_0
+    |- tableKeyValue* '@' tableEntryIR
+    : EC_1 ARCH_1 (_CONT tableMatch)
+  -- if _
+        tableEntryPriorityIR?
+        keysetExpressionIR
+        ':'
+        tableActionReferenceIR
+        _
+        ';'
+        = tableEntryIR
+  -- if n_priority? = $get_tableEntryPriority(tableEntryPriorityIR?)
+  -- Eval_keyset:
+       EC_0 ARCH_0 |- keysetExpressionIR : EC_1 ARCH_1 (_CONT setValue*)
+  -- (if (value_key ':' _ = tableKeyValue))*
+  -- if $match_keysets(setValue*, value_key*)
+  -- if tableMatch = n_priority? ':' tableActionReferenceIR
+
+syntax tableMatchesResult =
+  | continueResult<tableMatch*>
+  | exitResult
+
+relation TableMatches_eval:
+  evalContext arch
+    |- tableKeyValue* '@' tableEntryListIR
+    : evalContext arch tableMatchesResult
+  hint(input %0 %1 %2 %3)
+  hint(prose_in "evaluating table matches for keys" %2 "against" %3#", under context"
+                %0
+                "and state"
+                %1)
+  hint(prose_out "context" %4#", state" %5 ", and result" %6)
+
+rule TableMatches_eval/nil:
+  EC ARCH |- tableKeyValue* '@' eps : EC ARCH (_CONT eps)
+
+rule TableMatches_eval/cons-head-exit:
+  EC_0 ARCH_0
+    |- tableKeyValue* '@' (tableEntryIR_h :: tableEntryIR_t*)
+    : EC_1 ARCH_1 EXIT
+  -- TableMatch_eval:
+       EC_0 ARCH_0 |- tableKeyValue* '@' tableEntryIR_h : EC_1 ARCH_1 EXIT
+
+rule TableMatches_eval/cons-head-cont-tail-exit:
+  EC_0 ARCH_0
+    |- tableKeyValue* '@' (tableEntryIR_h :: tableEntryIR_t*)
+    : EC_2 ARCH_2 EXIT
+  -- TableMatch_eval:
+       EC_0 ARCH_0
+         |- tableKeyValue* '@' tableEntryIR_h
+         : EC_1 ARCH_1 (_CONT tableMatch_h?)
+  -- TableMatches_eval:
+       EC_1 ARCH_1 |- tableKeyValue* '@' tableEntryIR_t* : EC_2 ARCH_2 EXIT
+
+rule TableMatches_eval/cons-head-cont-tail-cont:
+  EC_0 ARCH_0
+    |- tableKeyValue* '@' (tableEntryIR_h :: tableEntryIR_t*)
+    : EC_2 ARCH_2 (_CONT tableMatch*)
+  -- TableMatch_eval:
+       EC_0 ARCH_0
+         |- tableKeyValue* '@' tableEntryIR_h
+         : EC_1 ARCH_1 (_CONT tableMatch_h?)
+  -- TableMatches_eval:
+       EC_1 ARCH_1
+         |- tableKeyValue* '@' tableEntryIR_t*
+         : EC_2 ARCH_2 (_CONT tableMatch_t*)
+  -- if tableMatch* = $opt_as_seq_<tableMatch>(tableMatch_h?) ++ tableMatch_t*
+
+dec $largest_priority_wins(tableObjectProperty) : bool
+  hint(prose_true %0 "has largest_priority_wins property")
+  hint(prose_false %0 "does not have largest_priority_wins property")
+
+dec $is_largest_priority_wins(tableCustomPropertyIR) : bool
+
+def $is_largest_priority_wins(_ _ CUSTOM_CONST "largest_priority_wins" _ ';')
+  = true
+
+def $is_largest_priority_wins(_) = false
+  -- otherwise
+
+def $largest_priority_wins(TBL) = b
+  -- if tableCustomPropertyIR* = TBL.CUSTOMS
+  -- if _ _ CUSTOM_CONST _ ('=' _VALUE (_B b)) ';'
+        = $filter_<tableCustomPropertyIR>(tableCustomPropertyIR*,
+                                          $is_largest_priority_wins(tableCustomPropertyIR)*)
+
+def $largest_priority_wins(TBL) = true
+  -- if tableCustomPropertyIR* = TBL.CUSTOMS
+  -- if eps
+        = $filter_<tableCustomPropertyIR>(tableCustomPropertyIR*,
+                                          $is_largest_priority_wins(tableCustomPropertyIR)*)
+
+dec $select_action(tableObjectProperty, tableMatch*) : tableActionReferenceIR
+  hint(prose_in "tie-breaking among matches" %1 "for table object" %0)
+
+def $select_action(TBL, eps) = tableActionReferenceIR
+  -- if _ _ DEFAULT_ACTION '=' tableActionReferenceIR ';' = TBL.DEFAULT_ACTION
+
+def $select_action(TBL, tableMatch) = tableActionReferenceIR
+  -- if _ ':' tableActionReferenceIR = tableMatch
+
+def $select_action(TBL, tableMatch*) = tableActionReferenceIR_h
+  -- if $(|tableMatch*| > 1)
+  -- (if (n_priority ':' tableActionReferenceIR = tableMatch))*
+  -- if (n_priority_sorted, tableActionReferenceIR_sorted)*
+        = $sort_<tableActionReferenceIR>((n_priority, tableActionReferenceIR)*)
+  -- if $largest_priority_wins(TBL)
+  -- if tableActionReferenceIR_h :: _
+        = $rev_<tableActionReferenceIR>(tableActionReferenceIR_sorted*)
+
+def $select_action(TBL, tableMatch*) = tableActionReferenceIR_h
+  -- if $(|tableMatch*| > 1)
+  -- (if (n_priority ':' tableActionReferenceIR = tableMatch))*
+  -- if (n_priority_sorted, tableActionReferenceIR_sorted)*
+        = $sort_<tableActionReferenceIR>((n_priority, tableActionReferenceIR)*)
+  -- if ~$largest_priority_wins(TBL)
+  -- if tableActionReferenceIR_h :: _ = tableActionReferenceIR_sorted*
+
+rule Table_eval/keys-exit:
+  EC_0 ARCH_0 |- typeId TBL : EC_1 ARCH_1 EXIT
+  -- if KEY '=' `{tableKeyListIR`} = TBL.KEYS
+  -- TableKeys_eval: EC_0 ARCH_0 |- tableKeyListIR : EC_1 ARCH_1 EXIT
+
+rule Table_eval/keys-cont-matches-exit:
+  EC_0 ARCH_0 |- typeId TBL : EC_2 ARCH_2 EXIT
+  -- if KEY '=' `{tableKeyListIR`} = TBL.KEYS
+  -- TableKeys_eval:
+       EC_0 ARCH_0 |- tableKeyListIR : EC_1 ARCH_1 (_CONT tableKeyValue*)
+  -- if _ _ ENTRIES '=' `{tableEntryListIR`} = TBL.ENTRIES
+  -- TableMatches_eval:
+       EC_1 ARCH_1 |- tableKeyValue* '@' tableEntryListIR : EC_2 ARCH_2 EXIT
+
+rule Table_eval/keys-cont-matches-cont-action-exit:
+  EC_0 ARCH_0 |- typeId TBL : EC_3 ARCH_3 EXIT
+  -- if KEY '=' `{tableKeyListIR`} = TBL.KEYS
+  -- TableKeys_eval:
+       EC_0 ARCH_0 |- tableKeyListIR : EC_1 ARCH_1 (_CONT tableKeyValue*)
+  -- if _ _ ENTRIES '=' `{tableEntryListIR`} = TBL.ENTRIES
+  -- TableMatches_eval:
+       EC_1 ARCH_1
+         |- tableKeyValue* '@' tableEntryListIR
+         : EC_2 ARCH_2 (_CONT tableMatch*)
+  -- if prefixedNameIR _ `(argumentListIR`) = $select_action(TBL, tableMatch*)
+  -- Stmt_eval:
+       LOCAL EC_2 ARCH_2
+         |- prefixedNameIR `<eps`> `(argumentListIR`) ';'
+         : EC_3 ARCH_3 EXIT
+
+rule Table_eval/keys-cont-matches-cont-action-cont:
+  EC_0 ARCH_0 |- typeId TBL : EC_3 ARCH_3 (RETURN tableMetadataStructValue)
+  -- if KEY '=' `{tableKeyListIR`} = TBL.KEYS
+  -- TableKeys_eval:
+       EC_0 ARCH_0 |- tableKeyListIR : EC_1 ARCH_1 (_CONT tableKeyValue*)
+  -- if _ _ ENTRIES '=' `{tableEntryListIR`} = TBL.ENTRIES
+  -- TableMatches_eval:
+       EC_1 ARCH_1
+         |- tableKeyValue* '@' tableEntryListIR
+         : EC_2 ARCH_2 (_CONT tableMatch*)
+  -- if prefixedNameIR _ `(argumentListIR`) = $select_action(TBL, tableMatch*)
+  -- Stmt_eval:
+       LOCAL EC_2 ARCH_2
+         |- prefixedNameIR `<eps`> `(argumentListIR`) ';'
+         : EC_3 ARCH_3 _EMPTY
+  -- if b_hit = ~(tableMatch* = eps)
+  -- if b_miss = ~b_hit
+  -- if tableMetadataEnumValue
+        = TABLE_ENUM
+          ("action_list(" ++ typeId ++ ")")
+          '.'
+          $flatten_prefixedNameIR(prefixedNameIR)
+  -- if tableMetadataStructValue
+        = TABLE_STRUCT
+          ("apply_result(" ++ typeId ++ ")")
+          `{HIT
+            (_B b_hit)
+            ';'
+            MISS
+            (_B b_miss)
+            ';'
+            ACTION_RUN
+            tableMetadataEnumValue
+            ';'`}
+;; === 8-dynamic/8.09.2-eval-control-statement.spectec ===
+rule ControlBody_eval/cont:
+  EC_0 ARCH_0 |- controlBodyIR : EC_1 ARCH_1 (RETURN eps)
+  -- Block_eval: EC_0 ARCH_0 |- controlBodyIR : EC_1 ARCH_1 _EMPTY
+
+rule ControlBody_eval/exit:
+  EC_0 ARCH_0 |- controlBodyIR : EC_1 ARCH_1 EXIT
+  -- Block_eval: EC_0 ARCH_0 |- controlBodyIR : EC_1 ARCH_1 EXIT
+
+rule ControlBody_eval/return:
+  EC_0 ARCH_0 |- controlBodyIR : EC_1 ARCH_1 (RETURN eps)
+  -- Block_eval: EC_0 ARCH_0 |- controlBodyIR : EC_1 ARCH_1 (RETURN eps)
+;; === 8-dynamic/8.09.3-eval-control-declaration.spectec ===
+rule ControlLocalDecl_eval/constantDeclarationIR:
+  EC_0 ARCH |- constantDeclarationIR : EC_1 ARCH _EMPTY
+  -- ConstDecl_eval: BLOCK EC_0 |- constantDeclarationIR : EC_1
+
+rule ControlLocalDecl_eval/exit:
+  EC_0 ARCH_0 |- variableDeclarationIR : EC_1 ARCH_1 EXIT
+  -- VarDecl_eval: BLOCK EC_0 ARCH_0 |- variableDeclarationIR : EC_1 ARCH_1 EXIT
+
+rule ControlLocalDecl_eval/cont:
+  EC_0 ARCH_0 |- variableDeclarationIR : EC_1 ARCH_1 _EMPTY
+  -- VarDecl_eval:
+       BLOCK EC_0 ARCH_0 |- variableDeclarationIR : EC_1 ARCH_1 _EMPTY
+
+rule ControlLocalDecls_eval/nil:
+  EC ARCH |- eps : EC ARCH _EMPTY
+
+rule ControlLocalDecls_eval/cons-head-exit:
+  EC_0 ARCH_0
+    |- controlLocalDeclarationIR_h :: controlLocalDeclarationListIR_t
+    : EC_1 ARCH_1 EXIT
+  -- ControlLocalDecl_eval:
+       EC_0 ARCH_0 |- controlLocalDeclarationIR_h : EC_1 ARCH_1 EXIT
+
+rule ControlLocalDecls_eval/cons-head-cont:
+  EC_0 ARCH_0
+    |- controlLocalDeclarationIR_h :: controlLocalDeclarationListIR_t
+    : EC_2 ARCH_2 controlLocalDeclarationResult
+  -- ControlLocalDecl_eval:
+       EC_0 ARCH_0 |- controlLocalDeclarationIR_h : EC_1 ARCH_1 _EMPTY
+  -- ControlLocalDecls_eval:
+       EC_1 ARCH_1
+         |- controlLocalDeclarationListIR_t
+         : EC_2 ARCH_2 controlLocalDeclarationResult
+;; === 8-dynamic/8.10.1-eval-call-callee.spectec ===
+rule Callee_eval/actionCallee:
+  p EC ARCH
+    |- referenceExpressionIR `<'_'`> `(argumentListIR`)
+    : EC ARCH (_CONT actionCallee)
+  -- if _ ':' (p_ref, actionDef) '#' id_default* '#' _
+        = $find_callableDef_overloaded_e(p,
+                                         EC,
+                                         referenceExpressionIR,
+                                         argumentListIR)
+  -- if _ ACTION nameIR `(parameterListIR`) blockStatementIR = actionDef
+  -- if actionCallee
+        = ACTION
+          p_ref
+          '.'
+          nameIR
+          `(parameterListIR '#' id_default*`)
+          blockStatementIR
+
+rule Callee_eval/externFunctionCallee:
+  p EC ARCH
+    |- referenceExpressionIR `<'_'`> `(argumentListIR`)
+    : EC ARCH (_CONT externFunctionCallee)
+  -- if _ ':' (_, externFunctionDef) '#' id_default* '#' id_optional*
+        = $find_callableDef_overloaded_e(p,
+                                         EC,
+                                         referenceExpressionIR,
+                                         argumentListIR)
+  -- if EXTERN_FUNCTION nameIR `<typeParameterListIR`> `(parameterListIR`)
+        = externFunctionDef
+  -- if externFunctionCallee
+        = EXTERN_FUNCTION
+          nameIR
+          `<typeParameterListIR`>
+          `(parameterListIR '#' id_default* '#' id_optional*`)
+
+rule Callee_eval/definedFunctionCallee:
+  p EC ARCH
+    |- referenceExpressionIR `<'_'`> `(argumentListIR`)
+    : EC ARCH (_CONT definedFunctionCallee)
+  -- if _ ':' (_, definedFunctionDef) '#' id_default* '#' _
+        = $find_callableDef_overloaded_e(p,
+                                         EC,
+                                         referenceExpressionIR,
+                                         argumentListIR)
+  -- if FUNCTION
+        nameIR
+        `<typeParameterListIR`>
+        `(parameterListIR`)
+        blockStatementIR
+        = definedFunctionDef
+  -- if definedFunctionCallee
+        = FUNCTION
+          nameIR
+          `<typeParameterListIR`>
+          `(parameterListIR '#' id_default*`)
+          blockStatementIR
+
+rule Callee_eval/abort:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR '.' "push_front") `<'_'`> `(argumentListIR`)
+    : EC_1 ARCH_1 abortResult
+  -- if typedLvalueIR = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval: p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 abortResult
+
+rule Callee_eval/cont:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR '.' "push_front") `<'_'`> `(argumentIR`)
+    : EC_1 ARCH_1 (_CONT builtinPushFrontMethodCallee)
+  -- if typedLvalueIR = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval:
+       p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 (_CONT storageReference)
+  -- if builtinPushFrontMethodCallee = BUILTIN_PUSH_FRONT storageReference
+
+rule Callee_eval/abort:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR '.' "pop_front") `<'_'`> `(argumentListIR`)
+    : EC_1 ARCH_1 abortResult
+  -- if typedLvalueIR = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval: p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 abortResult
+
+rule Callee_eval/cont:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR '.' "pop_front") `<'_'`> `(argumentIR`)
+    : EC_1 ARCH_1 (_CONT builtinPopFrontMethodCallee)
+  -- if typedLvalueIR = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval:
+       p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 (_CONT storageReference)
+  -- if builtinPopFrontMethodCallee = BUILTIN_POP_FRONT storageReference
+
+rule Callee_eval/abort:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR '.' "isValid") `<'_'`> `(argumentListIR`)
+    : EC_1 ARCH_1 abortResult
+  -- if typedLvalueIR = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval: p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 abortResult
+
+rule Callee_eval/cont:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR '.' "isValid") `<'_'`> `(eps`)
+    : EC_1 ARCH_1 (_CONT builtinIsValidMethodCallee)
+  -- if typedLvalueIR = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval:
+       p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 (_CONT storageReference)
+  -- if builtinIsValidMethodCallee = BUILTIN_IS_VALID storageReference
+
+rule Callee_eval/abort:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR '.' "setValid") `<'_'`> `(argumentListIR`)
+    : EC_1 ARCH_1 abortResult
+  -- if typedLvalueIR = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval: p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 abortResult
+
+rule Callee_eval/cont:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR '.' "setValid") `<'_'`> `(eps`)
+    : EC_1 ARCH_1 (_CONT builtinSetValidMethodCallee)
+  -- if typedLvalueIR = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval:
+       p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 (_CONT storageReference)
+  -- if builtinSetValidMethodCallee = BUILTIN_SET_VALID storageReference
+
+rule Callee_eval/abort:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR '.' "setInvalid") `<'_'`> `(argumentListIR`)
+    : EC_1 ARCH_1 abortResult
+  -- if typedLvalueIR = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval: p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 abortResult
+
+rule Callee_eval/cont:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR '.' "setInvalid") `<'_'`> `(eps`)
+    : EC_1 ARCH_1 (_CONT builtinSetInvalidMethodCallee)
+  -- if typedLvalueIR = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval:
+       p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 (_CONT storageReference)
+  -- if builtinSetInvalidMethodCallee = BUILTIN_SET_INVALID storageReference
+
+rule Callee_eval/cont:
+  p EC ARCH
+    |- (typedExpressionIR_base '.' nameIR) `<'_'`> `(eps`)
+    : EC ARCH (_CONT builtinSizeMethodCallee)
+  -- if nameIR <- ["minSizeInBits",
+                   "minSizeInBytes",
+                   "maxSizeInBits",
+                   "maxSizeInBytes"]
+  -- if _ '#' `(typeIR_base _`) = typedExpressionIR_base
+  -- if builtinSizeMethodCallee = BUILTIN_SIZE_OF nameIR typeIR_base
+
+rule Callee_eval/abort:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR '.' nameIR) `<'_'`> `(argumentListIR`)
+    : EC_1 ARCH_1 abortResult
+  -- if typedLvalueIR = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval: p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 abortResult
+
+rule Callee_eval/cont:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR '.' nameIR) `<'_'`> `(argumentListIR`)
+    : EC_1 ARCH_1 (_CONT externMethodCallee)
+  -- if typedLvalueIR = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval:
+       p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 (_CONT storageReference)
+  -- Lvalue_read: p EC_1 ARCH_1 |- storageReference : (REF objectId)
+  -- if EXTERN _ `<theta`> `{_ frame externMethodDefEnv`}
+        = $find_object_e(ARCH_1, objectId)
+  -- if callTargetKey = $callTargetKey(nameIR, argumentListIR)
+  -- if _ ':' externMethodDef '#' id_default* '#' id_optional*
+        = $find_overloaded<externMethodDef>(externMethodDefEnv,
+                                            callTargetKey,
+                                            def $parameterListIR_of_externMethodDef)
+  -- if EXTERN_METHOD
+        nameIR
+        `<typeParameterListIR`>
+        `(parameterListIR`)
+        blockStatementIR?
+        = externMethodDef
+  -- if externMethodCallee
+        = EXTERN_METHOD
+          objectId
+          '.'
+          nameIR
+          `<typeParameterListIR`>
+          `(parameterListIR '#' id_default* '#' id_optional*`)
+          `{theta ';' frame ';' blockStatementIR?`}
+
+rule Callee_eval/abort:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR '.' "apply") `<'_'`> `(argumentListIR`)
+    : EC_1 ARCH_1 abortResult
+  -- if typedLvalueIR = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval: p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 abortResult
+
+rule Callee_eval/cont:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR '.' "apply") `<'_'`> `(argumentListIR`)
+    : EC_1 ARCH_1 (_CONT parserApplyMethodCallee)
+  -- if typedLvalueIR = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval:
+       p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 (_CONT storageReference)
+  -- Lvalue_read: p EC_1 ARCH_1 |- storageReference : (REF objectId)
+  -- if PARSER
+        `<theta`>
+        `(parameterListIR`)
+        `{frame parserLocalDeclarationListIR stateEnv`}
+        = $find_object_e(ARCH_1, objectId)
+  -- if callableId = $callableId_IR("apply", parameterListIR)
+  -- if parserApplyMethodDef
+        = PARSER_APPLY
+          `(parameterListIR`)
+          `{parserLocalDeclarationListIR ';' stateEnv`}
+  -- if callTargetKey = $callTargetKey("apply", argumentListIR)
+  -- if _ ':' _ '#' id_default* '#' _
+        = $find_overloaded<parserApplyMethodDef>(`{(callableId
+                                                    ':'
+                                                    parserApplyMethodDef)`},
+                                                 callTargetKey,
+                                                 def $parameterListIR_of_parserApplyMethodDef)
+  -- if parserApplyMethodCallee
+        = PARSER
+          objectId
+          '.'
+          APPLY
+          `(parameterListIR '#' id_default*`)
+          `{theta ';' frame ';' parserLocalDeclarationListIR ';' stateEnv`}
+
+rule Callee_eval/abort:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR '.' "apply") `<'_'`> `(argumentListIR`)
+    : EC_1 ARCH_1 abortResult
+  -- if typedLvalueIR = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval: p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 abortResult
+
+rule Callee_eval/cont:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR '.' "apply") `<'_'`> `(argumentListIR`)
+    : EC_1 ARCH_1 (_CONT controlApplyMethodCallee)
+  -- if typedLvalueIR = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval:
+       p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 (_CONT storageReference)
+  -- Lvalue_read: p EC_1 ARCH_1 |- storageReference : (REF objectId)
+  -- if CONTROL
+        `<theta`>
+        `(parameterListIR`)
+        `{frame controlLocalDeclarationListIR actionDefEnv controlBodyIR`}
+        = $find_object_e(ARCH_1, objectId)
+  -- if callableId = $callableId_IR("apply", parameterListIR)
+  -- if controlApplyMethodDef
+        = CONTROL_APPLY
+          `(parameterListIR`)
+          `{controlLocalDeclarationListIR ';' actionDefEnv ';' controlBodyIR`}
+  -- if callTargetKey = $callTargetKey("apply", argumentListIR)
+  -- if _ ':' _ '#' id_default* '#' _
+        = $find_overloaded<controlApplyMethodDef>(`{(callableId
+                                                     ':'
+                                                     controlApplyMethodDef)`},
+                                                  callTargetKey,
+                                                  def $parameterListIR_of_controlApplyMethodDef)
+  -- if controlApplyMethodCallee
+        = CONTROL
+          objectId
+          '.'
+          APPLY
+          `(parameterListIR '#' id_default*`)
+          `{theta
+            ';'
+            frame
+            ';'
+            controlLocalDeclarationListIR
+            ';'
+            actionDefEnv
+            ';'
+            controlBodyIR`}
+
+rule Callee_eval/abort:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR '.' "apply") `<'_'`> `(eps`)
+    : EC_1 ARCH_1 abortResult
+  -- if typedLvalueIR = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval: p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 abortResult
+
+rule Callee_eval/cont:
+  p EC_0 ARCH_0
+    |- (typedExpressionIR '.' "apply") `<'_'`> `(eps`)
+    : EC_1 ARCH_1 (_CONT tableApplyMethodCallee)
+  -- if typedLvalueIR = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval:
+       p EC_0 ARCH_0 |- typedLvalueIR : EC_1 ARCH_1 (_CONT storageReference)
+  -- Lvalue_read: p EC_1 ARCH_1 |- storageReference : (REF objectId)
+  -- if TABLE typeId `{frame TBL`} = $find_object_e(ARCH_1, objectId)
+  -- if tableApplyMethodCallee = TABLE objectId '.' APPLY `{frame ';' TBL`}
+
+rule Callee_eval/parenthesized:
+  p EC_0 ARCH_0
+    |- (`(callableTargetIR`)) `<'_'`> `(argumentListIR`)
+    : EC_1 ARCH_1 calleeResult
+  -- Callee_eval:
+       p EC_0 ARCH_0
+         |- callableTargetIR `<'_'`> `(argumentListIR`)
+         : EC_1 ARCH_1 calleeResult
+;; === 8-dynamic/8.10.2-eval-call-copyin.spectec ===
+rule Copy_in_arg/abort:
+  ARCH_0
+    |- p_caller
+       EC_caller_0
+       (_ direction typeIR nameIR _)
+       '@'
+       p_callee
+       EC_callee_0
+       argumentIR
+    ~> ARCH_1 EC_caller_1 EC_callee_0 '#' abortResult
+  -- if direction = _EMPTY \/ direction = IN
+  -- Argument_eval:
+       p_caller EC_caller_0 ARCH_0
+         |- argumentIR
+         : EC_caller_1 ARCH_1 abortResult
+
+rule Copy_in_arg/cont:
+  ARCH_0
+    |- p_caller
+       EC_caller_0
+       (_ direction typeIR nameIR _)
+       '@'
+       p_callee
+       EC_callee_0
+       argumentIR
+    ~> ARCH_1 EC_caller_1 EC_callee_1 '#' (_CONT eps)
+  -- if direction = _EMPTY \/ direction = IN
+  -- Argument_eval:
+       p_caller EC_caller_0 ARCH_0
+         |- argumentIR
+         : EC_caller_1 ARCH_1 (_CONT value)
+  -- if EC_callee_1 = $add_var_e(p_callee, EC_callee_0, _BARE nameIR, value)
+
+rule Copy_in_arg/abort:
+  ARCH_0
+    |- p_caller
+       EC_caller_0
+       (_ INOUT typeIR nameIR _)
+       '@'
+       p_callee
+       EC_callee_0
+       argumentIR
+    ~> ARCH_1 EC_caller_1 EC_callee_0 '#' abortResult
+  -- Argument_eval_lvalue:
+       p_caller EC_caller_0 ARCH_0
+         |- argumentIR
+         : EC_caller_1 ARCH_1 abortResult
+
+rule Copy_in_arg/cont:
+  ARCH_0
+    |- p_caller
+       EC_caller_0
+       (_ INOUT typeIR nameIR _)
+       '@'
+       p_callee
+       EC_callee_0
+       argumentIR
+    ~> ARCH_1 EC_caller_1 EC_callee_1 '#' (_CONT storageReference)
+  -- Argument_eval_lvalue:
+       p_caller EC_caller_0 ARCH_0
+         |- argumentIR
+         : EC_caller_1 ARCH_1 (_CONT storageReference)
+  -- Lvalue_read: p_caller EC_caller_1 ARCH_1 |- storageReference : value
+  -- if EC_callee_1 = $add_var_e(p_callee, EC_callee_0, _BARE nameIR, value)
+
+rule Copy_in_arg/abort:
+  ARCH_0
+    |- p_caller
+       EC_caller_0
+       (_ OUT typeIR nameIR _)
+       '@'
+       p_callee
+       EC_callee_0
+       argumentIR
+    ~> ARCH_1 EC_caller_1 EC_callee_0 '#' abortResult
+  -- Argument_eval_lvalue:
+       p_caller EC_caller_0 ARCH_0
+         |- argumentIR
+         : EC_caller_1 ARCH_1 abortResult
+
+rule Copy_in_arg/cont:
+  ARCH_0
+    |- p_caller
+       EC_caller_0
+       (_ OUT typeIR nameIR _)
+       '@'
+       p_callee
+       EC_callee_0
+       argumentIR
+    ~> ARCH_1 EC_caller_1 EC_callee_1 '#' (_CONT storageReference?)
+  -- Argument_eval_lvalue:
+       p_caller EC_caller_0 ARCH_0
+         |- argumentIR
+         : EC_caller_1 ARCH_1 (_CONT storageReference?)
+  -- if typeIR_subst = $subst_type_e(p_callee, EC_callee_0, typeIR)
+  -- if value_init = $default(typeIR_subst)
+  -- if EC_callee_1
+        = $add_var_e(p_callee, EC_callee_0, _BARE nameIR, value_init)
+
+rule Copy_in/nil:
+  p_shared ARCH
+    |- p_caller EC_caller eps '@' p_callee EC_callee_0 eps
+    ~> ARCH EC_caller EC_callee_1 '#' (_CONT eps)
+  -- if EC_callee_1 = $copy_e(p_shared, EC_caller, EC_callee_0)
+
+rule Copy_in/cons-head-abort:
+  p_shared ARCH_0
+    |- p_caller
+       EC_caller_0
+       (parameterIR_h :: parameterIR_t*)
+       '@'
+       p_callee
+       EC_callee_0
+       (argumentIR_h :: argumentIR_t*)
+    ~> ARCH_1 EC_caller_1 EC_callee_1 '#' abortResult
+  -- Copy_in_arg:
+       ARCH_0
+         |- p_caller
+            EC_caller_0
+            parameterIR_h
+            '@'
+            p_callee
+            EC_callee_0
+            argumentIR_h
+         ~> ARCH_1 EC_caller_1 EC_callee_1 '#' abortResult
+
+rule Copy_in/cons-head-cont-tail-abort:
+  p_shared ARCH_0
+    |- p_caller
+       EC_caller_0
+       (parameterIR_h :: parameterIR_t*)
+       '@'
+       p_callee
+       EC_callee_0
+       (argumentIR_h :: argumentIR_t*)
+    ~> ARCH_2 EC_caller_2 EC_callee_2 '#' abortResult
+  -- Copy_in_arg:
+       ARCH_0
+         |- p_caller
+            EC_caller_0
+            parameterIR_h
+            '@'
+            p_callee
+            EC_callee_0
+            argumentIR_h
+         ~> ARCH_1 EC_caller_1 EC_callee_1 '#' (_CONT storageReference_h?)
+  -- Copy_in:
+       p_shared ARCH_1
+         |- p_caller
+            EC_caller_1
+            parameterIR_t*
+            '@'
+            p_callee
+            EC_callee_1
+            argumentIR_t*
+         ~> ARCH_2 EC_caller_2 EC_callee_2 '#' abortResult
+
+rule Copy_in/cons-head-cont-tail-cont:
+  p_shared ARCH_0
+    |- p_caller
+       EC_caller_0
+       (parameterIR_h :: parameterIR_t*)
+       '@'
+       p_callee
+       EC_callee_0
+       (argumentIR_h :: argumentIR_t*)
+    ~> ARCH_2 EC_caller_2 EC_callee_2 '#' (_CONT storageReference?*)
+  -- Copy_in_arg:
+       ARCH_0
+         |- p_caller
+            EC_caller_0
+            parameterIR_h
+            '@'
+            p_callee
+            EC_callee_0
+            argumentIR_h
+         ~> ARCH_1 EC_caller_1 EC_callee_1 '#' (_CONT storageReference_h?)
+  -- Copy_in:
+       p_shared ARCH_1
+         |- p_caller
+            EC_caller_1
+            parameterIR_t*
+            '@'
+            p_callee
+            EC_callee_1
+            argumentIR_t*
+         ~> ARCH_2 EC_caller_2 EC_callee_2 '#' (_CONT storageReference_t?*)
+  -- if storageReference?* = storageReference_h? :: storageReference_t?*
+
+rule Copy_in_default:
+  parameterIR* '@' p_callee EC_callee_0 ~> EC_callee_1
+  -- (if (_ _ _ nameIR ('=' _VALUE value) = parameterIR))*
+  -- if EC_callee_1
+        = $add_vars_e(p_callee, EC_callee_0, (_BARE nameIR)*, value*)
+;; === 8-dynamic/8.10.3-eval-call-copyout.spectec ===
+rule Copy_out_argument/in-directionless:
+  ARCH
+    |- p_caller
+       EC_caller_0
+       (_ direction typeIR nameIR _)
+       '@'
+       p_callee
+       EC_callee
+       eps
+    ~> EC_caller_0
+  -- if direction = IN \/ direction = _EMPTY
+
+rule Copy_out_argument/dontcare:
+  ARCH
+    |- p_caller
+       EC_caller
+       (_ direction typeIR nameIR _)
+       '@'
+       p_callee
+       EC_callee
+       eps
+    ~> EC_caller
+  -- if direction = OUT \/ direction = INOUT
+
+rule Copy_out_argument/non-dontcare:
+  ARCH
+    |- p_caller
+       EC_caller_0
+       (_ direction typeIR nameIR _)
+       '@'
+       p_callee
+       EC_callee
+       storageReference
+    ~> EC_caller_1
+  -- if direction = OUT \/ direction = INOUT
+  -- if value = $find_var_e(_BARE nameIR, p_callee, EC_callee)
+  -- Lvalue_write:
+       p_caller EC_caller_0 ARCH |- storageReference := value : EC_caller_1
+
+relation Copy_out_inner:
+  arch
+    |- cursor
+       evalContext
+       parameterListIR
+       '@'
+       cursor
+       evalContext
+       storageReference?*
+    ~> evalContext
+  hint(input %0 %1 %2 %3 %4 %5 %6)
+  hint(prose_in "copy-in from" %6 "at" %4 "of" %5 "to" %3 "in" %1 "at" %2#", under state"
+                %0)
+  hint(prose_out "caller's context" %7)
+
+rule Copy_out_inner/nil:
+  ARCH |- p_caller EC_caller eps '@' p_callee EC_callee eps ~> EC_caller
+
+rule Copy_out_inner/cons:
+  ARCH
+    |- p_caller
+       EC_caller_0
+       (parameterIR_h :: parameterIR_t*)
+       '@'
+       p_callee
+       EC_callee
+       (storageReference_h? :: storageReference_t?*)
+    ~> EC_caller_2
+  -- Copy_out_argument:
+       ARCH
+         |- p_caller
+            EC_caller_0
+            parameterIR_h
+            '@'
+            p_callee
+            EC_callee
+            storageReference_h?
+         ~> EC_caller_1
+  -- Copy_out_inner:
+       ARCH
+         |- p_caller
+            EC_caller_1
+            parameterIR_t*
+            '@'
+            p_callee
+            EC_callee
+            storageReference_t?*
+         ~> EC_caller_2
+
+rule Copy_out:
+  p_shared ARCH
+    |- p_caller
+       EC_caller_0
+       parameterListIR
+       '@'
+       p_callee
+       EC_callee
+       storageReference?*
+    ~> EC_caller_2
+  -- if EC_caller_1 = $copy_e(p_shared, EC_callee, EC_caller_0)
+  -- Copy_out_inner:
+       ARCH
+         |- p_caller
+            EC_caller_1
+            parameterListIR
+            '@'
+            p_callee
+            EC_callee
+            storageReference?*
+         ~> EC_caller_2
+;; === 8-dynamic/8.10.4-eval-call.spectec ===
+syntax actionResult =
+  | exitResult
+  | returnResult
+
+relation ActionBody_eval:
+  evalContext arch |- blockStatementIR : evalContext arch actionResult
+  hint(input %0 %1 %2)
+  hint(prose_in "evaluating action body" %2#", under context" %0 "and state" %1)
+  hint(prose_out "context" %3#", state" %4 "and result" %5)
+
+rule ActionBody_eval/cont:
+  EC_0 ARCH_0 |- blockStatementIR : EC_1 ARCH_1 (RETURN eps)
+  -- Block_eval: EC_0 ARCH_0 |- blockStatementIR : EC_1 ARCH_1 _EMPTY
+
+rule ActionBody_eval/exit:
+  EC_0 ARCH_0 |- blockStatementIR : EC_1 ARCH_1 EXIT
+  -- Block_eval: EC_0 ARCH_0 |- blockStatementIR : EC_1 ARCH_1 EXIT
+
+rule ActionBody_eval/return-void:
+  EC_0 ARCH_0 |- blockStatementIR : EC_1 ARCH_1 (RETURN eps)
+  -- Block_eval: EC_0 ARCH_0 |- blockStatementIR : EC_1 ARCH_1 (RETURN eps)
+
+rule Call_eval/copyin-exit:
+  p EC_0 ARCH_0
+    |- actionCallee '@' `<eps`> `(argumentListIR`)
+    : EC_1 ARCH_1 EXIT
+  -- if ACTION
+        p_shared
+        '.'
+        nameIR
+        `(parameterIR* '#' id_default*`)
+        blockStatementIR
+        = actionCallee
+  -- if EC_callee_0 = $inherit_e(p_shared, EC_0)
+  -- if GIVEN parameterIR_aligned* DEFAULT parameterIR_default* OPTIONAL _
+        = $align_parameterListIR(parameterIR*, argumentListIR, id_default*, eps)
+  -- Copy_in:
+       p_shared ARCH_0
+         |- p EC_0 parameterIR_aligned* '@' LOCAL EC_callee_0 argumentListIR
+         ~> ARCH_1 EC_1 EC_callee_1 '#' EXIT
+
+rule Call_eval/copyin-cont-ActionBody-exit:
+  p EC_0 ARCH_0
+    |- actionCallee '@' `<eps`> `(argumentListIR`)
+    : EC_2 ARCH_2 EXIT
+  -- if ACTION
+        p_shared
+        '.'
+        nameIR
+        `(parameterIR* '#' id_default*`)
+        blockStatementIR
+        = actionCallee
+  -- if EC_callee_0 = $inherit_e(p_shared, EC_0)
+  -- if GIVEN parameterIR_aligned* DEFAULT parameterIR_default* OPTIONAL _
+        = $align_parameterListIR(parameterIR*, argumentListIR, id_default*, eps)
+  -- Copy_in:
+       p_shared ARCH_0
+         |- p EC_0 parameterIR_aligned* '@' LOCAL EC_callee_0 argumentListIR
+         ~> ARCH_1 EC_1 EC_callee_1 '#' (_CONT storageReference?*)
+  -- Copy_in_default: parameterIR_default* '@' LOCAL EC_callee_1 ~> EC_callee_2
+  -- ActionBody_eval:
+       EC_callee_2 ARCH_1 |- blockStatementIR : EC_callee_3 ARCH_2 EXIT
+  -- Copy_out:
+       p_shared ARCH_2
+         |- p EC_1 parameterIR_aligned* '@' LOCAL EC_callee_3 storageReference?*
+         ~> EC_2
+
+rule Call_eval/return:
+  p EC_0 ARCH_0
+    |- actionCallee '@' `<eps`> `(argumentListIR`)
+    : EC_2 ARCH_2 (RETURN eps)
+  -- if ACTION
+        p_shared
+        '.'
+        nameIR
+        `(parameterIR* '#' id_default*`)
+        blockStatementIR
+        = actionCallee
+  -- if EC_callee_0 = $inherit_e(p_shared, EC_0)
+  -- if GIVEN parameterIR_aligned* DEFAULT parameterIR_default* OPTIONAL _
+        = $align_parameterListIR(parameterIR*, argumentListIR, id_default*, eps)
+  -- Copy_in:
+       p_shared ARCH_0
+         |- p EC_0 parameterIR_aligned* '@' LOCAL EC_callee_0 argumentListIR
+         ~> ARCH_1 EC_1 EC_callee_1 '#' (_CONT storageReference?*)
+  -- Copy_in_default: parameterIR_default* '@' LOCAL EC_callee_1 ~> EC_callee_2
+  -- ActionBody_eval:
+       EC_callee_2 ARCH_1 |- blockStatementIR : EC_callee_3 ARCH_2 (RETURN eps)
+  -- Copy_out:
+       p_shared ARCH_2
+         |- p EC_1 parameterIR_aligned* '@' LOCAL EC_callee_3 storageReference?*
+         ~> EC_2
+
+syntax definedFunctionResult =
+  | exitResult
+  | returnResult
+
+relation DefinedFunctionBody_eval:
+  evalContext arch |- blockStatementIR : evalContext arch definedFunctionResult
+  hint(input %0 %1 %2)
+  hint(prose_in "evaluating function body" %2#", under context"
+                %0
+                "and state"
+                %1)
+  hint(prose_out "context" %3#", state" %4 "and result" %5)
+
+rule DefinedFunctionBody_eval/cont:
+  EC_0 ARCH_0 |- blockStatementIR : EC_1 ARCH_1 (RETURN eps)
+  -- Block_eval: EC_0 ARCH_0 |- blockStatementIR : EC_1 ARCH_1 _EMPTY
+
+rule DefinedFunctionBody_eval/exit:
+  EC_0 ARCH_0 |- blockStatementIR : EC_1 ARCH_1 EXIT
+  -- Block_eval: EC_0 ARCH_0 |- blockStatementIR : EC_1 ARCH_1 EXIT
+
+rule DefinedFunctionBody_eval/return-void:
+  EC_0 ARCH_0 |- blockStatementIR : EC_1 ARCH_1 returnResult
+  -- Block_eval: EC_0 ARCH_0 |- blockStatementIR : EC_1 ARCH_1 returnResult
+
+rule Call_eval/definedFunctionCallee-copyin-abort:
+  p EC_0 ARCH_0
+    |- definedFunctionCallee '@' `<typeArgumentIR*`> `(argumentListIR`)
+    : EC_1 ARCH_1 abortResult
+  -- if FUNCTION
+        nameIR
+        `<typeParameterIR*`>
+        `(parameterIR* '#' id_default*`)
+        blockStatementIR
+        = definedFunctionCallee
+  -- if EC_callee_0 = $inherit_e(GLOBAL, EC_0)
+  -- if EC_callee_1
+        = EC_callee_0[.LOCAL.TYPE = `{(typeParameterIR ':' typeArgumentIR)*`}]
+  -- if GIVEN parameterIR_aligned* DEFAULT parameterIR_default* OPTIONAL _
+        = $align_parameterListIR(parameterIR*, argumentListIR, id_default*, eps)
+  -- if p_shared = GLOBAL
+  -- Copy_in:
+       p_shared ARCH_0
+         |- p EC_0 parameterIR_aligned* '@' LOCAL EC_callee_1 argumentListIR
+         ~> ARCH_1 EC_1 EC_callee_2 '#' abortResult
+
+rule Call_eval/definedFunctionCallee-cont:
+  p EC_0 ARCH_0
+    |- definedFunctionCallee '@' `<typeArgumentIR*`> `(argumentListIR`)
+    : EC_2 ARCH_2 definedFunctionResult
+  -- if FUNCTION
+        nameIR
+        `<typeParameterIR*`>
+        `(parameterIR* '#' id_default*`)
+        blockStatementIR
+        = definedFunctionCallee
+  -- if EC_callee_0 = $inherit_e(GLOBAL, EC_0)
+  -- if EC_callee_1
+        = EC_callee_0[.LOCAL.TYPE = `{(typeParameterIR ':' typeArgumentIR)*`}]
+  -- if GIVEN parameterIR_aligned* DEFAULT parameterIR_default* OPTIONAL _
+        = $align_parameterListIR(parameterIR*, argumentListIR, id_default*, eps)
+  -- if p_shared = GLOBAL
+  -- Copy_in:
+       p_shared ARCH_0
+         |- p EC_0 parameterIR_aligned* '@' LOCAL EC_callee_1 argumentListIR
+         ~> ARCH_1 EC_1 EC_callee_2 '#' (_CONT storageReference?*)
+  -- Copy_in_default: parameterIR_default* '@' LOCAL EC_callee_2 ~> EC_callee_3
+  -- DefinedFunctionBody_eval:
+       EC_callee_3 ARCH_1
+         |- blockStatementIR
+         : EC_callee_4 ARCH_2 definedFunctionResult
+  -- Copy_out:
+       p_shared ARCH_2
+         |- p EC_1 parameterIR_aligned* '@' LOCAL EC_callee_4 storageReference?*
+         ~> EC_2
+
+rule Call_eval/externFunctionCallee-copyin-abort:
+  p EC_0 ARCH_0
+    |- externFunctionCallee '@' `<typeArgumentIR*`> `(argumentIR*`)
+    : EC_1 ARCH_1 abortResult
+  -- if EXTERN_FUNCTION
+        nameIR
+        `<typeParameterIR*`>
+        `(parameterIR* '#' id_default* '#' id_optional*`)
+        = externFunctionCallee
+  -- if EC_callee_0 = $inherit_e(GLOBAL, EC_0)
+  -- if EC_callee_1
+        = EC_callee_0[.LOCAL.TYPE = `{(typeParameterIR ':' typeArgumentIR)*`}]
+  -- if GIVEN parameterIR_aligned* DEFAULT parameterIR_default* OPTIONAL _
+        = $align_parameterListIR(parameterIR*,
+                                 argumentIR*,
+                                 id_default*,
+                                 id_optional*)
+  -- if p_shared = GLOBAL
+  -- Copy_in:
+       p_shared ARCH_0
+         |- p EC_0 parameterIR_aligned* '@' LOCAL EC_callee_1 argumentIR*
+         ~> ARCH_1 EC_1 EC_callee_2 '#' abortResult
+
+rule Call_eval/externFunctionCallee-copyin-cont-call-reject:
+  p EC_0 ARCH_0
+    |- externFunctionCallee '@' `<typeArgumentIR*`> `(argumentIR*`)
+    : EC_1 ARCH_2 rejectTransitionResult
+  -- if EXTERN_FUNCTION
+        nameIR
+        `<typeParameterIR*`>
+        `(parameterIR* '#' id_default* '#' id_optional*`)
+        = externFunctionCallee
+  -- if EC_callee_0 = $inherit_e(GLOBAL, EC_0)
+  -- if EC_callee_1
+        = EC_callee_0[.LOCAL.TYPE = `{(typeParameterIR ':' typeArgumentIR)*`}]
+  -- if GIVEN parameterIR_aligned* DEFAULT parameterIR_default* OPTIONAL _
+        = $align_parameterListIR(parameterIR*,
+                                 argumentIR*,
+                                 id_default*,
+                                 id_optional*)
+  -- if p_shared = GLOBAL
+  -- Copy_in:
+       p_shared ARCH_0
+         |- p EC_0 parameterIR_aligned* '@' LOCAL EC_callee_1 argumentIR*
+         ~> ARCH_1 EC_1 EC_callee_2 '#' (_CONT storageReference?*)
+  -- Copy_in_default: parameterIR_default* '@' LOCAL EC_callee_2 ~> EC_callee_3
+  -- (if (_ _ _ nameIR_param _ = parameterIR))*
+  -- ExternFunctionCall_eval:
+       EC_callee_3 ARCH_1
+         |- nameIR `(nameIR_param*`)
+         : EC_callee_4 ARCH_2 rejectTransitionResult
+
+rule Call_eval/externFunctionCallee-copyin-cont-call-non-reject:
+  p EC_0 ARCH_0
+    |- externFunctionCallee '@' `<typeArgumentIR*`> `(argumentIR*`)
+    : EC_2 ARCH_2 callResult
+  -- if EXTERN_FUNCTION
+        nameIR
+        `<typeParameterIR*`>
+        `(parameterIR* '#' id_default* '#' id_optional*`)
+        = externFunctionCallee
+  -- if EC_callee_0 = $inherit_e(GLOBAL, EC_0)
+  -- if EC_callee_1
+        = EC_callee_0[.LOCAL.TYPE = `{(typeParameterIR ':' typeArgumentIR)*`}]
+  -- if GIVEN parameterIR_aligned* DEFAULT parameterIR_default* OPTIONAL _
+        = $align_parameterListIR(parameterIR*,
+                                 argumentIR*,
+                                 id_default*,
+                                 id_optional*)
+  -- if p_shared = GLOBAL
+  -- Copy_in:
+       p_shared ARCH_0
+         |- p EC_0 parameterIR_aligned* '@' LOCAL EC_callee_1 argumentIR*
+         ~> ARCH_1 EC_1 EC_callee_2 '#' (_CONT storageReference?*)
+  -- Copy_in_default: parameterIR_default* '@' LOCAL EC_callee_2 ~> EC_callee_3
+  -- (if (_ _ _ nameIR_param _ = parameterIR))*
+  -- ExternFunctionCall_eval:
+       EC_callee_3 ARCH_1
+         |- nameIR `(nameIR_param*`)
+         : EC_callee_4 ARCH_2 callResult
+  -- if ~(callResult <: rejectTransitionResult)
+  -- Copy_out:
+       p_shared ARCH_2
+         |- p EC_1 parameterIR_aligned* '@' LOCAL EC_callee_4 storageReference?*
+         ~> EC_2
+
+rule Call_eval/abort:
+  p EC_0 ARCH_0
+    |- builtinPushFrontMethodCallee '@' `<eps`> `(argumentIR`)
+    : EC_1 ARCH_1 abortResult
+  -- if BUILTIN_PUSH_FRONT storageReference = builtinPushFrontMethodCallee
+  -- Lvalue_read: p EC_0 ARCH_0 |- storageReference : headerStackValue
+  -- if HEADER_STACK `[value_element* `(n_idx`)`] = headerStackValue
+  -- Argument_eval: p EC_0 ARCH_0 |- argumentIR : EC_1 ARCH_1 abortResult
+
+rule Call_eval/cont:
+  p EC_0 ARCH_0
+    |- builtinPushFrontMethodCallee '@' `<eps`> `(argumentIR`)
+    : EC_2 ARCH_1 (RETURN eps)
+  -- if BUILTIN_PUSH_FRONT storageReference = builtinPushFrontMethodCallee
+  -- Lvalue_read: p EC_0 ARCH_0 |- storageReference : headerStackValue
+  -- if HEADER_STACK `[value_element* `(n_idx`)`] = headerStackValue
+  -- if n_size = |value_element*|
+  -- Argument_eval:
+       p EC_0 ARCH_0 |- argumentIR : EC_1 ARCH_1 (_CONT integerValue_count)
+  -- if n_count = $nat_of_integerValue(integerValue_count)
+  -- if $(n_count < n_size)
+  -- if value_front* = value_element*[0 : n_count]
+  -- (if (value_front_invalidated = $invalidate_value(value_front)))*
+  -- if n_back = $max_int([0, $(n_size - n_count)])
+  -- if value_back* = value_element*[0 : n_back]
+  -- if value_element_updated* = value_front_invalidated* ++ value_back*
+  -- if n_idx_updated = $min_nat([n_size, $(n_idx + n_count)])
+  -- if headerStackValue_updated
+        = HEADER_STACK `[value_element_updated* `(n_idx_updated`)`]
+  -- Lvalue_write:
+       p EC_1 ARCH_1 |- storageReference := headerStackValue_updated : EC_2
+
+rule Call_eval/cont-overflow:
+  p EC_0 ARCH_0
+    |- builtinPushFrontMethodCallee '@' `<eps`> `(argumentIR`)
+    : EC_2 ARCH_1 (RETURN eps)
+  -- if BUILTIN_PUSH_FRONT storageReference = builtinPushFrontMethodCallee
+  -- Lvalue_read: p EC_0 ARCH_0 |- storageReference : headerStackValue
+  -- if HEADER_STACK `[value_element* `(n_idx`)`] = headerStackValue
+  -- if n_size = |value_element*|
+  -- Argument_eval:
+       p EC_0 ARCH_0 |- argumentIR : EC_1 ARCH_1 (_CONT integerValue_count)
+  -- if n_count = $nat_of_integerValue(integerValue_count)
+  -- if $(n_count >= n_size)
+  -- (if (value_element_updated = $invalidate_value(value_element)))*
+  -- if n_idx_updated = $min_nat([n_size, $(n_idx + n_count)])
+  -- if headerStackValue_updated
+        = HEADER_STACK `[value_element_updated* `(n_idx_updated`)`]
+  -- Lvalue_write:
+       p EC_1 ARCH_1 |- storageReference := headerStackValue_updated : EC_2
+
+rule Call_eval/abort:
+  p EC_0 ARCH_0
+    |- builtinPopFrontMethodCallee '@' `<eps`> `(argumentIR`)
+    : EC_1 ARCH_1 abortResult
+  -- if BUILTIN_POP_FRONT storageReference = builtinPopFrontMethodCallee
+  -- Lvalue_read: p EC_0 ARCH_0 |- storageReference : headerStackValue
+  -- if HEADER_STACK `[value_element* `(n_idx`)`] = headerStackValue
+  -- Argument_eval: p EC_0 ARCH_0 |- argumentIR : EC_1 ARCH_1 abortResult
+
+rule Call_eval/cont:
+  p EC_0 ARCH_0
+    |- builtinPopFrontMethodCallee '@' `<eps`> `(argumentIR`)
+    : EC_2 ARCH_1 (RETURN eps)
+  -- if BUILTIN_POP_FRONT storageReference = builtinPopFrontMethodCallee
+  -- Lvalue_read: p EC_0 ARCH_0 |- storageReference : headerStackValue
+  -- if HEADER_STACK `[value_element* `(n_idx`)`] = headerStackValue
+  -- if n_size = |value_element*|
+  -- Argument_eval:
+       p EC_0 ARCH_0 |- argumentIR : EC_1 ARCH_1 (_CONT integerValue_count)
+  -- if n_count = $nat_of_integerValue(integerValue_count)
+  -- if $(n_count < n_size)
+  -- if n_front = $max_int([0, $(n_size - n_count)])
+  -- if value_front* = value_element*[n_count : n_front]
+  -- if value_back* = value_element*[0 : n_count]
+  -- (if (value_back_invalidated = $invalidate_value(value_back)))*
+  -- if value_element_updated* = value_front* ++ value_back_invalidated*
+  -- if n_idx_updated = n_front
+  -- if headerStackValue_updated
+        = HEADER_STACK `[value_element_updated* `(n_idx_updated`)`]
+  -- Lvalue_write:
+       p EC_1 ARCH_1 |- storageReference := headerStackValue_updated : EC_2
+
+rule Call_eval/cont-overflow:
+  p EC_0 ARCH_0
+    |- builtinPopFrontMethodCallee '@' `<eps`> `(argumentIR`)
+    : EC_2 ARCH_1 (RETURN eps)
+  -- if BUILTIN_POP_FRONT storageReference = builtinPopFrontMethodCallee
+  -- Lvalue_read: p EC_0 ARCH_0 |- storageReference : headerStackValue
+  -- if HEADER_STACK `[value_element* `(n_idx`)`] = headerStackValue
+  -- if n_size = |value_element*|
+  -- Argument_eval:
+       p EC_0 ARCH_0 |- argumentIR : EC_1 ARCH_1 (_CONT integerValue_count)
+  -- if n_count = $nat_of_integerValue(integerValue_count)
+  -- if $(n_count >= n_size)
+  -- (if (value_element_updated = $invalidate_value(value_element)))*
+  -- if n_idx_updated = $max_int([0, $(n_size - n_count)])
+  -- if headerStackValue_updated
+        = HEADER_STACK `[value_element_updated* `(n_idx_updated`)`]
+  -- Lvalue_write:
+       p EC_1 ARCH_1 |- storageReference := headerStackValue_updated : EC_2
+
+rule Call_eval/builtinIsValidMethodCallee-header:
+  p EC ARCH
+    |- builtinIsValidMethodCallee '@' `<eps`> `(eps`)
+    : EC ARCH returnResult
+  -- if BUILTIN_IS_VALID storageReference = builtinIsValidMethodCallee
+  -- Lvalue_read: p EC ARCH |- storageReference : headerValue
+  -- if HEADER _ `{b_valid ';' _`} = headerValue
+  -- if returnResult = RETURN (_B b_valid)
+
+rule Call_eval/builtinSetValidMethodCallee:
+  p EC_0 ARCH
+    |- builtinSetValidMethodCallee '@' `<eps`> `(eps`)
+    : EC_1 ARCH returnResult
+  -- if BUILTIN_SET_VALID storageReference = builtinSetValidMethodCallee
+  -- Lvalue_read: p EC_0 ARCH |- storageReference : headerValue
+  -- if HEADER typeId `{_ ';' fieldValue*`} = headerValue
+  -- if value = HEADER typeId `{true ';' fieldValue*`}
+  -- Lvalue_write: p EC_0 ARCH |- storageReference := value : EC_1
+  -- if returnResult = RETURN eps
+
+rule Call_eval/builtinSetInvalidMethodCallee:
+  p EC_0 ARCH
+    |- builtinSetInvalidMethodCallee '@' `<eps`> `(eps`)
+    : EC_1 ARCH returnResult
+  -- if BUILTIN_SET_INVALID storageReference = builtinSetInvalidMethodCallee
+  -- Lvalue_read: p EC_0 ARCH |- storageReference : headerValue
+  -- if HEADER typeId `{_ ';' fieldValue*`} = headerValue
+  -- if value = HEADER typeId `{false ';' fieldValue*`}
+  -- Lvalue_write: p EC_0 ARCH |- storageReference := value : EC_1
+  -- if returnResult = RETURN eps
+
+rule Call_eval/builtinIsValidMethodCallee-header-union:
+  p EC ARCH
+    |- builtinIsValidMethodCallee '@' `<eps`> `(eps`)
+    : EC ARCH returnResult
+  -- if BUILTIN_IS_VALID storageReference = builtinIsValidMethodCallee
+  -- Lvalue_read: p EC ARCH |- storageReference : headerUnionValue
+  -- if HEADER_UNION typeId `{fieldValue*`} = headerUnionValue
+  -- (if (value_field _ ';' = fieldValue))*
+  -- if fieldValue_valid*
+        = $filter_<fieldValue>(fieldValue*, $isValid_header(value_field)*)
+  -- if b_valid = (fieldValue_valid* = eps)
+  -- if returnResult = RETURN (_B b_valid)
+
+rule Call_eval/builtinSizeMethodCallee:
+  p EC ARCH
+    |- builtinSizeMethodCallee '@' `<eps`> `(eps`)
+    : EC ARCH returnResult
+  -- if BUILTIN_SIZE_OF nameIR typeIR_base = builtinSizeMethodCallee
+  -- if returnResult = RETURN $sizeof(typeIR_base, nameIR)
+
+rule Call_eval/copyin-abort-initializer:
+  p EC_0 ARCH_0
+    |- externMethodCallee '@' `<typeArgumentIR*`> `(argumentIR*`)
+    : EC_1 ARCH_1 abortResult
+  -- if EXTERN_METHOD
+        objectId
+        '.'
+        nameIR
+        `<typeParameterIR*`>
+        `(parameterIR* '#' id_default* '#' id_optional*`)
+        `{theta ';' frame ';' blockStatementIR`}
+        = externMethodCallee
+  -- if EC_callee_0 = $inherit_e(GLOBAL, EC_0)
+  -- if EC_callee_1 = EC_callee_0[.BLOCK.TYPE = theta]
+  -- if EC_callee_2 = EC_callee_1[.BLOCK.FRAME = frame]
+  -- if EC_callee_3
+        = EC_callee_2[.LOCAL.TYPE = `{(typeParameterIR ':' typeArgumentIR)*`}]
+  -- if GIVEN parameterIR_aligned* DEFAULT parameterIR_default* OPTIONAL _
+        = $align_parameterListIR(parameterIR*,
+                                 argumentIR*,
+                                 id_default*,
+                                 id_optional*)
+  -- if p_shared = GLOBAL
+  -- Copy_in:
+       p_shared ARCH_0
+         |- p EC_0 parameterIR_aligned* '@' LOCAL EC_callee_3 argumentIR*
+         ~> ARCH_1 EC_1 EC_callee_4 '#' abortResult
+
+rule Call_eval/copyin-cont-initializer:
+  p EC_0 ARCH_0
+    |- externMethodCallee '@' `<typeArgumentIR*`> `(argumentIR*`)
+    : EC_2 ARCH_2 definedFunctionResult
+  -- if EXTERN_METHOD
+        objectId
+        '.'
+        nameIR
+        `<typeParameterIR*`>
+        `(parameterIR* '#' id_default* '#' id_optional*`)
+        `{theta ';' frame ';' blockStatementIR`}
+        = externMethodCallee
+  -- if EC_callee_0 = $inherit_e(GLOBAL, EC_0)
+  -- if EC_callee_1 = EC_callee_0[.BLOCK.TYPE = theta]
+  -- if EC_callee_2 = EC_callee_1[.BLOCK.FRAME = frame]
+  -- if EC_callee_3
+        = EC_callee_2[.LOCAL.TYPE = `{(typeParameterIR ':' typeArgumentIR)*`}]
+  -- if GIVEN parameterIR_aligned* DEFAULT parameterIR_default* OPTIONAL _
+        = $align_parameterListIR(parameterIR*,
+                                 argumentIR*,
+                                 id_default*,
+                                 id_optional*)
+  -- if p_shared = GLOBAL
+  -- Copy_in:
+       p_shared ARCH_0
+         |- p EC_0 parameterIR_aligned* '@' LOCAL EC_callee_3 argumentIR*
+         ~> ARCH_1 EC_1 EC_callee_4 '#' (_CONT storageReference?*)
+  -- Copy_in_default: parameterIR_default* '@' LOCAL EC_callee_4 ~> EC_callee_5
+  -- DefinedFunctionBody_eval:
+       EC_callee_5 ARCH_1
+         |- blockStatementIR
+         : EC_callee_6 ARCH_2 definedFunctionResult
+  -- Copy_out:
+       p_shared ARCH_2
+         |- p EC_1 parameterIR_aligned* '@' LOCAL EC_callee_6 storageReference?*
+         ~> EC_2
+
+rule Call_eval/copyin-abort:
+  p EC_0 ARCH_0
+    |- externMethodCallee '@' `<typeArgumentIR*`> `(argumentIR*`)
+    : EC_1 ARCH_1 abortResult
+  -- if EXTERN_METHOD
+        objectId
+        '.'
+        nameIR
+        `<typeParameterIR*`>
+        `(parameterIR* '#' id_default* '#' id_optional*`)
+        `{theta ';' frame ';' eps`}
+        = externMethodCallee
+  -- if EC_callee_0 = $inherit_e(GLOBAL, EC_0)
+  -- if EC_callee_1 = EC_callee_0[.BLOCK.TYPE = theta]
+  -- if EC_callee_2 = EC_callee_1[.BLOCK.FRAME = frame]
+  -- if EC_callee_3
+        = EC_callee_2[.LOCAL.TYPE = `{(typeParameterIR ':' typeArgumentIR)*`}]
+  -- if GIVEN parameterIR_aligned* DEFAULT parameterIR_default* OPTIONAL _
+        = $align_parameterListIR(parameterIR*,
+                                 argumentIR*,
+                                 id_default*,
+                                 id_optional*)
+  -- if p_shared = GLOBAL
+  -- Copy_in:
+       p_shared ARCH_0
+         |- p EC_0 parameterIR_aligned* '@' LOCAL EC_callee_3 argumentIR*
+         ~> ARCH_1 EC_1 EC_callee_4 '#' abortResult
+
+rule Call_eval/copyin-cont-non-abstract-reject:
+  p EC_0 ARCH_0
+    |- externMethodCallee '@' `<typeArgumentIR*`> `(argumentIR*`)
+    : EC_1 ARCH_2 rejectTransitionResult
+  -- if EXTERN_METHOD
+        objectId
+        '.'
+        nameIR
+        `<typeParameterIR*`>
+        `(parameterIR* '#' id_default* '#' id_optional*`)
+        `{theta ';' frame ';' eps`}
+        = externMethodCallee
+  -- if EC_callee_0 = $inherit_e(GLOBAL, EC_0)
+  -- if EC_callee_1 = EC_callee_0[.BLOCK.TYPE = theta]
+  -- if EC_callee_2 = EC_callee_1[.BLOCK.FRAME = frame]
+  -- if EC_callee_3
+        = EC_callee_2[.LOCAL.TYPE = `{(typeParameterIR ':' typeArgumentIR)*`}]
+  -- if GIVEN parameterIR_aligned* DEFAULT parameterIR_default* OPTIONAL _
+        = $align_parameterListIR(parameterIR*,
+                                 argumentIR*,
+                                 id_default*,
+                                 id_optional*)
+  -- if p_shared = GLOBAL
+  -- Copy_in:
+       p_shared ARCH_0
+         |- p EC_0 parameterIR_aligned* '@' LOCAL EC_callee_3 argumentIR*
+         ~> ARCH_1 EC_1 EC_callee_4 '#' (_CONT storageReference?*)
+  -- Copy_in_default: parameterIR_default* '@' LOCAL EC_callee_4 ~> EC_callee_5
+  -- (if (_ _ _ nameIR_param _ = parameterIR))*
+  -- ExternMethodCall_eval:
+       EC_callee_5 ARCH_1
+         |- objectId '.' nameIR `(nameIR_param*`)
+         : EC_callee_6 ARCH_2 rejectTransitionResult
+
+rule Call_eval/copyin-cont-non-abstract-non-reject:
+  p EC_0 ARCH_0
+    |- externMethodCallee '@' `<typeArgumentIR*`> `(argumentIR*`)
+    : EC_2 ARCH_2 callResult
+  -- if EXTERN_METHOD
+        objectId
+        '.'
+        nameIR
+        `<typeParameterIR*`>
+        `(parameterIR* '#' id_default* '#' id_optional*`)
+        `{theta ';' frame ';' eps`}
+        = externMethodCallee
+  -- if EC_callee_0 = $inherit_e(GLOBAL, EC_0)
+  -- if EC_callee_1 = EC_callee_0[.BLOCK.TYPE = theta]
+  -- if EC_callee_2 = EC_callee_1[.BLOCK.FRAME = frame]
+  -- if EC_callee_3
+        = EC_callee_2[.LOCAL.TYPE = `{(typeParameterIR ':' typeArgumentIR)*`}]
+  -- if GIVEN parameterIR_aligned* DEFAULT parameterIR_default* OPTIONAL _
+        = $align_parameterListIR(parameterIR*,
+                                 argumentIR*,
+                                 id_default*,
+                                 id_optional*)
+  -- if p_shared = GLOBAL
+  -- Copy_in:
+       p_shared ARCH_0
+         |- p EC_0 parameterIR_aligned* '@' LOCAL EC_callee_3 argumentIR*
+         ~> ARCH_1 EC_1 EC_callee_4 '#' (_CONT storageReference?*)
+  -- Copy_in_default: parameterIR_default* '@' LOCAL EC_callee_4 ~> EC_callee_5
+  -- (if (_ _ _ nameIR_param _ = parameterIR))*
+  -- ExternMethodCall_eval:
+       EC_callee_5 ARCH_1
+         |- objectId '.' nameIR `(nameIR_param*`)
+         : EC_callee_6 ARCH_2 callResult
+  -- if ~(callResult <: rejectTransitionResult)
+  -- Copy_out:
+       p_shared ARCH_2
+         |- p EC_1 parameterIR_aligned* '@' LOCAL EC_callee_6 storageReference?*
+         ~> EC_2
+
+rule Call_eval/copyin-reject:
+  p EC_0 ARCH_0
+    |- parserApplyMethodCallee '@' `<typeArgumentListIR`> `(argumentListIR`)
+    : EC_1 ARCH_1 rejectTransitionResult
+  -- if PARSER
+        _
+        '.'
+        APPLY
+        `(parameterListIR '#' id_default*`)
+        `{theta ';' frame ';' parserLocalDeclarationListIR ';' stateEnv`}
+        = parserApplyMethodCallee
+  -- if EC_callee_0 = $inherit_e(GLOBAL, EC_0)
+  -- if EC_callee_1
+        = EC_callee_0[.BLOCK.TYPE = theta][.BLOCK.FRAME = frame][.BLOCK.STATE = stateEnv]
+  -- if GIVEN parameterIR_aligned* DEFAULT parameterIR_default* OPTIONAL _
+        = $align_parameterListIR(parameterListIR,
+                                 argumentListIR,
+                                 id_default*,
+                                 eps)
+  -- if p_shared = GLOBAL
+  -- Copy_in:
+       p_shared ARCH_0
+         |- p EC_0 parameterIR_aligned* '@' BLOCK EC_callee_1 argumentListIR
+         ~> ARCH_1 EC_1 EC_callee_2 '#' rejectTransitionResult
+
+rule Call_eval/copyin-cont-parserLocalDeclarationListIR-reject:
+  p EC_0 ARCH_0
+    |- parserApplyMethodCallee '@' `<typeArgumentListIR`> `(argumentListIR`)
+    : EC_2 ARCH_2 rejectTransitionResult
+  -- if PARSER
+        _
+        '.'
+        APPLY
+        `(parameterListIR '#' id_default*`)
+        `{theta ';' frame ';' parserLocalDeclarationListIR ';' stateEnv`}
+        = parserApplyMethodCallee
+  -- if EC_callee_0 = $inherit_e(GLOBAL, EC_0)
+  -- if EC_callee_1
+        = EC_callee_0[.BLOCK.TYPE = theta][.BLOCK.FRAME = frame][.BLOCK.STATE = stateEnv]
+  -- if GIVEN parameterIR_aligned* DEFAULT parameterIR_default* OPTIONAL _
+        = $align_parameterListIR(parameterListIR,
+                                 argumentListIR,
+                                 id_default*,
+                                 eps)
+  -- if p_shared = GLOBAL
+  -- Copy_in:
+       p_shared ARCH_0
+         |- p EC_0 parameterIR_aligned* '@' BLOCK EC_callee_1 argumentListIR
+         ~> ARCH_1 EC_1 EC_callee_2 '#' (_CONT storageReference?*)
+  -- Copy_in_default: parameterIR_default* '@' BLOCK EC_callee_2 ~> EC_callee_3
+  -- ParserLocalDecls_eval:
+       EC_callee_3 ARCH_1
+         |- parserLocalDeclarationListIR
+         : EC_callee_4 ARCH_2 rejectTransitionResult
+  -- Copy_out:
+       p_shared ARCH_2
+         |- p EC_1 parameterIR_aligned* '@' BLOCK EC_callee_4 storageReference?*
+         ~> EC_2
+
+rule Call_eval/copyin-cont-parserLocalDeclarationListIR-cont-transition-reject:
+  p EC_0 ARCH_0
+    |- parserApplyMethodCallee '@' `<typeArgumentListIR`> `(argumentListIR`)
+    : EC_2 ARCH_3 rejectTransitionResult
+  -- if PARSER
+        _
+        '.'
+        APPLY
+        `(parameterListIR '#' id_default*`)
+        `{theta ';' frame ';' parserLocalDeclarationListIR ';' stateEnv`}
+        = parserApplyMethodCallee
+  -- if EC_callee_0 = $inherit_e(GLOBAL, EC_0)
+  -- if EC_callee_1
+        = EC_callee_0[.BLOCK.TYPE = theta][.BLOCK.FRAME = frame][.BLOCK.STATE = stateEnv]
+  -- if GIVEN parameterIR_aligned* DEFAULT parameterIR_default* OPTIONAL _
+        = $align_parameterListIR(parameterListIR,
+                                 argumentListIR,
+                                 id_default*,
+                                 eps)
+  -- if p_shared = GLOBAL
+  -- Copy_in:
+       p_shared ARCH_0
+         |- p EC_0 parameterIR_aligned* '@' BLOCK EC_callee_1 argumentListIR
+         ~> ARCH_1 EC_1 EC_callee_2 '#' (_CONT storageReference?*)
+  -- Copy_in_default: parameterIR_default* '@' BLOCK EC_callee_2 ~> EC_callee_3
+  -- ParserLocalDecls_eval:
+       EC_callee_3 ARCH_1
+         |- parserLocalDeclarationListIR
+         : EC_callee_4 ARCH_2 continueEmptyResult
+  -- ParserState_trans:
+       EC_callee_4 ARCH_2
+         |- TRANSITION "start"
+         : EC_callee_5 ARCH_3 rejectTransitionResult
+  -- Copy_out:
+       p_shared ARCH_3
+         |- p EC_1 parameterIR_aligned* '@' BLOCK EC_callee_5 storageReference?*
+         ~> EC_2
+
+rule Call_eval/parserLocalDeclarationListIR-cont-transition-accept:
+  p EC_0 ARCH_0
+    |- parserApplyMethodCallee '@' `<typeArgumentListIR`> `(argumentListIR`)
+    : EC_2 ARCH_3 (RETURN eps)
+  -- if PARSER
+        _
+        '.'
+        APPLY
+        `(parameterListIR '#' id_default*`)
+        `{theta ';' frame ';' parserLocalDeclarationListIR ';' stateEnv`}
+        = parserApplyMethodCallee
+  -- if EC_callee_0 = $inherit_e(GLOBAL, EC_0)
+  -- if EC_callee_1
+        = EC_callee_0[.BLOCK.TYPE = theta][.BLOCK.FRAME = frame][.BLOCK.STATE = stateEnv]
+  -- if GIVEN parameterIR_aligned* DEFAULT parameterIR_default* OPTIONAL _
+        = $align_parameterListIR(parameterListIR,
+                                 argumentListIR,
+                                 id_default*,
+                                 eps)
+  -- if p_shared = GLOBAL
+  -- Copy_in:
+       p_shared ARCH_0
+         |- p EC_0 parameterIR_aligned* '@' BLOCK EC_callee_1 argumentListIR
+         ~> ARCH_1 EC_1 EC_callee_2 '#' (_CONT storageReference?*)
+  -- Copy_in_default: parameterIR_default* '@' BLOCK EC_callee_2 ~> EC_callee_3
+  -- ParserLocalDecls_eval:
+       EC_callee_3 ARCH_1
+         |- parserLocalDeclarationListIR
+         : EC_callee_4 ARCH_2 continueEmptyResult
+  -- ParserState_trans:
+       EC_callee_4 ARCH_2 |- TRANSITION "start" : EC_callee_5 ARCH_3 ACCEPT
+  -- Copy_out:
+       p_shared ARCH_3
+         |- p EC_1 parameterIR_aligned* '@' BLOCK EC_callee_5 storageReference?*
+         ~> EC_2
+
+rule Call_eval/controlApplyMethodCallee-copyin-exit:
+  p EC_0 ARCH_0
+    |- controlApplyMethodCallee '@' `<typeArgumentListIR`> `(argumentListIR`)
+    : EC_1 ARCH_1 EXIT
+  -- if CONTROL
+        _
+        '.'
+        APPLY
+        `(parameterListIR '#' id_default*`)
+        `{theta
+          ';'
+          frame
+          ';'
+          controlLocalDeclarationListIR
+          ';'
+          actionDefEnv
+          ';'
+          controlBodyIR`}
+        = controlApplyMethodCallee
+  -- if EC_callee_0 = $inherit_e(GLOBAL, EC_0)
+  -- if `{(callableId ':' actionDef)*`} = actionDefEnv
+  -- if EC_callee_1
+        = EC_callee_0[.BLOCK.TYPE = theta][.BLOCK.FRAME = frame][.BLOCK.CALLABLE = `{(callableId
+                                                                                      ':'
+                                                                                      actionDef)*`}]
+  -- if GIVEN parameterIR_aligned* DEFAULT parameterIR_default* OPTIONAL _
+        = $align_parameterListIR(parameterListIR,
+                                 argumentListIR,
+                                 id_default*,
+                                 eps)
+  -- if p_shared = GLOBAL
+  -- Copy_in:
+       p_shared ARCH_0
+         |- p EC_0 parameterIR_aligned* '@' BLOCK EC_callee_1 argumentListIR
+         ~> ARCH_1 EC_1 EC_callee_2 '#' EXIT
+
+rule Call_eval/controlApplyMethodCallee-localDecl-exit:
+  p EC_0 ARCH_0
+    |- controlApplyMethodCallee '@' `<typeArgumentListIR`> `(argumentListIR`)
+    : EC_2 ARCH_2 EXIT
+  -- if CONTROL
+        _
+        '.'
+        APPLY
+        `(parameterListIR '#' id_default*`)
+        `{theta
+          ';'
+          frame
+          ';'
+          controlLocalDeclarationListIR
+          ';'
+          actionDefEnv
+          ';'
+          controlBodyIR`}
+        = controlApplyMethodCallee
+  -- if EC_callee_0 = $inherit_e(GLOBAL, EC_0)
+  -- if `{(callableId ':' actionDef)*`} = actionDefEnv
+  -- if EC_callee_1
+        = EC_callee_0[.BLOCK.TYPE = theta][.BLOCK.FRAME = frame][.BLOCK.CALLABLE = `{(callableId
+                                                                                      ':'
+                                                                                      actionDef)*`}]
+  -- if GIVEN parameterIR_aligned* DEFAULT parameterIR_default* OPTIONAL _
+        = $align_parameterListIR(parameterListIR,
+                                 argumentListIR,
+                                 id_default*,
+                                 eps)
+  -- if p_shared = GLOBAL
+  -- Copy_in:
+       p_shared ARCH_0
+         |- p EC_0 parameterIR_aligned* '@' BLOCK EC_callee_1 argumentListIR
+         ~> ARCH_1 EC_1 EC_callee_2 '#' (_CONT storageReference?*)
+  -- Copy_in_default: parameterIR_default* '@' BLOCK EC_callee_2 ~> EC_callee_3
+  -- ControlLocalDecls_eval:
+       EC_callee_3 ARCH_1
+         |- controlLocalDeclarationListIR
+         : EC_callee_4 ARCH_2 EXIT
+  -- Copy_out:
+       p_shared ARCH_2
+         |- p EC_1 parameterIR_aligned* '@' BLOCK EC_callee_4 storageReference?*
+         ~> EC_2
+
+rule Call_eval/controlApplyMethodCallee-controlBodyIR-exit:
+  p EC_0 ARCH_0
+    |- controlApplyMethodCallee '@' `<typeArgumentListIR`> `(argumentListIR`)
+    : EC_2 ARCH_3 EXIT
+  -- if CONTROL
+        _
+        '.'
+        APPLY
+        `(parameterListIR '#' id_default*`)
+        `{theta
+          ';'
+          frame
+          ';'
+          controlLocalDeclarationListIR
+          ';'
+          actionDefEnv
+          ';'
+          controlBodyIR`}
+        = controlApplyMethodCallee
+  -- if EC_callee_0 = $inherit_e(GLOBAL, EC_0)
+  -- if `{(callableId ':' actionDef)*`} = actionDefEnv
+  -- if EC_callee_1
+        = EC_callee_0[.BLOCK.TYPE = theta][.BLOCK.FRAME = frame][.BLOCK.CALLABLE = `{(callableId
+                                                                                      ':'
+                                                                                      actionDef)*`}]
+  -- if GIVEN parameterIR_aligned* DEFAULT parameterIR_default* OPTIONAL _
+        = $align_parameterListIR(parameterListIR,
+                                 argumentListIR,
+                                 id_default*,
+                                 eps)
+  -- if p_shared = GLOBAL
+  -- Copy_in:
+       p_shared ARCH_0
+         |- p EC_0 parameterIR_aligned* '@' BLOCK EC_callee_1 argumentListIR
+         ~> ARCH_1 EC_1 EC_callee_2 '#' (_CONT storageReference?*)
+  -- Copy_in_default: parameterIR_default* '@' BLOCK EC_callee_2 ~> EC_callee_3
+  -- ControlLocalDecls_eval:
+       EC_callee_3 ARCH_1
+         |- controlLocalDeclarationListIR
+         : EC_callee_4 ARCH_2 _EMPTY
+  -- ControlBody_eval:
+       EC_callee_4 ARCH_2 |- controlBodyIR : EC_callee_5 ARCH_3 EXIT
+  -- Copy_out:
+       p_shared ARCH_3
+         |- p EC_1 parameterIR_aligned* '@' BLOCK EC_callee_5 storageReference?*
+         ~> EC_2
+
+rule Call_eval/controlApplyMethodCallee-cont:
+  p EC_0 ARCH_0
+    |- controlApplyMethodCallee '@' `<typeArgumentListIR`> `(argumentListIR`)
+    : EC_2 ARCH_3 (RETURN eps)
+  -- if CONTROL
+        _
+        '.'
+        APPLY
+        `(parameterListIR '#' id_default*`)
+        `{theta
+          ';'
+          frame
+          ';'
+          controlLocalDeclarationListIR
+          ';'
+          actionDefEnv
+          ';'
+          controlBodyIR`}
+        = controlApplyMethodCallee
+  -- if EC_callee_0 = $inherit_e(GLOBAL, EC_0)
+  -- if `{(callableId ':' actionDef)*`} = actionDefEnv
+  -- if EC_callee_1
+        = EC_callee_0[.BLOCK.TYPE = theta][.BLOCK.FRAME = frame][.BLOCK.CALLABLE = `{(callableId
+                                                                                      ':'
+                                                                                      actionDef)*`}]
+  -- if GIVEN parameterIR_aligned* DEFAULT parameterIR_default* OPTIONAL _
+        = $align_parameterListIR(parameterListIR,
+                                 argumentListIR,
+                                 id_default*,
+                                 eps)
+  -- if p_shared = GLOBAL
+  -- Copy_in:
+       p_shared ARCH_0
+         |- p EC_0 parameterIR_aligned* '@' BLOCK EC_callee_1 argumentListIR
+         ~> ARCH_1 EC_1 EC_callee_2 '#' (_CONT storageReference?*)
+  -- Copy_in_default: parameterIR_default* '@' BLOCK EC_callee_2 ~> EC_callee_3
+  -- ControlLocalDecls_eval:
+       EC_callee_3 ARCH_1
+         |- controlLocalDeclarationListIR
+         : EC_callee_4 ARCH_2 _EMPTY
+  -- ControlBody_eval:
+       EC_callee_4 ARCH_2 |- controlBodyIR : EC_callee_5 ARCH_3 (RETURN eps)
+  -- Copy_out:
+       p_shared ARCH_3
+         |- p EC_1 parameterIR_aligned* '@' BLOCK EC_callee_5 storageReference?*
+         ~> EC_2
+
+rule Call_eval/tableApplyMethodCallee-exit:
+  p EC_0 ARCH_0
+    |- tableApplyMethodCallee '@' `<typeArgumentListIR`> `(argumentListIR`)
+    : EC_1 ARCH_1 EXIT
+  -- if TABLE objectId '.' APPLY `{frame ';' TBL`} = tableApplyMethodCallee
+  -- if EC_callee_0 = $inherit_e(BLOCK, EC_0)
+  -- if EC_callee_1 = EC_callee_0[.LOCAL.FRAMES = [frame]]
+  -- if typeId :: _ = $rev_<id>(objectId)
+  -- Table_eval: EC_callee_1 ARCH_0 |- typeId TBL : EC_callee_2 ARCH_1 EXIT
+  -- if EC_1 = $copy_e(BLOCK, EC_callee_2, EC_0)
+
+rule Call_eval/tableApplyMethodCallee-return:
+  p EC_0 ARCH_0
+    |- tableApplyMethodCallee '@' `<typeArgumentListIR`> `(argumentListIR`)
+    : EC_1 ARCH_1 returnResult
+  -- if TABLE objectId '.' APPLY `{frame ';' TBL`} = tableApplyMethodCallee
+  -- if EC_callee_0 = $inherit_e(BLOCK, EC_0)
+  -- if EC_callee_1 = EC_callee_0[.LOCAL.FRAMES = [frame]]
+  -- if typeId :: _ = $rev_<id>(objectId)
+  -- Table_eval:
+       EC_callee_1 ARCH_0 |- typeId TBL : EC_callee_2 ARCH_1 returnResult
+  -- if EC_1 = $copy_e(BLOCK, EC_callee_2, EC_0)
+;; === 9-arch/9.0-eval-arch.spectec ===
+relation Var_init: evalContext |- typeIR nameIR : evalContext
+  hint(input %0 %1 %2)
+  hint(prose_in "instantiating global variable"
+                %2
+                "of type"
+                %1
+                "in the evaluation context"
+                %0)
+  hint(prose_out "the resulting evaluation context" %3)
+
+rule Var_init:
+  EC_0 |- typeIR nameIR : EC_1
+  -- if value = $default(typeIR)
+  -- if EC_1 = $add_var_e(GLOBAL, EC_0, _BARE nameIR, value)
+
+relation Extern_init: evalContext arch |- nameIR nameIR : arch
+  hint(input %0 %1 %2 %3)
+  hint(prose_in "instantiating extern"
+                %2
+                "with name"
+                %3
+                "in the evaluation context"
+                %0
+                "and state"
+                %1)
+  hint(prose_out "the resulting state" %4)
+
+rule Extern_init:
+  EC ARCH_0 |- nameIR_extern nameIR : ARCH_2
+  -- if IC = {PATH ([]), GLOBAL EC.GLOBAL, BLOCK EC.BLOCK, LOCAL EC.LOCAL}
+  -- Constructor_inst:
+       GLOBAL IC
+         |- (_BARE nameIR_extern) `<eps`> `(eps`)
+         : constructorDef `<eps`> `('#' eps '#' eps`)
+  -- if STO = ARCH_0.STORE
+  -- Constructor_call:
+       GLOBAL IC STO
+         |- constructorDef `<eps`> `(eps '#' eps '#' eps`)
+         : STO_1 object
+  -- if ARCH_1 = ARCH_0[.STORE = STO_1]
+  -- if objectId_object = [nameIR]
+  -- if ARCH_2 = $add_object_e(ARCH_1, objectId_object, object)
+
+relation Program_init: |- p4program : evalContext store
+  hint(input %0)
+  hint(prose_in "initializing the evaluation context and store for" %0)
+  hint(prose_out "the resulting evaluation context" %1#" and store" %2)
+
+rule Program_init:
+  |- p4program : EC STO
+  -- Program_inst: |- p4program : globalEvalLayer STO
+  -- if blockEvalLayer
+        = {TYPE $empty_theta,
+           CALLABLE $empty_callableDefEnv,
+           STATE $empty_stateEnv,
+           FRAME $empty_frame}
+  -- if localEvalLayer = {TYPE $empty_theta, FRAMES ([$empty_frame])}
+  -- if EC
+        = {GLOBAL globalEvalLayer, BLOCK blockEvalLayer, LOCAL localEvalLayer}
+;; === 9-arch/9.B-ebpf.spectec ===
+relation EBPF_init: |- p4program : evalContext arch
+  hint(input %0)
+  hint(prose_in "initializing the evaluation context and state for"
+                %0
+                "in the eBPF architecture")
+  hint(prose_out "the resulting evaluation context" %1#" and state" %2)
+
+rule EBPF_init:
+  |- p4program : EC ARCH
+  -- Program_init: |- p4program : EC STO
+  -- if ARCH = {STATE $init_archState, STORE STO}
+
+relation EBPF_init_packet_in: evalContext arch |- objectState : evalContext arch
+  hint(input %0 %1 %2)
+
+rule EBPF_init_packet_in:
+  EC_0 ARCH_0 |- objectState_packet_in : EC_1 ARCH_2
+  -- Extern_init: EC_0 ARCH_0 |- "packet_in" "packet_in" : ARCH_1
+  -- if EC_1 = $add_var_e(GLOBAL, EC_0, _BARE "packet_in", REF "packet_in")
+  -- if externObject_packet_in = $find_object_e(ARCH_1, ["packet_in"])
+  -- if EXTERN typeId `<theta`> `{_ frame externMethodDefEnv`}
+        = externObject_packet_in
+  -- if externObject_packet_in_init
+        = EXTERN
+          typeId
+          `<theta`>
+          `{objectState_packet_in frame externMethodDefEnv`}
+  -- if ARCH_2
+        = $add_object_e(ARCH_1, ["packet_in"], externObject_packet_in_init)
+
+relation EBPF_init_globals: evalContext arch |- evalContext
+  hint(input %0 %1)
+
+rule EBPF_init_globals:
+  EC_0 ARCH |- EC_2
+  -- if PACKAGE `<theta`> `{_`} = $find_object_e(ARCH, ["main"])
+  -- if typeIR_headers = $find_map<typeId, typeIR>(theta, "H")
+  -- Var_init: EC_0 |- typeIR_headers "headers" : EC_1
+  -- Var_init: EC_1 |- BOOL "accept" : EC_2
+
+dec $eBPF_setup_packet_in_argument(evalContext) : argumentIR
+
+def $eBPF_setup_packet_in_argument(EC) = argumentIR_packet_in
+  -- if typeDefIR_packet_in = $find_typeDef_e(GLOBAL, EC, _BARE "packet_in")
+  -- if typeIR_packet_in = $specialize_typeDefIR(typeDefIR_packet_in, eps)
+  -- if argumentIR_packet_in = ('.' "packet_in") '#' `(typeIR_packet_in CTK`)
+
+dec $eBPF_setup_headers_argument(arch) : argumentIR
+
+def $eBPF_setup_headers_argument(ARCH) = argumentIR_headers
+  -- if PACKAGE `<theta`> `{_`} = $find_object_e(ARCH, ["main"])
+  -- if typeIR_headers = $find_map<typeId, typeIR>(theta, "H")
+  -- if argumentIR_headers = ('.' "headers") '#' `(typeIR_headers DYN`)
+
+dec $eBPF_setup_main_callee(evalContext, arch) : typedExpressionIR
+
+def $eBPF_setup_main_callee(EC, ARCH) = typedExpressionIR_main
+  -- if typeDefIR_package = $find_typeDef_e(GLOBAL, EC, _BARE "ebpfFilter")
+  -- if PACKAGE `<theta`> `{_`} = $find_object_e(ARCH, ["main"])
+  -- if typeIR_headers = $find_map<typeId, typeIR>(theta, "H")
+  -- if typeIR_package
+        = $specialize_typeDefIR(typeDefIR_package, typeIR_headers)
+  -- if typedExpressionIR_main = (_BARE "main") '#' `(typeIR_package CTK`)
+
+dec $eBPF_setup_parse_callee(evalContext, arch, typedExpressionIR)
+  : typedExpressionIR
+
+def $eBPF_setup_parse_callee(EC, ARCH, typedExpressionIR_main)
+  = typedExpressionIR_parse
+  -- if typeDefIR_parse = $find_typeDef_e(GLOBAL, EC, _BARE "parse")
+  -- if PACKAGE `<theta`> `{_`} = $find_object_e(ARCH, ["main"])
+  -- if typeIR_headers = $find_map<typeId, typeIR>(theta, "H")
+  -- if typeIR_parse = $specialize_typeDefIR(typeDefIR_parse, typeIR_headers)
+  -- if typedExpressionIR_parse
+        = (typedExpressionIR_main '.' "prs") '#' `(typeIR_parse CTK`)
+
+dec $eBPF_setup_filter_callee(evalContext, arch, typedExpressionIR)
+  : typedExpressionIR
+
+def $eBPF_setup_filter_callee(EC, ARCH, typedExpressionIR_main)
+  = typedExpressionIR_filter
+  -- if typeDefIR_filter = $find_typeDef_e(GLOBAL, EC, _BARE "filter")
+  -- if PACKAGE `<theta`> `{_`} = $find_object_e(ARCH, ["main"])
+  -- if typeIR_headers = $find_map<typeId, typeIR>(theta, "H")
+  -- if typeIR_filter = $specialize_typeDefIR(typeDefIR_filter, typeIR_headers)
+  -- if typedExpressionIR_filter
+        = (typedExpressionIR_main '.' "filt") '#' `(typeIR_filter CTK`)
+
+relation EBPF_parse: evalContext arch |- evalContext arch transitionResult
+  hint(input %0 %1)
+
+rule EBPF_parse/cont:
+  EC_0 ARCH_0 |- EC_1 ARCH_1 ACCEPT
+  -- if argumentIR_packet_in = $eBPF_setup_packet_in_argument(EC_0)
+  -- if argumentIR_headers = $eBPF_setup_headers_argument(ARCH_0)
+  -- if argumentIR* = [argumentIR_packet_in, argumentIR_headers]
+  -- if typedExpressionIR_main = $eBPF_setup_main_callee(EC_0, ARCH_0)
+  -- if typedExpressionIR_prs
+        = $eBPF_setup_parse_callee(EC_0, ARCH_0, typedExpressionIR_main)
+  -- if callableTargetIR = typedExpressionIR_prs '.' "apply"
+  -- Stmt_eval:
+       GLOBAL EC_0 ARCH_0
+         |- callableTargetIR `<eps`> `(argumentIR*`) ';'
+         : EC_1 ARCH_1 _EMPTY
+
+rule EBPF_parse/reject:
+  EC_0 ARCH_0 |- EC_1 ARCH_1 rejectTransitionResult
+  -- if argumentIR_packet_in = $eBPF_setup_packet_in_argument(EC_0)
+  -- if argumentIR_headers = $eBPF_setup_headers_argument(ARCH_0)
+  -- if argumentIR* = [argumentIR_packet_in, argumentIR_headers]
+  -- if typedExpressionIR_main = $eBPF_setup_main_callee(EC_0, ARCH_0)
+  -- if typedExpressionIR_prs
+        = $eBPF_setup_parse_callee(EC_0, ARCH_0, typedExpressionIR_main)
+  -- if callableTargetIR = typedExpressionIR_prs '.' "apply"
+  -- Stmt_eval:
+       GLOBAL EC_0 ARCH_0
+         |- callableTargetIR `<eps`> `(argumentIR*`) ';'
+         : EC_1 ARCH_1 rejectTransitionResult
+
+relation EBPF_filter: evalContext arch |- evalContext arch callResult
+  hint(input %0 %1)
+
+rule EBPF_filter/continueEmptyResult:
+  EC_0 ARCH_0 |- EC_1 ARCH_1 (RETURN eps)
+  -- if argumentIR_headers = $eBPF_setup_headers_argument(ARCH_0)
+  -- if argumentIR_accept = ('.' "accept") '#' `(BOOL DYN`)
+  -- if argumentIR* = [argumentIR_headers, argumentIR_accept]
+  -- if typedExpressionIR_main = $eBPF_setup_main_callee(EC_0, ARCH_0)
+  -- if typedExpressionIR_filt
+        = $eBPF_setup_filter_callee(EC_0, ARCH_0, typedExpressionIR_main)
+  -- if callableTargetIR = typedExpressionIR_filt '.' "apply"
+  -- Stmt_eval:
+       GLOBAL EC_0 ARCH_0
+         |- callableTargetIR `<eps`> `(argumentIR*`) ';'
+         : EC_1 ARCH_1 _EMPTY
+
+rule EBPF_filter/exit:
+  EC_0 ARCH_0 |- EC_1 ARCH_1 EXIT
+  -- if argumentIR_headers = $eBPF_setup_headers_argument(ARCH_0)
+  -- if argumentIR_accept = ('.' "accept") '#' `(BOOL DYN`)
+  -- if argumentIR* = [argumentIR_headers, argumentIR_accept]
+  -- if typedExpressionIR_main = $eBPF_setup_main_callee(EC_0, ARCH_0)
+  -- if typedExpressionIR_filt
+        = $eBPF_setup_filter_callee(EC_0, ARCH_0, typedExpressionIR_main)
+  -- if callableTargetIR = typedExpressionIR_filt '.' "apply"
+  -- Stmt_eval:
+       GLOBAL EC_0 ARCH_0
+         |- callableTargetIR `<eps`> `(argumentIR*`) ';'
+         : EC_1 ARCH_1 EXIT

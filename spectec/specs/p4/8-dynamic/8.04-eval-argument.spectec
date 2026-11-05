@@ -1,0 +1,54 @@
+;;
+;; Argument evaluation as values
+;;
+;; syntax argumentIR
+;;
+
+
+rule Argument_eval/typedExpressionIR:
+  p EC_0 ARCH_0 |- typedExpressionIR
+                : EC_1 ARCH_1 expressionResult
+  -- Expr_eval: p EC_0 ARCH_0 |- typedExpressionIR
+                              : EC_1 ARCH_1 expressionResult
+
+rule Argument_eval/nameIR-typedExpressionIR:
+  p EC_0 ARCH_0 |- nameIR '=' typedExpressionIR
+                : EC_1 ARCH_1 expressionResult
+  -- Expr_eval: p EC_0 ARCH_0 |- typedExpressionIR
+                              : EC_1 ARCH_1 expressionResult
+
+
+;;; nameIR '=' '_' and '_'
+;;; should not evaluate don't care arguments down to values
+
+;;
+;; Argument evaluation as lvalues
+;;
+;; syntax argumentIR
+;;
+
+
+rule Argument_eval_lvalue/typedExpressionIR:
+  p EC_0 ARCH_0 |- typedExpressionIR
+                : EC_1 ARCH_1 storageReferenceResult
+  -- if typedLvalueIR
+      = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval:
+      p EC_0 ARCH_0 |- typedLvalueIR
+                    : EC_1 ARCH_1 storageReferenceResult
+
+rule Argument_eval_lvalue/nameIR-typedExpressionIR:
+  p EC_0 ARCH_0 |- nameIR '=' typedExpressionIR
+                : EC_1 ARCH_1 storageReferenceResult
+  -- if typedLvalueIR
+      = $typedExpressionIR_as_typedLvalueIR(typedExpressionIR)
+  -- Lvalue_eval:
+      p EC_0 ARCH_0 |- typedLvalueIR
+                    : EC_1 ARCH_1 storageReferenceResult
+
+rule Argument_eval_lvalue/nameIR-dontcare:
+  p EC ARCH |- nameIR '=' '_' : EC ARCH (_CONT eps)
+
+rule Argument_eval_lvalue/dontcare:
+  p EC ARCH |- '_' : EC ARCH (_CONT eps)
+

@@ -1,0 +1,76 @@
+;;
+;; Initialization
+;;
+
+;;
+;;;; Global variable initialization
+;;
+
+relation Var_init:
+  evalContext |- typeIR nameIR
+               : evalContext
+  hint(input %0 %1 %2)
+  hint(prose_in "instantiating global variable" %2 "of type"
+                %1 "in the evaluation context" %0)
+  hint(prose_out "the resulting evaluation context" %3)
+
+rule Var_init:
+  EC_0 |- typeIR nameIR : EC_1
+  -- if value = $default(typeIR)
+  -- if EC_1 = $add_var_e(GLOBAL, EC_0, _BARE nameIR, value)
+
+;;
+;;;; Extern initialization
+;;;;
+;;;; (TODO) Support instantiation with type arguments and arguments
+;;
+
+relation Extern_init:
+  evalContext arch |- nameIR nameIR :arch
+  hint(input %0 %1 %2 %3)
+  hint(prose_in "instantiating extern" %2 "with name" %3
+                "in the evaluation context" %0 "and state" %1)
+  hint(prose_out "the resulting state" %4)
+
+rule Extern_init:
+  EC ARCH_0 |- nameIR_extern nameIR : ARCH_2
+  -- if IC = { PATH ([]),
+               GLOBAL EC.GLOBAL,
+               BLOCK EC.BLOCK,
+               LOCAL EC.LOCAL }
+  -- Constructor_inst:
+      GLOBAL IC |- (_BARE nameIR_extern) `< eps `> `( eps `)
+                 : constructorDef `< eps `> `( '#' eps '#' eps `)
+  -- if STO = ARCH_0.STORE
+  -- Constructor_call:
+      GLOBAL IC STO |- constructorDef `< eps `> `( eps '#' eps '#' eps `)
+                     : STO_1 object
+  -- if ARCH_1 = ARCH_0[ .STORE = STO_1 ]
+  -- if objectId_object = [ nameIR ]
+  -- if ARCH_2 = $add_object_e(ARCH_1, objectId_object, object)
+
+;;
+;;;; Program initialization
+;;;;
+;;;; syntax p4program
+;;
+
+relation Program_init:
+  |- p4program : evalContext store
+  hint(input %0)
+  hint(prose_in "initializing the evaluation context and store for" %0)
+  hint(prose_out "the resulting evaluation context" %1#" and store" %2)
+
+rule Program_init:
+  |- p4program : EC STO
+  -- Program_inst:
+      |- p4program : globalEvalLayer STO
+  -- if blockEvalLayer = { TYPE $empty_theta,
+                           CALLABLE $empty_callableDefEnv,
+                           STATE $empty_stateEnv,
+                           FRAME $empty_frame }
+  -- if localEvalLayer = { TYPE $empty_theta,
+                           FRAMES ([ $empty_frame ]) }
+  -- if EC = { GLOBAL globalEvalLayer,
+               BLOCK blockEvalLayer,
+               LOCAL localEvalLayer }
