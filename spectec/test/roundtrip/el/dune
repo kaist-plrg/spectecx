@@ -75,3 +75,21 @@
  (alias runtest)
  (action
   (diff impty.expected impty.actual)))
+
+; Unary operators in boolean and arithmetic contexts
+
+(rule
+ (target unary.actual)
+ (deps
+  (source_tree unary))
+ (action
+  (with-stdout-to
+   %{target}
+   (with-stderr-to
+    unary.err
+    (run ./main.exe -s unary)))))
+
+(rule
+ (alias runtest)
+ (action
+  (diff unary.expected unary.actual)))
