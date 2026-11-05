@@ -67,7 +67,8 @@ module Make (Language : Language) = struct
 
     let parse_input ~spec:_ { filename; _ } =
       Lexer.parse_file Language.parser filename
-      |> Result.map (fun input -> (Language.relation, [ input ]))
+      |> Result.map (fun input ->
+             Spectec.Task.Relation (Language.relation, [ input ]))
 
     let format_output values =
       let module Concrete = Interface.Concrete in
@@ -132,9 +133,10 @@ module Make_typed (Language : Language) = struct
              then { input with expect = Spectec.Task.Positive }
              else input)
 
-    let parse_input ~spec input =
-      Eval.parse_input ~spec input
-      |> Result.map (fun (_, values) -> ("Check_prog", values))
+    let parse_input ~spec:_ ({ filename; _ } : input) =
+      Lexer.parse_file Language.parser filename
+      |> Result.map (fun input ->
+             Spectec.Task.Relation ("Check_prog", [ input ]))
 
     let format_output values =
       values

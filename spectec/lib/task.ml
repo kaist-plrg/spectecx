@@ -1,15 +1,3 @@
-(** Task - Defines a kind of interpreter task for a target.
-
-    A TASK encapsulates how to handle one type of interpreter execution:
-    - name: Identifier (e.g., "typecheck", "state_transition")
-    - input: Target-specific input type
-    - parse: Convert input into relation name + IL values
-    - source: Get source identifier for tracing/errors
-    - expectation: Whether input expects success or failure
-    - collect: Gather inputs from a directory
-    - format_output: Format output values for display
-    - save_output: Save output to file (optional) *)
-
 module Il = Lang.Il
 
 type 'a result = ('a, Error.t) Stdlib.result
@@ -32,6 +20,14 @@ let compute_outcome expectation result =
   | Negative, Error e -> ExpectedFail e
   | Negative, Ok values -> UnexpectedPass values
 
+type run =
+  | Relation of string * Il.Value.t list
+  | Driver of
+      (eval_rel:(string -> Il.Value.t list -> Il.Value.t list result) ->
+      Il.Value.t list result)
+      (** Calls through [eval_rel] share one context and target state. Use
+          [eval_rel] only while the driver runs. *)
+
 (** A task specification for interpreter execution *)
 module type S = sig
   val name : string
@@ -48,9 +44,7 @@ module type S = sig
   (** Unparse IL values back into a string for display. *)
   val unparse : spec:Il.spec -> Il.Value.t list -> string
 
-  (** Parse input into relation name and IL values. The relation name is invoked
-      for the input. *)
-  val parse_input : spec:Il.spec -> input -> (string * Il.Value.t list) result
+  val parse_input : spec:Il.spec -> input -> run result
 
   (** Get source identifier for tracing/errors (e.g., filename, test name) *)
   val source : input -> string

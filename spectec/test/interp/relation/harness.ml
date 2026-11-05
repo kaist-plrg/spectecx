@@ -76,16 +76,17 @@ let render_error error =
   |> render_diagnostics
 
 let eval ~check_determinism target_state spec mode relation args =
-  match mode with
-  | Il ->
-      Interp.eval_il ~check_determinism target_state spec.spec_il relation args
-      |> Result.map ~f:snd
-  | Sl ->
-      Interp.eval_sl ~check_determinism target_state spec.spec_sl relation args
-      |> Result.map ~f:snd
-  | Pl ->
-      Interp.eval_pl ~check_determinism target_state spec.spec_pl relation args
-      |> Result.map ~f:snd
+  let context =
+    match mode with
+    | Il ->
+        Interp.context_of_il_spec ~check_determinism target_state spec.spec_il
+    | Sl ->
+        Interp.context_of_sl_spec ~check_determinism target_state spec.spec_sl
+    | Pl ->
+        Interp.context_of_pl_spec ~check_determinism target_state spec.spec_pl
+  in
+  Result.bind context ~f:(fun context ->
+      Interp.eval_rel context ~rel:relation ~values:args)
 
 let fail_check ~name ~mode ~check_determinism message =
   failwithf "%s (%s, %s): %s" name (string_of_mode mode)

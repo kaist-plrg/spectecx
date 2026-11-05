@@ -74,7 +74,8 @@ module Eval = struct
   let collect = collect_with ~classify:eval_classify
 
   let parse_input ~spec:_ { filename; _ } =
-    Lexer.parse_file filename |> Result.map (fun v -> ("Eval_expr", [ v ]))
+    Lexer.parse_file filename
+    |> Result.map (fun v -> Spectec.Task.Relation ("Eval_expr", [ v ]))
 
   let format_output = function
     | [ v ] -> Unparse.print_expr v

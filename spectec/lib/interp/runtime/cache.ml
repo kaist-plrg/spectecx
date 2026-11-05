@@ -41,10 +41,6 @@ let make ~is_impure_func ~is_impure_rel ~state_version =
     state_version;
   }
 
-let clear t =
-  Table.clear !(t.func_cache);
-  Table.clear !(t.rel_cache)
-
 (* Cache unconditionally — for known-impure functions that are safe to cache *)
 let with_cache_unconditional cache (id, values) compute =
   let key = (id, values) in

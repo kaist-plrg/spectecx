@@ -142,7 +142,7 @@ module Typecheck = struct
 
   let parse_input ~spec:_ { includes; filename; _ } =
     Frontend.parse_file includes filename
-    |> Result.map (fun v -> ("Program_ok", [ v ]))
+    |> Result.map (fun v -> Spectec.Task.Relation ("Program_ok", [ v ]))
 
   let source { filename; _ } = filename
   let expectation { expect; _ } = expect
@@ -155,9 +155,9 @@ module Instantiate = struct
 
   let name = "instantiator"
 
-  let parse_input ~spec input =
-    Typecheck.parse_input ~spec input
-    |> Result.map (fun (_, values) -> ("Program_inst", values))
+  let parse_input ~spec:_ { includes; filename; _ } =
+    Frontend.parse_file includes filename
+    |> Result.map (fun v -> Spectec.Task.Relation ("Program_inst", [ v ]))
 
   let format_output _values = "Instantiation succeeded"
 end
