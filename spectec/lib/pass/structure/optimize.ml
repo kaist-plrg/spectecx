@@ -8,16 +8,10 @@ open Ol.Ast
 module RTEnv = Envs.RTEnv
 module SEnv = Envs.Il.SEnv
 
-(* Remove redundant, trivial let aliases from the code,
-
-   let y = x; if (y == 0) then { let z = y + y; let y = 1; let k = y + y; ... }
-
-   will be transformed into
-
-   if (x == 0) then { let z = x + x; let y = 1; let k = y + y; ... }
-
-   Notice the stop condition when we meet a shadowing let binding *)
-
+(* The algo pass ensures that each variable is bound at most once per rule.
+   Before [optimize_loop] combines rules, the renamer can therefore replace
+   [y] with [x] throughout [let y = x]'s block without checking for a nested
+   binding. *)
 let rec remove_let_alias (instrs : instr list) : instr list =
   match instrs with
   | [] -> []
