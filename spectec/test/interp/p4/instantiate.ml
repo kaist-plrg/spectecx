@@ -133,8 +133,18 @@ let check_field_location () =
   | [ field_list; field ] -> List.iter check [ field_list; field ]
   | _ -> failwith "expected one included field and its list"
 
+let check_min_nat () =
+  let builtins = B.make P4.Builtins.builtins in
+  let nats = List.map (fun n -> V.nat (Bigint.of_int n)) [ 3; 5 ] in
+  match
+    builtins.invoke ("min_nat" $ at) [] [ V.list (Lang.Il.Typ.nat $ at) nats ]
+  with
+  | Ok value when V.eq value (V.nat (Bigint.of_int 3)) -> ()
+  | _ -> failwith "min_nat did not return the smallest element"
+
 let () =
   check_field_location ();
+  check_min_nat ();
   let spec_il, henv = compile () in
   List.iter
     (fun (name, mode) ->
