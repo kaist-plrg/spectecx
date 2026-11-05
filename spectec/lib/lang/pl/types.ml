@@ -43,6 +43,7 @@ type pattern = Sl.pattern
 type tparam = Sl.tparam
 type targ = Sl.targ
 type iterexp = Sl.iterexp
+type iterinstr = Sl.iterinstr
 
 type pid = Sl.pid
 type phantom = Sl.phantom
@@ -85,13 +86,13 @@ and guard =
 
 and instr = (instr' located) Annot.t
 and instr' =
-  | RelI of { call : relcall; iterexps : iterexp list }
+  | RelI of { call : relcall; iterinstrs : iterinstr list }
   | RelAssertI of { call : relcall; expect : bool; iterexps : iterexp list; block : instr list; phantom : phantom option }
   | IfI of exp * iterexp list * instr list * phantom option
   | CaseI of exp * case list * phantom option
   | OtherwiseI of instr
   | TryI of block list
-  | LetI of exp * exp * iterexp list
+  | LetI of exp * exp * iterinstr list
   | ResultI of exp list
   | ReturnI of exp
   | DebugI of exp

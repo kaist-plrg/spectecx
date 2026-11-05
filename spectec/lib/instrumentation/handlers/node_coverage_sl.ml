@@ -37,11 +37,11 @@ end
 (* Get short header for instruction (without recursive children) *)
 let instr_header instr =
   match instr.it with
-  | Sl.RelI { call; iterexps; _ } ->
+  | Sl.RelI { call; iterinstrs; _ } ->
       Format.sprintf "%s: %s%s"
         (Sl.Print.string_of_relid call.relid)
         (Sl.Print.string_of_notexp call.notexp)
-        (Sl.Print.string_of_iterexps iterexps)
+        (Sl.Print.string_of_iterinstrs iterinstrs)
   | Sl.RelAssertI { call; expect; iterexps; _ } ->
       Format.sprintf "If (%s: %s %s)%s"
         (Sl.Print.string_of_relid call.relid)
@@ -55,11 +55,11 @@ let instr_header instr =
   | Sl.CaseI (exp, _, _) ->
       Format.sprintf "Case on %s" (Sl.Print.string_of_exp exp)
   | Sl.OtherwiseI _ -> "Otherwise"
-  | Sl.LetI (exp_l, exp_r, iterexps, _) ->
+  | Sl.LetI (exp_l, exp_r, iterinstrs, _) ->
       Format.sprintf "Let %s = %s%s"
         (Sl.Print.string_of_exp exp_l)
         (Sl.Print.string_of_exp exp_r)
-        (Sl.Print.string_of_iterexps iterexps)
+        (Sl.Print.string_of_iterinstrs iterinstrs)
   | Sl.ResultI [] -> "Relation holds"
   | Sl.ResultI exps ->
       Format.sprintf "Result %s" (Sl.Print.string_of_exps ", " exps)

@@ -176,6 +176,16 @@ and eq_iterexps (iterexps_a : iterexp list) (iterexps_b : iterexp list) : bool =
   List.length iterexps_a = List.length iterexps_b
   && List.for_all2 eq_iterexp iterexps_a iterexps_b
 
+and eq_iterinstr (iterinstr_a : iterinstr) (iterinstr_b : iterinstr) : bool =
+  eq_iter iterinstr_a.iter iterinstr_b.iter
+  && eq_vars iterinstr_a.vars_input iterinstr_b.vars_input
+  && eq_vars iterinstr_a.vars_output iterinstr_b.vars_output
+
+and eq_iterinstrs (iterinstrs_a : iterinstr list)
+    (iterinstrs_b : iterinstr list) : bool =
+  List.length iterinstrs_a = List.length iterinstrs_b
+  && List.for_all2 eq_iterinstr iterinstrs_a iterinstrs_b
+
 (* Patterns *)
 
 and eq_pattern (pattern_a : pattern) (pattern_b : pattern) : bool =

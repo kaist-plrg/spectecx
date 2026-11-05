@@ -126,6 +126,12 @@ and string_of_iterexp (iter, _) = Il.Print.string_of_iter iter
 and string_of_iterexps iterexps =
   iterexps |> List.map string_of_iterexp |> String.concat ""
 
+and string_of_iterinstr (iterinstr : iterinstr) =
+  Il.Print.string_of_iter iterinstr.iter
+
+and string_of_iterinstrs iterinstrs =
+  iterinstrs |> List.map string_of_iterinstr |> String.concat ""
+
 (* Patterns *)
 
 and string_of_pattern pattern = Il.Print.string_of_pattern pattern
@@ -225,10 +231,10 @@ and string_of_instr ?(level = 0) ?(index = 0) instr =
   let indent = String.make (level * 2) ' ' in
   let order = Format.asprintf "%s%d. " indent index in
   match instr.it with
-  | RelI { call = { relid; notexp }; iterexps; block } ->
+  | RelI { call = { relid; notexp }; iterinstrs; block } ->
       Format.asprintf "%s(%s: %s)%s\n\n%s" order (string_of_relid relid)
         (string_of_notexp notexp)
-        (string_of_iterexps iterexps)
+        (string_of_iterinstrs iterinstrs)
         (fst (string_of_instrs_from ~level ~index:(index + 1) block))
   | RelAssertI
       {
@@ -281,10 +287,10 @@ and string_of_instr ?(level = 0) ?(index = 0) instr =
   | OtherwiseI instr ->
       Format.asprintf "%sOtherwise\n\n%s" order
         (string_of_instr ~level:(level + 1) ~index:1 instr)
-  | LetI (exp_l, exp_r, iterexps, block) ->
+  | LetI (exp_l, exp_r, iterinstrs, block) ->
       Format.asprintf "%s(Let %s be %s)%s\n\n%s" order (string_of_exp exp_l)
         (string_of_exp exp_r)
-        (string_of_iterexps iterexps)
+        (string_of_iterinstrs iterinstrs)
         (fst (string_of_instrs_from ~level ~index:(index + 1) block))
   | ResultI [] -> Format.asprintf "%sThe relation holds" order
   | ResultI exps ->
@@ -300,18 +306,18 @@ and string_of_instr_with_next ?(level = 0) ~(index : int) instr =
   let indent = String.make (level * 2) ' ' in
   let order = Format.asprintf "%s%d. " indent index in
   match instr.it with
-  | LetI (exp_l, exp_r, iterexps, block) ->
+  | LetI (exp_l, exp_r, iterinstrs, block) ->
       let block, next = string_of_instrs_from ~level ~index:(index + 1) block in
       ( Format.asprintf "%s(Let %s be %s)%s\n\n%s" order (string_of_exp exp_l)
           (string_of_exp exp_r)
-          (string_of_iterexps iterexps)
+          (string_of_iterinstrs iterinstrs)
           block,
         next )
-  | RelI { call = { relid; notexp }; iterexps; block } ->
+  | RelI { call = { relid; notexp }; iterinstrs; block } ->
       let block, next = string_of_instrs_from ~level ~index:(index + 1) block in
       ( Format.asprintf "%s(%s: %s)%s\n\n%s" order (string_of_relid relid)
           (string_of_notexp notexp)
-          (string_of_iterexps iterexps)
+          (string_of_iterinstrs iterinstrs)
           block,
         next )
   | DebugI (exp, instr_body) ->

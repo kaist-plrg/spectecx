@@ -1610,7 +1610,7 @@ xref:empty_theta[$empty_theta]
 xref:capture_avoiding_[$capture_avoiding_(theta, typeParameterIR^{asterisk}^, B)]
 
 . Let ``+{+typeId~free~^{asterisk}^+}+`` be xref:diff_set[the difference of the sets ``B`` and ``+{+typeParameterIR^{asterisk}^+}+``].
-. Let ``typeIR^?^`` be xref:find_map[the value of ``typeId~free~`` in map ``theta``], for all ``typeIR^?^`` in ``typeIR^?^^{asterisk}^`` and ``typeId~free~`` in ``typeId~free~^{asterisk}^``.
+. Let ``typeIR^?^`` be xref:find_map[the value of ``typeId~free~`` in map ``theta``], for all ``typeId~free~`` in ``typeId~free~^{asterisk}^`` and ``typeIR^?^`` in ``typeIR^?^^{asterisk}^``.
 . Check that ``typeIR^?^`` is defined, for all ``typeIR^?^`` in ``typeIR^?^^{asterisk}^``.
 
 . Let ``typeIR~free~`` be ``typeIR^?^``, for all ``typeIR^?^`` in ``typeIR^?^^{asterisk}^`` and ``typeIR~free~`` in ``typeIR~free~^{asterisk}^``.
@@ -1625,7 +1625,7 @@ xref:capture_avoiding_[$capture_avoiding_(theta, typeParameterIR^{asterisk}^, B)
 xref:capture_avoiding[$capture_avoiding(theta, typeParameterIR~expl~^{asterisk}^, typeParameterIR~impl~^{asterisk}^, B)]
 
 . Let ``+{+typeId~free~^{asterisk}^+}+`` be xref:diff_set[the difference of the sets ``B`` and ``+{+typeParameterIR~expl~^{asterisk}^ {pp} typeParameterIR~impl~^{asterisk}^+}+``].
-. Let ``typeIR^?^`` be xref:find_map[the value of ``typeId~free~`` in map ``theta``], for all ``typeIR^?^`` in ``typeIR^?^^{asterisk}^`` and ``typeId~free~`` in ``typeId~free~^{asterisk}^``.
+. Let ``typeIR^?^`` be xref:find_map[the value of ``typeId~free~`` in map ``theta``], for all ``typeId~free~`` in ``typeId~free~^{asterisk}^`` and ``typeIR^?^`` in ``typeIR^?^^{asterisk}^``.
 . Check that ``typeIR^?^`` is defined, for all ``typeIR^?^`` in ``typeIR^?^^{asterisk}^``.
 
 . Let ``typeIR~free~`` be ``typeIR^?^``, for all ``typeIR^?^`` in ``typeIR^?^^{asterisk}^`` and ``typeIR~free~`` in ``typeIR~free~^{asterisk}^``.
@@ -1703,7 +1703,7 @@ xref:subst_typeIR'[``typeIR'''`` substituted by a non-empty ``theta``]
 . Else if let ``externObjectTypeIR`` be ``typeIR'''``:
  .. Let ``+EXTERN+ typeId +<+typeArgumentIR^{asterisk}^+>+ +{+( callableId +:+ externMethodTypeDefIR )^{asterisk}^+}+`` be ``externObjectTypeIR``.
  .. Let ``typeArgumentIR~subst~`` be xref:subst_typeIR'[``typeArgumentIR`` substituted by a non-empty ``theta``], for all ``typeArgumentIR`` in ``typeArgumentIR^{asterisk}^`` and ``typeArgumentIR~subst~`` in ``typeArgumentIR~subst~^{asterisk}^``.
- .. Let ``callableTypeDefIR`` be xref:subst_callableTypeDefIR[``externMethodTypeDefIR`` substituted by ``theta``], for all ``callableTypeDefIR`` in ``callableTypeDefIR^{asterisk}^`` and ``externMethodTypeDefIR`` in ``externMethodTypeDefIR^{asterisk}^``.
+ .. Let ``callableTypeDefIR`` be xref:subst_callableTypeDefIR[``externMethodTypeDefIR`` substituted by ``theta``], for all ``externMethodTypeDefIR`` in ``externMethodTypeDefIR^{asterisk}^`` and ``callableTypeDefIR`` in ``callableTypeDefIR^{asterisk}^``.
  .. Check that ``callableTypeDefIR`` has type ``externMethodTypeDefIR``, for all ``callableTypeDefIR`` in ``callableTypeDefIR^{asterisk}^``.
 
  .. Let ``externMethodTypeDefIR~subst~`` be ``callableTypeDefIR``, for all ``callableTypeDefIR`` in ``callableTypeDefIR^{asterisk}^`` and ``externMethodTypeDefIR~subst~`` in ``externMethodTypeDefIR~subst~^{asterisk}^``.
@@ -1906,7 +1906,7 @@ xref:specialize_callableTypeDefIR[``callableTypeDefIR~base~`` specialized by ``t
   ... Check that the length of ``typeParameterIR~expl~^{asterisk}^`` is equal to the length of ``typeArgumentIR^{asterisk}^``.
 
   ... Let ``typeId~fresh~^{asterisk}^`` be xref:fresh_typeIds[the length of ``typeParameterIR~impl~^{asterisk}^`` fresh type variables].
-  ... Let ``typeArgumentIR~impl~`` be ``typeId~fresh~``, for all ``typeArgumentIR~impl~`` in ``typeArgumentIR~impl~^{asterisk}^`` and ``typeId~fresh~`` in ``typeId~fresh~^{asterisk}^``.
+  ... Let ``typeArgumentIR~impl~`` be ``typeId~fresh~``, for all ``typeId~fresh~`` in ``typeId~fresh~^{asterisk}^`` and ``typeArgumentIR~impl~`` in ``typeArgumentIR~impl~^{asterisk}^``.
   ... Let ``theta`` be ``+{+( typeParameterIR~expl~ +:+ typeArgumentIR )^{asterisk}^ {pp} ( typeParameterIR~impl~ +:+ typeArgumentIR~impl~ )^{asterisk}^+}+``.
   ... Let ``callableTypeIR~base~`` be xref:callableTypeIR_of_callableTypeDefIR[the underlying type of ``callableTypeDefIR~base~``].
   ... Let ``callableTypeIR~spec~`` be xref:subst_callableTypeIR[``callableTypeIR~base~`` substituted by ``theta``].
@@ -1915,7 +1915,7 @@ xref:specialize_callableTypeDefIR[``callableTypeDefIR~base~`` specialized by ``t
   ... Check that the length of ``typeParameterIR~expl~^{asterisk}^`` is greater than ``0`` and the length of ``typeArgumentIR^{asterisk}^`` is equal to ``0``.
 
   ... Let ``typeId~fresh~^{asterisk}^`` be xref:fresh_typeIds[the length of ``typeParameterIR^{asterisk}^`` fresh type variables].
-  ... Let ``typeArgumentIR~fresh~`` be ``typeId~fresh~``, for all ``typeArgumentIR~fresh~`` in ``typeArgumentIR~fresh~^{asterisk}^`` and ``typeId~fresh~`` in ``typeId~fresh~^{asterisk}^``.
+  ... Let ``typeArgumentIR~fresh~`` be ``typeId~fresh~``, for all ``typeId~fresh~`` in ``typeId~fresh~^{asterisk}^`` and ``typeArgumentIR~fresh~`` in ``typeArgumentIR~fresh~^{asterisk}^``.
   ... Let ``theta`` be ``+{+( typeParameterIR +:+ typeArgumentIR~fresh~ )^{asterisk}^+}+``.
   ... Let ``callableTypeIR~base~`` be xref:callableTypeIR_of_callableTypeDefIR[the underlying type of ``callableTypeDefIR~base~``].
   ... Let ``callableTypeIR~spec~`` be xref:subst_callableTypeIR[``callableTypeIR~base~`` substituted by ``theta``].
@@ -1929,7 +1929,7 @@ xref:specialize_constructorTypeDefIR[``+CONSTRUCTOR+ +<+typeParameterIR~expl~^{a
   ... Check that the length of ``typeParameterIR~expl~^{asterisk}^`` is equal to the length of ``typeArgumentIR^{asterisk}^``.
 
   ... Let ``typeId~fresh~^{asterisk}^`` be xref:fresh_typeIds[the length of ``typeParameterIR~impl~^{asterisk}^`` fresh type variables].
-  ... Let ``typeArgumentIR~impl~`` be ``typeId~fresh~``, for all ``typeArgumentIR~impl~`` in ``typeArgumentIR~impl~^{asterisk}^`` and ``typeId~fresh~`` in ``typeId~fresh~^{asterisk}^``.
+  ... Let ``typeArgumentIR~impl~`` be ``typeId~fresh~``, for all ``typeId~fresh~`` in ``typeId~fresh~^{asterisk}^`` and ``typeArgumentIR~impl~`` in ``typeArgumentIR~impl~^{asterisk}^``.
   ... Let ``theta`` be ``+{+( typeParameterIR~expl~ +:+ typeArgumentIR )^{asterisk}^ {pp} ( typeParameterIR~impl~ +:+ typeArgumentIR~impl~ )^{asterisk}^+}+``.
   ... Let ``constructorTypeIR~spec~`` be xref:subst_constructorTypeIR[``+CONSTRUCTOR+ +(+constructorParameterIR^{asterisk}^+)+ +:+ typeIR`` substituted by ``theta``].
   ... Return ( ``constructorTypeIR~spec~``, ``typeId~fresh~^{asterisk}^`` ).
@@ -1937,7 +1937,7 @@ xref:specialize_constructorTypeDefIR[``+CONSTRUCTOR+ +<+typeParameterIR~expl~^{a
   ... Check that the length of ``typeParameterIR~expl~^{asterisk}^`` is greater than ``0`` and the length of ``typeArgumentIR^{asterisk}^`` is equal to ``0``.
 
   ... Let ``typeId~fresh~^{asterisk}^`` be xref:fresh_typeIds[the length of ``typeParameterIR^{asterisk}^`` fresh type variables].
-  ... Let ``typeArgumentIR~fresh~`` be ``typeId~fresh~``, for all ``typeArgumentIR~fresh~`` in ``typeArgumentIR~fresh~^{asterisk}^`` and ``typeId~fresh~`` in ``typeId~fresh~^{asterisk}^``.
+  ... Let ``typeArgumentIR~fresh~`` be ``typeId~fresh~``, for all ``typeId~fresh~`` in ``typeId~fresh~^{asterisk}^`` and ``typeArgumentIR~fresh~`` in ``typeArgumentIR~fresh~^{asterisk}^``.
   ... Let ``theta`` be ``+{+( typeParameterIR +:+ typeArgumentIR~fresh~ )^{asterisk}^+}+``.
   ... Let ``constructorTypeIR~spec~`` be xref:subst_constructorTypeIR[``+CONSTRUCTOR+ +(+constructorParameterIR^{asterisk}^+)+ +:+ typeIR`` substituted by ``theta``].
   ... Return ( ``constructorTypeIR~spec~``, ``typeId~fresh~^{asterisk}^`` ).
@@ -3761,7 +3761,7 @@ xref:partition_parameterListIR[$partition_parameterListIR(parameterIR^{asterisk}
 xref:align_parameterListIR[Aligning ``parameterIR^{asterisk}^`` with ``argumentIR^{asterisk}^`` where defaults are ``nameIR~default~^{asterisk}^`` and optionals are ``nameIR~optional~^{asterisk}^``]
 
 . Let ``( parameterIR~given~^{asterisk}^, parameterIR~default~^{asterisk}^, parameterIR~optional~^{asterisk}^ )`` be ``xref:partition_parameterListIR[$partition_parameterListIR(parameterIR^{asterisk}^, nameIR~default~^{asterisk}^, nameIR~optional~^{asterisk}^)]``.
-. Let ``++_++ ++_++ ++_++ nameIR~given~ ++_++`` be ``parameterIR~given~``, for all ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``nameIR~given~`` in ``nameIR~given~^{asterisk}^``, and ``parameterIR~given~`` in ``parameterIR~given~^{asterisk}^``.
+. Let ``++_++ ++_++ ++_++ nameIR~given~ ++_++`` be ``parameterIR~given~``, for all ``parameterIR~given~`` in ``parameterIR~given~^{asterisk}^``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, and ``nameIR~given~`` in ``nameIR~given~^{asterisk}^``.
 . Let ``parameterIR~given_aligned~^{asterisk}^`` be ``xref:align_parameterListIR_given[$align_parameterListIR_given(+{+( nameIR~given~ +:+ parameterIR~given~ )^{asterisk}^+}+, parameterIR~given~^{asterisk}^, argumentIR^{asterisk}^)]``.
 . Return ``+GIVEN+ parameterIR~given_aligned~^{asterisk}^ +DEFAULT+ parameterIR~default~^{asterisk}^``.
 
@@ -3828,8 +3828,8 @@ xref:match_overloaded_named[Matching ``callTargetId +:+ V`` against named key ``
   ... Let ``bool`` be xref:eq_set[``+{+id~param~^{asterisk}^+}+`` is equal to ``+{+id~arg~^{asterisk}^+}+``].
   ... Return xref:ite[``+MATCH+`` with defaults ``·`` and optionals ``·`` if ``bool`` otherwise ``+NOMATCH+``].
  .. {empty}
-  ... Let ``b~default~`` be xref:is_default_parameterIR[``parameterIR`` is a parameter with a default value], for all ``b~default~`` in ``b~default~^{asterisk}^`` and ``parameterIR`` in ``parameterIR^{asterisk}^``.
-  ... Let ``b~optional~`` be xref:is_optional_parameterIR[``parameterIR`` is an optional parameter], for all ``b~optional~`` in ``b~optional~^{asterisk}^`` and ``parameterIR`` in ``parameterIR^{asterisk}^``.
+  ... Let ``b~default~`` be xref:is_default_parameterIR[``parameterIR`` is a parameter with a default value], for all ``parameterIR`` in ``parameterIR^{asterisk}^`` and ``b~default~`` in ``b~default~^{asterisk}^``.
+  ... Let ``b~optional~`` be xref:is_optional_parameterIR[``parameterIR`` is an optional parameter], for all ``parameterIR`` in ``parameterIR^{asterisk}^`` and ``b~optional~`` in ``b~optional~^{asterisk}^``.
   ... Check that the length of ``id~param~^{asterisk}^`` is greater than the length of ``id~arg~^{asterisk}^``.
 
   ... Let ``+{+id~param_omitted~^{asterisk}^+}+`` be xref:diff_set[the difference of the sets ``+{+id~param~^{asterisk}^+}+`` and ``+{+id~arg~^{asterisk}^+}+``].
@@ -3853,8 +3853,8 @@ xref:match_overloaded_unnamed[Matching ``callTargetId +:+ V`` against unnamed ke
 . Check that ``nameIR`` is equal to ``nameIR~f~``.
 
 . Let ``parameterIR^{asterisk}^`` be ``xref:get_parameterListIR[$get_parameterListIR(V)]``.
-. Let ``b~default~`` be xref:is_default_parameterIR[``parameterIR`` is a parameter with a default value], for all ``b~default~`` in ``b~default~^{asterisk}^`` and ``parameterIR`` in ``parameterIR^{asterisk}^``.
-. Let ``b~optional~`` be xref:is_optional_parameterIR[``parameterIR`` is an optional parameter], for all ``b~optional~`` in ``b~optional~^{asterisk}^`` and ``parameterIR`` in ``parameterIR^{asterisk}^``.
+. Let ``b~default~`` be xref:is_default_parameterIR[``parameterIR`` is a parameter with a default value], for all ``parameterIR`` in ``parameterIR^{asterisk}^`` and ``b~default~`` in ``b~default~^{asterisk}^``.
+. Let ``b~optional~`` be xref:is_optional_parameterIR[``parameterIR`` is an optional parameter], for all ``parameterIR`` in ``parameterIR^{asterisk}^`` and ``b~optional~`` in ``b~optional~^{asterisk}^``.
 . Check that not xref:exists_[some of ``b~default~^{asterisk}^`` is true] and xref:exists_[some of ``b~optional~^{asterisk}^`` is true].
 
 . Try:
@@ -3872,14 +3872,14 @@ xref:match_overloaded_unnamed[Matching ``callTargetId +:+ V`` against unnamed ke
 
     ..... Check that xref:is_default_parameterIR[``parameterIR~omitted~`` is a parameter with a default value], for all ``parameterIR~omitted~`` in ``parameterIR~omitted~^{asterisk}^``.
 
-    ..... Let ``id~default~`` be xref:id_of_parameterIR[the identifier of ``parameterIR~omitted~``], for all ``id~default~`` in ``id~default~^{asterisk}^`` and ``parameterIR~omitted~`` in ``parameterIR~omitted~^{asterisk}^``.
+    ..... Let ``id~default~`` be xref:id_of_parameterIR[the identifier of ``parameterIR~omitted~``], for all ``parameterIR~omitted~`` in ``parameterIR~omitted~^{asterisk}^`` and ``id~default~`` in ``id~default~^{asterisk}^``.
     ..... Return xref:callTargetMatch[``+MATCH+`` with defaults ``id~default~^{asterisk}^`` and optionals ``·``].
    .... {empty}
     ..... Check that xref:is_default_parameterIR[``parameterIR~given~`` is a parameter without a default value], for all ``parameterIR~given~`` in ``parameterIR~given~^{asterisk}^``.
 
     ..... Check that xref:is_optional_parameterIR[``parameterIR~omitted~`` is an optional parameter], for all ``parameterIR~omitted~`` in ``parameterIR~omitted~^{asterisk}^``.
 
-    ..... Let ``id~optional~`` be xref:id_of_parameterIR[the identifier of ``parameterIR~omitted~``], for all ``id~optional~`` in ``id~optional~^{asterisk}^`` and ``parameterIR~omitted~`` in ``parameterIR~omitted~^{asterisk}^``.
+    ..... Let ``id~optional~`` be xref:id_of_parameterIR[the identifier of ``parameterIR~omitted~``], for all ``parameterIR~omitted~`` in ``parameterIR~omitted~^{asterisk}^`` and ``id~optional~`` in ``id~optional~^{asterisk}^``.
     ..... Return xref:callTargetMatch[``+MATCH+`` with defaults ``·`` and optionals ``id~optional~^{asterisk}^``].
 
 . Otherwise:
@@ -3938,7 +3938,7 @@ xref:find_overloaded[Finding the item in ``+{+( callableId +:+ V )^{asterisk}^+}
  .. {empty}
   ... Check that the length of ``id~arg~^?^^{asterisk}^`` is greater than ``0``.
 
-  ... Let ``id^?^`` be ``id~arg~^?^``, for all ``id^?^`` in ``id^?^^{asterisk}^`` and ``id~arg~^?^`` in ``id~arg~^?^^{asterisk}^``.
+  ... Let ``id^?^`` be ``id~arg~^?^``, for all ``id~arg~^?^`` in ``id~arg~^?^^{asterisk}^`` and ``id^?^`` in ``id^?^^{asterisk}^``.
   ... Check that ``id^?^`` is defined, for all ``id^?^`` in ``id^?^^{asterisk}^``.
 
   ... Let ``id~arg_inner~`` be ``id^?^``, for all ``id^?^`` in ``id^?^^{asterisk}^`` and ``id~arg_inner~`` in ``id~arg_inner~^{asterisk}^``.
@@ -4827,11 +4827,11 @@ xref:requires_priority'[$requires_priority'(text')]
 
 xref:update_mode_tbl[``TBLC`` with match mode updated based on keys ``tableKeyIR^{asterisk}^``]
 
-. Let ``b~pri~`` be xref:requires_priority[match kind of table key ``tableKeyIR`` requires a priority], for all ``b~pri~`` in ``b~pri~^{asterisk}^`` and ``tableKeyIR`` in ``tableKeyIR^{asterisk}^``.
+. Let ``b~pri~`` be xref:requires_priority[match kind of table key ``tableKeyIR`` requires a priority], for all ``tableKeyIR`` in ``tableKeyIR^{asterisk}^`` and ``b~pri~`` in ``b~pri~^{asterisk}^``.
 . If xref:exists_[some of ``b~pri~^{asterisk}^`` is true]:
  .. Return ``TBLC`` with ``+MODE+`` set to ``+PRI+``.
 . Else:
- .. Let ``b~lpm~`` be xref:is_lpm_key[match kind of table key ``tableKeyIR`` is lpm], for all ``b~lpm~`` in ``b~lpm~^{asterisk}^`` and ``tableKeyIR`` in ``tableKeyIR^{asterisk}^``.
+ .. Let ``b~lpm~`` be xref:is_lpm_key[match kind of table key ``tableKeyIR`` is lpm], for all ``tableKeyIR`` in ``tableKeyIR^{asterisk}^`` and ``b~lpm~`` in ``b~lpm~^{asterisk}^``.
  .. Try:
   ... {empty}
    .... Let ``tableKeyIR'^{asterisk}^`` be xref:filter_[``tableKeyIR^{asterisk}^`` filtered by ``b~lpm~^{asterisk}^``].
@@ -4881,7 +4881,7 @@ xref:set_priorities_of_tableEntryListIR[``tableEntryIR^{asterisk}^`` with priori
 
   ... Check that ``TBLS`` matches pattern ``+LPM+ %``, for all ``TBLS`` in ``TBLS^{asterisk}^``.
 
-  ... Let ``+LPM+ n~prefix~`` be ``TBLS``, for all ``n~prefix~`` in ``n~prefix~^{asterisk}^`` and ``TBLS`` in ``TBLS^{asterisk}^``.
+  ... Let ``+LPM+ n~prefix~`` be ``TBLS``, for all ``TBLS`` in ``TBLS^{asterisk}^`` and ``n~prefix~`` in ``n~prefix~^{asterisk}^``.
   ... Check that ``·`` is equal to xref:tableEntryPriorityOptIR_of_tableEntryIR[the priority of ``tableEntryIR``], for all ``tableEntryIR`` in ``tableEntryIR^{asterisk}^``.
 
   ... Let ``tableEntryIR~updated~`` be ``xref:set_priority_of_tableEntryIR[$set_priority_of_tableEntryIR(tableEntryIR, n~prefix~)]``, for all ``n~prefix~`` in ``n~prefix~^{asterisk}^``, ``tableEntryIR`` in ``tableEntryIR^{asterisk}^``, and ``tableEntryIR~updated~`` in ``tableEntryIR~updated~^{asterisk}^``.
@@ -5183,7 +5183,7 @@ xref:CallableType_wf[CallableType_wf]:
  .. If xref:ParameterType_wf[``parameterIR`` is a well-formed parameter, with bound type variables ``B``], for all ``parameterIR`` in ``parameterIR^{asterisk}^``:
   ... Check that xref:is_optional_parameterIR[``parameterIR`` is not an optional parameter], for all ``parameterIR`` in ``parameterIR^{asterisk}^``.
 
-  ... Let ``++_++ direction typeIR ++_++ ++_++`` be ``parameterIR``, for all ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``direction`` in ``direction^{asterisk}^``, ``parameterIR`` in ``parameterIR^{asterisk}^``, and ``typeIR`` in ``typeIR^{asterisk}^``.
+  ... Let ``++_++ direction typeIR ++_++ ++_++`` be ``parameterIR``, for all ``parameterIR`` in ``parameterIR^{asterisk}^``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``direction`` in ``direction^{asterisk}^``, and ``typeIR`` in ``typeIR^{asterisk}^``.
   ... Check that xref:directionless_trailing[directionless parameters in ``direction^{asterisk}^`` only appear at the end].
 
   ... Check that xref:nestable_action[``typeIR`` can be used in an action type], for all ``typeIR`` in ``typeIR^{asterisk}^``.
@@ -5193,14 +5193,14 @@ xref:CallableType_wf[CallableType_wf]:
  .. If xref:ParameterType_wf[``parameterIR`` is a well-formed parameter, with bound type variables ``B``], for all ``parameterIR`` in ``parameterIR^{asterisk}^``:
   ... Check that xref:is_optional_parameterIR[``parameterIR`` is not an optional parameter], for all ``parameterIR`` in ``parameterIR^{asterisk}^``.
 
-  ... Let ``++_++ ++_++ typeIR ++_++ ++_++`` be ``parameterIR``, for all ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``parameterIR`` in ``parameterIR^{asterisk}^``, and ``typeIR`` in ``typeIR^{asterisk}^``.
+  ... Let ``++_++ ++_++ typeIR ++_++ ++_++`` be ``parameterIR``, for all ``parameterIR`` in ``parameterIR^{asterisk}^``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, and ``typeIR`` in ``typeIR^{asterisk}^``.
   ... Check that xref:nestable_definedFunction[``typeIR`` can be used in a defined function type], for all ``typeIR`` in ``typeIR^{asterisk}^``.
 
   ... If xref:ReturnType_wf[``typeIR~ret~`` is a well-formed return type, with bound type variables ``B``]:
    .... The relation holds.
 . Else if let ``+EXTERN_FUNCTION+ ++_++ +(+parameterIR^{asterisk}^+)+ +:+ typeIR~ret~`` be ``callableTypeIR``:
  .. If xref:ParameterType_wf[``parameterIR`` is a well-formed parameter, with bound type variables ``B``], for all ``parameterIR`` in ``parameterIR^{asterisk}^``:
-  ... Let ``++_++ ++_++ typeIR ++_++ ++_++`` be ``parameterIR``, for all ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``parameterIR`` in ``parameterIR^{asterisk}^``, and ``typeIR`` in ``typeIR^{asterisk}^``.
+  ... Let ``++_++ ++_++ typeIR ++_++ ++_++`` be ``parameterIR``, for all ``parameterIR`` in ``parameterIR^{asterisk}^``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, and ``typeIR`` in ``typeIR^{asterisk}^``.
   ... Check that xref:nestable_externFunction[``typeIR`` can be used in an extern function type], for all ``typeIR`` in ``typeIR^{asterisk}^``.
 
   ... If xref:ReturnType_wf[``typeIR~ret~`` is a well-formed return type, with bound type variables ``B``]:
@@ -5214,7 +5214,7 @@ xref:CallableType_wf[CallableType_wf]:
 . Else if let ``externMethodTypeIR`` be ``callableTypeIR``:
  .. If let ``+EXTERN_METHOD+ ++_++ +(+parameterIR^{asterisk}^+)+ +:+ typeIR~ret~`` be ``externMethodTypeIR``:
   ... If xref:ParameterType_wf[``parameterIR`` is a well-formed parameter, with bound type variables ``B``], for all ``parameterIR`` in ``parameterIR^{asterisk}^``:
-   .... Let ``++_++ ++_++ typeIR ++_++ ++_++`` be ``parameterIR``, for all ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``parameterIR`` in ``parameterIR^{asterisk}^``, and ``typeIR`` in ``typeIR^{asterisk}^``.
+   .... Let ``++_++ ++_++ typeIR ++_++ ++_++`` be ``parameterIR``, for all ``parameterIR`` in ``parameterIR^{asterisk}^``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, and ``typeIR`` in ``typeIR^{asterisk}^``.
    .... Check that xref:nestable_externMethod[``typeIR`` can be used in an extern method type], for all ``typeIR`` in ``typeIR^{asterisk}^``.
 
    .... If xref:ReturnType_wf[``typeIR~ret~`` is a well-formed return type, with bound type variables ``B``]:
@@ -5223,7 +5223,7 @@ xref:CallableType_wf[CallableType_wf]:
   ... If xref:ParameterType_wf[``parameterIR`` is a well-formed parameter, with bound type variables ``B``], for all ``parameterIR`` in ``parameterIR^{asterisk}^``:
    .... Check that xref:is_optional_parameterIR[``parameterIR`` is not an optional parameter], for all ``parameterIR`` in ``parameterIR^{asterisk}^``.
 
-   .... Let ``++_++ ++_++ typeIR ++_++ ++_++`` be ``parameterIR``, for all ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``parameterIR`` in ``parameterIR^{asterisk}^``, and ``typeIR`` in ``typeIR^{asterisk}^``.
+   .... Let ``++_++ ++_++ typeIR ++_++ ++_++`` be ``parameterIR``, for all ``parameterIR`` in ``parameterIR^{asterisk}^``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, and ``typeIR`` in ``typeIR^{asterisk}^``.
    .... Check that xref:nestable_externMethod[``typeIR`` can be used in an extern method type], for all ``typeIR`` in ``typeIR^{asterisk}^``.
 
    .... If xref:ReturnType_wf[``typeIR~ret~`` is a well-formed return type, with bound type variables ``B``]:
@@ -5232,7 +5232,7 @@ xref:CallableType_wf[CallableType_wf]:
  .. If xref:ParameterType_wf[``parameterIR`` is a well-formed parameter, with bound type variables ``B``], for all ``parameterIR`` in ``parameterIR^{asterisk}^``:
   ... Check that xref:is_optional_parameterIR[``parameterIR`` is not an optional parameter], for all ``parameterIR`` in ``parameterIR^{asterisk}^``.
 
-  ... Let ``++_++ ++_++ typeIR ++_++ ++_++`` be ``parameterIR``, for all ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``parameterIR`` in ``parameterIR^{asterisk}^``, and ``typeIR`` in ``typeIR^{asterisk}^``.
+  ... Let ``++_++ ++_++ typeIR ++_++ ++_++`` be ``parameterIR``, for all ``parameterIR`` in ``parameterIR^{asterisk}^``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, and ``typeIR`` in ``typeIR^{asterisk}^``.
   ... Check that xref:nestable_parserApplyMethod[``typeIR`` can be used in a parser apply method type], for all ``typeIR`` in ``typeIR^{asterisk}^``.
 
   ... The relation holds.
@@ -5240,7 +5240,7 @@ xref:CallableType_wf[CallableType_wf]:
  .. If xref:ParameterType_wf[``parameterIR`` is a well-formed parameter, with bound type variables ``B``], for all ``parameterIR`` in ``parameterIR^{asterisk}^``:
   ... Check that xref:is_optional_parameterIR[``parameterIR`` is not an optional parameter], for all ``parameterIR`` in ``parameterIR^{asterisk}^``.
 
-  ... Let ``++_++ ++_++ typeIR ++_++ ++_++`` be ``parameterIR``, for all ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``parameterIR`` in ``parameterIR^{asterisk}^``, and ``typeIR`` in ``typeIR^{asterisk}^``.
+  ... Let ``++_++ ++_++ typeIR ++_++ ++_++`` be ``parameterIR``, for all ``parameterIR`` in ``parameterIR^{asterisk}^``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, and ``typeIR`` in ``typeIR^{asterisk}^``.
   ... Check that xref:nestable_controlApplyMethod[``typeIR`` can be used in a control apply method type], for all ``typeIR`` in ``typeIR^{asterisk}^``.
 
   ... The relation holds.
@@ -5283,7 +5283,7 @@ xref:ConstructorType_wf[ConstructorType_wf]:
       ....... Let ``typeIR'`` be xref:unroll_typeIR[``typeIR~object~`` with typedefs unrolled].
       ....... Let!~type~ ``externObjectTypeIR`` be ``typeIR'``.
 
-      ....... Let ``++_++ ++_++ typeIR ++_++ ++_++`` be ``parameterIR'``, for all ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``parameterIR'`` in ``parameterIR'^{asterisk}^``, and ``typeIR`` in ``typeIR^{asterisk}^``.
+      ....... Let ``++_++ ++_++ typeIR ++_++ ++_++`` be ``parameterIR'``, for all ``parameterIR'`` in ``parameterIR'^{asterisk}^``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, and ``typeIR`` in ``typeIR^{asterisk}^``.
       ....... Check that xref:nestable_constructor_extern[``typeIR`` can be used in an extern constructor type], for all ``typeIR`` in ``typeIR^{asterisk}^``.
 
       ....... The relation holds.
@@ -5293,12 +5293,12 @@ xref:ConstructorType_wf[ConstructorType_wf]:
      ...... If xref:Type_wf[``typeIR~object~`` is a well-formed type, with bound type variables ``B``]:
       ....... Let ``typeIR'`` be xref:unroll_typeIR[``typeIR~object~`` with typedefs unrolled].
       ....... If let ``parserObjectTypeIR`` be ``typeIR'``:
-       ........ Let ``++_++ ++_++ typeIR ++_++ ++_++`` be ``parameterIR'``, for all ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``parameterIR'`` in ``parameterIR'^{asterisk}^``, and ``typeIR`` in ``typeIR^{asterisk}^``.
+       ........ Let ``++_++ ++_++ typeIR ++_++ ++_++`` be ``parameterIR'``, for all ``parameterIR'`` in ``parameterIR'^{asterisk}^``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, and ``typeIR`` in ``typeIR^{asterisk}^``.
        ........ Check that xref:nestable_constructor_parser[``typeIR`` can be used in a parser constructor type], for all ``typeIR`` in ``typeIR^{asterisk}^``.
 
        ........ The relation holds.
       ....... Else if let ``controlObjectTypeIR`` be ``typeIR'``:
-       ........ Let ``++_++ ++_++ typeIR ++_++ ++_++`` be ``parameterIR'``, for all ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``parameterIR'`` in ``parameterIR'^{asterisk}^``, and ``typeIR`` in ``typeIR^{asterisk}^``.
+       ........ Let ``++_++ ++_++ typeIR ++_++ ++_++`` be ``parameterIR'``, for all ``parameterIR'`` in ``parameterIR'^{asterisk}^``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, and ``typeIR`` in ``typeIR^{asterisk}^``.
        ........ Check that xref:nestable_constructor_control[``typeIR`` can be used in a control constructor type], for all ``typeIR`` in ``typeIR^{asterisk}^``.
 
        ........ The relation holds.
@@ -5316,7 +5316,7 @@ xref:ConstructorType_wf[ConstructorType_wf]:
     ..... Let ``typeIR'`` be xref:unroll_typeIR[``typeIR~object~`` with typedefs unrolled].
     ..... Let!~type~ ``packageObjectTypeIR`` be ``typeIR'``.
 
-    ..... Let ``++_++ ++_++ typeIR ++_++ ++_++`` be ``parameterIR'``, for all ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``parameterIR'`` in ``parameterIR'^{asterisk}^``, and ``typeIR`` in ``typeIR^{asterisk}^``.
+    ..... Let ``++_++ ++_++ typeIR ++_++ ++_++`` be ``parameterIR'``, for all ``parameterIR'`` in ``parameterIR'^{asterisk}^``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, and ``typeIR`` in ``typeIR^{asterisk}^``.
     ..... Check that xref:nestable_constructor_package[``typeIR`` can be used in a package constructor type], for all ``typeIR`` in ``typeIR^{asterisk}^``.
 
     ..... The relation holds.
@@ -5930,13 +5930,13 @@ xref:Expr_eval_lctk[Expr_eval_lctk]:
 
      ...... Check that ``boolTypeIR`` matches pattern ``+BOOL+``.
 
-     ...... Let ``++_++ ++_++ ++_++ nameIR~param~ ++_++`` be ``parameterIR``, for all ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``nameIR~param~`` in ``nameIR~param~^{asterisk}^``, and ``parameterIR`` in ``parameterIR^{asterisk}^``.
+     ...... Let ``++_++ ++_++ ++_++ nameIR~param~ ++_++`` be ``parameterIR``, for all ``parameterIR`` in ``parameterIR^{asterisk}^``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, and ``nameIR~param~`` in ``nameIR~param~^{asterisk}^``.
      ...... Let ``TC~callee_0~`` be xref:empty_typingContext[an empty typing context].
      ...... Let ``+GIVEN+ parameterIR~aligned~^{asterisk}^ +DEFAULT+ parameterIR'^{asterisk}^`` be xref:align_parameterListIR[aligning ``parameterIR^{asterisk}^`` with ``argumentIR^{asterisk}^`` where defaults are ``id~default~^{asterisk}^`` and optionals are ``id~optional~^{asterisk}^``].
      ...... Check that ``parameterIR'^{asterisk}^`` is an empty list.
 
      ...... Let ``value~argument~`` be the result of xref:Argument_eval_lctk[local compile-time evaluation of ``argumentIR``, under context ``TC`` at ``p``], for all ``argumentIR`` in ``argumentIR^{asterisk}^`` and ``value~argument~`` in ``value~argument~^{asterisk}^``.
-     ...... Let ``++_++ direction~param_aligned~ typeIR~param_aligned~ nameIR~param_aligned~ ++_++`` be ``parameterIR~aligned~``, for all ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``direction~param_aligned~`` in ``direction~param_aligned~^{asterisk}^``, ``nameIR~param_aligned~`` in ``nameIR~param_aligned~^{asterisk}^``, ``parameterIR~aligned~`` in ``parameterIR~aligned~^{asterisk}^``, and ``typeIR~param_aligned~`` in ``typeIR~param_aligned~^{asterisk}^``.
+     ...... Let ``++_++ direction~param_aligned~ typeIR~param_aligned~ nameIR~param_aligned~ ++_++`` be ``parameterIR~aligned~``, for all ``parameterIR~aligned~`` in ``parameterIR~aligned~^{asterisk}^``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``direction~param_aligned~`` in ``direction~param_aligned~^{asterisk}^``, ``nameIR~param_aligned~`` in ``nameIR~param_aligned~^{asterisk}^``, and ``typeIR~param_aligned~`` in ``typeIR~param_aligned~^{asterisk}^``.
      ...... Let ``varTypeIR`` be ``direction~param_aligned~ typeIR~param_aligned~ +LCTK+ value~argument~``, for all ``direction~param_aligned~`` in ``direction~param_aligned~^{asterisk}^``, ``typeIR~param_aligned~`` in ``typeIR~param_aligned~^{asterisk}^``, ``value~argument~`` in ``value~argument~^{asterisk}^``, and ``varTypeIR`` in ``varTypeIR^{asterisk}^``.
      ...... Let ``TC~callee_1~`` be xref:add_vars_t[``TC~callee_0~`` where each of ``nameIR~param_aligned~^{asterisk}^`` to each of ``varTypeIR^{asterisk}^`` are added to the ``+LOCAL+`` layer].
      ...... Let ``value`` be the result of xref:ExternFunctionCall_eval_lctk[calling an extern function ``"static_assert"``(``nameIR~param~^{asterisk}^``) under context ``TC~callee_1~``].
@@ -6108,7 +6108,7 @@ xref:TypeParameterListOpt_ok[TypeParameterListOpt_ok]:
 * Typing ``typeParameterListOpt``, under context ``TC~0~`` at ``p``.
 
 . Let ``typeParameter^{asterisk}^`` be xref:flatten_typeParameterListOpt[``typeParameterListOpt`` flattened].
-. Let ``typeId`` be xref:name[the name of ``typeParameter``], for all ``typeId`` in ``typeId^{asterisk}^`` and ``typeParameter`` in ``typeParameter^{asterisk}^``.
+. Let ``typeId`` be xref:name[the name of ``typeParameter``], for all ``typeParameter`` in ``typeParameter^{asterisk}^`` and ``typeId`` in ``typeId^{asterisk}^``.
 . Let ``TC~1~`` be xref:add_typeParameters_t[type parameters ``typeId^{asterisk}^`` added to the ``p`` layer of ``TC~0~``].
 . Result in context ``TC~1~`` and type parameters ``typeId^{asterisk}^``.
 
@@ -6768,8 +6768,8 @@ xref:Expr_ok[Expr_ok]:
     ..... Let ``expression~e~^{asterisk}^`` be xref:flatten_expressionList[``expressionList`` flattened].
     ..... If ``+...+`` is not in ``expression~e~^{asterisk}^``:
      ...... Let ``typedExpressionIR~e~`` be the result of xref:Expr_ok[typing ``expression~e~``, under context ``TC`` at ``p``], for all ``expression~e~`` in ``expression~e~^{asterisk}^`` and ``typedExpressionIR~e~`` in ``typedExpressionIR~e~^{asterisk}^``.
-     ...... Let ``typeIR~e~`` be xref:type_of_typedExpressionIR[the type of ``typedExpressionIR~e~``], for all ``typeIR~e~`` in ``typeIR~e~^{asterisk}^`` and ``typedExpressionIR~e~`` in ``typedExpressionIR~e~^{asterisk}^``.
-     ...... Let ``ctk~e~`` be xref:ctk_of_typedExpressionIR[the compile-time known-ness of ``typedExpressionIR~e~``], for all ``ctk~e~`` in ``ctk~e~^{asterisk}^`` and ``typedExpressionIR~e~`` in ``typedExpressionIR~e~^{asterisk}^``.
+     ...... Let ``typeIR~e~`` be xref:type_of_typedExpressionIR[the type of ``typedExpressionIR~e~``], for all ``typedExpressionIR~e~`` in ``typedExpressionIR~e~^{asterisk}^`` and ``typeIR~e~`` in ``typeIR~e~^{asterisk}^``.
+     ...... Let ``ctk~e~`` be xref:ctk_of_typedExpressionIR[the compile-time known-ness of ``typedExpressionIR~e~``], for all ``typedExpressionIR~e~`` in ``typedExpressionIR~e~^{asterisk}^`` and ``ctk~e~`` in ``ctk~e~^{asterisk}^``.
      ...... Let ``typeIR`` be ``+SEQ+ +<+typeIR~e~^{asterisk}^+>+``.
      ...... Let ``ctk`` be xref:joins_ctk[the join of ``ctk~e~^{asterisk}^``].
      ...... Let ``expressionNoteIR`` be xref:expressionNoteIR[a pair of type ``typeIR`` and compile-time known-ness ``ctk``].
@@ -6786,8 +6786,8 @@ xref:Expr_ok[Expr_ok]:
      ...... Check that ``+...+`` is not in ``expression~e_h~^{asterisk}^``.
 
      ...... Let ``typedExpressionIR~e_h~`` be the result of xref:Expr_ok[typing ``expression~e_h~``, under context ``TC`` at ``p``], for all ``expression~e_h~`` in ``expression~e_h~^{asterisk}^`` and ``typedExpressionIR~e_h~`` in ``typedExpressionIR~e_h~^{asterisk}^``.
-     ...... Let ``typeIR~e_h~`` be xref:type_of_typedExpressionIR[the type of ``typedExpressionIR~e_h~``], for all ``typeIR~e_h~`` in ``typeIR~e_h~^{asterisk}^`` and ``typedExpressionIR~e_h~`` in ``typedExpressionIR~e_h~^{asterisk}^``.
-     ...... Let ``ctk~e_h~`` be xref:ctk_of_typedExpressionIR[the compile-time known-ness of ``typedExpressionIR~e_h~``], for all ``ctk~e_h~`` in ``ctk~e_h~^{asterisk}^`` and ``typedExpressionIR~e_h~`` in ``typedExpressionIR~e_h~^{asterisk}^``.
+     ...... Let ``typeIR~e_h~`` be xref:type_of_typedExpressionIR[the type of ``typedExpressionIR~e_h~``], for all ``typedExpressionIR~e_h~`` in ``typedExpressionIR~e_h~^{asterisk}^`` and ``typeIR~e_h~`` in ``typeIR~e_h~^{asterisk}^``.
+     ...... Let ``ctk~e_h~`` be xref:ctk_of_typedExpressionIR[the compile-time known-ness of ``typedExpressionIR~e_h~``], for all ``typedExpressionIR~e_h~`` in ``typedExpressionIR~e_h~^{asterisk}^`` and ``ctk~e_h~`` in ``ctk~e_h~^{asterisk}^``.
      ...... Let ``typeIR`` be ``+SEQ+ +<+typeIR~e_h~^{asterisk}^ +,+ +...++>+``.
      ...... Let ``ctk`` be xref:joins_ctk[the join of ``ctk~e_h~^{asterisk}^``].
      ...... Let ``expressionNoteIR`` be xref:expressionNoteIR[a pair of type ``typeIR`` and compile-time known-ness ``ctk``].
@@ -6812,11 +6812,11 @@ xref:Expr_ok[Expr_ok]:
     ..... Else if let ``name~f_h~ +=+ expression~f_h~ +,+ namedExpressionList~t~`` be ``recordElementExpression``:
      ...... Let ``( name~f_t~ +=+ expression~f_t~ )^{asterisk}^`` be xref:flatten_namedExpressionList[``namedExpressionList~t~`` flattened].
      ...... Let ``name~f~^{asterisk}^`` be ``name~f_h~ {two-colons} name~f_t~^{asterisk}^``.
-     ...... Let ``nameIR~f~`` be xref:name[the name of ``name~f~``], for all ``nameIR~f~`` in ``nameIR~f~^{asterisk}^`` and ``name~f~`` in ``name~f~^{asterisk}^``.
+     ...... Let ``nameIR~f~`` be xref:name[the name of ``name~f~``], for all ``name~f~`` in ``name~f~^{asterisk}^`` and ``nameIR~f~`` in ``nameIR~f~^{asterisk}^``.
      ...... Let ``expression~f~^{asterisk}^`` be ``expression~f_h~ {two-colons} expression~f_t~^{asterisk}^``.
      ...... Let ``typedExpressionIR~f~`` be the result of xref:Expr_ok[typing ``expression~f~``, under context ``TC`` at ``p``], for all ``expression~f~`` in ``expression~f~^{asterisk}^`` and ``typedExpressionIR~f~`` in ``typedExpressionIR~f~^{asterisk}^``.
-     ...... Let ``typeIR~f~`` be xref:type_of_typedExpressionIR[the type of ``typedExpressionIR~f~``], for all ``typeIR~f~`` in ``typeIR~f~^{asterisk}^`` and ``typedExpressionIR~f~`` in ``typedExpressionIR~f~^{asterisk}^``.
-     ...... Let ``ctk~f~`` be xref:ctk_of_typedExpressionIR[the compile-time known-ness of ``typedExpressionIR~f~``], for all ``ctk~f~`` in ``ctk~f~^{asterisk}^`` and ``typedExpressionIR~f~`` in ``typedExpressionIR~f~^{asterisk}^``.
+     ...... Let ``typeIR~f~`` be xref:type_of_typedExpressionIR[the type of ``typedExpressionIR~f~``], for all ``typedExpressionIR~f~`` in ``typedExpressionIR~f~^{asterisk}^`` and ``typeIR~f~`` in ``typeIR~f~^{asterisk}^``.
+     ...... Let ``ctk~f~`` be xref:ctk_of_typedExpressionIR[the compile-time known-ness of ``typedExpressionIR~f~``], for all ``typedExpressionIR~f~`` in ``typedExpressionIR~f~^{asterisk}^`` and ``ctk~f~`` in ``ctk~f~^{asterisk}^``.
      ...... Let ``typeIR`` be ``+RECORD+ +{+( typeIR~f~ nameIR~f~ +;+ )^{asterisk}^+}+``.
      ...... Let ``ctk`` be xref:joins_ctk[the join of ``ctk~f~^{asterisk}^``].
      ...... Let ``expressionNoteIR`` be xref:expressionNoteIR[a pair of type ``typeIR`` and compile-time known-ness ``ctk``].
@@ -6824,11 +6824,11 @@ xref:Expr_ok[Expr_ok]:
     ..... Else:
      ...... Let ``( name~f_t~ +=+ expression~f_t~ )^{asterisk}^`` be xref:flatten_namedExpressionList[``namedExpressionList~t~`` flattened].
      ...... Let ``name~f~^{asterisk}^`` be ``name~f_h~ {two-colons} name~f_t~^{asterisk}^``.
-     ...... Let ``nameIR~f~`` be xref:name[the name of ``name~f~``], for all ``nameIR~f~`` in ``nameIR~f~^{asterisk}^`` and ``name~f~`` in ``name~f~^{asterisk}^``.
+     ...... Let ``nameIR~f~`` be xref:name[the name of ``name~f~``], for all ``name~f~`` in ``name~f~^{asterisk}^`` and ``nameIR~f~`` in ``nameIR~f~^{asterisk}^``.
      ...... Let ``expression~f~^{asterisk}^`` be ``expression~f_h~ {two-colons} expression~f_t~^{asterisk}^``.
      ...... Let ``typedExpressionIR~f~`` be the result of xref:Expr_ok[typing ``expression~f~``, under context ``TC`` at ``p``], for all ``expression~f~`` in ``expression~f~^{asterisk}^`` and ``typedExpressionIR~f~`` in ``typedExpressionIR~f~^{asterisk}^``.
-     ...... Let ``typeIR~f~`` be xref:type_of_typedExpressionIR[the type of ``typedExpressionIR~f~``], for all ``typeIR~f~`` in ``typeIR~f~^{asterisk}^`` and ``typedExpressionIR~f~`` in ``typedExpressionIR~f~^{asterisk}^``.
-     ...... Let ``ctk~f~`` be xref:ctk_of_typedExpressionIR[the compile-time known-ness of ``typedExpressionIR~f~``], for all ``ctk~f~`` in ``ctk~f~^{asterisk}^`` and ``typedExpressionIR~f~`` in ``typedExpressionIR~f~^{asterisk}^``.
+     ...... Let ``typeIR~f~`` be xref:type_of_typedExpressionIR[the type of ``typedExpressionIR~f~``], for all ``typedExpressionIR~f~`` in ``typedExpressionIR~f~^{asterisk}^`` and ``typeIR~f~`` in ``typeIR~f~^{asterisk}^``.
+     ...... Let ``ctk~f~`` be xref:ctk_of_typedExpressionIR[the compile-time known-ness of ``typedExpressionIR~f~``], for all ``typedExpressionIR~f~`` in ``typedExpressionIR~f~^{asterisk}^`` and ``ctk~f~`` in ``ctk~f~^{asterisk}^``.
      ...... Let ``typeIR`` be ``+RECORD+ +{+( typeIR~f~ nameIR~f~ +;+ )^{asterisk}^ +,+ +...++}+``.
      ...... Let ``ctk`` be xref:joins_ctk[the join of ``ctk~f~^{asterisk}^``].
      ...... Let ``expressionNoteIR`` be xref:expressionNoteIR[a pair of type ``typeIR`` and compile-time known-ness ``ctk``].
@@ -7645,7 +7645,7 @@ xref:ParserSelect_ok[ParserSelect_ok]:
 . Let ``expression~key~^{asterisk}^`` be xref:flatten_expressionList[``expressionList~key~`` flattened].
 . Let ``typedExpressionIR~key~`` be the result of xref:Expr_ok[typing ``expression~key~``, under context ``TC~0~`` at ``+LOCAL+``], for all ``expression~key~`` in ``expression~key~^{asterisk}^`` and ``typedExpressionIR~key~`` in ``typedExpressionIR~key~^{asterisk}^``.
 . Let ``typedExpressionIR~key_reduced~`` be xref:reduce_serenum[``typedExpressionIR~key~`` with surrounding serializable enums reduced], for all ``typedExpressionIR~key~`` in ``typedExpressionIR~key~^{asterisk}^`` and ``typedExpressionIR~key_reduced~`` in ``typedExpressionIR~key_reduced~^{asterisk}^``.
-. Let ``typeIR~key_reduced~`` be xref:type_of_typedExpressionIR[the type of ``typedExpressionIR~key_reduced~``], for all ``typeIR~key_reduced~`` in ``typeIR~key_reduced~^{asterisk}^`` and ``typedExpressionIR~key_reduced~`` in ``typedExpressionIR~key_reduced~^{asterisk}^``.
+. Let ``typeIR~key_reduced~`` be xref:type_of_typedExpressionIR[the type of ``typedExpressionIR~key_reduced~``], for all ``typedExpressionIR~key_reduced~`` in ``typedExpressionIR~key_reduced~^{asterisk}^`` and ``typeIR~key_reduced~`` in ``typeIR~key_reduced~^{asterisk}^``.
 . Let ``bound`` be xref:bound[bound type variables from the ``+LOCAL+`` layer of ``TC~0~``].
 . If xref:Type_wf[``+SET+ +<+typeIR~key_reduced~+>+`` is a well-formed type, with bound type variables ``bound``], for all ``typeIR~key_reduced~`` in ``typeIR~key_reduced~^{asterisk}^``:
  .. Let ``selectCase^{asterisk}^`` be xref:flatten_selectCaseList[``selectCaseList`` flattened].
@@ -7765,8 +7765,8 @@ xref:ParserStateList_ok[ParserStateList_ok]:
 * Typing ``parserStateList``, under context ``TC``.
 
 . Let ``parserState^{asterisk}^`` be xref:flatten_parserStateList[``parserStateList`` flattened].
-. Let ``++_++ +STATE+ name~state~ +{+++_++ ++_+++}+`` be ``parserState``, for all ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``name~state~`` in ``name~state~^{asterisk}^``, and ``parserState`` in ``parserState^{asterisk}^``.
-. Let ``nameIR~state~`` be xref:name[the name of ``name~state~``], for all ``nameIR~state~`` in ``nameIR~state~^{asterisk}^`` and ``name~state~`` in ``name~state~^{asterisk}^``.
+. Let ``++_++ +STATE+ name~state~ +{+++_++ ++_+++}+`` be ``parserState``, for all ``parserState`` in ``parserState^{asterisk}^``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, and ``name~state~`` in ``name~state~^{asterisk}^``.
+. Let ``nameIR~state~`` be xref:name[the name of ``name~state~``], for all ``name~state~`` in ``name~state~^{asterisk}^`` and ``nameIR~state~`` in ``nameIR~state~^{asterisk}^``.
 . Check that xref:distinct_[the elements of ``nameIR~state~^{asterisk}^`` are distinct].
 
 . Check that ``"start"`` is in ``nameIR~state~^{asterisk}^``.
@@ -8123,7 +8123,7 @@ xref:TableProperty_ok[TableProperty_ok]:
  .. Let ``TBLC~1~`` be ``TBLC~0'~`` with ``+ENTRIES+.+SIZE+`` set to ``the length of tableEntry^{asterisk}^``.
  .. Let ``constOptIR`` be xref:flatten_constOpt[the optional const qualifier in ``constOpt``].
  .. Let ``TBLC~2~`` be ``TBLC~1~`` with ``+ENTRIES+.+CONST+`` set to ``constOptIR = +CONST+``.
- .. Let table entry state ``TBLS`` and ``tableEntryIR`` be the result of xref:TableEntry_ok[typing ``tableEntry``, under context ``TC`` and table context ``TBLC~2~``], for all ``TBLS`` in ``TBLS^{asterisk}^``, ``tableEntry`` in ``tableEntry^{asterisk}^``, and ``tableEntryIR`` in ``tableEntryIR^{asterisk}^``.
+ .. Let table entry state ``TBLS`` and ``tableEntryIR`` be the result of xref:TableEntry_ok[typing ``tableEntry``, under context ``TC`` and table context ``TBLC~2~``], for all ``tableEntry`` in ``tableEntry^{asterisk}^``, ``TBLS`` in ``TBLS^{asterisk}^``, and ``tableEntryIR`` in ``tableEntryIR^{asterisk}^``.
  .. Let ``tableEntryIR~pri~^{asterisk}^`` be xref:set_priorities_of_tableEntryListIR[``tableEntryIR^{asterisk}^`` with priorities set based on table context ``TBLC~2~`` and entry states ``TBLS^{asterisk}^``].
  .. Result in table context ``TBLC~2~`` and ``annotationList constOptIR +ENTRIES+ +=+ +{+tableEntryIR~pri~^{asterisk}^+}+``.
 . Else:
@@ -8232,7 +8232,7 @@ xref:TableType_ok[TableType_ok]:
 . Let ``nameIR`` be xref:name[the name of ``name``].
 . Let ``typeId~enum~`` be ``"action_list("`` concatenated with ``nameIR`` concatenated with ``")"``.
 . Let ``( prefixedNameIR~action~ +(+++_++^{asterisk}^ +@+ ++_+++)+ )^{asterisk}^`` be ``TBLC.+ACTIONS+``.
-. Let ``nameIR~enum_field~`` be xref:flatten_prefixedNameIR[the string form of  ``prefixedNameIR~action~``], for all ``nameIR~enum_field~`` in ``nameIR~enum_field~^{asterisk}^`` and ``prefixedNameIR~action~`` in ``prefixedNameIR~action~^{asterisk}^``.
+. Let ``nameIR~enum_field~`` be xref:flatten_prefixedNameIR[the string form of  ``prefixedNameIR~action~``], for all ``prefixedNameIR~action~`` in ``prefixedNameIR~action~^{asterisk}^`` and ``nameIR~enum_field~`` in ``nameIR~enum_field~^{asterisk}^``.
 . Let ``tableMetadataEnumTypeIR`` be ``+TABLE_ENUM+ typeId~enum~ +{+nameIR~enum_field~^{asterisk}^+}+``.
 . Let ``value~enum_field~`` be ``+TABLE_ENUM+ typeId~enum~ +.+ nameIR~enum_field~``, for all ``nameIR~enum_field~`` in ``nameIR~enum_field~^{asterisk}^`` and ``value~enum_field~`` in ``value~enum_field~^{asterisk}^``.
 . Let ``varTypeIR~enum_field~`` be ``tableMetadataEnumTypeIR +LCTK+ value~enum_field~``, for all ``value~enum_field~`` in ``value~enum_field~^{asterisk}^`` and ``varTypeIR~enum_field~`` in ``varTypeIR~enum_field~^{asterisk}^``.
@@ -8447,7 +8447,7 @@ xref:Decl_ok[Decl_ok]:
  .. Let context ``TC~2~`` and type parameters ``typeId~expl~^{asterisk}^`` be the result of xref:TypeParameterListOpt_ok[typing ``typeParameterListOpt``, under context ``TC~1~`` at ``+BLOCK+``].
  .. Let ``nameIR`` be xref:name[the name of ``nonTypeName``].
  .. Let ``externMethodPrototypeIR`` be the result of xref:ExternMethod_ok[typing ``externMethodPrototype``, under context ``TC~2~`` for an extern object ``nameIR``], for all ``externMethodPrototype`` in ``externMethodPrototype^{asterisk}^`` and ``externMethodPrototypeIR`` in ``externMethodPrototypeIR^{asterisk}^``.
- .. Let ``callableId~method~`` be xref:callableId_of_externMethodPrototype[callable id of  ``externMethodPrototype``], for all ``callableId~method~`` in ``callableId~method~^{asterisk}^`` and ``externMethodPrototype`` in ``externMethodPrototype^{asterisk}^``.
+ .. Let ``callableId~method~`` be xref:callableId_of_externMethodPrototype[callable id of  ``externMethodPrototype``], for all ``externMethodPrototype`` in ``externMethodPrototype^{asterisk}^`` and ``callableId~method~`` in ``callableId~method~^{asterisk}^``.
  .. Check that xref:distinct_[the elements of ``callableId~method~^{asterisk}^`` are distinct].
 
  .. Let ``externMethodTypeDefIR`` be xref:type_of_externMethodPrototypeIR[callable type definition of  ``externMethodPrototypeIR``], for all ``externMethodPrototypeIR`` in ``externMethodPrototypeIR^{asterisk}^`` and ``externMethodTypeDefIR`` in ``externMethodTypeDefIR^{asterisk}^``.
@@ -8457,9 +8457,9 @@ xref:Decl_ok[Decl_ok]:
  .. Let ``TC~4~`` be ``TC~3~`` with ``+BLOCK+.+KIND+`` set to ``+EXTERN+``.
  .. Let ``TC~5~`` be xref:add_typeParameters_t[type parameters ``typeId~expl~^{asterisk}^`` added to the ``+BLOCK+`` layer of ``TC~4~``].
  .. Let ``externConstructorPrototypeIR`` be the result of xref:ExternConstructor_ok[typing ``externConstructorPrototype``, under context ``TC~5~`` for an extern object ``nameIR``], for all ``externConstructorPrototype`` in ``externConstructorPrototype^{asterisk}^`` and ``externConstructorPrototypeIR`` in ``externConstructorPrototypeIR^{asterisk}^``.
- .. Let ``constructorId`` be xref:constructorId_of_externConstructorPrototype[constructor id of  ``externConstructorPrototype``], for all ``constructorId`` in ``constructorId^{asterisk}^`` and ``externConstructorPrototype`` in ``externConstructorPrototype^{asterisk}^``.
+ .. Let ``constructorId`` be xref:constructorId_of_externConstructorPrototype[constructor id of  ``externConstructorPrototype``], for all ``externConstructorPrototype`` in ``externConstructorPrototype^{asterisk}^`` and ``constructorId`` in ``constructorId^{asterisk}^``.
  .. Let ``typeIR~extern~`` be xref:typeIR_of_typeDefIR[the underlying type of ``typeDefIR~extern~``].
- .. Let ``constructorTypeDefIR`` be xref:constructorTypeDef_of_externConstructorPrototypeIR[the constructor type definition of ``externConstructorPrototypeIR`` with type parameters ``typeId~expl~^{asterisk}^`` and type ``typeIR~extern~``], for all ``constructorTypeDefIR`` in ``constructorTypeDefIR^{asterisk}^`` and ``externConstructorPrototypeIR`` in ``externConstructorPrototypeIR^{asterisk}^``.
+ .. Let ``constructorTypeDefIR`` be xref:constructorTypeDef_of_externConstructorPrototypeIR[the constructor type definition of ``externConstructorPrototypeIR`` with type parameters ``typeId~expl~^{asterisk}^`` and type ``typeIR~extern~``], for all ``externConstructorPrototypeIR`` in ``externConstructorPrototypeIR^{asterisk}^`` and ``constructorTypeDefIR`` in ``constructorTypeDefIR^{asterisk}^``.
  .. Let ``TC~6~`` be xref:add_constructorDefs_t[where each of ``constructorId^{asterisk}^`` to each of ``constructorTypeDefIR^{asterisk}^`` are added to ``TC~3~``].
  .. Let ``externObjectDeclarationIR`` be ``annotationList +EXTERN+ nameIR +<+typeId~expl~^{asterisk}^ +,++>+ +{+externConstructorPrototypeIR^{asterisk}^ externMethodPrototypeIR^{asterisk}^+}+``.
  .. Result in context ``TC~6~`` and ``externObjectDeclarationIR``.
@@ -8519,12 +8519,12 @@ xref:Decl_ok[Decl_ok]:
  .. If let ``annotationList +ENUM+ name +{+nameList~field~ ++_+++}+`` be ``enumTypeDeclaration``:
   ... Let ``nameIR`` be xref:name[the name of ``name``].
   ... Let ``name~field~^{asterisk}^`` be xref:flatten_nameList[``nameList~field~`` flattened].
-  ... Let ``nameIR~field~`` be xref:name[the name of ``name~field~``], for all ``nameIR~field~`` in ``nameIR~field~^{asterisk}^`` and ``name~field~`` in ``name~field~^{asterisk}^``.
+  ... Let ``nameIR~field~`` be xref:name[the name of ``name~field~``], for all ``name~field~`` in ``name~field~^{asterisk}^`` and ``nameIR~field~`` in ``nameIR~field~^{asterisk}^``.
   ... Let ``enumTypeDefIR`` be ``+ENUM+ nameIR +{+nameIR~field~^{asterisk}^+}+``.
   ... Let ``bound'''''`` be xref:bound[bound type variables from the ``+GLOBAL+`` layer of ``TC~0~``].
   ... If xref:TypeDef_wf[``enumTypeDefIR`` is a well-formed type definition, with bound type variables ``bound'''''``]:
    .... Let ``TC~1~`` be xref:add_typeDef_t[``TC~0~`` where ``nameIR`` to ``enumTypeDefIR`` is added to the ``+GLOBAL+`` layer].
-   .... Let ``id~field~`` be ``nameIR`` concatenated with ``"."`` concatenated with ``nameIR~field~``, for all ``id~field~`` in ``id~field~^{asterisk}^`` and ``nameIR~field~`` in ``nameIR~field~^{asterisk}^``.
+   .... Let ``id~field~`` be ``nameIR`` concatenated with ``"."`` concatenated with ``nameIR~field~``, for all ``nameIR~field~`` in ``nameIR~field~^{asterisk}^`` and ``id~field~`` in ``id~field~^{asterisk}^``.
    .... Let ``value~field~`` be ``nameIR +.+ nameIR~field~``, for all ``nameIR~field~`` in ``nameIR~field~^{asterisk}^`` and ``value~field~`` in ``value~field~^{asterisk}^``.
    .... Let ``varTypeIR`` be ``enumTypeDefIR +LCTK+ value~field~``, for all ``value~field~`` in ``value~field~^{asterisk}^`` and ``varTypeIR`` in ``varTypeIR^{asterisk}^``.
    .... Let ``TC~2~`` be xref:add_vars_t[``TC~1~`` where each of ``id~field~^{asterisk}^`` to each of ``varTypeIR^{asterisk}^`` are added to the ``+GLOBAL+`` layer].
@@ -8538,8 +8538,8 @@ xref:Decl_ok[Decl_ok]:
   ... If xref:Type_wf[``typeIR`` is a well-formed type, with bound type variables ``B``]:
    .... Let ``nameIR`` be xref:name[the name of ``name``].
    .... Let context ``TC~1~`` and field values ``namedValueIR~field~^{asterisk}^`` be the result of xref:Enum_serializable_fieldList_ok[typing ``namedExpressionList~field~`` under typing context ``TC~0~`` with enum name ``nameIR`` and underlying ``typeIR``].
-   .... Let ``nameIR~field~ +=+ value~field~`` be ``namedValueIR~field~``, for all ``nameIR~field~`` in ``nameIR~field~^{asterisk}^``, ``namedValueIR~field~`` in ``namedValueIR~field~^{asterisk}^``, and ``value~field~`` in ``value~field~^{asterisk}^``.
-   .... Let ``id~field~`` be ``nameIR`` concatenated with ``"."`` concatenated with ``nameIR~field~``, for all ``id~field~`` in ``id~field~^{asterisk}^`` and ``nameIR~field~`` in ``nameIR~field~^{asterisk}^``.
+   .... Let ``nameIR~field~ +=+ value~field~`` be ``namedValueIR~field~``, for all ``namedValueIR~field~`` in ``namedValueIR~field~^{asterisk}^``, ``nameIR~field~`` in ``nameIR~field~^{asterisk}^``, and ``value~field~`` in ``value~field~^{asterisk}^``.
+   .... Let ``id~field~`` be ``nameIR`` concatenated with ``"."`` concatenated with ``nameIR~field~``, for all ``nameIR~field~`` in ``nameIR~field~^{asterisk}^`` and ``id~field~`` in ``id~field~^{asterisk}^``.
    .... Let ``enumTypeDefIR`` be ``+ENUM+ nameIR +<+typeIR+>+ +{+( nameIR~field~ +=+ value~field~ +;+ )^{asterisk}^+}+``.
    .... Let ``varTypeIR`` be ``enumTypeDefIR +LCTK+ value~field~``, for all ``value~field~`` in ``value~field~^{asterisk}^`` and ``varTypeIR`` in ``varTypeIR^{asterisk}^``.
    .... Let ``TC~2~`` be xref:add_vars_t[``TC~0~`` where each of ``id~field~^{asterisk}^`` to each of ``varTypeIR^{asterisk}^`` are added to the ``+GLOBAL+`` layer].
@@ -8550,11 +8550,11 @@ xref:Decl_ok[Decl_ok]:
 . Else if let ``annotationList +STRUCT+ name typeParameterListOpt +{+typeFieldList+}+`` be ``declaration``:
  .. Let context ``TC~1~`` and type parameters ``typeId^{asterisk}^`` be the result of xref:TypeParameterListOpt_ok[typing ``typeParameterListOpt``, under context ``TC~0~`` at ``+BLOCK+``].
  .. Let ``( annotationList~field~ type~field~ name~field~ +;+ )^{asterisk}^`` be xref:flatten_typeFieldList[``typeFieldList`` flattened].
- .. Let ``typeIR~field~`` and fresh type variables ``typeId'^{asterisk}^`` be the result of xref:Type_ok[typing ``type~field~``, under context ``TC~1~`` at ``+BLOCK+``], for all ``typeIR~field~`` in ``typeIR~field~^{asterisk}^``, ``typeId'^{asterisk}^`` in ``typeId'^{asterisk}^^{asterisk}^``, and ``type~field~`` in ``type~field~^{asterisk}^``.
+ .. Let ``typeIR~field~`` and fresh type variables ``typeId'^{asterisk}^`` be the result of xref:Type_ok[typing ``type~field~``, under context ``TC~1~`` at ``+BLOCK+``], for all ``type~field~`` in ``type~field~^{asterisk}^``, ``typeIR~field~`` in ``typeIR~field~^{asterisk}^``, and ``typeId'^{asterisk}^`` in ``typeId'^{asterisk}^^{asterisk}^``.
  .. Check that ``typeId'^{asterisk}^`` is an empty list, for all ``typeId'^{asterisk}^`` in ``typeId'^{asterisk}^^{asterisk}^``.
 
  .. Let ``nameIR`` be xref:name[the name of ``name``].
- .. Let ``nameIR~field~`` be xref:name[the name of ``name~field~``], for all ``nameIR~field~`` in ``nameIR~field~^{asterisk}^`` and ``name~field~`` in ``name~field~^{asterisk}^``.
+ .. Let ``nameIR~field~`` be xref:name[the name of ``name~field~``], for all ``name~field~`` in ``name~field~^{asterisk}^`` and ``nameIR~field~`` in ``nameIR~field~^{asterisk}^``.
  .. Let ``structTypeDefIR`` be ``+STRUCT+ nameIR +<+typeId^{asterisk}^+>+ +{+( annotationList~field~ typeIR~field~ nameIR~field~ +;+ )^{asterisk}^+}+``.
  .. Let ``bound''''''`` be xref:bound[bound type variables from the ``+GLOBAL+`` layer of ``TC~0~``].
  .. If xref:TypeDef_wf[``structTypeDefIR`` is a well-formed type definition, with bound type variables ``bound''''''``]:
@@ -8564,11 +8564,11 @@ xref:Decl_ok[Decl_ok]:
 . Else if let ``annotationList +HEADER+ name typeParameterListOpt +{+typeFieldList+}+`` be ``declaration``:
  .. Let context ``TC~1~`` and type parameters ``typeId^{asterisk}^`` be the result of xref:TypeParameterListOpt_ok[typing ``typeParameterListOpt``, under context ``TC~0~`` at ``+BLOCK+``].
  .. Let ``( annotationList~f~ type~f~ name~f~ +;+ )^{asterisk}^`` be xref:flatten_typeFieldList[``typeFieldList`` flattened].
- .. Let ``typeIR~f~`` and fresh type variables ``typeId'^{asterisk}^`` be the result of xref:Type_ok[typing ``type~f~``, under context ``TC~1~`` at ``+BLOCK+``], for all ``typeIR~f~`` in ``typeIR~f~^{asterisk}^``, ``typeId'^{asterisk}^`` in ``typeId'^{asterisk}^^{asterisk}^``, and ``type~f~`` in ``type~f~^{asterisk}^``.
+ .. Let ``typeIR~f~`` and fresh type variables ``typeId'^{asterisk}^`` be the result of xref:Type_ok[typing ``type~f~``, under context ``TC~1~`` at ``+BLOCK+``], for all ``type~f~`` in ``type~f~^{asterisk}^``, ``typeIR~f~`` in ``typeIR~f~^{asterisk}^``, and ``typeId'^{asterisk}^`` in ``typeId'^{asterisk}^^{asterisk}^``.
  .. Check that ``typeId'^{asterisk}^`` is an empty list, for all ``typeId'^{asterisk}^`` in ``typeId'^{asterisk}^^{asterisk}^``.
 
  .. Let ``nameIR`` be xref:name[the name of ``name``].
- .. Let ``nameIR~f~`` be xref:name[the name of ``name~f~``], for all ``nameIR~f~`` in ``nameIR~f~^{asterisk}^`` and ``name~f~`` in ``name~f~^{asterisk}^``.
+ .. Let ``nameIR~f~`` be xref:name[the name of ``name~f~``], for all ``name~f~`` in ``name~f~^{asterisk}^`` and ``nameIR~f~`` in ``nameIR~f~^{asterisk}^``.
  .. Let ``headerTypeDefIR`` be ``+HEADER+ nameIR +<+typeId^{asterisk}^+>+ +{+( annotationList~f~ typeIR~f~ nameIR~f~ +;+ )^{asterisk}^+}+``.
  .. Let ``bound'''''''`` be xref:bound[bound type variables from the ``+GLOBAL+`` layer of ``TC~0~``].
  .. If xref:TypeDef_wf[``headerTypeDefIR`` is a well-formed type definition, with bound type variables ``bound'''''''``]:
@@ -8578,11 +8578,11 @@ xref:Decl_ok[Decl_ok]:
 . Else if let ``annotationList +HEADER_UNION+ name typeParameterListOpt +{+typeFieldList+}+`` be ``declaration``:
  .. Let context ``TC~1~`` and type parameters ``typeId^{asterisk}^`` be the result of xref:TypeParameterListOpt_ok[typing ``typeParameterListOpt``, under context ``TC~0~`` at ``+BLOCK+``].
  .. Let ``( annotationList~f~ type~f~ name~f~ +;+ )^{asterisk}^`` be xref:flatten_typeFieldList[``typeFieldList`` flattened].
- .. Let ``typeIR~f~`` and fresh type variables ``typeId'^{asterisk}^`` be the result of xref:Type_ok[typing ``type~f~``, under context ``TC~1~`` at ``+BLOCK+``], for all ``typeIR~f~`` in ``typeIR~f~^{asterisk}^``, ``typeId'^{asterisk}^`` in ``typeId'^{asterisk}^^{asterisk}^``, and ``type~f~`` in ``type~f~^{asterisk}^``.
+ .. Let ``typeIR~f~`` and fresh type variables ``typeId'^{asterisk}^`` be the result of xref:Type_ok[typing ``type~f~``, under context ``TC~1~`` at ``+BLOCK+``], for all ``type~f~`` in ``type~f~^{asterisk}^``, ``typeIR~f~`` in ``typeIR~f~^{asterisk}^``, and ``typeId'^{asterisk}^`` in ``typeId'^{asterisk}^^{asterisk}^``.
  .. Check that ``typeId'^{asterisk}^`` is an empty list, for all ``typeId'^{asterisk}^`` in ``typeId'^{asterisk}^^{asterisk}^``.
 
  .. Let ``nameIR`` be xref:name[the name of ``name``].
- .. Let ``nameIR~f~`` be xref:name[the name of ``name~f~``], for all ``nameIR~f~`` in ``nameIR~f~^{asterisk}^`` and ``name~f~`` in ``name~f~^{asterisk}^``.
+ .. Let ``nameIR~f~`` be xref:name[the name of ``name~f~``], for all ``name~f~`` in ``name~f~^{asterisk}^`` and ``nameIR~f~`` in ``nameIR~f~^{asterisk}^``.
  .. Let ``headerUnionTypeDefIR`` be ``+HEADER_UNION+ nameIR +<+typeId^{asterisk}^+>+ +{+( annotationList~f~ typeIR~f~ nameIR~f~ +;+ )^{asterisk}^+}+``.
  .. Let ``bound''''''''`` be xref:bound[bound type variables from the ``+GLOBAL+`` layer of ``TC~0~``].
  .. If xref:TypeDef_wf[``headerUnionTypeDefIR`` is a well-formed type definition, with bound type variables ``bound''''''''``]:
@@ -8687,7 +8687,7 @@ xref:Decl_ok[Decl_ok]:
  .. Let context ``TC~2~`` and type parameters ``typeId~expl~^{asterisk}^`` be the result of xref:TypeParameterListOpt_ok[typing ``typeParameterListOpt``, under context ``TC~1~`` at ``+BLOCK+``].
  .. Let context ``TC~3~``, ``constructorParameterIR^{asterisk}^``, and fresh type variables ``typeId~impl~^{asterisk}^`` be the result of xref:ConstructorParameterListOpt_ok[typing ``+(+parameterList+)+`` under context ``TC~2~``].
  .. Let ``nameIR`` be xref:name[the name of ``name``].
- .. Let ``++_++ ++_++ typeIR~package_inner~ ++_++ ++_++`` be ``constructorParameterIR``, for all ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``constructorParameterIR`` in ``constructorParameterIR^{asterisk}^``, and ``typeIR~package_inner~`` in ``typeIR~package_inner~^{asterisk}^``.
+ .. Let ``++_++ ++_++ typeIR~package_inner~ ++_++ ++_++`` be ``constructorParameterIR``, for all ``constructorParameterIR`` in ``constructorParameterIR^{asterisk}^``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, and ``typeIR~package_inner~`` in ``typeIR~package_inner~^{asterisk}^``.
  .. Let ``packageObjectTypeDefIR`` be ``+PACKAGE+ nameIR +<+typeId~expl~^{asterisk}^ +,+ typeId~impl~^{asterisk}^+>+ +{+typeIR~package_inner~^{asterisk}^+}+``.
  .. If xref:TypeDef_wf[``packageObjectTypeDefIR`` is a well-formed type definition, with bound type variables ``B``]:
   ... Let ``TC~4~`` be xref:add_typeDef_t[``TC~0~`` where ``nameIR`` to ``packageObjectTypeDefIR`` is added to the ``+GLOBAL+`` layer].
@@ -8948,14 +8948,14 @@ xref:CallableType_ok[CallableType_ok]:
        ........ Let ``typeIR`` be xref:unroll_typeIR[``typeIR~base~`` with typedefs unrolled].
        ........ If let ``+PARSER+ ++_++ +<+++_++^{asterisk}^+>+ +(+parameterIR^{asterisk}^+)+`` be ``typeIR``:
         ......... Let ``parserApplyMethodTypeIR`` be ``+PARSER_APPLY+ +(+parameterIR^{asterisk}^+)+``.
-        ......... Let ``++_++ ++_++ ++_++ id~param~ ++_++`` be ``parameterIR``, for all ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``id~param~`` in ``id~param~^{asterisk}^``, and ``parameterIR`` in ``parameterIR^{asterisk}^``.
+        ......... Let ``++_++ ++_++ ++_++ id~param~ ++_++`` be ``parameterIR``, for all ``parameterIR`` in ``parameterIR^{asterisk}^``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, and ``id~param~`` in ``id~param~^{asterisk}^``.
         ......... Let ``callableId`` be ``"apply" +(+id~param~^{asterisk}^+)+``.
         ......... Let ``callTargetKey`` be xref:callTargetKey[the call target key for ``"apply"`` ``+(+`` ``argumentIR''^{asterisk}^`` ``+)+``].
         ......... Let ``++_++ +:+ ++_++ +#+ id~default~^{asterisk}^ +#+ id~optional~^{asterisk}^`` be xref:option_get[*!*] xref:find_overloaded[finding the item in ``+{+callableId +:+ parserApplyMethodTypeIR+}+`` matching ``callTargetKey`` using parameter getter ``$parameterListIR_of_parserApplyMethodTypeIR``].
         ......... Result in callable type ``parserApplyMethodTypeIR`` with fresh type variables ``·``, defaults ``id~default~^{asterisk}^`` and optionals ``id~optional~^{asterisk}^``.
        ........ Else if let ``+CONTROL+ ++_++ +<+++_++^{asterisk}^+>+ +(+parameterIR^{asterisk}^+)+`` be ``typeIR``:
         ......... Let ``controlApplyMethodTypeIR`` be ``+CONTROL_APPLY+ +(+parameterIR^{asterisk}^+)+``.
-        ......... Let ``++_++ ++_++ ++_++ id~param~ ++_++`` be ``parameterIR``, for all ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``id~param~`` in ``id~param~^{asterisk}^``, and ``parameterIR`` in ``parameterIR^{asterisk}^``.
+        ......... Let ``++_++ ++_++ ++_++ id~param~ ++_++`` be ``parameterIR``, for all ``parameterIR`` in ``parameterIR^{asterisk}^``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, and ``id~param~`` in ``id~param~^{asterisk}^``.
         ......... Let ``callableId`` be ``"apply" +(+id~param~^{asterisk}^+)+``.
         ......... Let ``callTargetKey`` be xref:callTargetKey[the call target key for ``"apply"`` ``+(+`` ``argumentIR''^{asterisk}^`` ``+)+``].
         ......... Let ``++_++ +:+ ++_++ +#+ id~default~^{asterisk}^ +#+ id~optional~^{asterisk}^`` be xref:option_get[*!*] xref:find_overloaded[finding the item in ``+{+callableId +:+ controlApplyMethodTypeIR+}+`` matching ``callTargetKey`` using parameter getter ``$parameterListIR_of_controlApplyMethodTypeIR``].
@@ -8992,7 +8992,7 @@ xref:Call_ok[Call_ok]:
  .. Let ``+FUNCTION+ nameIR +(+parameterIR^{asterisk}^+)+ +:+ typeIR~ret~`` be ``definedFunctionTypeIR``.
  .. Let ``+GIVEN+ parameterIR~aligned~^{asterisk}^ +DEFAULT+ ++_++^{asterisk}^`` be xref:align_parameterListIR[aligning ``parameterIR^{asterisk}^`` with ``argumentIR^{asterisk}^`` where defaults are ``id~default'~^{asterisk}^`` and optionals are ``id~optional'~^{asterisk}^``].
  .. Let ``inference`` be ``xref:infer[$infer(typeId'^{asterisk}^, parameterIR~aligned~^{asterisk}^, argumentIR^{asterisk}^)]``.
- .. Let ``typeIR^?^`` be xref:find_map[the value of ``typeId'`` in map ``inference``], for all ``typeIR^?^`` in ``typeIR^?^^{asterisk}^`` and ``typeId'`` in ``typeId'^{asterisk}^``.
+ .. Let ``typeIR^?^`` be xref:find_map[the value of ``typeId'`` in map ``inference``], for all ``typeId'`` in ``typeId'^{asterisk}^`` and ``typeIR^?^`` in ``typeIR^?^^{asterisk}^``.
  .. Check that ``typeIR^?^`` is defined, for all ``typeIR^?^`` in ``typeIR^?^^{asterisk}^``.
 
  .. Let ``typeIR~inferred~`` be ``typeIR^?^``, for all ``typeIR^?^`` in ``typeIR^?^^{asterisk}^`` and ``typeIR~inferred~`` in ``typeIR~inferred~^{asterisk}^``.
@@ -9010,7 +9010,7 @@ xref:Call_ok[Call_ok]:
  .. Let ``+EXTERN_FUNCTION+ nameIR +(+parameterIR^{asterisk}^+)+ +:+ typeIR~ret~`` be ``externFunctionTypeIR``.
  .. Let ``+GIVEN+ parameterIR~aligned~^{asterisk}^ +DEFAULT+ ++_++^{asterisk}^`` be xref:align_parameterListIR[aligning ``parameterIR^{asterisk}^`` with ``argumentIR^{asterisk}^`` where defaults are ``id~default'~^{asterisk}^`` and optionals are ``id~optional'~^{asterisk}^``].
  .. Let ``inference`` be ``xref:infer[$infer(typeId'^{asterisk}^, parameterIR~aligned~^{asterisk}^, argumentIR^{asterisk}^)]``.
- .. Let ``typeIR^?^`` be xref:find_map[the value of ``typeId'`` in map ``inference``], for all ``typeIR^?^`` in ``typeIR^?^^{asterisk}^`` and ``typeId'`` in ``typeId'^{asterisk}^``.
+ .. Let ``typeIR^?^`` be xref:find_map[the value of ``typeId'`` in map ``inference``], for all ``typeId'`` in ``typeId'^{asterisk}^`` and ``typeIR^?^`` in ``typeIR^?^^{asterisk}^``.
  .. Check that ``typeIR^?^`` is defined, for all ``typeIR^?^`` in ``typeIR^?^^{asterisk}^``.
 
  .. Let ``typeIR~inferred~`` be ``typeIR^?^``, for all ``typeIR^?^`` in ``typeIR^?^^{asterisk}^`` and ``typeIR~inferred~`` in ``typeIR~inferred~^{asterisk}^``.
@@ -9037,7 +9037,7 @@ xref:Call_ok[Call_ok]:
  .. If let ``+EXTERN_METHOD+ nameIR +(+parameterIR^{asterisk}^+)+ +:+ typeIR~ret~`` be ``externMethodTypeIR``:
   ... Let ``+GIVEN+ parameterIR~aligned~^{asterisk}^ +DEFAULT+ ++_++^{asterisk}^`` be xref:align_parameterListIR[aligning ``parameterIR^{asterisk}^`` with ``argumentIR^{asterisk}^`` where defaults are ``id~default'~^{asterisk}^`` and optionals are ``id~optional'~^{asterisk}^``].
   ... Let ``inference`` be ``xref:infer[$infer(typeId'^{asterisk}^, parameterIR~aligned~^{asterisk}^, argumentIR^{asterisk}^)]``.
-  ... Let ``typeIR^?^`` be xref:find_map[the value of ``typeId'`` in map ``inference``], for all ``typeIR^?^`` in ``typeIR^?^^{asterisk}^`` and ``typeId'`` in ``typeId'^{asterisk}^``.
+  ... Let ``typeIR^?^`` be xref:find_map[the value of ``typeId'`` in map ``inference``], for all ``typeId'`` in ``typeId'^{asterisk}^`` and ``typeIR^?^`` in ``typeIR^?^^{asterisk}^``.
   ... Check that ``typeIR^?^`` is defined, for all ``typeIR^?^`` in ``typeIR^?^^{asterisk}^``.
 
   ... Let ``typeIR~inferred~`` be ``typeIR^?^``, for all ``typeIR^?^`` in ``typeIR^?^^{asterisk}^`` and ``typeIR~inferred~`` in ``typeIR~inferred~^{asterisk}^``.
@@ -9054,7 +9054,7 @@ xref:Call_ok[Call_ok]:
  .. Else:
   ... Let ``+GIVEN+ parameterIR~aligned~^{asterisk}^ +DEFAULT+ ++_++^{asterisk}^`` be xref:align_parameterListIR[aligning ``parameterIR^{asterisk}^`` with ``argumentIR^{asterisk}^`` where defaults are ``id~default'~^{asterisk}^`` and optionals are ``id~optional'~^{asterisk}^``].
   ... Let ``inference`` be ``xref:infer[$infer(typeId'^{asterisk}^, parameterIR~aligned~^{asterisk}^, argumentIR^{asterisk}^)]``.
-  ... Let ``typeIR^?^`` be xref:find_map[the value of ``typeId'`` in map ``inference``], for all ``typeIR^?^`` in ``typeIR^?^^{asterisk}^`` and ``typeId'`` in ``typeId'^{asterisk}^``.
+  ... Let ``typeIR^?^`` be xref:find_map[the value of ``typeId'`` in map ``inference``], for all ``typeId'`` in ``typeId'^{asterisk}^`` and ``typeIR^?^`` in ``typeIR^?^^{asterisk}^``.
   ... Check that ``typeIR^?^`` is defined, for all ``typeIR^?^`` in ``typeIR^?^^{asterisk}^``.
 
   ... Let ``typeIR~inferred~`` be ``typeIR^?^``, for all ``typeIR^?^`` in ``typeIR^?^^{asterisk}^`` and ``typeIR~inferred~`` in ``typeIR~inferred~^{asterisk}^``.
@@ -9158,7 +9158,7 @@ xref:Inst_ok[Inst_ok]:
 
   ... Let ``+GIVEN+ parameterIR~aligned~^{asterisk}^ +DEFAULT+ ++_++^{asterisk}^`` be xref:align_parameterListIR[aligning ``parameterIR^{asterisk}^`` with ``argumentIR^{asterisk}^`` where defaults are ``id~default~^{asterisk}^`` and optionals are ``id~optional~^{asterisk}^``].
   ... Let ``inference`` be ``xref:infer[$infer(typeId~infer~^{asterisk}^, parameterIR~aligned~^{asterisk}^, argumentIR^{asterisk}^)]``.
-  ... Let ``typeIR'^?^`` be xref:find_map[the value of ``typeId~infer~`` in map ``inference``], for all ``typeIR'^?^`` in ``typeIR'^?^^{asterisk}^`` and ``typeId~infer~`` in ``typeId~infer~^{asterisk}^``.
+  ... Let ``typeIR'^?^`` be xref:find_map[the value of ``typeId~infer~`` in map ``inference``], for all ``typeId~infer~`` in ``typeId~infer~^{asterisk}^`` and ``typeIR'^?^`` in ``typeIR'^?^^{asterisk}^``.
   ... Check that ``typeIR'^?^`` is defined, for all ``typeIR'^?^`` in ``typeIR'^?^^{asterisk}^``.
 
   ... Let ``typeIR~inferred~`` be ``typeIR'^?^``, for all ``typeIR'^?^`` in ``typeIR'^?^^{asterisk}^`` and ``typeIR~inferred~`` in ``typeIR~inferred~^{asterisk}^``.
@@ -9179,7 +9179,7 @@ xref:Inst_ok[Inst_ok]:
 
   ... Let ``+GIVEN+ parameterIR~aligned~^{asterisk}^ +DEFAULT+ ++_++^{asterisk}^`` be xref:align_parameterListIR[aligning ``parameterIR^{asterisk}^`` with ``argumentIR^{asterisk}^`` where defaults are ``id~default~^{asterisk}^`` and optionals are ``id~optional~^{asterisk}^``].
   ... Let ``inference`` be ``xref:infer[$infer(typeId~infer~^{asterisk}^, parameterIR~aligned~^{asterisk}^, argumentIR^{asterisk}^)]``.
-  ... Let ``typeIR^?^`` be xref:find_map[the value of ``typeId~infer~`` in map ``inference``], for all ``typeIR^?^`` in ``typeIR^?^^{asterisk}^`` and ``typeId~infer~`` in ``typeId~infer~^{asterisk}^``.
+  ... Let ``typeIR^?^`` be xref:find_map[the value of ``typeId~infer~`` in map ``inference``], for all ``typeId~infer~`` in ``typeId~infer~^{asterisk}^`` and ``typeIR^?^`` in ``typeIR^?^^{asterisk}^``.
   ... Check that ``typeIR^?^`` is defined, for all ``typeIR^?^`` in ``typeIR^?^^{asterisk}^``.
 
   ... Let ``typeIR~inferred~`` be ``typeIR^?^``, for all ``typeIR^?^`` in ``typeIR^?^^{asterisk}^`` and ``typeIR~inferred~`` in ``typeIR~inferred~^{asterisk}^``.
@@ -10289,7 +10289,7 @@ xref:SelectCase_keyset_ok[SelectCase_keyset_ok]:
     ..... Let ``simpleKeysetExpression^{asterisk}^`` be ``simpleKeysetExpression~h~ {two-colons} simpleKeysetExpression~t~^{asterisk}^``.
     ..... Check that the length of ``typeIR'^{asterisk}^`` is equal to the length of ``simpleKeysetExpression^{asterisk}^``.
 
-    ..... Let ``simpleKeysetExpressionIR`` be the result of xref:SelectCase_keyset_simple_ok[typing ``simpleKeysetExpression`` under context ``TC`` with key type ``typeIR'``], for all ``simpleKeysetExpression`` in ``simpleKeysetExpression^{asterisk}^``, ``simpleKeysetExpressionIR`` in ``simpleKeysetExpressionIR^{asterisk}^``, and ``typeIR'`` in ``typeIR'^{asterisk}^``.
+    ..... Let ``simpleKeysetExpressionIR`` be the result of xref:SelectCase_keyset_simple_ok[typing ``simpleKeysetExpression`` under context ``TC`` with key type ``typeIR'``], for all ``simpleKeysetExpression`` in ``simpleKeysetExpression^{asterisk}^``, ``typeIR'`` in ``typeIR'^{asterisk}^``, and ``simpleKeysetExpressionIR`` in ``simpleKeysetExpressionIR^{asterisk}^``.
     ..... Result in ``+(+simpleKeysetExpressionIR^{asterisk}^+)+``.
  .. {empty}
   ... Let!~type~ ``simpleKeysetExpression`` be ``keysetExpression``.
@@ -10655,7 +10655,7 @@ xref:insert_NoAction_tablePropertyIR[$insert_NoAction_tablePropertyIR(TBLC', tab
 . Else:
  .. If ``tablePropertyIR~h~`` has type ``tableActionsPropertyIR``:
   ... Let ``+ACTIONS+ +=+ +{+tableActionIR^{asterisk}^+}+`` be ``tablePropertyIR~h~``.
-  ... Let ``++_++ tableActionReferenceIR +#+ +(+++_++ +,+ ++_+++)+ +;+`` be ``tableActionIR``, for all ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``tableActionIR`` in ``tableActionIR^{asterisk}^``, and ``tableActionReferenceIR`` in ``tableActionReferenceIR^{asterisk}^``.
+  ... Let ``++_++ tableActionReferenceIR +#+ +(+++_++ +,+ ++_+++)+ +;+`` be ``tableActionIR``, for all ``tableActionIR`` in ``tableActionIR^{asterisk}^``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, and ``tableActionReferenceIR`` in ``tableActionReferenceIR^{asterisk}^``.
   ... Let ``tableActionReferenceIR~NoAction~`` be ``+.+ "NoAction" · +(+·+)+``.
   ... If ``tableActionReferenceIR~NoAction~`` is not in ``tableActionReferenceIR^{asterisk}^``:
    .... Let ``TBLC~1~`` be xref:add_action_tbl[``TBLC'`` with match action ``+.+ "NoAction"`` ``+(+`` ``·`` ``+)+`` applied using ``·`` added].
@@ -10731,7 +10731,7 @@ xref:infer[$infer(typeId'^{asterisk}^, parameterIR^{asterisk}^, argumentIR^{aste
   ... Check that ``typeId'^{asterisk}^`` is not equal to ``·``.
 
   ... Let ``constraint~init~`` be ``xref:empty_constraint[$empty_constraint(typeId'^{asterisk}^)]``.
-  ... Let ``constraint~pair~`` be ``xref:infer'[$infer'(constraint~init~, parameterIR, argumentIR)]``, for all ``argumentIR`` in ``argumentIR^{asterisk}^``, ``constraint~pair~`` in ``constraint~pair~^{asterisk}^``, and ``parameterIR`` in ``parameterIR^{asterisk}^``.
+  ... Let ``constraint~pair~`` be ``xref:infer'[$infer'(constraint~init~, parameterIR, argumentIR)]``, for all ``argumentIR`` in ``argumentIR^{asterisk}^``, ``parameterIR`` in ``parameterIR^{asterisk}^``, and ``constraint~pair~`` in ``constraint~pair~^{asterisk}^``.
   ... Let ``constraint~inferred~`` be ``xref:merge_constraints[$merge_constraints(constraint~init~, constraint~pair~^{asterisk}^)]``.
   ... Let ``inference`` be ``xref:resolve_constraint[$resolve_constraint(constraint~inferred~)]``.
   ... Let ``inference~resolved~`` be ``xref:resolve_inference[$resolve_inference(inference)]``.
@@ -10832,16 +10832,16 @@ xref:gen_constraint[$gen_constraint(constraint, typeIR'', typeIR~arg'~)]
   ... Else if let ``+PARSER+ ++_++ +<+++_++^{asterisk}^+>+ +(+parameterIR~param~^{asterisk}^+)+`` be ``typeIR''``:
    .... Let!~type~ ``+PARSER+ ++_++ +<+++_++^{asterisk}^+>+ +(+parameterIR~arg~^{asterisk}^+)+`` be ``typeIR~arg'~``.
 
-   .... Let ``++_++ direction typeIR~param~ ++_++ ++_++`` be ``parameterIR~param~``, for all ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``direction`` in ``direction^{asterisk}^``, ``parameterIR~param~`` in ``parameterIR~param~^{asterisk}^``, and ``typeIR~param~`` in ``typeIR~param~^{asterisk}^``.
-   .... Let ``++_++ direction' typeIR~arg~ ++_++ ++_++`` be ``parameterIR~arg~``, for all ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``direction'`` in ``direction'^{asterisk}^``, ``parameterIR~arg~`` in ``parameterIR~arg~^{asterisk}^``, and ``typeIR~arg~`` in ``typeIR~arg~^{asterisk}^``.
+   .... Let ``++_++ direction typeIR~param~ ++_++ ++_++`` be ``parameterIR~param~``, for all ``parameterIR~param~`` in ``parameterIR~param~^{asterisk}^``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``direction`` in ``direction^{asterisk}^``, and ``typeIR~param~`` in ``typeIR~param~^{asterisk}^``.
+   .... Let ``++_++ direction' typeIR~arg~ ++_++ ++_++`` be ``parameterIR~arg~``, for all ``parameterIR~arg~`` in ``parameterIR~arg~^{asterisk}^``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``direction'`` in ``direction'^{asterisk}^``, and ``typeIR~arg~`` in ``typeIR~arg~^{asterisk}^``.
    .... Check that ``direction'`` is equal to ``direction``, for all ``direction`` in ``direction^{asterisk}^`` and ``direction'`` in ``direction'^{asterisk}^``.
 
    .... Return ``xref:gen_constraints[$gen_constraints(constraint, typeIR~param~^{asterisk}^, typeIR~arg~^{asterisk}^)]``.
   ... Else if let ``+CONTROL+ ++_++ +<+++_++^{asterisk}^+>+ +(+parameterIR~param~^{asterisk}^+)+`` be ``typeIR''``:
    .... Let!~type~ ``+CONTROL+ ++_++ +<+++_++^{asterisk}^+>+ +(+parameterIR~arg~^{asterisk}^+)+`` be ``typeIR~arg'~``.
 
-   .... Let ``++_++ direction typeIR~param~ ++_++ ++_++`` be ``parameterIR~param~``, for all ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``direction`` in ``direction^{asterisk}^``, ``parameterIR~param~`` in ``parameterIR~param~^{asterisk}^``, and ``typeIR~param~`` in ``typeIR~param~^{asterisk}^``.
-   .... Let ``++_++ direction' typeIR~arg~ ++_++ ++_++`` be ``parameterIR~arg~``, for all ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``direction'`` in ``direction'^{asterisk}^``, ``parameterIR~arg~`` in ``parameterIR~arg~^{asterisk}^``, and ``typeIR~arg~`` in ``typeIR~arg~^{asterisk}^``.
+   .... Let ``++_++ direction typeIR~param~ ++_++ ++_++`` be ``parameterIR~param~``, for all ``parameterIR~param~`` in ``parameterIR~param~^{asterisk}^``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``direction`` in ``direction^{asterisk}^``, and ``typeIR~param~`` in ``typeIR~param~^{asterisk}^``.
+   .... Let ``++_++ direction' typeIR~arg~ ++_++ ++_++`` be ``parameterIR~arg~``, for all ``parameterIR~arg~`` in ``parameterIR~arg~^{asterisk}^``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``direction'`` in ``direction'^{asterisk}^``, and ``typeIR~arg~`` in ``typeIR~arg~^{asterisk}^``.
    .... Check that ``direction'`` is equal to ``direction``, for all ``direction`` in ``direction^{asterisk}^`` and ``direction'`` in ``direction'^{asterisk}^``.
 
    .... Return ``xref:gen_constraints[$gen_constraints(constraint, typeIR~param~^{asterisk}^, typeIR~arg~^{asterisk}^)]``.
@@ -10864,7 +10864,7 @@ xref:gen_constraint[$gen_constraint(constraint, typeIR'', typeIR~arg'~)]
 
 xref:gen_constraints[$gen_constraints(constraint, typeIR~param~^{asterisk}^, typeIR~arg~^{asterisk}^)]
 
-. Let ``constraint~pair~`` be ``xref:gen_constraint[$gen_constraint(constraint, typeIR~param~, typeIR~arg~)]``, for all ``constraint~pair~`` in ``constraint~pair~^{asterisk}^``, ``typeIR~arg~`` in ``typeIR~arg~^{asterisk}^``, and ``typeIR~param~`` in ``typeIR~param~^{asterisk}^``.
+. Let ``constraint~pair~`` be ``xref:gen_constraint[$gen_constraint(constraint, typeIR~param~, typeIR~arg~)]``, for all ``typeIR~arg~`` in ``typeIR~arg~^{asterisk}^``, ``typeIR~param~`` in ``typeIR~param~^{asterisk}^``, and ``constraint~pair~`` in ``constraint~pair~^{asterisk}^``.
 . Return ``xref:merge_constraints[$merge_constraints(constraint, constraint~pair~^{asterisk}^)]``.
 
 xref:merge_constraint[$merge_constraint(constraint~pre~, constraint~post~)]
@@ -11088,7 +11088,7 @@ xref:callable_tableApplyMethod[$callable_tableApplyMethod(cursor, TC)]
 
 xref:callableId_IR[The callable identifier for ``nameIR`` ``+(+`` ``parameterIR^{asterisk}^`` ``+)+``]
 
-. Let ``++_++ ++_++ ++_++ id ++_++`` be ``parameterIR``, for all ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``id`` in ``id^{asterisk}^``, and ``parameterIR`` in ``parameterIR^{asterisk}^``.
+. Let ``++_++ ++_++ ++_++ id ++_++`` be ``parameterIR``, for all ``parameterIR`` in ``parameterIR^{asterisk}^``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, and ``id`` in ``id^{asterisk}^``.
 . Return ``nameIR +(+id^{asterisk}^+)+``.
 
 xref:parameterListIR_of_callableDef[$parameterListIR_of_callableDef(callableDef)]
@@ -12139,7 +12139,7 @@ xref:Decl_inst[Decl_inst]:
   ... {empty}
    .... Check that ``externConstructorPrototypeIR^{asterisk}^`` is an empty list.
 
-   .... Let ``callableId~method~`` be xref:callableId_of_externMethodPrototypeIR[the callable id of  ``externMethodPrototypeIR``], for all ``callableId~method~`` in ``callableId~method~^{asterisk}^`` and ``externMethodPrototypeIR`` in ``externMethodPrototypeIR^{asterisk}^``.
+   .... Let ``callableId~method~`` be xref:callableId_of_externMethodPrototypeIR[the callable id of  ``externMethodPrototypeIR``], for all ``externMethodPrototypeIR`` in ``externMethodPrototypeIR^{asterisk}^`` and ``callableId~method~`` in ``callableId~method~^{asterisk}^``.
    .... Let ``externMethodTypeDefIR`` be xref:type_of_externMethodPrototypeIR[callable type definition of  ``externMethodPrototypeIR``], for all ``externMethodPrototypeIR`` in ``externMethodPrototypeIR^{asterisk}^`` and ``externMethodTypeDefIR`` in ``externMethodTypeDefIR^{asterisk}^``.
    .... Let ``externMethodTypeDefEnv`` be ``+{+( callableId~method~ +:+ externMethodTypeDefIR )^{asterisk}^+}+``.
    .... Let ``externObjectTypeDefIR`` be ``+EXTERN+ nameIR +<+typeParameterListIR +,+ ·+>+ externMethodTypeDefEnv``.
@@ -12151,13 +12151,13 @@ xref:Decl_inst[Decl_inst]:
   ... {empty}
    .... Check that ``externConstructorPrototypeIR^{asterisk}^`` is not equal to ``·``.
 
-   .... Let ``callableId~method~`` be xref:callableId_of_externMethodPrototypeIR[the callable id of  ``externMethodPrototypeIR``], for all ``callableId~method~`` in ``callableId~method~^{asterisk}^`` and ``externMethodPrototypeIR`` in ``externMethodPrototypeIR^{asterisk}^``.
+   .... Let ``callableId~method~`` be xref:callableId_of_externMethodPrototypeIR[the callable id of  ``externMethodPrototypeIR``], for all ``externMethodPrototypeIR`` in ``externMethodPrototypeIR^{asterisk}^`` and ``callableId~method~`` in ``callableId~method~^{asterisk}^``.
    .... Let ``externMethodTypeDefIR`` be xref:type_of_externMethodPrototypeIR[callable type definition of  ``externMethodPrototypeIR``], for all ``externMethodPrototypeIR`` in ``externMethodPrototypeIR^{asterisk}^`` and ``externMethodTypeDefIR`` in ``externMethodTypeDefIR^{asterisk}^``.
    .... Let ``externMethodTypeDefEnv`` be ``+{+( callableId~method~ +:+ externMethodTypeDefIR )^{asterisk}^+}+``.
    .... Let ``externObjectTypeDefIR`` be ``+EXTERN+ nameIR +<+typeParameterListIR +,+ ·+>+ externMethodTypeDefEnv``.
    .... Let ``IC~1~`` be xref:add_typeDef_i[``IC~0~`` where ``nameIR`` to ``externObjectTypeDefIR`` is added to the ``+GLOBAL+`` layer].
-   .... Let ``callableId~constructor~`` be xref:callableId_of_externConstructorPrototypeIR[the constructor id of  ``externConstructorPrototypeIR``], for all ``callableId~constructor~`` in ``callableId~constructor~^{asterisk}^`` and ``externConstructorPrototypeIR`` in ``externConstructorPrototypeIR^{asterisk}^``.
-   .... Let ``constructorDef`` be xref:constructor_of_externConstructorPrototypeIR[the constructor definition of  ``externConstructorPrototypeIR`` with type parameters  ``typeParameterListIR``  and methods  ``externMethodPrototypeIR^{asterisk}^``], for all ``constructorDef`` in ``constructorDef^{asterisk}^`` and ``externConstructorPrototypeIR`` in ``externConstructorPrototypeIR^{asterisk}^``.
+   .... Let ``callableId~constructor~`` be xref:callableId_of_externConstructorPrototypeIR[the constructor id of  ``externConstructorPrototypeIR``], for all ``externConstructorPrototypeIR`` in ``externConstructorPrototypeIR^{asterisk}^`` and ``callableId~constructor~`` in ``callableId~constructor~^{asterisk}^``.
+   .... Let ``constructorDef`` be xref:constructor_of_externConstructorPrototypeIR[the constructor definition of  ``externConstructorPrototypeIR`` with type parameters  ``typeParameterListIR``  and methods  ``externMethodPrototypeIR^{asterisk}^``], for all ``externConstructorPrototypeIR`` in ``externConstructorPrototypeIR^{asterisk}^`` and ``constructorDef`` in ``constructorDef^{asterisk}^``.
    .... Let ``IC~2~`` be xref:add_constructorDefs_i[where each of ``callableId~constructor~^{asterisk}^`` to each of ``constructorDef^{asterisk}^`` are added to ``IC~1~``].
    .... Result in context ``IC~2~`` and store ``STO'``.
 . Else if let ``annotationList +PARSER+ nameIR +<+typeParameterListIR~expl~ +,+ typeParameterListIR~impl~+>+ +(+parameterListIR+)+ +(+constructorParameterListIR+)+ +{+parserLocalDeclarationListIR parserStateListIR+}+`` be ``declarationIR``:
@@ -12174,7 +12174,7 @@ xref:Decl_inst[Decl_inst]:
  .. Result in context ``IC~1~`` and store ``STO'``.
 . Else if let ``enumTypeDeclarationIR`` be ``declarationIR``:
  .. If let ``annotationList +ENUM+ nameIR +{+nameIR~field~^{asterisk}^+}+`` be ``enumTypeDeclarationIR``:
-  ... Let ``nameIR~enum_field~`` be ``nameIR`` concatenated with ``"."`` concatenated with ``nameIR~field~``, for all ``nameIR~enum_field~`` in ``nameIR~enum_field~^{asterisk}^`` and ``nameIR~field~`` in ``nameIR~field~^{asterisk}^``.
+  ... Let ``nameIR~enum_field~`` be ``nameIR`` concatenated with ``"."`` concatenated with ``nameIR~field~``, for all ``nameIR~field~`` in ``nameIR~field~^{asterisk}^`` and ``nameIR~enum_field~`` in ``nameIR~enum_field~^{asterisk}^``.
   ... Let ``value~enum_field~`` be ``nameIR +.+ nameIR~field~``, for all ``nameIR~field~`` in ``nameIR~field~^{asterisk}^`` and ``value~enum_field~`` in ``value~enum_field~^{asterisk}^``.
   ... Let ``IC~1~`` be xref:add_vars_i[``IC~0~`` where each of ``nameIR~enum_field~^{asterisk}^`` to each of ``value~enum_field~^{asterisk}^`` are added to the ``+GLOBAL+`` layer].
   ... Let ``enumTypeDefIR`` be ``+ENUM+ nameIR +{+nameIR~field~^{asterisk}^+}+``.
@@ -12188,17 +12188,17 @@ xref:Decl_inst[Decl_inst]:
   ... Let ``IC~2~`` be xref:add_typeDef_i[``IC~1~`` where ``nameIR`` to ``enumTypeDefIR`` is added to the ``+GLOBAL+`` layer].
   ... Result in context ``IC~2~`` and store ``STO'``.
 . Else if let ``annotationList +STRUCT+ nameIR +<+typeParameterListIR+>+ +{+typeFieldIR^{asterisk}^+}+`` be ``declarationIR``:
- .. Let ``annotationList~field~ typeIR~field~ nameIR~field~ +;+`` be ``typeFieldIR``, for all ``annotationList~field~`` in ``annotationList~field~^{asterisk}^``, ``nameIR~field~`` in ``nameIR~field~^{asterisk}^``, ``typeFieldIR`` in ``typeFieldIR^{asterisk}^``, and ``typeIR~field~`` in ``typeIR~field~^{asterisk}^``.
+ .. Let ``annotationList~field~ typeIR~field~ nameIR~field~ +;+`` be ``typeFieldIR``, for all ``typeFieldIR`` in ``typeFieldIR^{asterisk}^``, ``annotationList~field~`` in ``annotationList~field~^{asterisk}^``, ``nameIR~field~`` in ``nameIR~field~^{asterisk}^``, and ``typeIR~field~`` in ``typeIR~field~^{asterisk}^``.
  .. Let ``structTypeDefIR`` be ``+STRUCT+ nameIR +<+typeParameterListIR+>+ +{+( annotationList~field~ typeIR~field~ nameIR~field~ +;+ )^{asterisk}^+}+``.
  .. Let ``IC~1~`` be xref:add_typeDef_i[``IC~0~`` where ``nameIR`` to ``structTypeDefIR`` is added to the ``+GLOBAL+`` layer].
  .. Result in context ``IC~1~`` and store ``STO'``.
 . Else if let ``annotationList +HEADER+ nameIR +<+typeParameterListIR+>+ +{+typeFieldIR^{asterisk}^+}+`` be ``declarationIR``:
- .. Let ``annotationList~field~ typeIR~field~ nameIR~field~ +;+`` be ``typeFieldIR``, for all ``annotationList~field~`` in ``annotationList~field~^{asterisk}^``, ``nameIR~field~`` in ``nameIR~field~^{asterisk}^``, ``typeFieldIR`` in ``typeFieldIR^{asterisk}^``, and ``typeIR~field~`` in ``typeIR~field~^{asterisk}^``.
+ .. Let ``annotationList~field~ typeIR~field~ nameIR~field~ +;+`` be ``typeFieldIR``, for all ``typeFieldIR`` in ``typeFieldIR^{asterisk}^``, ``annotationList~field~`` in ``annotationList~field~^{asterisk}^``, ``nameIR~field~`` in ``nameIR~field~^{asterisk}^``, and ``typeIR~field~`` in ``typeIR~field~^{asterisk}^``.
  .. Let ``headerTypeDefIR`` be ``+HEADER+ nameIR +<+typeParameterListIR+>+ +{+( annotationList~field~ typeIR~field~ nameIR~field~ +;+ )^{asterisk}^+}+``.
  .. Let ``IC~1~`` be xref:add_typeDef_i[``IC~0~`` where ``nameIR`` to ``headerTypeDefIR`` is added to the ``+GLOBAL+`` layer].
  .. Result in context ``IC~1~`` and store ``STO'``.
 . Else if let ``annotationList +HEADER_UNION+ nameIR +<+typeParameterListIR+>+ +{+typeFieldIR^{asterisk}^+}+`` be ``declarationIR``:
- .. Let ``annotationList~field~ typeIR~field~ nameIR~field~ +;+`` be ``typeFieldIR``, for all ``annotationList~field~`` in ``annotationList~field~^{asterisk}^``, ``nameIR~field~`` in ``nameIR~field~^{asterisk}^``, ``typeFieldIR`` in ``typeFieldIR^{asterisk}^``, and ``typeIR~field~`` in ``typeIR~field~^{asterisk}^``.
+ .. Let ``annotationList~field~ typeIR~field~ nameIR~field~ +;+`` be ``typeFieldIR``, for all ``typeFieldIR`` in ``typeFieldIR^{asterisk}^``, ``annotationList~field~`` in ``annotationList~field~^{asterisk}^``, ``nameIR~field~`` in ``nameIR~field~^{asterisk}^``, and ``typeIR~field~`` in ``typeIR~field~^{asterisk}^``.
  .. Let ``headerUnionTypeDefIR`` be ``+HEADER_UNION+ nameIR +<+typeParameterListIR+>+ +{+( annotationList~field~ typeIR~field~ nameIR~field~ +;+ )^{asterisk}^+}+``.
  .. Let ``IC~1~`` be xref:add_typeDef_i[``IC~0~`` where ``nameIR`` to ``headerUnionTypeDefIR`` is added to the ``+GLOBAL+`` layer].
  .. Result in context ``IC~1~`` and store ``STO'``.
@@ -12253,7 +12253,7 @@ xref:Decl_inst[Decl_inst]:
  .. Let ``IC~1~`` be xref:add_typeDef_i[``IC~0~`` where ``nameIR`` to ``controlObjectTypeDefIR`` is added to the ``+GLOBAL+`` layer].
  .. Result in context ``IC~1~`` and store ``STO'``.
 . Else:
- .. Let ``++_++ ++_++ typeIR ++_++ ++_++`` be ``parameterIR``, for all ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``parameterIR`` in ``parameterIR^{asterisk}^``, and ``typeIR`` in ``typeIR^{asterisk}^``.
+ .. Let ``++_++ ++_++ typeIR ++_++ ++_++`` be ``parameterIR``, for all ``parameterIR`` in ``parameterIR^{asterisk}^``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, and ``typeIR`` in ``typeIR^{asterisk}^``.
  .. Let ``packageObjectTypeDefIR`` be ``+PACKAGE+ nameIR +<+typeParameterListIR +,+ typeParameterListIR~inferred~+>+ +{+typeIR^{asterisk}^+}+``.
  .. Let ``IC~1~`` be xref:add_typeDef_i[``IC~0~`` where ``nameIR`` to ``packageObjectTypeDefIR`` is added to the ``+GLOBAL+`` layer].
  .. Let ``callableId`` be xref:callableId_IR[the callable identifier for ``nameIR`` ``+(+`` ``parameterIR^{asterisk}^`` ``+)+``].
@@ -12366,7 +12366,7 @@ xref:Constructor_call[Constructor_call]:
  .. Let ``theta`` be ``+{+( typeParameterIR +:+ typeArgumentIR )^{asterisk}^+}+``.
  .. Let ``IC~callee_1~`` be ``IC~callee_0~`` with ``+BLOCK+.+TYPE+`` set to ``theta``.
  .. Let ``+GIVEN+ constructorParameterIR~aligned~^{asterisk}^ +DEFAULT+ constructorParameterIR~default~^{asterisk}^`` be xref:align_parameterListIR[aligning ``constructorParameterIR^{asterisk}^`` with ``argumentIR^{asterisk}^`` where defaults are ``id~default~^{asterisk}^`` and optionals are ``id~optional~^{asterisk}^``].
- .. Let ``++_++ ++_++ ++_++ id~aligned~ ++_++`` be ``constructorParameterIR~aligned~``, for all ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``constructorParameterIR~aligned~`` in ``constructorParameterIR~aligned~^{asterisk}^``, and ``id~aligned~`` in ``id~aligned~^{asterisk}^``.
+ .. Let ``++_++ ++_++ ++_++ id~aligned~ ++_++`` be ``constructorParameterIR~aligned~``, for all ``constructorParameterIR~aligned~`` in ``constructorParameterIR~aligned~^{asterisk}^``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, and ``id~aligned~`` in ``id~aligned~^{asterisk}^``.
  .. Let store ``STO~1~`` and context ``IC~callee_2~`` be the result of xref:Copy_in_inst[copy-in from ``IC`` at ``p`` with ``argumentIR^{asterisk}^`` to ``IC~callee_1~`` at ``p~callee~`` with ``id~aligned~^{asterisk}^``, under store ``STO~0~``].
  .. Let store ``STO~2~`` and context ``IC~callee_3~`` be the result of xref:Copy_in_inst_default[copying defaults ``constructorParameterIR~default~^{asterisk}^`` from ``p`` at ``IC`` to ``IC~callee_2~`` at ``p~callee~``, under store ``STO~1~``].
  .. Let context ``IC~callee_4~`` be the result of xref:ExternMethods_inst[compile-time evaluation of ``externMethodPrototypeIR^{asterisk}^``, under context ``IC~callee_3~``].
@@ -12374,7 +12374,7 @@ xref:Constructor_call[Constructor_call]:
  .. Check that ``callableDef`` has type ``externMethodDef``, for all ``callableDef`` in ``callableDef^{asterisk}^``.
 
  .. Let ``externMethodDef`` be ``callableDef``, for all ``callableDef`` in ``callableDef^{asterisk}^`` and ``externMethodDef`` in ``externMethodDef^{asterisk}^``.
- .. Let ``++_++ ++_++ ++_++ id~cparam_default~ ++_++`` be ``constructorParameterIR~default~``, for all ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``constructorParameterIR~default~`` in ``constructorParameterIR~default~^{asterisk}^``, and ``id~cparam_default~`` in ``id~cparam_default~^{asterisk}^``.
+ .. Let ``++_++ ++_++ ++_++ id~cparam_default~ ++_++`` be ``constructorParameterIR~default~``, for all ``constructorParameterIR~default~`` in ``constructorParameterIR~default~^{asterisk}^``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, and ``id~cparam_default~`` in ``id~cparam_default~^{asterisk}^``.
  .. Let ``id~cparam~^{asterisk}^`` be ``id~aligned~^{asterisk}^`` concatenated with ``id~cparam_default~^{asterisk}^``.
  .. Let ``value^?^`` be xref:find_map[the value of ``id~cparam~`` in map ``IC~callee_4~.+BLOCK+.+FRAME+``], for all ``id~cparam~`` in ``id~cparam~^{asterisk}^`` and ``value^?^`` in ``value^?^^{asterisk}^``.
  .. Check that ``value^?^`` is defined, for all ``value^?^`` in ``value^?^^{asterisk}^``.
@@ -12393,7 +12393,7 @@ xref:Constructor_call[Constructor_call]:
  .. Let ``theta~parser~`` be ``+{+( typeParameterIR +:+ typeArgumentIR )^{asterisk}^+}+``.
  .. Let ``IC~callee_1~`` be ``IC~callee_0~`` with ``+BLOCK+.+TYPE+`` set to ``theta~parser~``.
  .. Let ``+GIVEN+ constructorParameterIR~aligned~^{asterisk}^ +DEFAULT+ constructorParameterIR~default~^{asterisk}^`` be xref:align_parameterListIR[aligning ``constructorParameterIR^{asterisk}^`` with ``argumentIR^{asterisk}^`` where defaults are ``id~default~^{asterisk}^`` and optionals are ``id~optional~^{asterisk}^``].
- .. Let ``++_++ ++_++ ++_++ id~aligned~ ++_++`` be ``constructorParameterIR~aligned~``, for all ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``constructorParameterIR~aligned~`` in ``constructorParameterIR~aligned~^{asterisk}^``, and ``id~aligned~`` in ``id~aligned~^{asterisk}^``.
+ .. Let ``++_++ ++_++ ++_++ id~aligned~ ++_++`` be ``constructorParameterIR~aligned~``, for all ``constructorParameterIR~aligned~`` in ``constructorParameterIR~aligned~^{asterisk}^``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, and ``id~aligned~`` in ``id~aligned~^{asterisk}^``.
  .. Let store ``STO~1~`` and context ``IC~callee_2~`` be the result of xref:Copy_in_inst[copy-in from ``IC`` at ``p`` with ``argumentIR^{asterisk}^`` to ``IC~callee_1~`` at ``p~callee~`` with ``id~aligned~^{asterisk}^``, under store ``STO~0~``].
  .. Let store ``STO~2~`` and context ``IC~callee_3~`` be the result of xref:Copy_in_inst_default[copying defaults ``constructorParameterIR~default~^{asterisk}^`` from ``p`` at ``IC`` to ``IC~callee_2~`` at ``p~callee~``, under store ``STO~1~``].
  .. Let context ``IC~local~``, store ``STO~3~``, and ``parserLocalDeclarationIR~inst~^{asterisk}^`` be the result of xref:ParserLocalDecls_inst[compile-time evaluation of ``parserLocalDeclarationIR^{asterisk}^``, under context ``IC~callee_3~`` and store ``STO~2~``].
@@ -12409,7 +12409,7 @@ xref:Constructor_call[Constructor_call]:
  .. Let ``theta~control~`` be ``+{+( typeParameterIR +:+ typeArgumentIR )^{asterisk}^+}+``.
  .. Let ``IC~callee_1~`` be ``IC~callee_0~`` with ``+BLOCK+.+TYPE+`` set to ``theta~control~``.
  .. Let ``+GIVEN+ constructorParameterIR~aligned~^{asterisk}^ +DEFAULT+ constructorParameterIR~default~^{asterisk}^`` be xref:align_parameterListIR[aligning ``constructorParameterIR^{asterisk}^`` with ``argumentIR^{asterisk}^`` where defaults are ``id~default~^{asterisk}^`` and optionals are ``id~optional~^{asterisk}^``].
- .. Let ``++_++ ++_++ ++_++ id~aligned~ ++_++`` be ``constructorParameterIR~aligned~``, for all ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``constructorParameterIR~aligned~`` in ``constructorParameterIR~aligned~^{asterisk}^``, and ``id~aligned~`` in ``id~aligned~^{asterisk}^``.
+ .. Let ``++_++ ++_++ ++_++ id~aligned~ ++_++`` be ``constructorParameterIR~aligned~``, for all ``constructorParameterIR~aligned~`` in ``constructorParameterIR~aligned~^{asterisk}^``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, and ``id~aligned~`` in ``id~aligned~^{asterisk}^``.
  .. Let store ``STO~1~`` and context ``IC~callee_2~`` be the result of xref:Copy_in_inst[copy-in from ``IC`` at ``p`` with ``argumentIR^{asterisk}^`` to ``IC~callee_1~`` at ``p~callee~`` with ``id~aligned~^{asterisk}^``, under store ``STO~0~``].
  .. Let store ``STO~2~`` and context ``IC~callee_3~`` be the result of xref:Copy_in_inst_default[copying defaults ``constructorParameterIR~default~^{asterisk}^`` from ``p`` at ``IC`` to ``IC~callee_2~`` at ``p~callee~``, under store ``STO~1~``].
  .. Let context ``IC~local_0~``, store ``STO~3~``, and ``controlLocalDeclarationIR~inst~^{asterisk}^`` be the result of xref:ControlLocalDecls_inst[compile-time evaluation of ``controlLocalDeclarationIR^{asterisk}^``, under context ``IC~callee_3~``and store ``STO~2~``].
@@ -12418,7 +12418,7 @@ xref:Constructor_call[Constructor_call]:
  .. Let ``+{+( callableId +:+ callableDef )^{asterisk}^+}+`` be ``IC~local_1~.+BLOCK+.+CALLABLE+``.
  .. Check that ``callableDef`` has type ``actionDef``, for all ``callableDef`` in ``callableDef^{asterisk}^``.
 
- .. Let ``actionDef`` be ``callableDef``, for all ``actionDef`` in ``actionDef^{asterisk}^`` and ``callableDef`` in ``callableDef^{asterisk}^``.
+ .. Let ``actionDef`` be ``callableDef``, for all ``callableDef`` in ``callableDef^{asterisk}^`` and ``actionDef`` in ``actionDef^{asterisk}^``.
  .. Let ``actionDefEnv~control~`` be ``+{+( callableId +:+ actionDef )^{asterisk}^+}+``.
  .. Let ``object~control~`` be ``+CONTROL+ +<+theta~control~+>+ +(+parameterIR^{asterisk}^+)+ +{+frame~control~ controlLocalDeclarationIR~inst~^{asterisk}^ +{+( callableId +:+ actionDef )^{asterisk}^+}+ controlBodyIR~inst~+}+``.
  .. Result in store ``STO~4~`` and instantiated ``object~control~``.
@@ -12428,7 +12428,7 @@ xref:Constructor_call[Constructor_call]:
  .. Let ``IC~callee_0~`` be xref:inherit_i[an instantiation context same as ``IC`` up to the ``+GLOBAL+`` layer].
  .. Let ``IC~callee_1~`` be ``IC~callee_0~`` with ``+BLOCK+.+TYPE+`` set to ``+{+( typeParameterIR +:+ typeArgumentIR )^{asterisk}^+}+``.
  .. Let ``+GIVEN+ constructorParameterIR~aligned~^{asterisk}^ +DEFAULT+ constructorParameterIR~default~^{asterisk}^`` be xref:align_parameterListIR[aligning ``constructorParameterIR^{asterisk}^`` with ``argumentIR^{asterisk}^`` where defaults are ``id~default~^{asterisk}^`` and optionals are ``id~optional~^{asterisk}^``].
- .. Let ``++_++ ++_++ ++_++ id~aligned~ ++_++`` be ``constructorParameterIR~aligned~``, for all ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``constructorParameterIR~aligned~`` in ``constructorParameterIR~aligned~^{asterisk}^``, and ``id~aligned~`` in ``id~aligned~^{asterisk}^``.
+ .. Let ``++_++ ++_++ ++_++ id~aligned~ ++_++`` be ``constructorParameterIR~aligned~``, for all ``constructorParameterIR~aligned~`` in ``constructorParameterIR~aligned~^{asterisk}^``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, ``++_++`` in ``++_++``, and ``id~aligned~`` in ``id~aligned~^{asterisk}^``.
  .. Let store ``STO~1~`` and context ``IC~callee_2~`` be the result of xref:Copy_in_inst[copy-in from ``IC`` at ``p`` with ``argumentIR^{asterisk}^`` to ``IC~callee_1~`` at ``p~callee~`` with ``id~aligned~^{asterisk}^``, under store ``STO~0~``].
  .. Let store ``STO~2~`` and context ``IC~callee_3~`` be the result of xref:Copy_in_inst_default[copying defaults ``constructorParameterIR~default~^{asterisk}^`` from ``p`` at ``IC`` to ``IC~callee_2~`` at ``p~callee~``, under store ``STO~1~``].
  .. Let ``theta~package~`` be ``IC~callee_3~.+BLOCK+.+TYPE+``.

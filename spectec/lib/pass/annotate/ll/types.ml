@@ -10,6 +10,7 @@ type exp = Sl.exp
 type notexp = Sl.notexp
 type relcall = Sl.relcall
 type iterexp = Sl.iterexp
+type iterinstr = Sl.iterinstr
 type pattern = Sl.pattern
 type tparam = Sl.tparam
 type typ = Sl.typ
@@ -34,13 +35,13 @@ and guard =
 
 and instr = instr' located
 and instr' =
-  | RelI of { call : relcall; iterexps : iterexp list }
+  | RelI of { call : relcall; iterinstrs : iterinstr list }
   | RelAssertI of { call : relcall; expect : bool; iterexps : iterexp list; block : block; phantom : phantom option }
   | IfI of exp * iterexp list * block * phantom option
   | CaseI of exp * case list * phantom option
   | OtherwiseI of block
   | TryI of block list
-  | LetI of exp * exp * iterexp list
+  | LetI of exp * exp * iterinstr list
   | ResultI of exp list
   | ReturnI of exp
   | DebugI of exp

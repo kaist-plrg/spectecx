@@ -281,13 +281,7 @@ struct
         ((varid, iters), collect_iteration_value values ~iter ~result_typ:typ))
       vars
 
-  let iteration_outputs ctx ~iterexp:(iter, vars) ~f =
-    let vars_input, vars_output =
-      List.partition
-        (fun { Il.varid; iters; _ } ->
-          has_value ctx ~var:(varid, iters @ [ iter ]))
-        vars
-    in
+  let iteration_outputs ctx ~iterinstr:Il.{ iter; vars_input; vars_output } ~f =
     let* ctxs = expand_iteration_inputs ctx ~iter ~vars:vars_input in
     let* ctxs_output_rev =
       List.fold_left
@@ -300,12 +294,12 @@ struct
     let ctxs_output = List.rev ctxs_output_rev in
     Ok (collect_iteration_bindings ctxs_output ~iter ~vars:vars_output)
 
-  let eval_iterations ctx ~iterexps ~f =
-    let iterate body iterexp ctx =
-      let* bindings = iteration_outputs ctx ~iterexp ~f:body in
+  let eval_iterations ctx ~iterinstrs ~f =
+    let iterate body iterinstr ctx =
+      let* bindings = iteration_outputs ctx ~iterinstr ~f:body in
       Ok (set_values ctx ~bindings)
     in
-    List.fold_left iterate f iterexps ctx
+    List.fold_left iterate f iterinstrs ctx
 
   let for_all_body_contexts ctx ~iterexps ~f =
     let iterate body (iter, vars) ctx =

@@ -39,7 +39,8 @@ let rec as_guard (prem : Il.prem) : Il.prem =
   let guard =
     match prem.it with
     | Il.IfPr { cond; _ } -> Il.IfPr { cond; role = Il.Guard }
-    | Il.IterPr (prem_inner, iterexp) -> Il.IterPr (as_guard prem_inner, iterexp)
+    | Il.IterPr (prem_inner, iterinstr) ->
+        Il.IterPr (as_guard prem_inner, iterinstr)
     | _ -> prem.it
   in
   guard $$ (prem.at, Some Il.Synthesized)
@@ -1683,7 +1684,7 @@ and elab_iter_prem (ctx : Ctx.t) (prem : prem) (iter : iter) : Ctx.t * Il.prem'
   let iter_il = elab_iter iter in
   let ctx, prem_il_opt = elab_prem ctx prem in
   let prem_il = Option.get prem_il_opt in
-  let prem_il = Il.IterPr (prem_il, (iter_il, [])) in
+  let prem_il = Il.IterPr (prem_il, Il.unannotated_iterinstr iter_il) in
   (ctx, prem_il)
 
 (* Elaboration of debug premises *)

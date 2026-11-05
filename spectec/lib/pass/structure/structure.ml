@@ -9,42 +9,55 @@ module TDEnv = Envs.Il.TDEnv
 
 (* Structuring premises *)
 
-let rec internalize_iter ?(iterexps : iterexp list = []) (prem : prem) :
-    prem * iterexp list =
+let rec internalize_iter ?(iterinstrs : iterinstr list = []) (prem : prem) :
+    prem * iterinstr list =
   match prem.it with
-  | IterPr (prem, iterexp) ->
-      internalize_iter ~iterexps:(iterexp :: iterexps) prem
-  | _ -> (prem, iterexps)
+  | IterPr (prem, iterinstr) ->
+      internalize_iter ~iterinstrs:(iterinstr :: iterinstrs) prem
+  | _ -> (prem, iterinstrs)
+
+let condition_iterexps (iterinstrs : iterinstr list) : iterexp list =
+  List.map
+    (fun (iterinstr : iterinstr) ->
+      assert (iterinstr.vars_output = []);
+      iterexp_of_iterinstr iterinstr)
+    iterinstrs
 
 let rec struct_prems (prems : prem list) (instr_ret : Ol.Ast.instr) :
     Ol.Ast.instr =
   let prems_internalized = List.map internalize_iter prems in
   struct_prems' prems_internalized instr_ret
 
-and struct_prems' (prems_internalized : (prem * iterexp list) list)
+and struct_prems' (prems_internalized : (prem * iterinstr list) list)
     (instr_ret : Ol.Ast.instr) : Ol.Ast.instr =
   match prems_internalized with
   | [] -> instr_ret
   | [ ({ it = ElsePr; at; _ }, []) ] -> Ol.Ast.OtherwiseI instr_ret $ at
-  | (prem_h, iterexps_h) :: prems_internalized_t -> (
+  | (prem_h, iterinstrs_h) :: prems_internalized_t -> (
       let at = prem_h.at in
       match prem_h.it with
       | RelPr { relid = id; notexp } ->
           let instr_t = struct_prems' prems_internalized_t instr_ret in
           let call = Ol.Ast.{ relid = id; notexp } in
-          Ol.Ast.RelI { call; iterexps = iterexps_h; block = [ instr_t ] } $ at
+          Ol.Ast.RelI { call; iterinstrs = iterinstrs_h; block = [ instr_t ] }
+          $ at
       | IfPr { cond; _ } ->
           let instr_t = struct_prems' prems_internalized_t instr_ret in
-          Ol.Ast.IfI (cond, iterexps_h, [ instr_t ]) $ at
+          Ol.Ast.IfI (cond, condition_iterexps iterinstrs_h, [ instr_t ]) $ at
       | RelAssertPr { call = { relid = id; notexp }; expect } ->
           let instr_t = struct_prems' prems_internalized_t instr_ret in
           let call = Ol.Ast.{ relid = id; notexp } in
           Ol.Ast.RelAssertI
-            { call; expect; iterexps = iterexps_h; block = [ instr_t ] }
+            {
+              call;
+              expect;
+              iterexps = condition_iterexps iterinstrs_h;
+              block = [ instr_t ];
+            }
           $ at
       | LetPr (exp_l, exp_r) ->
           let instr_t = struct_prems' prems_internalized_t instr_ret in
-          Ol.Ast.LetI (exp_l, exp_r, iterexps_h, [ instr_t ]) $ at
+          Ol.Ast.LetI (exp_l, exp_r, iterinstrs_h, [ instr_t ]) $ at
       | DebugPr exp ->
           let instr_t = struct_prems' prems_internalized_t instr_ret in
           Ol.Ast.DebugI (exp, instr_t) $ at

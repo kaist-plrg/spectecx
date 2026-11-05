@@ -265,12 +265,24 @@ and prem' =
   | IfPr of { cond : exp; role : if_role }  (* `if` exp *)
   | ElsePr                         (* `otherwise` *)
   | LetPr of exp * exp             (* `let` exp `=` exp *)
-  | IterPr of prem * iterexp       (* prem iterexp *)
+  | IterPr of prem * iterinstr     (* prem iterinstr *)
   | DebugPr of exp                 (* `debug` exp *)
 
 and if_role =
   | Condition
   | Guard  (* failing it means the rule does not apply *)
+
+(* Each run of an iterated premise reads [vars_input] and binds
+   [vars_output]. *)
+and iterinstr = { iter : iter; vars_input : var list; vars_output : var list }
+
+(* Dimension analysis fills in the variables. *)
+let unannotated_iterinstr (iter : iter) : iterinstr =
+  { iter; vars_input = []; vars_output = [] }
+
+let iterexp_of_iterinstr ({ iter; vars_input; vars_output } : iterinstr) :
+    iterexp =
+  (iter, vars_input @ vars_output)
 
 (* Definitions *)
 

@@ -26,10 +26,10 @@ and eq_guard (guard_a : guard) (guard_b : guard) : bool =
 
 and eq_instr (instr_a : instr) (instr_b : instr) : bool =
   match (instr_a.it, instr_b.it) with
-  | ( RelI { call = call_a; iterexps = iterexps_a; block = block_a },
-      RelI { call = call_b; iterexps = iterexps_b; block = block_b } ) ->
+  | ( RelI { call = call_a; iterinstrs = iterinstrs_a; block = block_a },
+      RelI { call = call_b; iterinstrs = iterinstrs_b; block = block_b } ) ->
       Sl.Eq.eq_relcall call_a call_b
-      && Sl.Eq.eq_iterexps iterexps_a iterexps_b
+      && Sl.Eq.eq_iterinstrs iterinstrs_a iterinstrs_b
       && eq_instrs block_a block_b
   | ( RelAssertI
         {
@@ -57,11 +57,11 @@ and eq_instr (instr_a : instr) (instr_b : instr) : bool =
   | CaseI (exp_a, cases_a, total_a), CaseI (exp_b, cases_b, total_b) ->
       Sl.Eq.eq_exp exp_a exp_b && eq_cases cases_a cases_b && total_a = total_b
   | OtherwiseI instr_a, OtherwiseI instr_b -> eq_instr instr_a instr_b
-  | ( LetI (exp_l_a, exp_r_a, iterexps_a, block_a),
-      LetI (exp_l_b, exp_r_b, iterexps_b, block_b) ) ->
+  | ( LetI (exp_l_a, exp_r_a, iterinstrs_a, block_a),
+      LetI (exp_l_b, exp_r_b, iterinstrs_b, block_b) ) ->
       Sl.Eq.eq_exp exp_l_a exp_l_b
       && Sl.Eq.eq_exp exp_r_a exp_r_b
-      && Sl.Eq.eq_iterexps iterexps_a iterexps_b
+      && Sl.Eq.eq_iterinstrs iterinstrs_a iterinstrs_b
       && eq_instrs block_a block_b
   | ResultI exps_a, ResultI exps_b -> Sl.Eq.eq_exps exps_a exps_b
   | ReturnI exp_a, ReturnI exp_b -> Sl.Eq.eq_exp exp_a exp_b

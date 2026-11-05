@@ -72,6 +72,7 @@ type exp' = Il.exp'
 
 type notexp = Il.notexp
 type iterexp = Il.iterexp
+type iterinstr = Il.iterinstr
 
 (* Patterns *)
 
@@ -131,7 +132,7 @@ and guard =
 
 and instr = instr' located
 and instr' =
-  | RelI of { call : relcall; iterexps : iterexp list; block : instr list }
+  | RelI of { call : relcall; iterinstrs : iterinstr list; block : instr list }
   | RelAssertI of {
       call : relcall;
       expect : bool;
@@ -142,7 +143,7 @@ and instr' =
   | IfI of exp * iterexp list * instr list * phantom option
   | CaseI of exp * case list * phantom option
   | OtherwiseI of instr
-  | LetI of exp * exp * iterexp list * instr list
+  | LetI of exp * exp * iterinstr list * instr list
   | ResultI of exp list
   | ReturnI of exp
   | DebugI of exp * instr

@@ -445,6 +445,10 @@ let render_iterexp_suffix (ctx : context) (iterexps : iterexp list) : string =
         in
         ", for all " ^ (iter_vars |> List.map render_in_var |> render_list)
 
+let render_iterinstr_suffix (ctx : context) (iterinstrs : iterinstr list) :
+    string =
+  render_iterexp_suffix ctx (List.map Il.iterexp_of_iterinstr iterinstrs)
+
 (* Relations *)
 
 let render_rel_title_math (ctx : context) ((mixop, inputs) : mixop * int list)
@@ -464,7 +468,7 @@ let rec render_instr ?(level = 0) ?(unordered = false) (instr : instr) : string
   in
   let hints = instr.hints in
   match instr.node.it with
-  | RelI { call = { relid = id_rel; notexp }; iterexps } ->
+  | RelI { call = { relid = id_rel; notexp }; iterinstrs } ->
       let mixop = Mixfix.to_mixop notexp in
       let exps = Mixfix.args notexp in
       let hint_in = hints.prose_in in
@@ -496,7 +500,7 @@ let rec render_instr ?(level = 0) ?(unordered = false) (instr : instr) : string
               |> adoc_as_link in_prose ~link:(string_of_relid id_rel))
       in
       F.asprintf "%s%s%s." bullet rel_body
-        (render_iterexp_suffix in_prose iterexps)
+        (render_iterinstr_suffix in_prose iterinstrs)
   | RelAssertI
       {
         call = { relid = id_rel; notexp };
@@ -562,11 +566,11 @@ let rec render_instr ?(level = 0) ?(unordered = false) (instr : instr) : string
       in
       F.asprintf "%sTry:\n%s" bullet
         (String.concat "\n" (List.map render_arm arms))
-  | LetI (exp_l, exp_r, iterexps) ->
+  | LetI (exp_l, exp_r, iterinstrs) ->
       F.asprintf "%sLet %s be %s%s." bullet
         (render_exp_as_code in_prose exp_l)
         (render_exp in_prose exp_r)
-        (render_iterexp_suffix in_prose iterexps)
+        (render_iterinstr_suffix in_prose iterinstrs)
   | ResultI exps -> (
       match (hints.prose_out, exps) with
       | Some h, _ ->

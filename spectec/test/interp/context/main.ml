@@ -21,9 +21,9 @@ let typdef = ([], Il.PlainT typ_nat $ Location.Unknown)
 let itervar name iters : Il.var = { varid = id name; typ = typ_nat; iters }
 let check name condition = if not condition then failwith name
 
-let check_value ctx key expected =
+let check_value ?(name = "unexpected value binding") ctx key expected =
   let actual = Ctx.find_value_exn ctx ~var:key in
-  check "unexpected value binding" (Value.compare actual expected = 0)
+  check name (Value.compare actual expected = 0)
 
 let expect_error expected f =
   match f () with
@@ -155,4 +155,49 @@ let () =
        ~vars:[ itervar "x" [] ]
     = Ok []);
   check "nested binding preserves parent"
-    (not (Ctx.has_value ctx_nested ~var:(id "x", [ Il.Opt ])))
+    (not (Ctx.has_value ctx_nested ~var:(id "x", [ Il.Opt ])));
+  List.iter
+    (fun (name, iter, input, old_output) ->
+      let ctx =
+        Ctx.set_values ctx_bound
+          ~bindings:
+            [
+              ((id "x", [ iter ]), input);
+              ((id "y", [ iter ]), old_output);
+              (var "y", nat 99);
+            ]
+      in
+      let iterinstr =
+        Il.
+          {
+            iter;
+            vars_input = [ itervar "x" [] ];
+            vars_output = [ itervar "y" [] ];
+          }
+      in
+      let ctx_result =
+        Ctx.eval_iterations ctx ~iterinstrs:[ iterinstr ] ~f:(fun ctx ->
+            let value = Ctx.find_value_exn ctx ~var:(var "x") in
+            Ok (Ctx.set_value ctx ~var:(var "y") ~value))
+        |> Result.get_ok
+      in
+      check_value
+        ~name:(name ^ " output replaces its existing value")
+        ctx_result
+        (id "y", [ iter ])
+        input;
+      check_value
+        ~name:(name ^ " output leaves the non-iterated variable alone")
+        ctx_result (var "y") (nat 99))
+    [
+      ( "list",
+        Il.List,
+        Value.list typ_nat [ nat 1; nat 2 ],
+        Value.list typ_nat [ nat 99 ] );
+      ( "empty list",
+        Il.List,
+        Value.list typ_nat [],
+        Value.list typ_nat [ nat 99 ] );
+      ("option", Il.Opt, optional (Some (nat 1)), optional None);
+      ("absent option", Il.Opt, optional None, optional (Some (nat 99)));
+    ]

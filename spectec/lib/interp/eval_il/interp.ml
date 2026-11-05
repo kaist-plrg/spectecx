@@ -107,7 +107,7 @@ and eval_prem (ctx : Ctx.t) (prem : prem) : Ctx.t attempt =
         eval_cond_prem fail_with ctx cond
     | ElsePr -> Ok ctx
     | LetPr (exp_l, exp_r) -> eval_let_prem ctx exp_l exp_r
-    | IterPr (prem, iterexp) -> eval_iter_prem ctx prem iterexp
+    | IterPr (prem, iterinstr) -> eval_iter_prem ctx prem iterinstr
     | DebugPr exp -> eval_debug_prem ctx exp
   in
   (match prem.it with
@@ -134,7 +134,7 @@ and eval_prems (ctx : Ctx.t) (prems : prem list) : Ctx.t attempt =
 
 (* Iterated premise evaluation *)
 
-and eval_iter_prem (ctx : Ctx.t) (prem : prem) (iterexp : iterexp) :
+and eval_iter_prem (ctx : Ctx.t) (prem : prem) (iterinstr : iterinstr) :
     Ctx.t attempt =
   let eval_iteration ctx_sub =
     Instrumentation.Dispatcher.emit
@@ -143,7 +143,7 @@ and eval_iter_prem (ctx : Ctx.t) (prem : prem) (iterexp : iterexp) :
     Instrumentation.Dispatcher.emit (Events.Iter_prem_exit { at = prem.at });
     Ok ctx_sub
   in
-  Ctx.eval_iterations ctx ~iterexps:[ iterexp ] ~f:eval_iteration
+  Ctx.eval_iterations ctx ~iterinstrs:[ iterinstr ] ~f:eval_iteration
 
 (* Invoke a relation *)
 

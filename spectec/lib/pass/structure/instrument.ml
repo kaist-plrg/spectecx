@@ -75,9 +75,9 @@ and insert_phantom' (tdenv : TDEnv.t) (pathconds : pathcond list)
     (instr : instr) : Sl.instr =
   let at = instr.at in
   match instr.it with
-  | RelI { call; iterexps; block } ->
+  | RelI { call; iterinstrs; block } ->
       let block = insert_phantom tdenv pathconds block in
-      Sl.RelI { call; iterexps; block } $ at
+      Sl.RelI { call; iterinstrs; block } $ at
   | RelAssertI { call; expect; iterexps; block } ->
       let pathcond =
         if iterexps = [] then RelAssertC { call; expect }
@@ -149,9 +149,9 @@ and insert_phantom' (tdenv : TDEnv.t) (pathconds : pathcond list)
   | OtherwiseI instr ->
       let instr = insert_phantom' tdenv pathconds instr in
       Sl.OtherwiseI instr $ at
-  | LetI (exp_l, exp_r, iterexps, block) ->
+  | LetI (exp_l, exp_r, iterinstrs, block) ->
       let block = insert_phantom tdenv pathconds block in
-      Sl.LetI (exp_l, exp_r, iterexps, block) $ at
+      Sl.LetI (exp_l, exp_r, iterinstrs, block) $ at
   | ResultI exps -> Sl.ResultI exps $ at
   | ReturnI exp -> Sl.ReturnI exp $ at
   | DebugI (exp, instr_body) ->
@@ -166,9 +166,9 @@ let rec insert_nothing (instrs : instr list) : Sl.instr list =
 and insert_nothing' (instr : instr) : Sl.instr =
   let at = instr.at in
   match instr.it with
-  | RelI { call; iterexps; block } ->
+  | RelI { call; iterinstrs; block } ->
       let block = insert_nothing block in
-      Sl.RelI { call; iterexps; block } $ at
+      Sl.RelI { call; iterinstrs; block } $ at
   | RelAssertI { call; expect; iterexps; block } ->
       let block = insert_nothing block in
       Sl.RelAssertI { call; expect; iterexps; block; phantom = None } $ at
@@ -195,9 +195,9 @@ and insert_nothing' (instr : instr) : Sl.instr =
   | OtherwiseI instr ->
       let instr = insert_nothing' instr in
       Sl.OtherwiseI instr $ at
-  | LetI (exp_l, exp_r, iterexps, block) ->
+  | LetI (exp_l, exp_r, iterinstrs, block) ->
       let block = insert_nothing block in
-      Sl.LetI (exp_l, exp_r, iterexps, block) $ at
+      Sl.LetI (exp_l, exp_r, iterinstrs, block) $ at
   | ResultI exps -> Sl.ResultI exps $ at
   | ReturnI exp -> Sl.ReturnI exp $ at
   | DebugI (exp, instr_body) ->

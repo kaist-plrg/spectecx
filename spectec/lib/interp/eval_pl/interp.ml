@@ -51,15 +51,15 @@ and eval_instr (ctx : Ctx.t) (instr : instr) : Ctx.t * Sign.t =
     (ctx, Sign.Cont)
   in
   match instr.node.it with
-  | RelI { call; iterexps } ->
-      eval_rel_instr ctx call.relid call.notexp iterexps
+  | RelI { call; iterinstrs } ->
+      eval_rel_instr ctx call.relid call.notexp iterinstrs
   | RelAssertI { call; expect; iterexps; block; phantom = _ } ->
       eval_rel_assert_instr ctx call.relid call.notexp expect iterexps block
   | IfI (exp_cond, iterexps, instrs_then, _phantom_opt) ->
       eval_if_instr ctx exp_cond iterexps instrs_then
   | CaseI (exp, cases, _phantom_opt) -> eval_case_instr ctx exp cases
   | OtherwiseI instr -> eval_instr ctx instr
-  | LetI (exp_l, exp_r, iterexps) -> eval_let_instr ctx exp_l exp_r iterexps
+  | LetI (exp_l, exp_r, iterinstrs) -> eval_let_instr ctx exp_l exp_r iterinstrs
   | ResultI exps -> eval_result_instr ctx exps
   | ReturnI exp -> eval_return_instr ctx exp
   | DebugI exp -> eval_debug_instr ctx exp
@@ -247,13 +247,13 @@ and eval_case_instr (ctx : Ctx.t) (exp : exp) (cases : case list) :
 (* Let instruction evaluation *)
 
 and eval_let_instr (ctx : Ctx.t) (exp_l : exp) (exp_r : exp)
-    (iterexps : iterexp list) : Ctx.t * Sign.t =
+    (iterinstrs : iterinstr list) : Ctx.t * Sign.t =
   let eval_let ctx =
     let value = eval_exp ctx exp_r in
     Ok (Expressions.assign_exp ctx ~exp:exp_l ~value)
   in
   let ctx =
-    Ctx.eval_iterations ctx ~iterexps ~f:eval_let
+    Ctx.eval_iterations ctx ~iterinstrs ~f:eval_let
     |> Interp_runtime.Context.get_exn
   in
   (ctx, Sign.Cont)
@@ -261,7 +261,7 @@ and eval_let_instr (ctx : Ctx.t) (exp_l : exp) (exp_r : exp)
 (* Relation instruction evaluation *)
 
 and eval_rel_instr (ctx : Ctx.t) (id : id) (notexp : notexp)
-    (iterexps : iterexp list) : Ctx.t * Sign.t =
+    (iterinstrs : iterinstr list) : Ctx.t * Sign.t =
   let eval_rel ctx =
     let mode, _, _ = Ctx.find_rel_exn ctx ~id in
     let exps_input, exps_output =
@@ -276,7 +276,7 @@ and eval_rel_instr (ctx : Ctx.t) (id : id) (notexp : notexp)
     Ok (Expressions.assign_exps ctx ~exps:exps_output ~values:values_output)
   in
   let ctx =
-    Ctx.eval_iterations ctx ~iterexps ~f:eval_rel
+    Ctx.eval_iterations ctx ~iterinstrs ~f:eval_rel
     |> Interp_runtime.Context.get_exn
   in
   (ctx, Sign.Cont)
