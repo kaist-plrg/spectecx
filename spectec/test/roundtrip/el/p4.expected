@@ -26360,6 +26360,42 @@ rule Call_eval/tableApplyMethodCallee-return:
   -- Table_eval:
        EC_callee_1 ARCH_0 |- typeId TBL : EC_callee_2 ARCH_1 returnResult
   -- if EC_1 = $copy_e(BLOCK, EC_callee_2, EC_0)
+;; === 8-dynamic/8.11-eval-extern.spectec ===
+builtin dec $eval_extern_function_call(evalContext, arch, nameIR, nameIR*)
+  : (evalContext, arch, callResult)
+  hint(prose_in "the result of calling the extern function"
+                %2
+                `(%3`)
+                "under context"
+                %0
+                "and state"
+                %1)
+
+rule ExternFunctionCall_eval:
+  EC_0 ARCH_0 |- nameIR `(nameIR_param*`) : EC_1 ARCH_1 callResult
+  -- if (EC_1, ARCH_1, callResult)
+        = $eval_extern_function_call(EC_0, ARCH_0, nameIR, nameIR_param*)
+
+builtin dec $eval_extern_method_call(evalContext,
+                                     arch,
+                                     objectId,
+                                     nameIR,
+                                     nameIR*)
+  : (evalContext, arch, callResult)
+  hint(prose_in "the result of calling the extern method"
+                %3
+                `(%4`)
+                "on object"
+                %2
+                "under context"
+                %0
+                "and state"
+                %1)
+
+rule ExternMethodCall_eval:
+  EC_0 ARCH_0 |- objectId '.' nameIR `(nameIR_param*`) : EC_1 ARCH_1 callResult
+  -- if (EC_1, ARCH_1, callResult)
+        = $eval_extern_method_call(EC_0, ARCH_0, objectId, nameIR, nameIR_param*)
 ;; === 9-arch/9.0-eval-arch.spectec ===
 relation Var_init: evalContext |- typeIR nameIR : evalContext
   hint(input %0 %1 %2)

@@ -30648,8 +30648,16 @@ relation Call_eval: cursor evalContext arch |- callee @ < typeArgumentListIR > (
 ;; ../../../../../spectec/specs/p4/8-dynamic/8.02-evaluation-relation.spectec:425:1-430:67:
 relation ExternFunctionCall_eval: evalContext arch |- nameIR ( nameIR* ) : evalContext arch callResult
 
+   ;; ../../../../../spectec/specs/p4/8-dynamic/8.11-eval-extern.spectec:16:1-19:72:
+   rule : EC_0 ARCH_0 |- nameIR ( nameIR_param*{nameIR_param <- nameIR_param*} ) : EC_1 ARCH_1 callResult
+      -- let (EC_1, ARCH_1, callResult) = $eval_extern_function_call(EC_0, ARCH_0, nameIR, nameIR_param*{nameIR_param <- nameIR_param*})
+
 ;; ../../../../../spectec/specs/p4/8-dynamic/8.02-evaluation-relation.spectec:432:1-438:67:
 relation ExternMethodCall_eval: evalContext arch |- objectId . nameIR ( nameIR* ) : evalContext arch callResult
+
+   ;; ../../../../../spectec/specs/p4/8-dynamic/8.11-eval-extern.spectec:32:1-37:57:
+   rule : EC_0 ARCH_0 |- objectId . nameIR ( nameIR_param*{nameIR_param <- nameIR_param*} ) : EC_1 ARCH_1 callResult
+      -- let (EC_1, ARCH_1, callResult) = $eval_extern_method_call(EC_0, ARCH_0, objectId, nameIR, nameIR_param*{nameIR_param <- nameIR_param*})
 
 ;; ../../../../../spectec/specs/p4/8-dynamic/8.03.2-eval-keyset-expression.spectec:5:1-7:43:
 def $match_keysets(setValue*, value*) : bool =
@@ -31784,6 +31792,12 @@ relation DefinedFunctionBody_eval: evalContext arch |- blockStatementIR : evalCo
       -- rel Block_eval: EC_0 ARCH_0 |- blockStatementIR : EC_1 ARCH_1 statementResult
       -- if statementResult <: returnResult
       -- let returnResult = statementResult as returnResult
+
+;; ../../../../../spectec/specs/p4/8-dynamic/8.11-eval-extern.spectec:11:1-14:51:
+builtin dec $eval_extern_function_call(evalContext, arch, nameIR, nameIR*) : (evalContext, arch, callResult)
+
+;; ../../../../../spectec/specs/p4/8-dynamic/8.11-eval-extern.spectec:25:1-30:66:
+builtin dec $eval_extern_method_call(evalContext, arch, objectId, nameIR, nameIR*) : (evalContext, arch, callResult)
 
 ;; ../../../../../spectec/specs/p4/9-arch/9.0-eval-arch.spectec:9:1-15:56:
 relation Var_init: evalContext |- typeIR nameIR : evalContext

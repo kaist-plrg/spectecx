@@ -43683,14 +43683,18 @@ relation Call_eval: p, EC_0', ARCH_0', callee, typeArgumentListIR', argumentList
 8. Else Phantom#2357
 
 ;; ../../../../../spectec/specs/p4/8-dynamic/8.02-evaluation-relation.spectec:425:1-430:67:
-relation ExternFunctionCall_eval: evalContext, arch, nameIR, nameIR'*
+relation ExternFunctionCall_eval: EC_0, ARCH_0, nameIR, nameIR_param*
 
+1. (Let (EC_1, ARCH_1, callResult) be $eval_extern_function_call(EC_0, ARCH_0, nameIR, nameIR_param*))
 
+2. Result in EC_1, ARCH_1, callResult
 
 ;; ../../../../../spectec/specs/p4/8-dynamic/8.02-evaluation-relation.spectec:432:1-438:67:
-relation ExternMethodCall_eval: evalContext, arch, objectId, nameIR, nameIR'*
+relation ExternMethodCall_eval: EC_0, ARCH_0, objectId, nameIR, nameIR_param*
 
+1. (Let (EC_1, ARCH_1, callResult) be $eval_extern_method_call(EC_0, ARCH_0, objectId, nameIR, nameIR_param*))
 
+2. Result in EC_1, ARCH_1, callResult
 
 ;; ../../../../../spectec/specs/p4/8-dynamic/8.03.2-eval-keyset-expression.spectec:5:1-7:43:
 dec $match_keysets(setValue''*, value'*)
@@ -45217,6 +45221,12 @@ relation DefinedFunctionBody_eval: EC_0, ARCH_0, blockStatementIR
     2. Result in EC_1, ARCH_1, (returnResult as definedFunctionResult)
 
 2. Else Phantom#2454
+
+;; ../../../../../spectec/specs/p4/8-dynamic/8.11-eval-extern.spectec:11:1-14:51:
+builtin dec $eval_extern_function_call(evalContext, arch, nameIR, nameIR'*)
+
+;; ../../../../../spectec/specs/p4/8-dynamic/8.11-eval-extern.spectec:25:1-30:66:
+builtin dec $eval_extern_method_call(evalContext, arch, objectId, nameIR, nameIR'*)
 
 ;; ../../../../../spectec/specs/p4/9-arch/9.0-eval-arch.spectec:9:1-15:56:
 relation Var_init: EC_0, typeIR, nameIR
