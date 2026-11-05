@@ -8,6 +8,11 @@ open Typ
 
 type theta = t TIdMap.t
 
+let make_theta ~tparams ~targs : (theta, string) result =
+  if List.length tparams <> List.length targs then
+    Error "arity mismatch in type arguments"
+  else Ok (List.combine tparams targs |> TIdMap.of_list)
+
 let rec subst_typ (theta : theta) (typ : t) : t =
   match typ.it with
   | BoolT | NumT _ | TextT -> typ
