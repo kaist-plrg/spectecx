@@ -72,6 +72,8 @@ val parse_spec_sources : spec_source list -> Lang.El.spec result
     of {!parse_spec_sources}. *)
 val parse_spec_files : string list -> Lang.El.spec result
 
+val elaborate : Lang.El.spec -> Lang.Il.spec result
+
 (** Runs algo on the rules and clauses accepted by elaboration, including when
     elaboration reports errors elsewhere. Returns errors from elaboration and
     algo. *)

@@ -13,12 +13,12 @@ let elab_command =
   let%map filenames = anon (sequence ("spec files" %: string))
   and color = Cli.Cli_args.Output.color_flag in
   fun () ->
-    Cli.Error_handling.guard ~color ~on_ok:(fun spec_al ->
-        Format.printf "%s\n" (Lang.Al.Print.string_of_spec spec_al))
+    Cli.Error_handling.guard ~color ~on_ok:(fun spec_il ->
+        Format.printf "%s\n" (Lang.Il.Print.string_of_spec spec_il))
     @@ fun () ->
     let* spec = parse_spec_files filenames in
-    let* spec_al = elaborate_and_algorithmize spec in
-    Ok spec_al
+    let* spec_il = elaborate spec in
+    Ok spec_il
 
 let algo_command =
   Core.Command.basic ~summary:"parse, elaborate and algorithmize a spec"

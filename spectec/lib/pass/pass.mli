@@ -8,6 +8,7 @@ val error_to_diagnostics : error -> Diag.Bag.t
 val parse_source : spec_source -> (Lang.El.spec, error) result
 val parse_sources : spec_source list -> (Lang.El.spec, error) result
 val parse_files : string list -> (Lang.El.spec, error) result
+val elaborate : Lang.El.spec -> (Lang.Il.spec, error) result
 val elaborate_and_algorithmize : Lang.El.spec -> (Lang.Al.spec, error) result
 val structure : Lang.Al.spec -> Lang.Sl.spec
 val henv_of_el_spec : Lang.El.spec -> Hints.Henv.t

@@ -50,6 +50,9 @@ let parse_spec_source source =
 let parse_spec_sources sources =
   Pass.parse_sources sources |> Result.map_error (fun e -> Error.PassError e)
 
+let elaborate spec_el =
+  Pass.elaborate spec_el |> Result.map_error (fun e -> Error.PassError e)
+
 let elaborate_and_algorithmize spec_el =
   Pass.elaborate_and_algorithmize spec_el
   |> Result.map_error (fun e -> Error.PassError e)
