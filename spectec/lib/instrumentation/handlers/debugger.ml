@@ -20,6 +20,7 @@ type frame = {
   at : Location.t;
   inputs : Il.Value.t list;
   mutable rule_id : string option;
+  mutable clause_idx : int option;
 }
 
 let string_of_target = function
@@ -115,6 +116,78 @@ let print_args () =
           |> say "%s%s" label)
         frame.inputs
 
+(* Source *)
+
+(* The definition of the relation or function a frame runs. *)
+let find_def frame =
+  List.find_opt
+    (fun (def : Il.def) ->
+      match (frame.kind, def.it) with
+      | `Rel, Il.RelD { relid; _ } -> relid.it = frame.id
+      | `Func, (Il.DecD { defid; _ } | Il.BuiltinDecD { defid; _ }) ->
+          defid.it = frame.id
+      | _ -> false)
+    !State.spec
+
+(* Where a frame is in the spec: its current rule or clause, or else its
+   definition. *)
+let location_of_frame frame =
+  match find_def frame with
+  | None -> Location.Unknown
+  | Some def -> (
+      let inner =
+        match (def.it, frame.rule_id, frame.clause_idx) with
+        | Il.RelD { rules; _ }, Some rule_id, _ ->
+            List.find_opt
+              (fun (rule : Il.rule) -> rule.it.ruleid.it = rule_id)
+              rules
+            |> Option.map (fun (rule : Il.rule) -> rule.at)
+        | Il.DecD { clauses; _ }, _, Some idx ->
+            List.nth_opt clauses idx
+            |> Option.map (fun (clause : Il.clause) -> clause.at)
+        | _ -> None
+      in
+      match inner with Some at -> at | None -> def.at)
+
+let lines_of_file file =
+  match In_channel.with_open_text file In_channel.input_all with
+  | text -> Some (String.split_on_char '\n' text |> Array.of_list)
+  | exception Sys_error _ -> None
+
+(* Lines shown around a span, and the most of a long span shown. *)
+let context_lines = 2
+let max_span_lines = 20
+
+let print_source at =
+  match at with
+  | Location.Unknown -> say "No source location."
+  | Location.File file -> say "No line information in %s." file
+  | Location.Span { file; left; right } -> (
+      match lines_of_file file with
+      | None -> say "Cannot read %s." file
+      | Some lines ->
+          let truncated = right.line - left.line + 1 > max_span_lines in
+          let first = max 1 (left.line - context_lines) in
+          let last =
+            if truncated then left.line + max_span_lines - 1
+            else right.line + context_lines
+          in
+          let last = min (Array.length lines) last in
+          say "%s" (Location.to_string at);
+          Array.sub lines (first - 1) (last - first + 1)
+          |> Array.iteri (fun offset text ->
+                 let line = first + offset in
+                 let marker =
+                   if line >= left.line && line <= right.line then ">" else " "
+                 in
+                 say "%s%5d  %s" marker line text);
+          if truncated then say "   ...")
+
+let print_current_source () =
+  match !State.frames with
+  | [] -> say "No call in progress."
+  | frame :: _ -> print_source (location_of_frame frame)
+
 let print_breakpoints () =
   match !State.breakpoints with
   | [] -> say "No breakpoints."
@@ -130,6 +203,7 @@ let help =
   c, continue        resume until the next breakpoint
   bt, backtrace      show the call stack, innermost call first
   args               show the current call's input values
+  show               show the source of the current rule or clause
   b, break NAME      stop at NAME: Rel or Rel/rule
   d, delete N        remove breakpoint N
   info b             list breakpoints
@@ -171,6 +245,10 @@ let rec prompt () =
       | [ "args" ] ->
           require_running ();
           print_args ();
+          false
+      | [ "show" ] ->
+          require_running ();
+          print_current_source ();
           false
       | [ ("b" | "break"); name ] -> (
           match target_of_string name with
@@ -217,13 +295,19 @@ let stop_if_breakpoint target =
   Option.iter stop_at (State.breakpoint_for target)
 
 let push_frame kind id at inputs =
-  State.frames := { kind; id; at; inputs; rule_id = None } :: !State.frames
+  State.frames :=
+    { kind; id; at; inputs; rule_id = None; clause_idx = None } :: !State.frames
 
 let pop_frame () =
   match !State.frames with _ :: frames -> State.frames := frames | [] -> ()
 
 let set_rule_id rule_id =
   match !State.frames with frame :: _ -> frame.rule_id <- rule_id | [] -> ()
+
+let set_clause_idx clause_idx =
+  match !State.frames with
+  | frame :: _ -> frame.clause_idx <- clause_idx
+  | [] -> ()
 
 module M : Instrumentation_api.Handler.S = struct
   let static_dependencies = []
@@ -248,9 +332,10 @@ module M : Instrumentation_api.Handler.S = struct
         stop_if_breakpoint (Rule (id, rule_id))
     | Rule_exit _ -> set_rule_id None
     | Func_enter { id; at; inputs } -> push_frame `Func id at inputs
-    | Test_start _ | Test_end _ | Clause_enter _ | Clause_exit _
-    | Iter_prem_enter _ | Iter_prem_exit _ | Prem_enter _ | Prem_exit _
-    | Instr _ ->
+    | Clause_enter { clause_idx; _ } -> set_clause_idx (Some clause_idx)
+    | Clause_exit _ -> set_clause_idx None
+    | Test_start _ | Test_end _ | Iter_prem_enter _ | Iter_prem_exit _
+    | Prem_enter _ | Prem_exit _ | Instr _ ->
         ()
 end
 
