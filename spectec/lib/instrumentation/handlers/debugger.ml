@@ -21,6 +21,8 @@ type frame = {
   inputs : Il.Value.t list;
   mutable rule_id : string option;
   mutable clause_idx : int option;
+  (* A rule breakpoint waiting for its rule's guards, listed here, to pass. *)
+  mutable pending : (breakpoint * Il.prem list) option;
 }
 
 let string_of_target = function
@@ -294,9 +296,71 @@ let stop_at { number; target } =
 let stop_if_breakpoint target =
   Option.iter stop_at (State.breakpoint_for target)
 
+(* Rule breakpoints. A rule is tried before it is known to apply: its
+   conclusion's input patterns are checked by premises that elaboration puts
+   first and marks [Synthesized]. A rule breakpoint stops once those pass. *)
+
+let find_rule id rule_id =
+  List.find_map
+    (fun (def : Il.def) ->
+      match def.it with
+      | Il.RelD { relid; rules; _ } when relid.it = id ->
+          List.find_opt
+            (fun (rule : Il.rule) -> rule.it.ruleid.it = rule_id)
+            rules
+      | _ -> None)
+    !State.spec
+
+(* The premises checking the rule's input patterns, with the premises iterated
+   inside them, which report their own events. *)
+let guard_prems (rule : Il.rule) =
+  let rec with_inner (prem : Il.prem) =
+    match prem.it with
+    | Il.IterPr (inner, _) -> prem :: with_inner inner
+    | _ -> [ prem ]
+  in
+  let rec leading = function
+    | (({ note = Some Il.Synthesized; _ } : Il.prem) as prem) :: prems ->
+        with_inner prem @ leading prems
+    | _ -> []
+  in
+  leading rule.it.prems
+
+let enter_rule id rule_id =
+  match State.breakpoint_for (Rule (id, rule_id)) with
+  | None -> ()
+  | Some breakpoint -> (
+      let guards =
+        match find_rule id rule_id with
+        | Some rule -> guard_prems rule
+        | None -> []
+      in
+      match (guards, !State.frames) with
+      | [], _ | _, [] -> stop_at breakpoint
+      | guards, frame :: _ -> frame.pending <- Some (breakpoint, guards))
+
+(* Stops a pending rule breakpoint, when [applied] given the guards. *)
+let resolve_pending applied =
+  match !State.frames with
+  | ({ pending = Some (breakpoint, guards); _ } as frame) :: _
+    when applied guards ->
+      frame.pending <- None;
+      stop_at breakpoint
+  | _ -> ()
+
+(* The rule applies once it reaches a premise past its guards. *)
+let enter_prem prem =
+  resolve_pending (fun guards -> not (List.memq prem guards))
+
+(* A rule whose premises are all guards applies when it succeeds. *)
+let exit_rule success =
+  resolve_pending (fun _ -> success);
+  match !State.frames with frame :: _ -> frame.pending <- None | [] -> ()
+
 let push_frame kind id at inputs =
   State.frames :=
-    { kind; id; at; inputs; rule_id = None; clause_idx = None } :: !State.frames
+    { kind; id; at; inputs; rule_id = None; clause_idx = None; pending = None }
+    :: !State.frames
 
 let pop_frame () =
   match !State.frames with _ :: frames -> State.frames := frames | [] -> ()
@@ -329,14 +393,15 @@ module M : Instrumentation_api.Handler.S = struct
     | Rel_exit _ | Func_exit _ -> pop_frame ()
     | Rule_enter { id; rule_id; at = _; env = _ } ->
         set_rule_id (Some rule_id);
-        stop_if_breakpoint (Rule (id, rule_id))
-    | Rule_exit _ -> set_rule_id None
+        enter_rule id rule_id
+    | Rule_exit { success; _ } ->
+        exit_rule success;
+        set_rule_id None
+    | Prem_enter { prem; _ } | Iter_prem_enter { prem; _ } -> enter_prem prem
     | Func_enter { id; at; inputs } -> push_frame `Func id at inputs
     | Clause_enter { clause_idx; _ } -> set_clause_idx (Some clause_idx)
     | Clause_exit _ -> set_clause_idx None
-    | Test_start _ | Test_end _ | Iter_prem_enter _ | Iter_prem_exit _
-    | Prem_enter _ | Prem_exit _ | Instr _ ->
-        ()
+    | Test_start _ | Test_end _ | Iter_prem_exit _ | Prem_exit _ | Instr _ -> ()
 end
 
 let config : Instrumentation_config.Handler_config.t =
