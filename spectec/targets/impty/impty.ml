@@ -37,16 +37,7 @@ module Target : Spectec.Target.S = struct
      and list/map operations are SpecTec primitives or defined in the spec. *)
   let builtins : (string * Builtins.Define.t) list = []
   let opaque_types = []
-
-  let with_state f =
-    let vid_counter = ref 0 in
-    let fresh_vid () =
-      let v = !vid_counter in
-      incr vid_counter;
-      v
-    in
-    Lang.Il.Value.GlobalVidProvider.with_provider fresh_vid f
-
+  let with_state f = f ()
   let is_impure_func _ = false
   let is_impure_rel _ = false
   let state_version = ref 0

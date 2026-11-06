@@ -11,8 +11,9 @@ type ctx_pl
 
 val error_to_diagnostic : error -> Diag.t
 
-(** [with_target_state target f] runs [f] with fresh target state. The supplied
-    [target_state] is valid only while [f] runs. *)
+(** [with_target_state target f] runs [f] with fresh target state and a [vid]
+    counter starting at zero. Values built during [f] have distinct [vid]
+    fields. The supplied [target_state] is valid only while [f] runs. *)
 val with_target_state : (module Target.S) -> (target_state -> 'a) -> 'a
 
 (** With [check_determinism=true], the interpreter rejects multiple successful

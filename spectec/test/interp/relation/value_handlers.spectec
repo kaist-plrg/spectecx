@@ -1,0 +1,292 @@
+syntax point = { X nat, Y nat }
+
+var p : point
+var n : nat
+
+dec $sum(point) : nat
+def $sum(p) = $(p.X + p.Y)
+
+relation Sum_twice:
+  point; point |- nat
+  hint(input %0 %1)
+
+rule Sum_twice:
+  p_1; p_2 |- $($sum(p_1) + $sum(p_2))
+
+relation Shift:
+  point; nat* |- point
+  hint(input %0 %1)
+
+rule Shift:
+  p; n* |- p[.X = $(p.X + |n*|)]
+
+syntax numbers = nat*
+syntax natpair = (nat, nat)
+syntax intpair = (int, int)
+syntax envelope = { INNER point }
+
+var t : text
+var ns : numbers
+var np : natpair
+var e : envelope
+
+relation Text_index:
+  text; nat |- text
+  hint(input %0 %1)
+
+rule Text_index:
+  t; n |- t[n]
+
+relation Text_slice:
+  text; nat; nat |- text
+  hint(input %0 %1 %2)
+
+rule Text_slice:
+  t; n_1; n_2 |- t[n_1 : n_2]
+
+relation List_slice:
+  numbers; nat; nat |- numbers
+  hint(input %0 %1 %2)
+
+rule List_slice:
+  ns; n_1; n_2 |- ns[n_1 : n_2]
+
+relation Widen:
+  nat |- int
+  hint(input %0)
+
+rule Widen:
+  n |- n
+
+relation Narrow:
+  int |- nat
+  hint(input %0)
+
+rule Narrow:
+  n |- n
+
+relation Widen_pair:
+  natpair |- intpair
+  hint(input %0)
+
+rule Widen_pair:
+  np |- np
+
+relation Narrow_pair:
+  intpair |- natpair
+  hint(input %0)
+
+rule Narrow_pair:
+  np |- np
+
+relation Tail:
+  numbers |- numbers
+  hint(input %0)
+
+rule Tail:
+  n :: ns |- ns
+
+relation Pattern_list:
+  nat* |- nat*
+  hint(input %0)
+
+rule Pattern_list:
+  n* |- n*
+
+relation Pattern_option:
+  nat? |- nat?
+  hint(input %0)
+
+rule Pattern_option:
+  n? |- n?
+
+relation Replace_nested:
+  envelope; nat |- envelope
+  hint(input %0 %1)
+
+rule Replace_nested:
+  e; n |- e[.INNER.X = n]
+
+relation Replace_in_slice:
+  numbers; nat |- numbers
+  hint(input %0 %1)
+
+rule Replace_in_slice:
+  ns; n |- ns[[1 : 2][0] = n]
+
+relation Replace_in_char:
+  text; text |- text
+  hint(input %0 %1)
+
+rule Replace_in_char:
+  t_1; t_2 |- t_1[[1][0] = t_2]
+
+relation Length:
+  numbers |- nat
+  hint(input %0)
+
+rule Length:
+  ns |- |ns|
+
+var k : nat
+var m : nat
+
+relation Add_offset:
+  nat; nat |- nat
+  hint(input %0 %1)
+
+rule Add_offset:
+  n; m |- $(n + m)
+
+relation Offset_map:
+  nat*; nat |- nat*
+  hint(input %0 %1)
+
+rule Offset_map:
+  n*; m |- $(n + m)*
+
+relation Offset_opt:
+  nat?; nat |- nat?
+  hint(input %0 %1)
+
+rule Offset_opt:
+  n?; m |- $(n + m)?
+
+relation Offset_let:
+  nat*; nat |- nat*
+  hint(input %0 %1)
+
+rule Offset_let:
+  n*; m |- k*
+  -- (if k = $(n + m))*
+
+relation Offset_rel:
+  nat*; nat |- nat*
+  hint(input %0 %1)
+
+rule Offset_rel:
+  n*; m |- k*
+  -- (Add_offset: n; m |- k)*
+
+relation Make_point:
+  nat; nat |- point
+  hint(input %0 %1)
+
+rule Make_point:
+  n_1; n_2 |- {X n_1, Y n_2}
+
+var b : bool
+var z : int
+
+relation Not:
+  bool |- bool
+  hint(input %0)
+
+rule Not:
+  b |- ~b
+
+relation Is_nat:
+  int |- bool
+  hint(input %0)
+
+rule Is_nat:
+  z |- z <: nat
+
+syntax switch = ON | OFF
+
+relation Is_on:
+  switch |- nat
+  hint(input %0)
+
+rule Is_on:
+  ON |- 0
+
+relation Less:
+  nat; nat |- bool
+  hint(input %0 %1)
+
+rule Less:
+  n_1; n_2 |- $(n_1 < n_2)
+
+relation Concat:
+  numbers; numbers |- numbers
+  hint(input %0 %1)
+
+rule Concat:
+  ns_1; ns_2 |- ns_1 ++ ns_2
+
+relation Member:
+  nat; numbers |- bool
+  hint(input %0 %1)
+
+rule Member:
+  n; ns |- n <- ns
+
+relation Prepend:
+  nat; numbers |- numbers
+  hint(input %0 %1)
+
+rule Prepend:
+  n; ns |- n :: ns
+
+syntax wrapped = WRAP nat
+
+relation Make_pair:
+  nat; nat |- natpair
+  hint(input %0 %1)
+
+rule Make_pair:
+  n_1; n_2 |- (n_1, n_2)
+
+relation Wrap:
+  nat |- wrapped
+  hint(input %0)
+
+rule Wrap:
+  n |- WRAP n
+
+relation Make_list:
+  nat; nat |- numbers
+  hint(input %0 %1)
+
+rule Make_list:
+  n_1; n_2 |- [n_1, n_2]
+
+relation Make_option:
+  nat |- nat?
+  hint(input %0)
+
+rule Make_option:
+  n |- n
+
+relation Replace_text_slice:
+  text; text |- text
+  hint(input %0 %1)
+
+rule Replace_text_slice:
+  t_1; t_2 |- t_1[[1 : 2] = t_2]
+
+relation Replace_list_slice:
+  numbers; numbers |- numbers
+  hint(input %0 %1)
+
+rule Replace_list_slice:
+  ns_1; ns_2 |- ns_1[[1 : 2] = ns_2]
+
+builtin dec $double(nat) : nat
+
+relation Double:
+  nat |- nat
+  hint(input %0)
+
+rule Double:
+  n |- $double(n)
+
+relation Offset_twice:
+  nat; nat |- nat
+  hint(input %0 %1)
+
+rule Offset_twice:
+  n; m |- $(k_1 + k_2)
+  -- Add_offset: n; m |- k_1
+  -- Add_offset: n; m |- k_2

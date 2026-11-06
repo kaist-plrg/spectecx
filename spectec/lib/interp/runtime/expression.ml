@@ -43,6 +43,13 @@ module type Context = sig
     vars:Lang.Il.var list ->
     (Envs.Interp.Var.t * Lang.Il.value) list
 
+  val emit_iteration :
+    t ->
+    vars:Lang.Il.var list ->
+    iter:Lang.Il.iter ->
+    value:Lang.Il.value ->
+    unit
+
   val get_exn : 'a Common.Attempt.attempt -> 'a
   val error : Common.Location.t -> string -> 'a
 end
@@ -53,6 +60,12 @@ module Make (Ctx : Context) = struct
   type arg = Ctx.annotation Il.Expression.arg
 
   let error = Ctx.error
+
+  let set_iteration_bindings (ctx : Ctx.t) ~bindings ~(source : value) : Ctx.t =
+    List.iter
+      (fun (_, binding) -> ignore (Emit_value.derived binding ~source))
+      bindings;
+    Ctx.set_values ctx ~bindings
 
   let rec assign_exp (ctx : Ctx.t) ~(exp : exp) ~(value : value) : Ctx.t =
     match (exp.it, value.it) with
@@ -68,25 +81,28 @@ module Make (Ctx : Context) = struct
     | OptE (Some exp), OptV (Some value) -> assign_exp ctx ~exp ~value
     | OptE None, OptV None -> ctx
     | ConsE (exp_h, exp_t), ListV (value_h :: values_t) ->
-        let value_t = Value.Make.list value.note.typ values_t in
+        let value_t =
+          Value.Make.list value.note.typ values_t
+          |> Emit_value.derived ~source:value
+        in
         let ctx = assign_exp ctx ~exp:exp_h ~value:value_h in
         assign_exp ctx ~exp:exp_t ~value:value_t
     | IterE (_, (Opt, vars)), OptV None ->
         let bindings = Ctx.collect_iteration_bindings [] ~iter:Opt ~vars in
-        Ctx.set_values ctx ~bindings
-    | IterE (exp, (Opt, vars)), OptV (Some value) ->
-        let ctx_inner = assign_exp ctx ~exp ~value in
+        set_iteration_bindings ctx ~bindings ~source:value
+    | IterE (exp, (Opt, vars)), OptV (Some value_inner) ->
+        let ctx_inner = assign_exp ctx ~exp ~value:value_inner in
         let bindings =
           Ctx.collect_iteration_bindings [ ctx_inner ] ~iter:Opt ~vars
         in
-        Ctx.set_values ctx ~bindings
+        set_iteration_bindings ctx ~bindings ~source:value
     | IterE (exp, (List, vars)), ListV values ->
         let ctx_inner = Ctx.without_values ctx in
         let ctxs =
           List.map (fun value -> assign_exp ctx_inner ~exp ~value) values
         in
         let bindings = Ctx.collect_iteration_bindings ctxs ~iter:List ~vars in
-        Ctx.set_values ctx ~bindings
+        set_iteration_bindings ctx ~bindings ~source:value
     | _ ->
         let exp = Il.Expression.map_annotations (fun _ -> ()) exp in
         error exp.at
@@ -152,7 +168,7 @@ module Make (Ctx : Context) = struct
     match typ.it with
     | NumT `IntT -> (
         match value.it with
-        | NumV (`Nat n) -> Value.int n
+        | NumV (`Nat n) -> Value.int n |> Emit_value.derived ~source:value
         | NumV (`Int _) -> value
         | _ -> assert false)
     | VarT { synid = tid; targs } -> (
@@ -171,7 +187,7 @@ module Make (Ctx : Context) = struct
                 (fun typ value -> upcast value ~to_typ:typ ~ctx)
                 typs values
             in
-            Value.Make.tuple typ.it values
+            Value.Make.tuple typ.it values |> Emit_value.derived ~source:value
         | _ -> assert false)
     | _ -> value
 
@@ -180,7 +196,8 @@ module Make (Ctx : Context) = struct
     | NumT `NatT -> (
         match value.it with
         | NumV (`Nat _) -> value
-        | NumV (`Int i) when Bigint.(i >= zero) -> Value.nat i
+        | NumV (`Int i) when Bigint.(i >= zero) ->
+            Value.nat i |> Emit_value.derived ~source:value
         | _ -> assert false)
     | VarT { synid = tid; targs } -> (
         let tparams, deftyp = Ctx.find_typdef_exn ctx ~id:tid in
@@ -198,7 +215,7 @@ module Make (Ctx : Context) = struct
                 (fun typ value -> downcast value ~to_typ:typ ~ctx)
                 typs values
             in
-            Value.Make.tuple typ.it values
+            Value.Make.tuple typ.it values |> Emit_value.derived ~source:value
         | _ -> assert false)
     | _ -> value
 
@@ -254,7 +271,12 @@ module Make (Ctx : Context) = struct
     List.length typs = List.length values
     && List.for_all2 (fun typ value -> matches_type value ~typ ~ctx) typs values
 
-  let index_value (value : value) ~index ~at ~bounds_at : value =
+  let int_of_value (value : value) : int =
+    value |> Value.get_num |> Num.to_int |> Bigint.to_int_exn
+
+  let index_value (value : value) ~index:(value_index : value) ~at ~bounds_at :
+      value =
+    let index = int_of_value value_index in
     match value.it with
     | TextV text when index < 0 || index >= String.length text ->
         error bounds_at
@@ -262,6 +284,7 @@ module Make (Ctx : Context) = struct
              (String.length text))
     | TextV text ->
         Value.Make.text Il.TextT (String.make 1 (String.get text index))
+        |> Emit_value.combined ~sources:[ value; value_index ]
     | ListV values when index < 0 || index >= List.length values ->
         error bounds_at
           (Format.asprintf "index %d out of bounds [0, %d)" index
@@ -273,9 +296,11 @@ module Make (Ctx : Context) = struct
              "indexing expects either a text or a list, but got %s"
              (Il.Print.string_of_value ~short:true value))
 
-  let slice_value (value : value) ~start ~length ~list_typ ~at ~bounds_at :
-      value =
-    let stop = start + length in
+  let slice_value (value : value) ~start:(value_start : value)
+      ~length:(value_length : value) ~list_typ ~at ~bounds_at : value =
+    let start = int_of_value value_start in
+    let stop = start + int_of_value value_length in
+    let sources = [ value; value_start; value_length ] in
     match value.it with
     | TextV text when start < 0 || stop > String.length text ->
         error bounds_at
@@ -283,6 +308,7 @@ module Make (Ctx : Context) = struct
              (String.length text))
     | TextV text ->
         Value.Make.text Il.TextT (String.sub text start (stop - start))
+        |> Emit_value.combined ~sources
     | ListV values when start < 0 || stop > List.length values ->
         error bounds_at
           (Format.asprintf "slice [%d, %d) out of bounds [0, %d)" start stop
@@ -295,7 +321,7 @@ module Make (Ctx : Context) = struct
             values
           |> List.filter_map Fun.id
         in
-        Value.Make.list list_typ values
+        Value.Make.list list_typ values |> Emit_value.combined ~sources
     | _ ->
         error at
           (Format.asprintf "slicing expects either a text or a list, but got %s"
@@ -315,21 +341,35 @@ module Make (Ctx : Context) = struct
       | UpCastE (typ, exp) -> upcast (eval_exp ctx exp) ~to_typ:typ ~ctx
       | DownCastE (typ, exp) -> downcast (eval_exp ctx exp) ~to_typ:typ ~ctx
       | SubE (exp, typ_target) ->
-          Value.Make.bool typ
-            (matches_type (eval_exp ctx exp) ~typ:typ_target ~ctx)
+          let value = eval_exp ctx exp in
+          Value.Make.bool typ (matches_type value ~typ:typ_target ~ctx)
+          |> Emit_value.derived ~source:value
       | MatchE (exp, pattern) ->
-          Value.Make.bool typ (matches_pattern (eval_exp ctx exp) ~pattern)
-      | TupleE exps -> Value.Make.tuple typ (eval_exps ctx exps)
+          let value = eval_exp ctx exp in
+          Value.Make.bool typ (matches_pattern value ~pattern)
+          |> Emit_value.derived ~source:value
+      | TupleE exps ->
+          let values = eval_exps ctx exps in
+          Value.Make.tuple typ values
+          |> Emit_value.constructed ~components:values
       | CaseE notexp ->
           let mixop, exps = Mixfix.split notexp in
           let values = eval_exps ctx exps in
           Value.Make.case typ (Mixfix.fill mixop values)
+          |> Emit_value.constructed ~components:values
       | StrE fields ->
           let atoms, exps = List.split fields in
           let values = eval_exps ctx exps in
           Value.Make.record typ (List.combine atoms values)
-      | OptE exp_opt -> Value.Make.opt typ (Option.map (eval_exp ctx) exp_opt)
-      | ListE exps -> Value.Make.list typ (eval_exps ctx exps)
+          |> Emit_value.constructed ~components:values
+      | OptE exp_opt ->
+          let value_opt = Option.map (eval_exp ctx) exp_opt in
+          Value.Make.opt typ value_opt
+          |> Emit_value.constructed ~components:(Option.to_list value_opt)
+      | ListE exps ->
+          let values = eval_exps ctx exps in
+          Value.Make.list typ values
+          |> Emit_value.constructed ~components:values
       | ConsE (exp_h, exp_t) -> eval_cons_exp typ ctx exp_h exp_t
       | CatE (exp_l, exp_r) -> eval_cat_exp typ ctx at exp_l exp_r
       | MemE (exp_e, exp_s) -> eval_mem_exp typ ctx exp_e exp_s
@@ -354,9 +394,10 @@ module Make (Ctx : Context) = struct
         num |> Value.Make.num typ
       in
       let value = eval_exp ctx exp in
-      match unop with
+      (match unop with
       | #Bool.unop as unop -> eval_un_bool typ unop value
-      | #Num.unop as unop -> eval_un_num typ unop value
+      | #Num.unop as unop -> eval_un_num typ unop value)
+      |> Emit_value.derived ~source:value
     and eval_bin_exp (typ : typ') (ctx : Ctx.t) (binop : binop) (exp_l : exp)
         (exp_r : exp) : value =
       let eval_bin_bool typ binop value_l value_r =
@@ -378,9 +419,10 @@ module Make (Ctx : Context) = struct
       in
       let value_l = eval_exp ctx exp_l in
       let value_r = eval_exp ctx exp_r in
-      match binop with
+      (match binop with
       | #Bool.binop as binop -> eval_bin_bool typ binop value_l value_r
-      | #Num.binop as binop -> eval_bin_num typ binop value_l value_r
+      | #Num.binop as binop -> eval_bin_num typ binop value_l value_r)
+      |> Emit_value.combined ~sources:[ value_l; value_r ]
     and eval_cmp_exp (typ : typ') (ctx : Ctx.t) (cmpop : cmpop) (exp_l : exp)
         (exp_r : exp) : value =
       let eval_cmp_bool typ cmpop value_l value_r =
@@ -395,30 +437,35 @@ module Make (Ctx : Context) = struct
       in
       let value_l = eval_exp ctx exp_l in
       let value_r = eval_exp ctx exp_r in
-      match cmpop with
+      (match cmpop with
       | #Bool.cmpop as cmpop -> eval_cmp_bool typ cmpop value_l value_r
-      | #Num.cmpop as cmpop -> eval_cmp_num typ cmpop value_l value_r
+      | #Num.cmpop as cmpop -> eval_cmp_num typ cmpop value_l value_r)
+      |> Emit_value.combined ~sources:[ value_l; value_r ]
     and eval_cons_exp (typ : typ') (ctx : Ctx.t) (exp_h : exp) (exp_t : exp) :
         value =
       let value_h = eval_exp ctx exp_h in
       let value_t = eval_exp ctx exp_t in
       let values_t = Value.get_list value_t in
       Value.Make.list typ (value_h :: values_t)
+      |> Emit_value.combined ~sources:[ value_h; value_t ]
     and eval_cat_exp (typ : typ') (ctx : Ctx.t) (at : Location.t) (exp_l : exp)
         (exp_r : exp) : value =
       let value_l = eval_exp ctx exp_l in
       let value_r = eval_exp ctx exp_r in
-      match (value_l.it, value_r.it) with
+      (match (value_l.it, value_r.it) with
       | TextV s_l, TextV s_r -> s_l ^ s_r |> Value.Make.text typ
       | ListV values_l, ListV values_r ->
           values_l @ values_r |> Value.Make.list typ
-      | _ -> error at "concatenation expects either two texts or two lists"
+      | _ -> error at "concatenation expects either two texts or two lists")
+      |> Emit_value.combined ~sources:[ value_l; value_r ]
     and eval_mem_exp (typ : typ') (ctx : Ctx.t) (exp_e : exp) (exp_s : exp) :
         value =
       let value_e = eval_exp ctx exp_e in
       let value_s = eval_exp ctx exp_s in
       let values_s = Value.get_list value_s in
-      List.exists (Value.eq value_e) values_s |> Value.Make.bool typ
+      List.exists (Value.eq value_e) values_s
+      |> Value.Make.bool typ
+      |> Emit_value.combined ~sources:[ value_e; value_s ]
     and eval_len_exp (typ : typ') (ctx : Ctx.t) (exp : exp) : value =
       let value = eval_exp ctx exp in
       let len =
@@ -431,7 +478,7 @@ module Make (Ctx : Context) = struct
                  "length operation expects either a text or a list, but got %s"
                  (Il.Print.string_of_value ~short:true value))
       in
-      Value.Make.nat typ len
+      Value.Make.nat typ len |> Emit_value.derived ~source:value
     and eval_dot_exp (ctx : Ctx.t) (exp_b : exp) (atom : atom) : value =
       let value_b = eval_exp ctx exp_b in
       let fields = Value.get_struct value_b in
@@ -441,22 +488,17 @@ module Make (Ctx : Context) = struct
     and eval_idx_exp (ctx : Ctx.t) (exp_b : exp) (exp_i : exp) : value =
       let value_b = eval_exp ctx exp_b in
       let value_i = eval_exp ctx exp_i in
-      let idx = value_i |> Value.get_num |> Num.to_int |> Bigint.to_int_exn in
-      index_value value_b ~index:idx ~at:exp_b.at ~bounds_at:exp_i.at
+      index_value value_b ~index:value_i ~at:exp_b.at ~bounds_at:exp_i.at
     and eval_slice_exp (typ : typ') (ctx : Ctx.t) (exp_b : exp) (exp_i : exp)
         (exp_n : exp) : value =
       let value_b = eval_exp ctx exp_b in
       let value_i = eval_exp ctx exp_i in
-      let idx_l = value_i |> Value.get_num |> Num.to_int |> Bigint.to_int_exn in
       let value_len = eval_exp ctx exp_n in
-      let idx_n =
-        value_len |> Value.get_num |> Num.to_int |> Bigint.to_int_exn
-      in
       let bounds_at =
         match value_b.it with TextV _ -> exp_i.at | _ -> exp_n.at
       in
-      slice_value value_b ~start:idx_l ~length:idx_n ~list_typ:typ ~at:exp_b.at
-        ~bounds_at
+      slice_value value_b ~start:value_i ~length:value_len ~list_typ:typ
+        ~at:exp_b.at ~bounds_at
     and eval_upd_exp (ctx : Ctx.t) (exp_b : exp) (path : path) (exp_f : exp) :
         value =
       let rec eval_access_path ctx value_b path =
@@ -465,22 +507,13 @@ module Make (Ctx : Context) = struct
         | IdxP (path, exp_i) ->
             let value = eval_access_path ctx value_b path in
             let value_i = eval_exp ctx exp_i in
-            let idx =
-              value_i |> Value.get_num |> Num.to_int |> Bigint.to_int_exn
-            in
-            index_value value ~index:idx ~at:path.at ~bounds_at:exp_i.at
+            index_value value ~index:value_i ~at:path.at ~bounds_at:exp_i.at
         | SliceP (path, exp_i, exp_n) ->
             let value = eval_access_path ctx value_b path in
             let value_i = eval_exp ctx exp_i in
-            let idx_l =
-              value_i |> Value.get_num |> Num.to_int |> Bigint.to_int_exn
-            in
             let value_len = eval_exp ctx exp_n in
-            let idx_n =
-              value_len |> Value.get_num |> Num.to_int |> Bigint.to_int_exn
-            in
-            slice_value value ~start:idx_l ~length:idx_n ~list_typ:path.note
-              ~at:path.at ~bounds_at:exp_n.at
+            slice_value value ~start:value_i ~length:value_len
+              ~list_typ:path.note ~at:path.at ~bounds_at:exp_n.at
         | DotP (path, atom) ->
             let value = eval_access_path ctx value_b path in
             let fields = value |> Value.get_struct in
@@ -496,9 +529,7 @@ module Make (Ctx : Context) = struct
         | IdxP (path, exp_i) -> (
             let value = eval_access_path ctx value_b path in
             let value_i = eval_exp ctx exp_i in
-            let idx_target =
-              value_i |> Value.get_num |> Num.to_int |> Bigint.to_int_exn
-            in
+            let idx_target = int_of_value value_i in
             match value.it with
             | TextV s when idx_target < 0 || idx_target >= String.length s ->
                 error exp_i.at
@@ -518,8 +549,11 @@ module Make (Ctx : Context) = struct
                     ^ String.sub s (idx_target + 1)
                         (String.length s - idx_target - 1)
                   in
-                  let value = Value.Make.text Il.TextT s_updated in
-                  eval_update_path ctx value_b path value
+                  let value_updated =
+                    Value.Make.text Il.TextT s_updated
+                    |> Emit_value.updated ~base:value ~replacement:value_new
+                  in
+                  eval_update_path ctx value_b path value_updated
             | ListV values
               when idx_target < 0 || idx_target >= List.length values ->
                 error exp_i.at
@@ -532,8 +566,11 @@ module Make (Ctx : Context) = struct
                       if idx = idx_target then value_new else value)
                     values
                 in
-                let value = Value.Make.list path.note values_updated in
-                eval_update_path ctx value_b path value
+                let value_updated =
+                  Value.Make.list path.note values_updated
+                  |> Emit_value.updated ~base:value ~replacement:value_new
+                in
+                eval_update_path ctx value_b path value_updated
             | _ ->
                 error path.at
                   (Format.asprintf
@@ -542,13 +579,9 @@ module Make (Ctx : Context) = struct
         | SliceP (path, exp_i, exp_n) -> (
             let value = eval_access_path ctx value_b path in
             let value_i = eval_exp ctx exp_i in
-            let idx_l =
-              value_i |> Value.get_num |> Num.to_int |> Bigint.to_int_exn
-            in
+            let idx_l = int_of_value value_i in
             let value_len = eval_exp ctx exp_n in
-            let idx_n =
-              value_len |> Value.get_num |> Num.to_int |> Bigint.to_int_exn
-            in
+            let idx_n = int_of_value value_len in
             let idx_h = idx_l + idx_n in
             match value.it with
             | TextV s when idx_l < 0 || idx_h > String.length s ->
@@ -569,8 +602,11 @@ module Make (Ctx : Context) = struct
                     String.sub s 0 idx_l ^ s_new
                     ^ String.sub s idx_h (String.length s - idx_h)
                   in
-                  let value = Value.Make.text Il.TextT s_updated in
-                  eval_update_path ctx value_b path value
+                  let value_updated =
+                    Value.Make.text Il.TextT s_updated
+                    |> Emit_value.updated ~base:value ~replacement:value_new
+                  in
+                  eval_update_path ctx value_b path value_updated
             | ListV values when idx_l < 0 || idx_h > List.length values ->
                 error exp_n.at
                   (Format.asprintf "slice [%d, %d) out of bounds [0, %d)" idx_l
@@ -593,8 +629,11 @@ module Make (Ctx : Context) = struct
                         else value)
                       values
                   in
-                  let value = Value.Make.list path.note values_updated in
-                  eval_update_path ctx value_b path value
+                  let value_updated =
+                    Value.Make.list path.note values_updated
+                    |> Emit_value.updated ~base:value ~replacement:value_new
+                  in
+                  eval_update_path ctx value_b path value_updated
             | _ ->
                 error path.at
                   (Format.asprintf
@@ -610,8 +649,11 @@ module Make (Ctx : Context) = struct
                   else (atom_f, value_f))
                 fields
             in
-            let value = Value.Make.record path.note fields in
-            eval_update_path ctx value_b path value
+            let value_updated =
+              Value.Make.record path.note fields
+              |> Emit_value.updated ~base:value ~replacement:value_new
+            in
+            eval_update_path ctx value_b path value_updated
       in
       let value_b = eval_exp ctx exp_b in
       let value_f = eval_exp ctx exp_f in
@@ -623,7 +665,9 @@ module Make (Ctx : Context) = struct
         Ctx.expand_iteration_inputs ctx ~iter ~vars |> Ctx.get_exn
       in
       let values = List.map (fun ctx_sub -> eval_exp ctx_sub exp) ctxs_sub in
-      Ctx.collect_iteration_value values ~iter ~result_typ:typ
+      let value = Ctx.collect_iteration_value values ~iter ~result_typ:typ in
+      Ctx.emit_iteration ctx ~vars ~iter ~value;
+      value
     in
     eval_exp ctx exp
 

@@ -48,8 +48,9 @@ module type S = sig
   (** Unparse IL values back into a string for display. *)
   val unparse : spec:Il.spec -> Il.Value.t list -> string
 
-  (** Parse input into relation name and IL values. The relation name is invoked
-      for the input. *)
+  (** Decode input into a relation name and IL values. The interpreter invokes
+      that relation for the input. [parse_input] may report decoded values
+      through {!Instrumentation.Value_event.Decoded}. *)
   val parse_input : spec:Il.spec -> input -> (string * Il.Value.t list) result
 
   (** Get source identifier for tracing/errors (e.g., filename, test name) *)

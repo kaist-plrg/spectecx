@@ -6,6 +6,7 @@ type compiled_spec = {
   spec_il : Lang.Il.spec;
   spec_sl : Lang.Sl.spec;
   spec_pl : Lang.Pl.spec;
+  henv : Hints.Henv.t;
 }
 
 type mode = Il | Sl | Pl
@@ -21,15 +22,7 @@ module Pure_target : Interp.Target.S = struct
   let is_impure_func _ = false
   let is_impure_rel _ = false
   let state_version = ref 0
-
-  let with_state f =
-    let next_vid = ref 0 in
-    let fresh_vid () =
-      let vid = !next_vid in
-      Int.incr next_vid;
-      vid
-    in
-    Value.GlobalVidProvider.with_provider fresh_vid f
+  let with_state f = f ()
 end
 
 let render_diagnostics diagnostics =
@@ -52,7 +45,7 @@ let compile_source ~filename contents =
         in
         let spec_sl = Spectec.structure spec_il in
         let spec_pl = spec_sl |> Spectec.annotate ~henv |> Spectec.shorten in
-        Ok { spec_il; spec_sl; spec_pl })
+        Ok { spec_il; spec_sl; spec_pl; henv })
   in
   match result with
   | Ok spec when Diagnostic.Bag.is_empty diagnostics -> spec

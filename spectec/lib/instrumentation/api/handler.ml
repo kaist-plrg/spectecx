@@ -1,9 +1,9 @@
 (** Runtime contract for instrumentation handlers.
 
-    A handler receives lifecycle and execution events from interpreters via
-    {!Dispatcher}. Event constructors live in {!Event}; handlers are
-    plugin-style and also declare themselves via {!Spec.S} for CLI parsing and
-    construction. *)
+    A handler receives lifecycle and execution events via {!Dispatcher} and can
+    subscribe to value events. Event constructors are defined in {!Event} and
+    {!Value_event}. Handlers declare themselves via {!Spec.S} for CLI parsing
+    and construction. *)
 
 type spec = Instrumentation_static.Static.spec =
   | IlSpec of Lang.Il.spec
@@ -19,6 +19,12 @@ module type S = sig
 
   val init : spec:spec -> unit
   val handle : Event.t -> unit
+
+  (** A handler with [Some f] receives every value event through [f].
+      Interpreters build value events only while some active handler supplies
+      [Some f]. *)
+  val handle_value : (Value_event.t -> unit) option
+
   val finish : unit -> unit
 end
 

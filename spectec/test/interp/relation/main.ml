@@ -9,4 +9,5 @@ let () =
   Expressions.run ();
   Builtin_arities.run ();
   Determinism.run ();
-  Structuring.run ()
+  Structuring.run ();
+  Value_handlers.run ()
