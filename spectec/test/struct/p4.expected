@@ -45281,6 +45281,898 @@ relation Program_init: p4program
 
 5. Result in EC, STO
 
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:5:1-6:60:
+dec $cast_control_plane(EC, typedExpressionIR, typeIR_to)
+
+1. (Let typedExpressionIR'? be $cast_unary(typedExpressionIR, typeIR_to))
+
+2. If ((typedExpressionIR'? matches pattern (_))), then
+
+  1. (Let ?(typedExpressionIR_cast) be typedExpressionIR'?)
+
+  2. Return ?(typedExpressionIR_cast)
+
+3. If ((?() = $cast_unary(typedExpressionIR, typeIR_to))), then
+
+  1. If ((((bool) as typeIR) = typeIR_to)), then
+
+    1. If ((((int) as typeIR) = $type_of_typedExpressionIR(typedExpressionIR))), then
+
+      1. (Let ctk be $ctk_of_typedExpressionIR(typedExpressionIR))
+
+      2. (Let typedExpressionIR_cast be (((( typeIR_to ) typedExpressionIR) as expressionIR) # (( typeIR_to ctk ))))
+
+      3. Return ?(typedExpressionIR_cast)
+
+  2. If ((((error) as typeIR) = typeIR_to)), then
+
+    1. (Let (expressionIR # (( typeIR ctk ))) be typedExpressionIR)
+
+    2. If ((expressionIR has type integerLiteral)), then
+
+      1. (Let integerLiteral be (expressionIR as integerLiteral))
+
+      2. If ((integerLiteral matches pattern `D %`)), then
+
+        1. (Let (d int) be integerLiteral)
+
+        2. If ((int has type nat)), then
+
+          1. (Let n be (int as nat))
+
+          2. If ((typeIR has type intTypeIR)), then
+
+            1. (Let intTypeIR be (typeIR as intTypeIR))
+
+            2. If ((intTypeIR matches pattern `INT`)), then
+
+              1. (Let ({ value_frame* }) be $codom_map<id, value>(EC.global.frame))
+
+              2. (Let value_error* be $filter_<value>(value_frame*, (value_frame has type errorValue)*))
+
+              3. (Let value be value_error*[n])
+
+              4. If ((value has type errorValue)), then
+
+                1. (Let (error . nameIR_error) be (value as errorValue))
+
+                2. (Let typedExpressionIR_error be (((error . nameIR_error) as expressionIR) # (( typeIR_to ctk ))))
+
+                3. Return ?(typedExpressionIR_error)
+
+  3. Case analysis on typeIR_to
+
+    1. Case (% has type typedefTypeIR)
+
+      1. (Let (typedef _typeId typeIR_base) be (typeIR_to as typedefTypeIR))
+
+      2. (Let typedExpressionIR'? be $cast_control_plane(EC, typedExpressionIR, typeIR_base))
+
+      3. If ((typedExpressionIR'? matches pattern (_))), then
+
+        1. (Let ?(typedExpressionIR_typedef) be typedExpressionIR'?)
+
+        2. (Let ctk be $ctk_of_typedExpressionIR(typedExpressionIR_typedef))
+
+        3. (Let typedExpressionIR_cast be (((( typeIR_to ) typedExpressionIR_typedef) as expressionIR) # (( typeIR_to ctk ))))
+
+        4. Return ?(typedExpressionIR_cast)
+
+    2. Case (% has type newTypeIR)
+
+      1. (Let (type _typeId typeIR_base) be (typeIR_to as newTypeIR))
+
+      2. (Let typedExpressionIR'? be $cast_control_plane(EC, typedExpressionIR, typeIR_base))
+
+      3. If ((typedExpressionIR'? matches pattern (_))), then
+
+        1. (Let ?(typedExpressionIR_newtype) be typedExpressionIR'?)
+
+        2. (Let ctk be $ctk_of_typedExpressionIR(typedExpressionIR_newtype))
+
+        3. (Let typedExpressionIR_cast be (((( typeIR_to ) typedExpressionIR_newtype) as expressionIR) # (( typeIR_to ctk ))))
+
+        4. Return ?(typedExpressionIR_cast)
+
+    3. Case (% has type serializableEnumTypeIR)
+
+      1. (Let (enum _typeId < typeIR_base > { _valueFieldIR* }) be (typeIR_to as serializableEnumTypeIR))
+
+      2. (Let typedExpressionIR'? be $cast_control_plane(EC, typedExpressionIR, typeIR_base))
+
+      3. If ((typedExpressionIR'? matches pattern (_))), then
+
+        1. (Let ?(typedExpressionIR_enum) be typedExpressionIR'?)
+
+        2. (Let ctk be $ctk_of_typedExpressionIR(typedExpressionIR_enum))
+
+        3. (Let typedExpressionIR_cast be (((( typeIR_to ) typedExpressionIR_enum) as expressionIR) # (( typeIR_to ctk ))))
+
+        4. Return ?(typedExpressionIR_cast)
+
+3. Otherwise
+
+  1. Return ?()
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:60:1-60:39:
+dec $reverse_bytes_of_hex(t)
+
+1. If ((t[0 : 2] = "0x")), then
+
+  1. (Let n_len be |t|)
+
+  2. (Let n_len_bytes be (n_len - 2))
+
+  3. Return "0x" ++ $reverse_bytes_of_hex'(t[2 : n_len_bytes])
+
+1. Else Phantom#2458
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:61:1-61:40:
+dec $reverse_bytes_of_hex'(t)
+
+1. If ((|t| <= 2)), then
+
+  1. Return t
+
+1. Else Phantom#2459
+
+2. (Let n_len be |t|)
+
+3. If ((n_len > 2)), then
+
+  1. (Let t_byte be t[0 : 2])
+
+  2. (Let n_len_bytes be (n_len - 2))
+
+  3. (Let t_bytes be t[2 : n_len_bytes])
+
+  4. (Let t_bytes_rev be $reverse_bytes_of_hex'(t_bytes))
+
+  5. Return t_bytes_rev ++ t_byte
+
+3. Else Phantom#2460
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:82:38-82:42:
+syntax tableEntryPriorityInterface = int?
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:85:1-88:20:
+syntax tableKeyValueInterface = 
+   | text (from tableKeyValueInterface)
+   | text (from tableKeyValueInterface)
+   | text (from tableKeyValueInterface)
+   | text nat (from tableKeyValueInterface)
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:89:28-89:60:
+syntax tableKeyInterface = (nameIR, tableKeyValueInterface)
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:90:31-90:49:
+syntax tableKeysetInterface = tableKeyInterface*
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:92:39-92:52:
+syntax tableActionArgumentInterface = (nameIR, int)
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:93:31-93:70:
+syntax tableActionInterface = (nameIR, tableActionArgumentInterface*)
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:95:1-95:75:
+dec $text_of_number_tableKeyValueInterface(tableKeyValueInterface)
+
+1. Case analysis on tableKeyValueInterface
+
+  1. Case (% matches pattern `_BIN %`)
+
+    1. (Let (t) be tableKeyValueInterface)
+
+    2. Return ?("0b" ++ t)
+
+  2. Case (% matches pattern `_HEX %`)
+
+    1. (Let (t) be tableKeyValueInterface)
+
+    2. Return ?("0x" ++ t)
+
+  3. Case (% matches pattern `_DEC %`)
+
+    1. (Let (t) be tableKeyValueInterface)
+
+    2. Return ?(t)
+
+  4. Case (% matches pattern `% _SLASH %`)
+
+    1. (Let (_text _nat) be tableKeyValueInterface)
+
+    2. Return ?()
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:103:1-105:28:
+dec $tableObject_create_entry_priority(tableEntryPriorityInterface')
+
+1. (Let int? be tableEntryPriorityInterface')
+
+2. If ((int? matches pattern ())), then
+
+  1. Return ?()
+
+2. Else Phantom#2461
+
+3. If ((tableEntryPriorityInterface' matches pattern (_))), then
+
+  1. (Let ?(int) be tableEntryPriorityInterface')
+
+  2. If ((int has type nat)), then
+
+    1. (Let n_priority be (int as nat))
+
+    2. Return ?((priority = (d (n_priority as int)) :))
+
+  2. Else Phantom#2462
+
+3. Else Phantom#2463
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:113:1-113:68:
+dec $needs_priority_tableKeysPropertyIR((key = { tableKeyIR* }))
+
+1. (Let (_typedExpressionIR # _nameIR : nameIR_matchKind _annotationList ;) be tableKeyIR)*
+
+2. Return $exists_((nameIR_matchKind = "ternary")*)
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:122:1-125:23:
+relation TableObject_create_entry_key: EC, (nameIR_key, text, typeIR), tableKeyInterface*
+
+1. Case analysis on text
+
+  1. Case (% = "exact")
+
+    1. (Let tableKeyValueInterface'? be $assoc_<nameIR, tableKeyValueInterface>(nameIR_key, tableKeyInterface*))
+
+    2. If ((tableKeyValueInterface'? matches pattern (_))), then
+
+      1. (Let ?(tableKeyValueInterface) be tableKeyValueInterface'?)
+
+      2. (Let text'? be $text_of_number_tableKeyValueInterface(tableKeyValueInterface))
+
+      3. If ((text'? matches pattern (_))), then
+
+        1. (Let ?(text_key_value) be text'?)
+
+        2. (Let i_key_value be $text_to_int(text_key_value))
+
+        3. (Let typedExpressionIR be (((d i_key_value) as expressionIR) # (( ((int) as typeIR) (dyn) ))))
+
+        4. (Let typedExpressionIR'? be $cast_control_plane(EC, typedExpressionIR, typeIR))
+
+        5. If ((typedExpressionIR'? matches pattern (_))), then
+
+          1. (Let ?(typedExpressionIR_cast) be typedExpressionIR'?)
+
+          2. (Let typeIR_set be ((set < typeIR >) as typeIR))
+
+          3. (Let simpleKeysetExpressionIR be ((((( typeIR_set ) typedExpressionIR_cast) as expressionIR) # (( typeIR_set (dyn) ))) as simpleKeysetExpressionIR))
+
+          4. Result in simpleKeysetExpressionIR
+
+        5. Else Phantom#2464
+
+      3. Else Phantom#2465
+
+    2. Else Phantom#2466
+
+  2. Case (% = "ternary")
+
+    1. (Let tableKeyValueInterface'? be $assoc_<nameIR, tableKeyValueInterface>(nameIR_key, tableKeyInterface*))
+
+    2. If ((tableKeyValueInterface'? matches pattern (_))), then
+
+      1. (Let ?(tableKeyValueInterface) be tableKeyValueInterface'?)
+
+      2. Case analysis on tableKeyValueInterface
+
+        1. Case (% matches pattern `_HEX %`)
+
+          1. (Let (text_key_value) be tableKeyValueInterface)
+
+          2. (Let text_key_base_value be $replace_text(text_key_value, "*", "0"))
+
+          3. (Let i_key_base_value be $text_to_int("0x" ++ text_key_base_value))
+
+          4. (Let typedExpressionIR_base be (((d i_key_base_value) as expressionIR) # (( ((int) as typeIR) (dyn) ))))
+
+          5. (Let typedExpressionIR? be $cast_control_plane(EC, typedExpressionIR_base, typeIR))
+
+          6. If ((typedExpressionIR? matches pattern (_))), then
+
+            1. (Let ?(typedExpressionIR_base_cast) be typedExpressionIR?)
+
+            2. (Let text_key_mask_value be $replace_text_except(text_key_value, "*", "F"))
+
+            3. (Let text_key_mask_value' be $replace_text(text_key_mask_value, "*", "0"))
+
+            4. (Let i_key_mask_value be $text_to_int("0x" ++ text_key_mask_value'))
+
+            5. (Let typedExpressionIR_mask be (((d i_key_mask_value) as expressionIR) # (( ((int) as typeIR) (dyn) ))))
+
+            6. (Let typedExpressionIR'? be $cast_control_plane(EC, typedExpressionIR_base, typeIR))
+
+            7. If ((typedExpressionIR'? matches pattern (_))), then
+
+              1. (Let ?(typedExpressionIR_mask_cast) be typedExpressionIR'?)
+
+              2. (Let simpleKeysetExpressionIR be (typedExpressionIR_base_cast &&& typedExpressionIR_mask_cast))
+
+              3. Result in simpleKeysetExpressionIR
+
+            7. Else Phantom#2467
+
+          6. Else Phantom#2468
+
+        2. Case (% matches pattern `_BIN %`)
+
+          1. (Let (text_key_value) be tableKeyValueInterface)
+
+          2. (Let text_key_base_value be $replace_text(text_key_value, "*", "0"))
+
+          3. (Let i_key_base_value be $text_to_int("0b" ++ text_key_base_value))
+
+          4. (Let typedExpressionIR_base be (((d i_key_base_value) as expressionIR) # (( ((int) as typeIR) (dyn) ))))
+
+          5. (Let typedExpressionIR? be $cast_control_plane(EC, typedExpressionIR_base, typeIR))
+
+          6. If ((typedExpressionIR? matches pattern (_))), then
+
+            1. (Let ?(typedExpressionIR_base_cast) be typedExpressionIR?)
+
+            2. (Let text_key_mask_value be $replace_text_except(text_key_value, "*", "1"))
+
+            3. (Let text_key_mask_value' be $replace_text(text_key_mask_value, "*", "0"))
+
+            4. (Let i_key_mask_value be $text_to_int("0b" ++ text_key_mask_value'))
+
+            5. (Let typedExpressionIR_mask be (((d i_key_mask_value) as expressionIR) # (( ((int) as typeIR) (dyn) ))))
+
+            6. (Let typedExpressionIR'? be $cast_control_plane(EC, typedExpressionIR_base, typeIR))
+
+            7. If ((typedExpressionIR'? matches pattern (_))), then
+
+              1. (Let ?(typedExpressionIR_mask_cast) be typedExpressionIR'?)
+
+              2. (Let simpleKeysetExpressionIR be (typedExpressionIR_base_cast &&& typedExpressionIR_mask_cast))
+
+              3. Result in simpleKeysetExpressionIR
+
+            7. Else Phantom#2469
+
+          6. Else Phantom#2470
+
+      2. Else Phantom#2471
+
+    2. Else Phantom#2472
+
+  3. Case (% = "lpm")
+
+    1. (Let tableKeyValueInterface'? be $assoc_<nameIR, tableKeyValueInterface>(nameIR_key, tableKeyInterface*))
+
+    2. If ((tableKeyValueInterface'? matches pattern (_))), then
+
+      1. (Let ?(tableKeyValueInterface) be tableKeyValueInterface'?)
+
+      2. Case analysis on tableKeyValueInterface
+
+        1. Case (% matches pattern `_HEX %`)
+
+          1. (Let (text_key_value) be tableKeyValueInterface)
+
+          2. (Let text_key_value_prefix be $strip_suffix_rec(text_key_value, "*"))
+
+          3. If (~$contains(text_key_value_prefix, "*")), then
+
+            1. (Let text_key_base_value be $replace_text(text_key_value, "*", "0"))
+
+            2. (Let i_key_base_value be $text_to_int("0x" ++ text_key_base_value))
+
+            3. (Let typedExpressionIR_base be (((d i_key_base_value) as expressionIR) # (( ((int) as typeIR) (dyn) ))))
+
+            4. (Let typedExpressionIR? be $cast_control_plane(EC, typedExpressionIR_base, typeIR))
+
+            5. If ((typedExpressionIR? matches pattern (_))), then
+
+              1. (Let ?(typedExpressionIR_base_cast) be typedExpressionIR?)
+
+              2. (Let text_key_mask_value be $replace_text_except(text_key_value, "*", "F"))
+
+              3. (Let text_key_mask_value' be $replace_text(text_key_mask_value, "*", "0"))
+
+              4. (Let i_key_mask_value be $text_to_int("0x" ++ text_key_mask_value'))
+
+              5. (Let typedExpressionIR_mask be (((d i_key_mask_value) as expressionIR) # (( ((int) as typeIR) (dyn) ))))
+
+              6. (Let typedExpressionIR'? be $cast_control_plane(EC, typedExpressionIR_base, typeIR))
+
+              7. If ((typedExpressionIR'? matches pattern (_))), then
+
+                1. (Let ?(typedExpressionIR_mask_cast) be typedExpressionIR'?)
+
+                2. (Let simpleKeysetExpressionIR be (typedExpressionIR_base_cast &&& typedExpressionIR_mask_cast))
+
+                3. Result in simpleKeysetExpressionIR
+
+              7. Else Phantom#2473
+
+            5. Else Phantom#2474
+
+          3. Else Phantom#2475
+
+        2. Case (% matches pattern `_BIN %`)
+
+          1. (Let (text_key_value) be tableKeyValueInterface)
+
+          2. (Let text_key_value_prefix be $strip_suffix_rec(text_key_value, "*"))
+
+          3. If (~$contains(text_key_value_prefix, "*")), then
+
+            1. (Let text_key_base_value be $replace_text(text_key_value, "*", "0"))
+
+            2. (Let i_key_base_value be $text_to_int("0b" ++ text_key_base_value))
+
+            3. (Let typedExpressionIR_base be (((d i_key_base_value) as expressionIR) # (( ((int) as typeIR) (dyn) ))))
+
+            4. (Let typedExpressionIR? be $cast_control_plane(EC, typedExpressionIR_base, typeIR))
+
+            5. If ((typedExpressionIR? matches pattern (_))), then
+
+              1. (Let ?(typedExpressionIR_base_cast) be typedExpressionIR?)
+
+              2. (Let text_key_mask_value be $replace_text_except(text_key_value, "*", "1"))
+
+              3. (Let text_key_mask_value' be $replace_text(text_key_mask_value, "*", "0"))
+
+              4. (Let i_key_mask_value be $text_to_int("0b" ++ text_key_mask_value'))
+
+              5. (Let typedExpressionIR_mask be (((d i_key_mask_value) as expressionIR) # (( ((int) as typeIR) (dyn) ))))
+
+              6. (Let typedExpressionIR'? be $cast_control_plane(EC, typedExpressionIR_base, typeIR))
+
+              7. If ((typedExpressionIR'? matches pattern (_))), then
+
+                1. (Let ?(typedExpressionIR_mask_cast) be typedExpressionIR'?)
+
+                2. (Let simpleKeysetExpressionIR be (typedExpressionIR_base_cast &&& typedExpressionIR_mask_cast))
+
+                3. Result in simpleKeysetExpressionIR
+
+              7. Else Phantom#2476
+
+            5. Else Phantom#2477
+
+          3. Else Phantom#2478
+
+        3. Case (% matches pattern `% _SLASH %`)
+
+          1. (Let (text_key_prefix_value n_key_prefix_width) be tableKeyValueInterface)
+
+          2. (Let text_key_prefix_value_rev be $reverse_bytes_of_hex(text_key_prefix_value))
+
+          3. (Let i_key_prefix_value be $text_to_int(text_key_prefix_value_rev))
+
+          4. (Let n_key_type_width be $sizeof_maxSizeInBits'(typeIR))
+
+          5. If ((n_key_prefix_width <= n_key_type_width)), then
+
+            1. (Let n_key_remaining_width be (n_key_type_width - n_key_prefix_width))
+
+            2. (Let i_key_base_value be $shl(i_key_prefix_value, (n_key_remaining_width as int)))
+
+            3. (Let typedExpressionIR_base be (((d i_key_base_value) as expressionIR) # (( ((int) as typeIR) (dyn) ))))
+
+            4. (Let typedExpressionIR? be $cast_control_plane(EC, typedExpressionIR_base, typeIR))
+
+            5. If ((typedExpressionIR? matches pattern (_))), then
+
+              1. (Let ?(typedExpressionIR_base_cast) be typedExpressionIR?)
+
+              2. (Let i_key_mask_value be ($pow2(n_key_type_width) - $pow2(n_key_remaining_width)))
+
+              3. (Let typedExpressionIR_mask be (((d i_key_mask_value) as expressionIR) # (( ((int) as typeIR) (dyn) ))))
+
+              4. (Let typedExpressionIR'? be $cast_control_plane(EC, typedExpressionIR_base, typeIR))
+
+              5. If ((typedExpressionIR'? matches pattern (_))), then
+
+                1. (Let ?(typedExpressionIR_mask_cast) be typedExpressionIR'?)
+
+                2. (Let simpleKeysetExpressionIR be (typedExpressionIR_base_cast &&& typedExpressionIR_mask_cast))
+
+                3. Result in simpleKeysetExpressionIR
+
+              5. Else Phantom#2479
+
+            5. Else Phantom#2480
+
+          5. Else Phantom#2481
+
+      2. Else Phantom#2482
+
+    2. Else Phantom#2483
+
+  4. Case (% = "optional")
+
+    1. (Let tableKeyValueInterface'? be $assoc_<nameIR, tableKeyValueInterface>(nameIR_key, tableKeyInterface*))
+
+    2. If ((tableKeyValueInterface'? matches pattern (_))), then
+
+      1. (Let ?(tableKeyValueInterface) be tableKeyValueInterface'?)
+
+      2. If ((tableKeyValueInterface matches pattern `_BIN %`)), then
+
+        1. (Let (text_key_value) be tableKeyValueInterface)
+
+        2. If ((~$contains(text_key_value, "*") \/ ($strip_suffix_rec(text_key_value, "*") = ""))), then
+
+          1. (Let text_key_base_value be $replace_text(text_key_value, "*", "0"))
+
+          2. (Let i_key_base_value be $text_to_int("0b" ++ text_key_base_value))
+
+          3. (Let typedExpressionIR_base be (((d i_key_base_value) as expressionIR) # (( ((int) as typeIR) (dyn) ))))
+
+          4. (Let typedExpressionIR? be $cast_control_plane(EC, typedExpressionIR_base, typeIR))
+
+          5. If ((typedExpressionIR? matches pattern (_))), then
+
+            1. (Let ?(typedExpressionIR_base_cast) be typedExpressionIR?)
+
+            2. (Let text_key_mask_value be $replace_text_except(text_key_value, "*", "1"))
+
+            3. (Let text_key_mask_value' be $replace_text(text_key_mask_value, "*", "0"))
+
+            4. (Let i_key_mask_value be $text_to_int("0b" ++ text_key_mask_value'))
+
+            5. (Let typedExpressionIR_mask be (((d i_key_mask_value) as expressionIR) # (( ((int) as typeIR) (dyn) ))))
+
+            6. (Let typedExpressionIR'? be $cast_control_plane(EC, typedExpressionIR_base, typeIR))
+
+            7. If ((typedExpressionIR'? matches pattern (_))), then
+
+              1. (Let ?(typedExpressionIR_mask_cast) be typedExpressionIR'?)
+
+              2. (Let simpleKeysetExpressionIR be (typedExpressionIR_base_cast &&& typedExpressionIR_mask_cast))
+
+              3. Result in simpleKeysetExpressionIR
+
+            7. Else Phantom#2484
+
+          5. Else Phantom#2485
+
+        2. Else Phantom#2486
+
+      2. Else Phantom#2487
+
+    2. Else Phantom#2488
+
+  5. Case (% = "selector")
+
+    1. (Let typedExpressionIR_zero be (((d (0 as int)) as expressionIR) # (( ((int) as typeIR) (dyn) ))))
+
+    2. (Let typedExpressionIR? be $cast_control_plane(EC, typedExpressionIR_zero, typeIR))
+
+    3. If ((typedExpressionIR? matches pattern (_))), then
+
+      1. (Let ?(typedExpressionIR_cast) be typedExpressionIR?)
+
+      2. (Let simpleKeysetExpressionIR be (typedExpressionIR_cast &&& typedExpressionIR_cast))
+
+      3. Result in simpleKeysetExpressionIR
+
+    3. Else Phantom#2489
+
+1. Else Phantom#2490
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:299:1-302:23:
+relation TableObject_create_entry_keys: _evalContext', (nameIR, nameIR, typeIR)*, _tableKeysetInterface'
+
+1. If (((nameIR, nameIR, typeIR)* matches pattern [])), then
+
+  1. Result in []
+
+1. Else Phantom#2491
+
+2. (Let tableKeyInterface* be _tableKeysetInterface')
+
+3. If (((nameIR, nameIR, typeIR)* matches pattern _ :: _)), then
+
+  1. (Let (nameIR_key_h, nameIR_matchKind_h, typeIR_h) :: (nameIR_key_t, nameIR_matchKind_t, typeIR_t)* be (nameIR, nameIR, typeIR)*)
+
+  2. (TableObject_create_entry_key: _evalContext' |- (nameIR_key_h, nameIR_matchKind_h, typeIR_h) @ tableKeyInterface* : simpleKeysetExpressionIR_h)
+
+  3. (TableObject_create_entry_keys: _evalContext' |- (nameIR_key_t, nameIR_matchKind_t, typeIR_t)* @ tableKeyInterface* : simpleKeysetExpressionIR_t*)
+
+  4. Result in simpleKeysetExpressionIR_h :: simpleKeysetExpressionIR_t*
+
+3. Else Phantom#2492
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:320:1-320:68:
+dec $interface_of_tableKeyIR((typedExpressionIR # nameIR_key : nameIR_matchKind annotationList ;))
+
+1. (Let typeIR be $type_of_typedExpressionIR(typedExpressionIR))
+
+2. Return (nameIR_key, nameIR_matchKind, typeIR)
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:327:1-327:75:
+dec $key_interface_of_tableObject((table typeId { frame TBL }))
+
+1. (Let (key = { tableKeyIR* }) be TBL.keys)
+
+2. (Let (nameIR_key, nameIR_matchKind, typeIR) be $interface_of_tableKeyIR(tableKeyIR))*
+
+3. Return (nameIR_key, nameIR_matchKind, typeIR)*
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:335:1-338:23:
+relation TableObject_create_entry_keyset: EC, (key = { tableKeyIR* }), tableKeyInterface*
+
+1. (Let (nameIR_key, nameIR_matchKind, typeIR) be $interface_of_tableKeyIR(tableKeyIR))*
+
+2. (Let (nameIR_key_update, tableKeyValueInterface_update) be tableKeyInterface)*
+
+3. (Let nameIR_key_non_selector* be $filter_<nameIR>(nameIR_key*, (nameIR_matchKind =/= "selector")*))
+
+4. If ($eq_set<nameIR>(({ nameIR_key_non_selector* }), ({ nameIR_key_update* }))), then
+
+  1. (TableObject_create_entry_keys: EC |- (nameIR_key, nameIR_matchKind, typeIR)* @ tableKeyInterface* : simpleKeysetExpressionIR*)
+
+  2. Result in ((( simpleKeysetExpressionIR* )) as keysetExpressionIR)
+
+4. Else Phantom#2493
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:355:1-355:70:
+dec $alias_to_original_lookup_map(parameterIR*)
+
+1. (Let (annotationList _direction _typeIR id _parameterInitializerOptIR) be parameterIR)*
+
+2. (Let annotation* be $flatten_annotationList(annotationList))*
+
+3. (Let nameIR_names_opt? be $name_annotation_opt(annotation))**
+
+4. (Let nameIR_names_seq* be $opt_as_seq_<nameIR>(nameIR_names_opt?))**
+
+5. (Let nameIR_names* be $concat_<nameIR>(nameIR_names_seq**))*
+
+6. (Let (nameIR_original, nameIR_aliases*)* be $filter_<(nameIR, nameIR*)>((id, nameIR_names*)*, (|nameIR_names*| > 0)*))
+
+7. (Let nameIR_alias* be nameIR_aliases*[0]*)
+
+8. Return $extend_map<nameIR, nameIR>(({ (nameIR_alias : nameIR_original)* }), ({ (id : id)* }))
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:369:1-371:9:
+dec $align_tableActionArgumentInterfaces(parameterIR*, (nameIR_arg, i_arg)*)
+
+1. (Let ({ (nameIR_alias : nameIR_original)* }) be $alias_to_original_lookup_map(parameterIR*))
+
+2. (Let nameIR? be $find_map<nameIR, nameIR>(({ (nameIR_alias : nameIR_original)* }), nameIR_arg))*
+
+3. If ((nameIR? matches pattern (_)))*, then
+
+  1. (Let ?(nameIR_arg_resolved) be nameIR?)*
+
+  2. (Let (_annotationList _direction _typeIR nameIR_param _parameterInitializerOptIR) be parameterIR)*
+
+  3. If ($sub_set<nameIR>(({ nameIR_arg_resolved* }), ({ nameIR_param* }))), then
+
+    1. (Let i_aligned be $align_tableActionArgumentInterfaces'(({ (nameIR_arg_resolved : i_arg)* }), parameterIR))*
+
+    2. Return i_aligned*
+
+  3. Else Phantom#2494
+
+3. Else Phantom#2495
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:372:1-374:8:
+dec $align_tableActionArgumentInterfaces'(({ (id_arg : i_arg)* }), (_annotationList _direction _typeIR nameIR_param _parameterInitializerOptIR))
+
+1. (Let int? be $find_map<id, int>(({ (id_arg : i_arg)* }), nameIR_param))
+
+2. If ((int? matches pattern (_))), then
+
+  1. (Let ?(i) be int?)
+
+  2. Return i
+
+2. Else Phantom#2496
+
+3. If ((?() = $find_map<id, int>(({ (id_arg : i_arg)* }), nameIR_param))), then
+
+  1. Return (0 as int)
+
+3. Else Phantom#2497
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:399:1-400:29:
+dec $find_tableActionIR_qualified(tableActionIR*, nameIR)
+
+1. Case analysis on tableActionIR*
+
+  1. Case (% matches pattern [])
+
+    1. Return ?()
+
+  2. Case (% matches pattern _ :: _)
+
+    1. (Let tableActionIR_h :: tableActionIR_t* be tableActionIR*)
+
+    2. (Let (annotationList tableActionReferenceIR # ( _parameterListIR , parameterIR_control* ) ;) be tableActionIR_h)
+
+    3. (Let (prefixedNameIR controlPlaneNameIR ( argumentIR_data* )) be tableActionReferenceIR)
+
+    4. If ((?(nameIR) =/= controlPlaneNameIR)), then
+
+      1. Return $find_tableActionIR_qualified(tableActionIR_t*, nameIR)
+
+    4. Else Phantom#2498
+
+    5. If ((?(nameIR) = controlPlaneNameIR)), then
+
+      1. (Let nameIR_action be $flatten_prefixedNameIR(prefixedNameIR))
+
+      2. Return ?((nameIR_action, tableActionIR_h))
+
+    5. Else Phantom#2499
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:426:1-427:29:
+dec $find_tableActionIR_unqualified(tableActionIR*, nameIR)
+
+1. (Let nameIR_split* be $split_text(nameIR, "."))
+
+2. (Let nameIR_action be $rev_<nameIR>(nameIR_split*)[0])
+
+3. Return $find_tableActionIR_unqualified'(tableActionIR*, nameIR_action)
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:428:1-429:29:
+dec $find_tableActionIR_unqualified'(tableActionIR*, nameIR)
+
+1. Case analysis on tableActionIR*
+
+  1. Case (% matches pattern [])
+
+    1. Return ?()
+
+  2. Case (% matches pattern _ :: _)
+
+    1. (Let tableActionIR_h :: tableActionIR_t* be tableActionIR*)
+
+    2. (Let (annotationList tableActionReferenceIR # ( _parameterListIR , parameterIR_control* ) ;) be tableActionIR_h)
+
+    3. (Let (prefixedNameIR controlPlaneNameIR ( argumentIR_data* )) be tableActionReferenceIR)
+
+    4. If ((controlPlaneNameIR matches pattern (_))), then
+
+      1. (Let ?(nameIR_controlPlane) be controlPlaneNameIR)
+
+      2. (Let nameIR_split* be $split_text(nameIR_controlPlane, "."))
+
+      3. (Let nameIR'* be $rev_<nameIR>(nameIR_split*))
+
+      4. If ((nameIR'* matches pattern _ :: _)), then
+
+        1. (Let nameIR_unqualified :: _nameIR* be nameIR'*)
+
+        2. If ((nameIR =/= nameIR_unqualified)), then
+
+          1. Return $find_tableActionIR_unqualified'(tableActionIR_t*, nameIR)
+
+        2. Else Phantom#2500
+
+        3. If ((nameIR = nameIR_unqualified)), then
+
+          1. (Let nameIR_action be $flatten_prefixedNameIR(prefixedNameIR))
+
+          2. Return ?((nameIR_action, tableActionIR_h))
+
+        3. Else Phantom#2501
+
+      4. Else Phantom#2502
+
+    4. Else Phantom#2503
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:463:1-466:23:
+relation TableObject_create_entry_action: EC, (actions = { tableActionIR* }), (nameIR_action_update, tableActionArgumentInterface_update*)
+
+1. (Let (nameIR, tableActionIR)? be $find_tableActionIR_qualified(tableActionIR*, nameIR_action_update))
+
+2. If (((nameIR, tableActionIR)? matches pattern (_))), then
+
+  1. (Let ?((nameIR_found, tableActionIR_found)) be (nameIR, tableActionIR)?)
+
+  2. (Let (annotationList (prefixedNameIR controlPlaneNameIR ( argumentIR_data* )) # ( _parameterListIR , parameterIR_control* ) ;) be tableActionIR_found)
+
+  3. (Let i_arg_aligned* be $align_tableActionArgumentInterfaces(parameterIR_control*, tableActionArgumentInterface_update*))
+
+  4. (Let (_annotationList _direction typeIR_param _id _parameterInitializerOptIR) be parameterIR_control)*
+
+  5. (Let typedExpressionIR_arg be (((d i_arg_aligned) as expressionIR) # (( ((int) as typeIR) (dyn) ))))*
+
+  6. (Let typedExpressionIR? be $cast_control_plane(EC, typedExpressionIR_arg, typeIR_param))*
+
+  7. If ((typedExpressionIR? matches pattern (_)))*, then
+
+    1. (Let ?(typedExpressionIR_arg_cast) be typedExpressionIR?)*
+
+    2. (Let argumentIR* be argumentIR_data* ++ (typedExpressionIR_arg_cast* as argumentIR*))
+
+    3. Result in ((nameIR_found) controlPlaneNameIR ( argumentIR* ))
+
+  7. Else Phantom#2504
+
+2. Else Phantom#2505
+
+3. If ((?() = $find_tableActionIR_qualified(tableActionIR*, nameIR_action_update))), then
+
+  1. (Let (nameIR, tableActionIR)? be $find_tableActionIR_unqualified(tableActionIR*, nameIR_action_update))
+
+  2. If (((nameIR, tableActionIR)? matches pattern (_))), then
+
+    1. (Let ?((nameIR_found, tableActionIR_found)) be (nameIR, tableActionIR)?)
+
+    2. (Let (annotationList (prefixedNameIR controlPlaneNameIR ( argumentIR_data* )) # ( _parameterListIR , parameterIR_control* ) ;) be tableActionIR_found)
+
+    3. (Let i_arg_aligned* be $align_tableActionArgumentInterfaces(parameterIR_control*, tableActionArgumentInterface_update*))
+
+    4. (Let (_annotationList _direction typeIR_param _id _parameterInitializerOptIR) be parameterIR_control)*
+
+    5. (Let typedExpressionIR_arg be (((d i_arg_aligned) as expressionIR) # (( ((int) as typeIR) (dyn) ))))*
+
+    6. (Let typedExpressionIR? be $cast_control_plane(EC, typedExpressionIR_arg, typeIR_param))*
+
+    7. If ((typedExpressionIR? matches pattern (_)))*, then
+
+      1. (Let ?(typedExpressionIR_arg_cast) be typedExpressionIR?)*
+
+      2. (Let argumentIR* be argumentIR_data* ++ (typedExpressionIR_arg_cast* as argumentIR*))
+
+      3. Result in ((nameIR_found) controlPlaneNameIR ( argumentIR* ))
+
+    7. Else Phantom#2506
+
+  2. Else Phantom#2507
+
+3. Else Phantom#2508
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:514:1-518:29:
+relation TableObject_add_entry: EC', (table typeId { frame TBL }), tableEntryPriorityInterface', tableKeysetInterface', tableActionInterface'
+
+1. (Let tableEntryPriorityOptIR be $tableObject_create_entry_priority(tableEntryPriorityInterface'))
+
+2. If (($needs_priority_tableKeysPropertyIR(TBL.keys) => $is_some_<tableEntryPriorityIR>(tableEntryPriorityOptIR))), then
+
+  1. (TableObject_create_entry_keyset: EC' |- TBL.keys @ tableKeysetInterface' : keysetExpressionIR)
+
+  2. (TableObject_create_entry_action: EC' |- TBL.actions @ tableActionInterface' : tableActionReferenceIR)
+
+  3. (Let tableEntryIR_update be (?() tableEntryPriorityOptIR keysetExpressionIR : tableActionReferenceIR () ;))
+
+  4. (Let (annotationList constOptIR entries = { tableEntryIR* }) be TBL.entries)
+
+  5. (Let tableEntriesPropertyIR_updated be (annotationList constOptIR entries = { tableEntryIR* ++ [tableEntryIR_update] }))
+
+  6. (Let TBL_updated be TBL[entries = tableEntriesPropertyIR_updated])
+
+  7. Result in ?((table typeId { frame TBL_updated }))
+
+2. Otherwise
+
+  1. Result in ?()
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:551:1-553:23:
+relation TableObject_add_default_action: EC, (table typeId { frame TBL }), tableActionInterface
+
+1. (Let (_annotationList constIR? default_action = _tableActionReferenceIR ;) be TBL.default_action)
+
+2. If ((constIR? matches pattern ())), then
+
+  1. (TableObject_create_entry_action: EC |- TBL.actions @ tableActionInterface : tableActionReferenceIR)
+
+  2. (Let tableDefaultActionPropertyIR be (() ?() default_action = tableActionReferenceIR ;))
+
+  3. (Let TBL_updated be TBL[default_action = tableDefaultActionPropertyIR])
+
+  4. Result in (table typeId { frame TBL_updated })
+
+2. Else Phantom#2509
+
 ;; ../../../../../spectec/specs/p4/9-arch/9.B-ebpf.spectec:5:1-10:72:
 relation EBPF_init: p4program
 
@@ -45315,9 +46207,9 @@ relation EBPF_init_packet_in: EC_0, ARCH_0, objectState_packet_in
 
     5. Result in EC_1, ARCH_2
 
-  2. Else Phantom#2458
+  2. Else Phantom#2510
 
-4. Else Phantom#2459
+4. Else Phantom#2511
 
 ;; ../../../../../spectec/specs/p4/9-arch/9.B-ebpf.spectec:43:1-45:20:
 relation EBPF_init_globals: EC_0, ARCH
@@ -45344,11 +46236,11 @@ relation EBPF_init_globals: EC_0, ARCH
 
       4. Result in EC_2
 
-    3. Else Phantom#2460
+    3. Else Phantom#2512
 
-  2. Else Phantom#2461
+  2. Else Phantom#2513
 
-2. Else Phantom#2462
+2. Else Phantom#2514
 
 ;; ../../../../../spectec/specs/p4/9-arch/9.B-ebpf.spectec:61:1-61:61:
 dec $eBPF_setup_packet_in_argument(EC)
@@ -45365,7 +46257,7 @@ dec $eBPF_setup_packet_in_argument(EC)
 
   4. Return argumentIR_packet_in
 
-2. Else Phantom#2463
+2. Else Phantom#2515
 
 ;; ../../../../../spectec/specs/p4/9-arch/9.B-ebpf.spectec:70:1-70:52:
 dec $eBPF_setup_headers_argument(ARCH)
@@ -45390,11 +46282,11 @@ dec $eBPF_setup_headers_argument(ARCH)
 
       3. Return argumentIR_headers
 
-    3. Else Phantom#2464
+    3. Else Phantom#2516
 
-  2. Else Phantom#2465
+  2. Else Phantom#2517
 
-2. Else Phantom#2466
+2. Else Phantom#2518
 
 ;; ../../../../../spectec/specs/p4/9-arch/9.B-ebpf.spectec:78:1-78:67:
 dec $eBPF_setup_main_callee(EC, ARCH)
@@ -45427,13 +46319,13 @@ dec $eBPF_setup_main_callee(EC, ARCH)
 
         4. Return typedExpressionIR_main
 
-      3. Else Phantom#2467
+      3. Else Phantom#2519
 
-    2. Else Phantom#2468
+    2. Else Phantom#2520
 
-  3. Else Phantom#2469
+  3. Else Phantom#2521
 
-2. Else Phantom#2470
+2. Else Phantom#2522
 
 ;; ../../../../../spectec/specs/p4/9-arch/9.B-ebpf.spectec:93:1-96:22:
 dec $eBPF_setup_parse_callee(EC, ARCH, typedExpressionIR_main)
@@ -45466,13 +46358,13 @@ dec $eBPF_setup_parse_callee(EC, ARCH, typedExpressionIR_main)
 
         4. Return typedExpressionIR_parse
 
-      3. Else Phantom#2471
+      3. Else Phantom#2523
 
-    2. Else Phantom#2472
+    2. Else Phantom#2524
 
-  3. Else Phantom#2473
+  3. Else Phantom#2525
 
-2. Else Phantom#2474
+2. Else Phantom#2526
 
 ;; ../../../../../spectec/specs/p4/9-arch/9.B-ebpf.spectec:113:1-116:22:
 dec $eBPF_setup_filter_callee(EC, ARCH, typedExpressionIR_main)
@@ -45505,13 +46397,13 @@ dec $eBPF_setup_filter_callee(EC, ARCH, typedExpressionIR_main)
 
         4. Return typedExpressionIR_filter
 
-      3. Else Phantom#2475
+      3. Else Phantom#2527
 
-    2. Else Phantom#2476
+    2. Else Phantom#2528
 
-  3. Else Phantom#2477
+  3. Else Phantom#2529
 
-2. Else Phantom#2478
+2. Else Phantom#2530
 
 ;; ../../../../../spectec/specs/p4/9-arch/9.B-ebpf.spectec:138:1-140:20:
 relation EBPF_parse: EC_0, ARCH_0
@@ -45538,9 +46430,9 @@ relation EBPF_parse: EC_0, ARCH_0
 
     1. Result in EC_1, ARCH_1, ((accept) as transitionResult)
 
-  2. Else Phantom#2479
+  2. Else Phantom#2531
 
-8. Else Phantom#2480
+8. Else Phantom#2532
 
 9. (Stmt_eval: (global) EC_0 ARCH_0 |- ((callableTargetIR < [] > ( argumentIR* ) ;) as statementIR) : EC_1 ARCH_1 statementResult)
 
@@ -45550,7 +46442,7 @@ relation EBPF_parse: EC_0, ARCH_0
 
   2. Result in EC_1, ARCH_1, (rejectTransitionResult as transitionResult)
 
-10. Else Phantom#2481
+10. Else Phantom#2533
 
 ;; ../../../../../spectec/specs/p4/9-arch/9.B-ebpf.spectec:184:1-186:20:
 relation EBPF_filter: EC_0, ARCH_0
@@ -45577,9 +46469,9 @@ relation EBPF_filter: EC_0, ARCH_0
 
     1. Result in EC_1, ARCH_1, ((return ?()) as callResult)
 
-  2. Else Phantom#2482
+  2. Else Phantom#2534
 
-8. Else Phantom#2483
+8. Else Phantom#2535
 
 9. (Stmt_eval: (global) EC_0 ARCH_0 |- ((callableTargetIR < [] > ( argumentIR* ) ;) as statementIR) : EC_1 ARCH_1 statementResult)
 
@@ -45591,6 +46483,6 @@ relation EBPF_filter: EC_0, ARCH_0
 
     1. Result in EC_1, ARCH_1, ((exit) as callResult)
 
-  2. Else Phantom#2484
+  2. Else Phantom#2536
 
-10. Else Phantom#2485
+10. Else Phantom#2537

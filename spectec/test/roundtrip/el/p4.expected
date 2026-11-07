@@ -26456,6 +26456,594 @@ rule Program_init:
   -- if localEvalLayer = {TYPE $empty_theta, FRAMES ([$empty_frame])}
   -- if EC
         = {GLOBAL globalEvalLayer, BLOCK blockEvalLayer, LOCAL localEvalLayer}
+;; === 9-arch/9.1-table-interface.spectec ===
+dec $cast_control_plane(evalContext, typedExpressionIR, typeIR)
+  : typedExpressionIR?
+  hint(prose_in %1 "from control plane cast to" %2 "in" %0)
+
+def $cast_control_plane(EC, typedExpressionIR, typeIR_to)
+  = typedExpressionIR_cast
+  -- if typedExpressionIR_cast = $cast_unary(typedExpressionIR, typeIR_to)
+
+def $cast_control_plane(EC, typedExpressionIR, typeIR_to)
+  = typedExpressionIR_cast
+  -- if eps = $cast_unary(typedExpressionIR, typeIR_to)
+  -- if BOOL = typeIR_to
+  -- if INT = $type_of_typedExpressionIR(typedExpressionIR)
+  -- if ctk = $ctk_of_typedExpressionIR(typedExpressionIR)
+  -- if typedExpressionIR_cast
+        = (`(typeIR_to`) typedExpressionIR) '#' `(typeIR_to ctk`)
+
+def $cast_control_plane(EC, typedExpressionIR, typeIR_to)
+  = typedExpressionIR_error
+  -- if eps = $cast_unary(typedExpressionIR, typeIR_to)
+  -- if ERROR = typeIR_to
+  -- if (D n) '#' `(INT ctk`) = typedExpressionIR
+  -- if `{value_frame*`} = $codom_map<id, value>(EC.GLOBAL.FRAME)
+  -- if value_error*
+        = $filter_<value>(value_frame*, (value_frame <: errorValue)*)
+  -- if ERROR '.' nameIR_error = value_error*[n]
+  -- if typedExpressionIR_error = (ERROR '.' nameIR_error) '#' `(typeIR_to ctk`)
+
+def $cast_control_plane(EC, typedExpressionIR, typeIR_to)
+  = typedExpressionIR_cast
+  -- if eps = $cast_unary(typedExpressionIR, typeIR_to)
+  -- if TYPEDEF _ typeIR_base = typeIR_to
+  -- if typedExpressionIR_typedef
+        = $cast_control_plane(EC, typedExpressionIR, typeIR_base)
+  -- if ctk = $ctk_of_typedExpressionIR(typedExpressionIR_typedef)
+  -- if typedExpressionIR_cast
+        = (`(typeIR_to`) typedExpressionIR_typedef) '#' `(typeIR_to ctk`)
+
+def $cast_control_plane(EC, typedExpressionIR, typeIR_to)
+  = typedExpressionIR_cast
+  -- if eps = $cast_unary(typedExpressionIR, typeIR_to)
+  -- if TYPE _ typeIR_base = typeIR_to
+  -- if typedExpressionIR_newtype
+        = $cast_control_plane(EC, typedExpressionIR, typeIR_base)
+  -- if ctk = $ctk_of_typedExpressionIR(typedExpressionIR_newtype)
+  -- if typedExpressionIR_cast
+        = (`(typeIR_to`) typedExpressionIR_newtype) '#' `(typeIR_to ctk`)
+
+def $cast_control_plane(EC, typedExpressionIR, typeIR_to)
+  = typedExpressionIR_cast
+  -- if eps = $cast_unary(typedExpressionIR, typeIR_to)
+  -- if ENUM _ `<typeIR_base`> `{_`} = typeIR_to
+  -- if typedExpressionIR_enum
+        = $cast_control_plane(EC, typedExpressionIR, typeIR_base)
+  -- if ctk = $ctk_of_typedExpressionIR(typedExpressionIR_enum)
+  -- if typedExpressionIR_cast
+        = (`(typeIR_to`) typedExpressionIR_enum) '#' `(typeIR_to ctk`)
+
+def $cast_control_plane(EC, typedExpressionIR, typeIR_to) = eps
+  -- otherwise
+
+dec $reverse_bytes_of_hex(text) : text
+
+dec $reverse_bytes_of_hex'(text) : text
+
+def $reverse_bytes_of_hex(t)
+  = "0x" ++ $reverse_bytes_of_hex'(t[2 : n_len_bytes])
+  -- if t[0 : 2] = "0x"
+  -- if n_len = |t|
+  -- if n_len_bytes = $(n_len - 2)
+
+def $reverse_bytes_of_hex'(t) = t
+  -- if $(|t| <= 2)
+
+def $reverse_bytes_of_hex'(t) = t_bytes_rev ++ t_byte
+  -- if n_len = |t|
+  -- if $(n_len > 2)
+  -- if t_byte = t[0 : 2]
+  -- if n_len_bytes = $(n_len - 2)
+  -- if t_bytes = t[2 : n_len_bytes]
+  -- if t_bytes_rev = $reverse_bytes_of_hex'(t_bytes)
+
+syntax tableEntryPriorityInterface = int?
+
+syntax tableKeyValueInterface =
+  | _BIN text
+  | _HEX text
+  | _DEC text
+  | text _SLASH nat
+
+syntax tableKeyInterface = (nameIR, tableKeyValueInterface)
+
+syntax tableKeysetInterface = tableKeyInterface*
+
+syntax tableActionArgumentInterface = (nameIR, int)
+
+syntax tableActionInterface = (nameIR, tableActionArgumentInterface*)
+
+dec $text_of_number_tableKeyValueInterface(tableKeyValueInterface) : text?
+
+def $text_of_number_tableKeyValueInterface(_BIN t) = "0b" ++ t
+
+def $text_of_number_tableKeyValueInterface(_HEX t) = "0x" ++ t
+
+def $text_of_number_tableKeyValueInterface(_DEC t) = t
+
+def $text_of_number_tableKeyValueInterface(_ _SLASH _) = eps
+
+dec $tableObject_create_entry_priority(tableEntryPriorityInterface)
+  : tableEntryPriorityOptIR
+
+def $tableObject_create_entry_priority(eps) = eps
+
+def $tableObject_create_entry_priority(n_priority)
+  = PRIORITY '=' (D n_priority) ':'
+
+dec $needs_priority_tableKeysPropertyIR(tableKeysPropertyIR) : bool
+
+def $needs_priority_tableKeysPropertyIR(KEY '=' `{tableKeyIR*`})
+  = $exists_((nameIR_matchKind = "ternary")*)
+  -- (if (_ '#' _ ':' nameIR_matchKind _ ';' = tableKeyIR))*
+
+relation TableObject_create_entry_key:
+  evalContext
+    |- (nameIR, nameIR, typeIR) '@' tableKeysetInterface
+    : simpleKeysetExpressionIR
+  hint(input %0 %1 %2)
+
+rule TableObject_create_entry_key/exact:
+  EC
+    |- (nameIR_key, "exact", typeIR) '@' tableKeyInterface*
+    : simpleKeysetExpressionIR
+  -- if tableKeyValueInterface
+        = $assoc_<nameIR, tableKeyValueInterface>(nameIR_key, tableKeyInterface*)
+  -- if text_key_value
+        = $text_of_number_tableKeyValueInterface(tableKeyValueInterface)
+  -- if i_key_value = $text_to_int(text_key_value)
+  -- if typedExpressionIR = (D i_key_value) '#' `(INT DYN`)
+  -- if typedExpressionIR_cast
+        = $cast_control_plane(EC, typedExpressionIR, typeIR)
+  -- if typeIR_set = SET `<typeIR`>
+  -- if simpleKeysetExpressionIR
+        = (`(typeIR_set`) typedExpressionIR_cast) '#' `(typeIR_set DYN`)
+
+rule TableObject_create_entry_key/ternary-hex:
+  EC
+    |- (nameIR_key, "ternary", typeIR) '@' tableKeyInterface*
+    : simpleKeysetExpressionIR
+  -- if _HEX text_key_value
+        = $assoc_<nameIR, tableKeyValueInterface>(nameIR_key, tableKeyInterface*)
+  -- if text_key_base_value = $replace_text(text_key_value, "*", "0")
+  -- if i_key_base_value = $text_to_int("0x" ++ text_key_base_value)
+  -- if typedExpressionIR_base = (D i_key_base_value) '#' `(INT DYN`)
+  -- if typedExpressionIR_base_cast
+        = $cast_control_plane(EC, typedExpressionIR_base, typeIR)
+  -- if text_key_mask_value = $replace_text_except(text_key_value, "*", "F")
+  -- if text_key_mask_value' = $replace_text(text_key_mask_value, "*", "0")
+  -- if i_key_mask_value = $text_to_int("0x" ++ text_key_mask_value')
+  -- if typedExpressionIR_mask = (D i_key_mask_value) '#' `(INT DYN`)
+  -- if typedExpressionIR_mask_cast
+        = $cast_control_plane(EC, typedExpressionIR_base, typeIR)
+  -- if simpleKeysetExpressionIR
+        = typedExpressionIR_base_cast '&&&' typedExpressionIR_mask_cast
+
+rule TableObject_create_entry_key/ternary-bin:
+  EC
+    |- (nameIR_key, "ternary", typeIR) '@' tableKeyInterface*
+    : simpleKeysetExpressionIR
+  -- if _BIN text_key_value
+        = $assoc_<nameIR, tableKeyValueInterface>(nameIR_key, tableKeyInterface*)
+  -- if text_key_base_value = $replace_text(text_key_value, "*", "0")
+  -- if i_key_base_value = $text_to_int("0b" ++ text_key_base_value)
+  -- if typedExpressionIR_base = (D i_key_base_value) '#' `(INT DYN`)
+  -- if typedExpressionIR_base_cast
+        = $cast_control_plane(EC, typedExpressionIR_base, typeIR)
+  -- if text_key_mask_value = $replace_text_except(text_key_value, "*", "1")
+  -- if text_key_mask_value' = $replace_text(text_key_mask_value, "*", "0")
+  -- if i_key_mask_value = $text_to_int("0b" ++ text_key_mask_value')
+  -- if typedExpressionIR_mask = (D i_key_mask_value) '#' `(INT DYN`)
+  -- if typedExpressionIR_mask_cast
+        = $cast_control_plane(EC, typedExpressionIR_base, typeIR)
+  -- if simpleKeysetExpressionIR
+        = typedExpressionIR_base_cast '&&&' typedExpressionIR_mask_cast
+
+rule TableObject_create_entry_key/lpm-hex:
+  EC
+    |- (nameIR_key, "lpm", typeIR) '@' tableKeyInterface*
+    : simpleKeysetExpressionIR
+  -- if _HEX text_key_value
+        = $assoc_<nameIR, tableKeyValueInterface>(nameIR_key, tableKeyInterface*)
+  -- if text_key_value_prefix = $strip_suffix_rec(text_key_value, "*")
+  -- if ~$contains(text_key_value_prefix, "*")
+  -- if text_key_base_value = $replace_text(text_key_value, "*", "0")
+  -- if i_key_base_value = $text_to_int("0x" ++ text_key_base_value)
+  -- if typedExpressionIR_base = (D i_key_base_value) '#' `(INT DYN`)
+  -- if typedExpressionIR_base_cast
+        = $cast_control_plane(EC, typedExpressionIR_base, typeIR)
+  -- if text_key_mask_value = $replace_text_except(text_key_value, "*", "F")
+  -- if text_key_mask_value' = $replace_text(text_key_mask_value, "*", "0")
+  -- if i_key_mask_value = $text_to_int("0x" ++ text_key_mask_value')
+  -- if typedExpressionIR_mask = (D i_key_mask_value) '#' `(INT DYN`)
+  -- if typedExpressionIR_mask_cast
+        = $cast_control_plane(EC, typedExpressionIR_base, typeIR)
+  -- if simpleKeysetExpressionIR
+        = typedExpressionIR_base_cast '&&&' typedExpressionIR_mask_cast
+
+rule TableObject_create_entry_key/lpm-bin:
+  EC
+    |- (nameIR_key, "lpm", typeIR) '@' tableKeyInterface*
+    : simpleKeysetExpressionIR
+  -- if _BIN text_key_value
+        = $assoc_<nameIR, tableKeyValueInterface>(nameIR_key, tableKeyInterface*)
+  -- if text_key_value_prefix = $strip_suffix_rec(text_key_value, "*")
+  -- if ~$contains(text_key_value_prefix, "*")
+  -- if text_key_base_value = $replace_text(text_key_value, "*", "0")
+  -- if i_key_base_value = $text_to_int("0b" ++ text_key_base_value)
+  -- if typedExpressionIR_base = (D i_key_base_value) '#' `(INT DYN`)
+  -- if typedExpressionIR_base_cast
+        = $cast_control_plane(EC, typedExpressionIR_base, typeIR)
+  -- if text_key_mask_value = $replace_text_except(text_key_value, "*", "1")
+  -- if text_key_mask_value' = $replace_text(text_key_mask_value, "*", "0")
+  -- if i_key_mask_value = $text_to_int("0b" ++ text_key_mask_value')
+  -- if typedExpressionIR_mask = (D i_key_mask_value) '#' `(INT DYN`)
+  -- if typedExpressionIR_mask_cast
+        = $cast_control_plane(EC, typedExpressionIR_base, typeIR)
+  -- if simpleKeysetExpressionIR
+        = typedExpressionIR_base_cast '&&&' typedExpressionIR_mask_cast
+
+rule TableObject_create_entry_key/lpm-prefix:
+  EC
+    |- (nameIR_key, "lpm", typeIR) '@' tableKeyInterface*
+    : simpleKeysetExpressionIR
+  -- if text_key_prefix_value _SLASH n_key_prefix_width
+        = $assoc_<nameIR, tableKeyValueInterface>(nameIR_key, tableKeyInterface*)
+  -- if text_key_prefix_value_rev = $reverse_bytes_of_hex(text_key_prefix_value)
+  -- if i_key_prefix_value = $text_to_int(text_key_prefix_value_rev)
+  -- if n_key_type_width = $sizeof_maxSizeInBits'(typeIR)
+  -- if $(n_key_prefix_width <= n_key_type_width)
+  -- if n_key_remaining_width = $(n_key_type_width - n_key_prefix_width)
+  -- if i_key_base_value = $shl(i_key_prefix_value, n_key_remaining_width)
+  -- if typedExpressionIR_base = (D i_key_base_value) '#' `(INT DYN`)
+  -- if typedExpressionIR_base_cast
+        = $cast_control_plane(EC, typedExpressionIR_base, typeIR)
+  -- if i_key_mask_value
+        = $($pow2(n_key_type_width) - $pow2(n_key_remaining_width))
+  -- if typedExpressionIR_mask = (D i_key_mask_value) '#' `(INT DYN`)
+  -- if typedExpressionIR_mask_cast
+        = $cast_control_plane(EC, typedExpressionIR_base, typeIR)
+  -- if simpleKeysetExpressionIR
+        = typedExpressionIR_base_cast '&&&' typedExpressionIR_mask_cast
+
+rule TableObject_create_entry_key/optional:
+  EC
+    |- (nameIR_key, "optional", typeIR) '@' tableKeyInterface*
+    : simpleKeysetExpressionIR
+  -- if _BIN text_key_value
+        = $assoc_<nameIR, tableKeyValueInterface>(nameIR_key, tableKeyInterface*)
+  -- if ~$contains(text_key_value, "*")
+        \/ ($strip_suffix_rec(text_key_value, "*") = "")
+  -- if text_key_base_value = $replace_text(text_key_value, "*", "0")
+  -- if i_key_base_value = $text_to_int("0b" ++ text_key_base_value)
+  -- if typedExpressionIR_base = (D i_key_base_value) '#' `(INT DYN`)
+  -- if typedExpressionIR_base_cast
+        = $cast_control_plane(EC, typedExpressionIR_base, typeIR)
+  -- if text_key_mask_value = $replace_text_except(text_key_value, "*", "1")
+  -- if text_key_mask_value' = $replace_text(text_key_mask_value, "*", "0")
+  -- if i_key_mask_value = $text_to_int("0b" ++ text_key_mask_value')
+  -- if typedExpressionIR_mask = (D i_key_mask_value) '#' `(INT DYN`)
+  -- if typedExpressionIR_mask_cast
+        = $cast_control_plane(EC, typedExpressionIR_base, typeIR)
+  -- if simpleKeysetExpressionIR
+        = typedExpressionIR_base_cast '&&&' typedExpressionIR_mask_cast
+
+rule TableObject_create_entry_key/selector:
+  EC
+    |- (nameIR_key, "selector", typeIR) '@' tableKeyInterface*
+    : simpleKeysetExpressionIR
+  -- if typedExpressionIR_zero = (D 0) '#' `(INT DYN`)
+  -- if typedExpressionIR_cast
+        = $cast_control_plane(EC, typedExpressionIR_zero, typeIR)
+  -- if simpleKeysetExpressionIR
+        = typedExpressionIR_cast '&&&' typedExpressionIR_cast
+
+relation TableObject_create_entry_keys:
+  evalContext
+    |- (nameIR, nameIR, typeIR)* '@' tableKeysetInterface
+    : simpleKeysetExpressionIR*
+  hint(input %0 %1 %2)
+
+rule TableObject_create_entry_keys/nil:
+  _ |- eps '@' _ : eps
+
+rule TableObject_create_entry_keys/cons:
+  EC
+    |- ((nameIR_key_h, nameIR_matchKind_h, typeIR_h) :: (nameIR_key_t,
+                                                         nameIR_matchKind_t,
+                                                         typeIR_t)*)
+       '@'
+       tableKeyInterface*
+    : simpleKeysetExpressionIR_h :: simpleKeysetExpressionIR_t*
+  -- TableObject_create_entry_key:
+       EC
+         |- (nameIR_key_h, nameIR_matchKind_h, typeIR_h) '@' tableKeyInterface*
+         : simpleKeysetExpressionIR_h
+  -- TableObject_create_entry_keys:
+       EC
+         |- (nameIR_key_t, nameIR_matchKind_t, typeIR_t)* '@' tableKeyInterface*
+         : simpleKeysetExpressionIR_t*
+
+dec $interface_of_tableKeyIR(tableKeyIR) : (nameIR, nameIR, typeIR)
+
+def $interface_of_tableKeyIR(typedExpressionIR
+                             '#'
+                             nameIR_key
+                             ':'
+                             nameIR_matchKind
+                             annotationList
+                             ';')
+  = (nameIR_key, nameIR_matchKind, typeIR)
+  -- if typeIR = $type_of_typedExpressionIR(typedExpressionIR)
+
+dec $key_interface_of_tableObject(tableObject) : (nameIR, nameIR, typeIR)*
+
+def $key_interface_of_tableObject(TABLE typeId `{frame TBL`})
+  = (nameIR_key, nameIR_matchKind, typeIR)*
+  -- if KEY '=' `{tableKeyIR*`} = TBL.KEYS
+  -- (if ((nameIR_key, nameIR_matchKind, typeIR)
+         = $interface_of_tableKeyIR(tableKeyIR)))*
+
+relation TableObject_create_entry_keyset:
+  evalContext
+    |- tableKeysPropertyIR '@' tableKeysetInterface
+    : keysetExpressionIR
+  hint(input %0 %1 %2)
+
+rule TableObject_create_entry_keyset:
+  EC
+    |- (KEY '=' `{tableKeyIR*`}) '@' tableKeyInterface*
+    : `(simpleKeysetExpressionIR*`)
+  -- (if ((nameIR_key, nameIR_matchKind, typeIR)
+         = $interface_of_tableKeyIR(tableKeyIR)))*
+  -- (if ((nameIR_key_update, tableKeyValueInterface_update) = tableKeyInterface))*
+  -- if nameIR_key_non_selector*
+        = $filter_<nameIR>(nameIR_key*, (nameIR_matchKind =/= "selector")*)
+  -- if $eq_set<nameIR>(`{nameIR_key_non_selector*`}, `{nameIR_key_update*`})
+  -- TableObject_create_entry_keys:
+       EC
+         |- (nameIR_key, nameIR_matchKind, typeIR)* '@' tableKeyInterface*
+         : simpleKeysetExpressionIR*
+
+dec $alias_to_original_lookup_map(parameterIR*) : map<nameIR, nameIR>
+
+def $alias_to_original_lookup_map(parameterIR*)
+  = $extend_map<nameIR, nameIR>(`{(nameIR_alias ':' nameIR_original)*`},
+                                `{(id ':' id)*`})
+  -- (if (annotationList _ _ id _ = parameterIR))*
+  -- (if (annotation* = $flatten_annotationList(annotationList)))*
+  -- (if (nameIR_names_opt? = $name_annotation_opt(annotation)))**
+  -- (if (nameIR_names_seq* = $opt_as_seq_<nameIR>(nameIR_names_opt?)))**
+  -- (if (nameIR_names* = $concat_<nameIR>(nameIR_names_seq**)))*
+  -- if (nameIR_original, nameIR_aliases*)*
+        = $filter_<(nameIR, nameIR*)>((id, nameIR_names*)*,
+                                      ($(|nameIR_names*| > 0))*)
+  -- if nameIR_alias* = (nameIR_aliases*[0])*
+
+dec $align_tableActionArgumentInterfaces(parameterIR*,
+                                         tableActionArgumentInterface*)
+  : int*
+
+dec $align_tableActionArgumentInterfaces'(map<id, int>, parameterIR) : int
+
+def $align_tableActionArgumentInterfaces(parameterIR*, (nameIR_arg, i_arg)*)
+  = i_aligned*
+  -- if `{(nameIR_alias ':' nameIR_original)*`}
+        = $alias_to_original_lookup_map(parameterIR*)
+  -- (if (nameIR_arg_resolved
+         = $find_map<nameIR, nameIR>(`{(nameIR_alias ':' nameIR_original)*`},
+                                     nameIR_arg)))*
+  -- (if (_ _ _ nameIR_param _ = parameterIR))*
+  -- if $sub_set<nameIR>(`{nameIR_arg_resolved*`}, `{nameIR_param*`})
+  -- (if i_aligned
+         = $align_tableActionArgumentInterfaces'(`{(nameIR_arg_resolved
+                                                    ':'
+                                                    i_arg)*`},
+                                                 parameterIR))*
+
+def $align_tableActionArgumentInterfaces'(`{(id_arg ':' i_arg)*`},
+                                          _ _ _ nameIR_param _)
+  = i
+  -- if i = $find_map<id, int>(`{(id_arg ':' i_arg)*`}, nameIR_param)
+
+def $align_tableActionArgumentInterfaces'(`{(id_arg ':' i_arg)*`},
+                                          _ _ _ nameIR_param _)
+  = 0
+  -- if eps = $find_map<id, int>(`{(id_arg ':' i_arg)*`}, nameIR_param)
+
+dec $find_tableActionIR_qualified(tableActionIR*, nameIR)
+  : (nameIR, tableActionIR)?
+
+def $find_tableActionIR_qualified(eps, nameIR) = eps
+
+def $find_tableActionIR_qualified(tableActionIR_h :: tableActionIR_t*, nameIR)
+  = $find_tableActionIR_qualified(tableActionIR_t*, nameIR)
+  -- if annotationList
+        tableActionReferenceIR
+        '#'
+        `(_ ',' parameterIR_control*`)
+        ';'
+        = tableActionIR_h
+  -- if prefixedNameIR controlPlaneNameIR `(argumentIR_data*`)
+        = tableActionReferenceIR
+  -- if nameIR =/= controlPlaneNameIR
+
+def $find_tableActionIR_qualified(tableActionIR_h :: tableActionIR_t*, nameIR)
+  = (nameIR_action, tableActionIR_h)
+  -- if annotationList
+        tableActionReferenceIR
+        '#'
+        `(_ ',' parameterIR_control*`)
+        ';'
+        = tableActionIR_h
+  -- if prefixedNameIR controlPlaneNameIR `(argumentIR_data*`)
+        = tableActionReferenceIR
+  -- if nameIR = controlPlaneNameIR
+  -- if nameIR_action = $flatten_prefixedNameIR(prefixedNameIR)
+
+dec $find_tableActionIR_unqualified(tableActionIR*, nameIR)
+  : (nameIR, tableActionIR)?
+
+dec $find_tableActionIR_unqualified'(tableActionIR*, nameIR)
+  : (nameIR, tableActionIR)?
+
+def $find_tableActionIR_unqualified(tableActionIR*, nameIR)
+  = $find_tableActionIR_unqualified'(tableActionIR*, nameIR_action)
+  -- if nameIR_split* = $split_text(nameIR, ".")
+  -- if nameIR_action = $rev_<nameIR>(nameIR_split*)[0]
+
+def $find_tableActionIR_unqualified'(eps, nameIR) = eps
+
+def $find_tableActionIR_unqualified'(tableActionIR_h :: tableActionIR_t*, nameIR)
+  = $find_tableActionIR_unqualified'(tableActionIR_t*, nameIR)
+  -- if annotationList
+        tableActionReferenceIR
+        '#'
+        `(_ ',' parameterIR_control*`)
+        ';'
+        = tableActionIR_h
+  -- if prefixedNameIR nameIR_controlPlane `(argumentIR_data*`)
+        = tableActionReferenceIR
+  -- if nameIR_split* = $split_text(nameIR_controlPlane, ".")
+  -- if nameIR_unqualified :: _ = $rev_<nameIR>(nameIR_split*)
+  -- if nameIR =/= nameIR_unqualified
+
+def $find_tableActionIR_unqualified'(tableActionIR_h :: tableActionIR_t*, nameIR)
+  = (nameIR_action, tableActionIR_h)
+  -- if annotationList
+        tableActionReferenceIR
+        '#'
+        `(_ ',' parameterIR_control*`)
+        ';'
+        = tableActionIR_h
+  -- if prefixedNameIR nameIR_controlPlane `(argumentIR_data*`)
+        = tableActionReferenceIR
+  -- if nameIR_split* = $split_text(nameIR_controlPlane, ".")
+  -- if nameIR_unqualified :: _ = $rev_<nameIR>(nameIR_split*)
+  -- if nameIR = nameIR_unqualified
+  -- if nameIR_action = $flatten_prefixedNameIR(prefixedNameIR)
+
+relation TableObject_create_entry_action:
+  evalContext
+    |- tableActionsPropertyIR '@' tableActionInterface
+    : tableActionReferenceIR
+  hint(input %0 %1 %2)
+
+rule TableObject_create_entry_action/qualified:
+  EC
+    |- (ACTIONS '=' `{tableActionIR*`})
+       '@'
+       (nameIR_action_update, tableActionArgumentInterface_update*)
+    : (_BARE nameIR_found) controlPlaneNameIR `(argumentIR*`)
+  -- if (nameIR_found, tableActionIR_found)
+        = $find_tableActionIR_qualified(tableActionIR*, nameIR_action_update)
+  -- if annotationList
+        (prefixedNameIR controlPlaneNameIR `(argumentIR_data*`))
+        '#'
+        `(_ ',' parameterIR_control*`)
+        ';'
+        = tableActionIR_found
+  -- if i_arg_aligned*
+        = $align_tableActionArgumentInterfaces(parameterIR_control*,
+                                               tableActionArgumentInterface_update*)
+  -- (if (_ _ typeIR_param _ _ = parameterIR_control))*
+  -- (if (typedExpressionIR_arg = (D i_arg_aligned) '#' `(INT DYN`)))*
+  -- (if (typedExpressionIR_arg_cast
+         = $cast_control_plane(EC, typedExpressionIR_arg, typeIR_param)))*
+  -- if argumentIR* = argumentIR_data* ++ typedExpressionIR_arg_cast*
+
+rule TableObject_create_entry_action/unqualified:
+  EC
+    |- (ACTIONS '=' `{tableActionIR*`})
+       '@'
+       (nameIR_action_update, tableActionArgumentInterface_update*)
+    : (_BARE nameIR_found) controlPlaneNameIR `(argumentIR*`)
+  -- if eps
+        = $find_tableActionIR_qualified(tableActionIR*, nameIR_action_update)
+  -- if (nameIR_found, tableActionIR_found)
+        = $find_tableActionIR_unqualified(tableActionIR*, nameIR_action_update)
+  -- if annotationList
+        (prefixedNameIR controlPlaneNameIR `(argumentIR_data*`))
+        '#'
+        `(_ ',' parameterIR_control*`)
+        ';'
+        = tableActionIR_found
+  -- if i_arg_aligned*
+        = $align_tableActionArgumentInterfaces(parameterIR_control*,
+                                               tableActionArgumentInterface_update*)
+  -- (if (_ _ typeIR_param _ _ = parameterIR_control))*
+  -- (if (typedExpressionIR_arg = (D i_arg_aligned) '#' `(INT DYN`)))*
+  -- (if (typedExpressionIR_arg_cast
+         = $cast_control_plane(EC, typedExpressionIR_arg, typeIR_param)))*
+  -- if argumentIR* = argumentIR_data* ++ typedExpressionIR_arg_cast*
+
+relation TableObject_add_entry:
+  evalContext
+    |- tableObject
+       '@'
+       tableEntryPriorityInterface
+       ','
+       tableKeysetInterface
+       ','
+       tableActionInterface
+    : tableObject?
+  hint(input %0 %1 %2 %3 %4)
+
+rule TableObject_add_entry/ok:
+  EC
+    |- (TABLE typeId `{frame TBL`})
+       '@'
+       tableEntryPriorityInterface
+       ','
+       tableKeysetInterface
+       ','
+       tableActionInterface
+    : TABLE typeId `{frame TBL_updated`}
+  -- if tableEntryPriorityOptIR
+        = $tableObject_create_entry_priority(tableEntryPriorityInterface)
+  -- if $needs_priority_tableKeysPropertyIR(TBL.KEYS)
+        => $is_some_<tableEntryPriorityIR>(tableEntryPriorityOptIR)
+  -- TableObject_create_entry_keyset:
+       EC |- TBL.KEYS '@' tableKeysetInterface : keysetExpressionIR
+  -- TableObject_create_entry_action:
+       EC |- TBL.ACTIONS '@' tableActionInterface : tableActionReferenceIR
+  -- if tableEntryIR_update
+        = eps
+          tableEntryPriorityOptIR
+          keysetExpressionIR
+          ':'
+          tableActionReferenceIR
+          _EMPTY
+          ';'
+  -- if annotationList constOptIR ENTRIES '=' `{tableEntryIR*`} = TBL.ENTRIES
+  -- if tableEntriesPropertyIR_updated
+        = annotationList
+          constOptIR
+          ENTRIES
+          '='
+          `{tableEntryIR* ++ [tableEntryIR_update]`}
+  -- if TBL_updated = TBL[.ENTRIES = tableEntriesPropertyIR_updated]
+
+rule TableObject_add_entry/fail:
+  _ |- (TABLE typeId `{frame TBL`}) '@' _ ',' _ ',' _ : eps
+  -- otherwise
+
+relation TableObject_add_default_action:
+  evalContext |- tableObject '@' tableActionInterface : tableObject
+  hint(input %0 %1 %2)
+
+rule TableObject_add_default_action:
+  EC
+    |- (TABLE typeId `{frame TBL`}) '@' tableActionInterface
+    : TABLE typeId `{frame TBL_updated`}
+  -- if TBL.DEFAULT_ACTION = _ eps DEFAULT_ACTION '=' _ ';'
+  -- TableObject_create_entry_action:
+       EC |- TBL.ACTIONS '@' tableActionInterface : tableActionReferenceIR
+  -- if tableDefaultActionPropertyIR
+        = _EMPTY eps DEFAULT_ACTION '=' tableActionReferenceIR ';'
+  -- if TBL_updated = TBL[.DEFAULT_ACTION = tableDefaultActionPropertyIR]
 ;; === 9-arch/9.B-ebpf.spectec ===
 relation EBPF_init: |- p4program : evalContext arch
   hint(input %0)
