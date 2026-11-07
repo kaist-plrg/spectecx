@@ -135,7 +135,7 @@ module Typecheck = struct
   let parse_input ~spec:_ { includes; filename; _ } =
     Frontend.parse_file includes filename |> Result.map (fun v -> [ v ])
 
-  let run _ ~values ~eval_rel = eval_rel "Program_ok" values
+  let run _ ~values ~eval_rel ~eval_func:_ = eval_rel "Program_ok" values
   let source { filename; _ } = filename
   let expectation { expect; _ } = expect
   let format_output _values = "Typechecker succeeded"
@@ -146,7 +146,7 @@ module Instantiate = struct
   include Typecheck
 
   let name = "instantiator"
-  let run _ ~values ~eval_rel = eval_rel "Program_inst" values
+  let run _ ~values ~eval_rel ~eval_func:_ = eval_rel "Program_inst" values
   let format_output _values = "Instantiation succeeded"
 end
 
@@ -181,11 +181,11 @@ module Eval = struct
   let parse_input ~spec:_ { includes; filename; _ } =
     Frontend.parse_file includes filename |> Result.map (fun v -> [ v ])
 
-  let run { stf; _ } ~values ~eval_rel =
+  let run { stf; _ } ~values ~eval_rel ~eval_func =
     let ( let* ) = Result.bind in
     let* statements = Stf.parse_file stf in
     match values with
-    | [ program ] -> Ebpf_stf.run program ~statements ~eval_rel
+    | [ program ] -> Ebpf_stf.run program ~statements ~eval_rel ~eval_func
     | _ ->
         Error
           (Spectec.Error.TaskError

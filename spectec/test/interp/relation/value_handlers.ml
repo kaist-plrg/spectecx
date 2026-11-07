@@ -46,7 +46,9 @@ module Task : Spectec.Task.S with type input = input = struct
     |> Result.map_error (fun message ->
            Spectec.Error.TaskParseError (Common.Location.Unknown, message))
 
-  let run { relation; _ } ~values ~eval_rel = eval_rel relation values
+  let run { relation; _ } ~values ~eval_rel ~eval_func:_ =
+    eval_rel relation values
+
   let source { relation; _ } = relation
   let expectation _ = Spectec.Task.Positive
   let collect ?dir:_ () = []

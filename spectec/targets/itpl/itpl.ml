@@ -61,7 +61,7 @@ module Make (Language : Language) = struct
       Lexer.parse_file Language.parser filename
       |> Result.map (fun input -> [ input ])
 
-    let run _ ~values ~eval_rel = eval_rel Language.relation values
+    let run _ ~values ~eval_rel ~eval_func:_ = eval_rel Language.relation values
 
     let format_output values =
       let module Concrete = Interface.Concrete in
@@ -130,7 +130,7 @@ module Make_typed (Language : Language) = struct
       Lexer.parse_file Language.parser filename
       |> Result.map (fun input -> [ input ])
 
-    let run _ ~values ~eval_rel = eval_rel "Check_prog" values
+    let run _ ~values ~eval_rel ~eval_func:_ = eval_rel "Check_prog" values
 
     let format_output values =
       values

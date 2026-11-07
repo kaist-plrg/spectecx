@@ -58,3 +58,15 @@ let eval_rel context ~rel ~values =
   | Pl context ->
       Eval_pl.eval_rel context ~rel ~values
       |> Result.map_error (fun e -> EvalPlError e)
+
+let eval_func context ~func ~values =
+  match context with
+  | Il context ->
+      Eval_il.eval_func context ~func ~values
+      |> Result.map_error (fun e -> EvalIlError e)
+  | Sl context ->
+      Eval_sl.eval_func context ~func ~values
+      |> Result.map_error (fun e -> EvalSlError e)
+  | Pl context ->
+      Eval_pl.eval_func context ~func ~values
+      |> Result.map_error (fun e -> EvalPlError e)

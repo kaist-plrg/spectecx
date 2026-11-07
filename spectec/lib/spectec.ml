@@ -86,8 +86,11 @@ let eval_run ~check_determinism ~(mode : Interp_mode.t) ~spec_al target_state
     run =
   let run_layer context =
     let* context = Result.map_error interp_error context in
-    run ~eval_rel:(fun rel values ->
+    run
+      ~eval_rel:(fun rel values ->
         Interp.eval_rel context ~rel ~values |> Result.map_error interp_error)
+      ~eval_func:(fun func values ->
+        Interp.eval_func context ~func ~values |> Result.map_error interp_error)
   in
   match mode with
   | Il ->

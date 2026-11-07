@@ -114,8 +114,8 @@ let string_of_transmitted (value : Value.t) : string =
    and state from one packet to the next, and returns the transmitted packets.
    The result is an error when the transmitted packets do not match the [Expect]
    statements. *)
-let run (program : Value.t) ~(statements : Stf.statement list) ~eval_rel :
-    Value.t list Spectec.Task.result =
+let run (program : Value.t) ~(statements : Stf.statement list) ~eval_rel
+    ~eval_func:_ : Value.t list Spectec.Task.result =
   let* outputs = eval_rel "EBPF_init" [ program ] in
   let* state =
     match outputs with

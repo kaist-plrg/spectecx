@@ -43,6 +43,9 @@ let context_of_spec ?(check_determinism = false) (module T : Target.S)
 let eval_rel (context : context) ~rel ~values =
   catch (fun () -> invoke_relation context rel values)
 
+let eval_func (context : context) ~func ~values =
+  catch (fun () -> Interp.callback context (func $ Location.Unknown) [] values)
+
 let error_to_diagnostic = function
   | Plain (at, msg) -> Diag.error ~source:"il-interp" at msg
   | Backtrack failtraces ->

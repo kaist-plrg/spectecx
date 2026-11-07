@@ -19,3 +19,9 @@ val eval_rel :
   rel:string ->
   values:Lang.Il.Value.t list ->
   (Lang.Il.Value.t list, error) result
+
+val eval_func :
+  context ->
+  func:string ->
+  values:Lang.Il.Value.t list ->
+  (Lang.Il.Value.t, error) result

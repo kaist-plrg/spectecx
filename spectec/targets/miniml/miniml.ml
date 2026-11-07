@@ -67,7 +67,7 @@ module Eval = struct
   let parse_input ~spec:_ { filename; _ } =
     Lexer.parse_file filename |> Result.map (fun v -> [ v ])
 
-  let run _ ~values ~eval_rel = eval_rel "Eval_expr" values
+  let run _ ~values ~eval_rel ~eval_func:_ = eval_rel "Eval_expr" values
 
   let format_output = function
     | [ v ] -> Unparse.print_expr v
