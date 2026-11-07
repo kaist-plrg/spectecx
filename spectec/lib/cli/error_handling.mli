@@ -26,3 +26,7 @@ val guard_unit :
 
 val guard_errors_only :
   color:Cli_args.color -> (unit -> (unit, Spectec.Error.t) result) -> unit
+
+(** Render [diagnostics] to stderr and exit with status 1. *)
+val exit_with_diagnostics :
+  color:Cli_args.color -> Spectec.Diagnostic.Bag.t -> 'a

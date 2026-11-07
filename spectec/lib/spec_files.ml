@@ -51,14 +51,14 @@ let collect ?(recursive = true) root =
              (not recursive)
              && not (Filename.check_suffix entry spec_file_suffix)
            then []
-           else if Sys.is_directory path then
+           else if Sys.file_exists path && Sys.is_directory path then
              if recursive then gather path else []
            else if Filename.check_suffix entry spec_file_suffix then [ path ]
            else [])
   in
   gather root
 
-let root_of_file file =
+let find_root_opt directory =
   let holds_marker dir =
     match Sys.readdir dir with
     | exception Sys_error _ -> false
@@ -73,4 +73,4 @@ let root_of_file file =
       let parent = Filename.dirname dir in
       if String.equal parent dir then None else search parent
   in
-  search (Filename.dirname file)
+  search directory

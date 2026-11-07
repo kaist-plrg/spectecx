@@ -8,11 +8,12 @@ let severity : Spectec.Diagnostic.severity -> Lsp.DiagnosticSeverity.t =
   | Spectec.Diagnostic.Info -> Lsp.DiagnosticSeverity.Information
   | Spectec.Diagnostic.Hint -> Lsp.DiagnosticSeverity.Hint
 
-let of_diagnostic ~encoding ~sources (d : Spectec.Diagnostic.t) :
+let of_diagnostic ~encoding ~(sources : Sources.t) (d : Spectec.Diagnostic.t) :
     Lsp.Diagnostic.t =
   let open Spectec.Diagnostic in
   let text =
-    Option.bind (Location.file d.location) (Sources.text sources)
+    Option.bind (Location.file d.location) (fun file ->
+        Sources.find_text_opt sources.contents ~file)
     |> Option.value ~default:""
   in
   Lsp.Diagnostic.create
@@ -21,19 +22,14 @@ let of_diagnostic ~encoding ~sources (d : Spectec.Diagnostic.t) :
     ?code:(Option.map (fun c -> `String c) d.code)
     ~message:(`String d.message) ()
 
-let unreadable file message : Spectec.Diagnostic.t =
-  Spectec.Diagnostic.error ~source:"io" (Location.File file)
-    (Printf.sprintf "cannot read spec file %s: %s" (Filename.basename file)
-       message)
-
 let internal_error ~open_path exn : Spectec.Diagnostic.t =
   Spectec.Diagnostic.error ~source:"internal" (Location.File open_path)
     ("internal error: " ^ Printexc.to_string exn)
 
 let analyze (sources : Sources.t) =
   try
-    match sources.errors with
-    | _ :: _ -> List.map (fun (file, msg) -> unreadable file msg) sources.errors
+    match Sources.io_diagnostics sources with
+    | _ :: _ as io_diagnostics -> io_diagnostics
     | [] -> (
         let parsed, parse_diagnostics =
           Spectec.with_diagnostics (fun () ->
@@ -51,7 +47,7 @@ let analyze (sources : Sources.t) =
     let open_path =
       match sources.files with
       | path :: _ -> path
-      | [] -> sources.scope.directory
+      | [] -> sources.spec_directory.path
     in
     [ internal_error ~open_path exn ]
 
