@@ -1,0 +1,9 @@
+name = "itpl"
+version = "0.1.0"
+defaultTargets = ["Itpl"]
+
+[leanOptions]
+autoImplicit = false
+
+[[lean_lib]]
+name = "Itpl"
