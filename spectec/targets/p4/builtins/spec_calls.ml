@@ -15,6 +15,11 @@ let update_var_local ~callback ctx ~name ~value =
   call ~callback "update_var_e"
     [ P4_values.local; ctx; P4_values.bare_name name; value ]
 
+let find_bit32_local_exn ~callback ~at ctx ~name =
+  find_var_local_exn ~callback ctx ~name
+  |> P4_values.bit32_of_value at
+  |> Result.map Bigint.to_int_exn
+
 let find_type_local_opt ~callback ~at ctx ~name =
   call ~callback "find_type_e" [ P4_values.local; ctx; Value.text name ]
   |> Arg.option_of Arg.value at
