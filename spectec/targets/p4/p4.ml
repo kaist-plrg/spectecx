@@ -150,7 +150,7 @@ module Instantiate = struct
   let format_output _values = "Instantiation succeeded"
 end
 
-(* Runs a P4 program on the packets of an STF file with the eBPF architecture. *)
+(* Evaluates STF packets and table updates through [Ebpf_stf.run]. *)
 module Eval = struct
   let name = "evaluator"
 
