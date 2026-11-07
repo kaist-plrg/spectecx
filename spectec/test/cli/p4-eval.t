@@ -24,3 +24,17 @@ transmitted packet under its program.
   
   
   Test Results: 2/2 passed, 0 failed
+
+The parser rejects a packet shorter than its first header, so no packet is
+transmitted.
+
+  $ echo 'packet 0 00' > short.stf
+  $ spectec p4 eval --spec-dir ../../specs/p4 -i ../../testdata/interp/p4/p4c/includes -p $SAMPLES/valid_ebpf.p4 -stf short.stf --color never 2>/dev/null
+  No packets transmitted
+
+STF statements other than packet, expect, add and setdefault are rejected.
+
+  $ echo 'wait' > wait.stf
+  $ spectec p4 eval --spec-dir ../../specs/p4 -i ../../testdata/interp/p4/p4c/includes -p $SAMPLES/valid_ebpf.p4 -stf wait.stf --color never 2>&1 | grep -A1 '^error'
+  error: unsupported STF statement: wait
+    --> wait.stf
