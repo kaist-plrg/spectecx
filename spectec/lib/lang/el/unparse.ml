@@ -171,6 +171,7 @@ and to_doc_exp_ctx ?(values = fun _ -> None) ~ctx (exp : exp) =
   let in_arith = to_doc_exp_arith in
   let in_notation = to_doc_exp in
   let in_atom = to_doc_exp_ctx ~values ~ctx:Atom in
+  let in_ctx = to_doc_exp_ctx ~values ~ctx in
   let lift_binop op = ctx = Atom || (ctx = Notation && is_arith_binop op) in
   let lift_cmpop op = ctx = Atom || (ctx = Notation && is_arith_cmpop op) in
   let lift_unop () = ctx = Atom in
@@ -205,9 +206,9 @@ and to_doc_exp_ctx ?(values = fun _ -> None) ~ctx (exp : exp) =
   | ListE exps -> P.brackets (comma_list in_notation exps)
   | ConsE (l, r) -> in_notation l ^^ P.string " :: " ^^ in_notation r
   | CatE (l, r) -> in_notation l ^^ P.string " ++ " ^^ in_notation r
-  | IdxE (b, i) -> in_arith b ^^ P.brackets (in_arith i)
+  | IdxE (b, i) -> in_ctx b ^^ P.brackets (in_arith i)
   | SliceE (b, l, h) ->
-      in_arith b ^^ P.brackets (in_arith l ^^ P.string " : " ^^ in_arith h)
+      in_ctx b ^^ P.brackets (in_arith l ^^ P.string " : " ^^ in_arith h)
   | LenE e -> P.bar ^^ in_notation e ^^ P.bar
   | MemE (e, s) -> in_notation e ^^ P.string " <- " ^^ in_notation s
   | StrE fields ->
@@ -215,15 +216,17 @@ and to_doc_exp_ctx ?(values = fun _ -> None) ~ctx (exp : exp) =
         (comma_list
            (fun (atom, e) -> to_doc_atom atom ^^ P.space ^^ in_atom e)
            fields)
-  | DotE (e, atom) -> in_arith e ^^ P.dot ^^ to_doc_atom atom
+  | DotE (e, atom) -> in_ctx e ^^ P.dot ^^ to_doc_atom atom
   | UpdE (b, path, e) ->
-      in_arith b
+      in_ctx b
       ^^ P.brackets (to_doc_path path ^^ P.string " = " ^^ in_notation e)
   | ParenE e -> P.parens (if ctx = Arith then in_arith e else in_notation e)
   | TupleE exps -> P.parens (comma_list in_notation exps)
   | CallE (id, targs, args) ->
       to_doc_defid id ^^ to_doc_targs targs ^^ to_doc_args args
-  | IterE (e, iter) -> in_arith e ^^ to_doc_iter iter
+  | IterE (e, iter) when ctx = Arith ->
+      P.string "$(" ^^ in_notation e ^^ to_doc_iter iter ^^ P.string ")"
+  | IterE (e, iter) -> in_notation e ^^ to_doc_iter iter
   | SubE (e, plaintyp) ->
       in_notation e ^^ P.string " <: " ^^ to_doc_plaintyp plaintyp
   | AtomE atom -> to_doc_atom atom
