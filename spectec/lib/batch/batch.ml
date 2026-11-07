@@ -356,17 +356,22 @@ let print_outcome (type i) (module T : Task.S with type input = i) ~ansi source
   let render_error err =
     Diagnostic.Render.render_bag ~ansi (Error.to_diagnostics err)
   in
+  let indented_output values =
+    T.format_output values |> String.split_on_char '\n'
+    |> List.map (fun line -> "  " ^ line)
+    |> String.concat "\n"
+  in
   match outcome with
   | Task.Pass values ->
-      Format.printf "Passed: %s\n  %s\n\n" source (T.format_output values)
+      Format.printf "Passed: %s\n%s\n\n" source (indented_output values)
   | Task.ExpectedFail err ->
       Format.printf "Expected fail (passed): %s\n%s\n\n" source
         (render_error err)
   | Task.Fail err ->
       Format.printf "Failed: %s\n%s\n\n" source (render_error err)
   | Task.UnexpectedPass values ->
-      Format.printf "Unexpected pass (failed): %s\n  %s\n\n" source
-        (T.format_output values)
+      Format.printf "Unexpected pass (failed): %s\n%s\n\n" source
+        (indented_output values)
 
 let print_summary summary =
   let passed = summary_passed summary in
