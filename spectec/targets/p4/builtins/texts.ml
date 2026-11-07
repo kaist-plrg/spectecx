@@ -1,5 +1,6 @@
 module Xl = Lang.Xl
 open Lang.Il
+open Common.Annotated
 open Builtins
 
 (* dec $text_to_int(text) : int *)
@@ -14,6 +15,18 @@ let text_to_int ~at (text : string) : Value.t result =
 let int_to_text ~at (num : num) : Value.t result =
   at |> ignore;
   Ok (Value.text (Xl.Num.string_of_num num))
+
+(* dec $split_text(text, text) : text* *)
+
+let split_text ~at (text : string) (separator : string) : Value.t result =
+  if String.length separator <> 1 then
+    let msg =
+      Printf.sprintf "split_text: separator %S is not one character" separator
+    in
+    Error (Error.runtime at msg)
+  else
+    let parts = String.split_on_char separator.[0] text in
+    Ok (Value.list (Typ.text $ at) (List.map Value.text parts))
 
 (* dec $strip_prefix(text, text) : text *)
 
@@ -55,6 +68,7 @@ let builtins =
   [
     ("text_to_int", Define.T0.a1 Arg.text text_to_int);
     ("int_to_text", Define.T0.a1 Arg.num int_to_text);
+    ("split_text", Define.T0.a2 Arg.text Arg.text split_text);
     ("strip_prefix", Define.T0.a2 Arg.text Arg.text strip_prefix);
     ("strip_suffix", Define.T0.a2 Arg.text Arg.text strip_suffix);
     ("strip_all_whitespace", Define.T0.a1 Arg.text strip_all_whitespace);
