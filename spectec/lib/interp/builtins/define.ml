@@ -1,7 +1,36 @@
 module Location = Common.Location
 open Lang.Il
 
-type t = at:Location.t -> targ list -> value list -> Value.t Error.result
+type implementation =
+  at:Location.t -> targ list -> value list -> Value.t Error.result
+
+type t =
+  | Plain of implementation
+  | With_callback of (Callback.t -> implementation)
+
+let make implementation = Plain implementation
+
+let with_active (callback : Callback.t) ~f =
+  let active = ref true in
+  let check_active () =
+    if not !active then invalid_arg "builtin callback is no longer active"
+  in
+  let scoped : Callback.t =
+   fun id targs values ->
+    check_active ();
+    callback id targs values
+  in
+  Fun.protect (fun () -> f scoped) ~finally:(fun () -> active := false)
+
+let invoke t ~callback ~at targs values =
+  match t with
+  | Plain implementation -> implementation ~at targs values
+  | With_callback implementation ->
+      with_active callback ~f:(fun callback ->
+          implementation callback ~at targs values)
+
+let make_with_callback ~args impl =
+  With_callback (fun callback -> invoke (args (impl ~callback)) ~callback)
 
 let ( let* ) = Result.bind
 
@@ -34,13 +63,13 @@ end
 
 module T0 = struct
   let a0 (impl : at:Location.t -> (Value.t, Error.t) result) : t =
-   fun ~at targs values ->
+    make @@ fun ~at targs values ->
     let* (), _ = Extract.extract ~targs_num:0 ~args_num:0 at targs values in
     impl ~at
 
   let a1 (p1 : 'a Arg.t)
       (impl : at:Location.t -> 'a -> (Value.t, Error.t) result) : t =
-   fun ~at targs values ->
+    make @@ fun ~at targs values ->
     let* (), vs = Extract.extract ~targs_num:0 ~args_num:1 at targs values in
     match vs with
     | [ v1 ] ->
@@ -53,7 +82,7 @@ module T0 = struct
 
   let a2 (p1 : 'a Arg.t) (p2 : 'b Arg.t)
       (impl : at:Location.t -> 'a -> 'b -> (Value.t, Error.t) result) : t =
-   fun ~at targs values ->
+    make @@ fun ~at targs values ->
     let* (), vs = Extract.extract ~targs_num:0 ~args_num:2 at targs values in
     match vs with
     | [ v1; v2 ] ->
@@ -68,7 +97,7 @@ module T0 = struct
   let a3 (p1 : 'a Arg.t) (p2 : 'b Arg.t) (p3 : 'c Arg.t)
       (impl : at:Location.t -> 'a -> 'b -> 'c -> (Value.t, Error.t) result) : t
       =
-   fun ~at targs values ->
+    make @@ fun ~at targs values ->
     let* (), vs = Extract.extract ~targs_num:0 ~args_num:3 at targs values in
     match vs with
     | [ v1; v2; v3 ] ->
@@ -81,12 +110,30 @@ module T0 = struct
           (Error.arity at
              (Printf.sprintf "Expected 3 arguments, got %d" (List.length vs)))
 
+  let a4 (p1 : 'a Arg.t) (p2 : 'b Arg.t) (p3 : 'c Arg.t) (p4 : 'd Arg.t)
+      (impl :
+        at:Location.t -> 'a -> 'b -> 'c -> 'd -> (Value.t, Error.t) result) : t
+      =
+    make @@ fun ~at targs values ->
+    let* (), vs = Extract.extract ~targs_num:0 ~args_num:4 at targs values in
+    match vs with
+    | [ v1; v2; v3; v4 ] ->
+        let* arg1 = p1 at v1 in
+        let* arg2 = p2 at v2 in
+        let* arg3 = p3 at v3 in
+        let* arg4 = p4 at v4 in
+        impl ~at arg1 arg2 arg3 arg4
+    | _ ->
+        Error
+          (Error.arity at
+             (Printf.sprintf "Expected 4 arguments, got %d" (List.length vs)))
+
   let a5 (p1 : 'a Arg.t) (p2 : 'b Arg.t) (p3 : 'c Arg.t) (p4 : 'd Arg.t)
       (p5 : 'e Arg.t)
       (impl :
         at:Location.t -> 'a -> 'b -> 'c -> 'd -> 'e -> (Value.t, Error.t) result)
       : t =
-   fun ~at targs values ->
+    make @@ fun ~at targs values ->
     let* (), vs = Extract.extract ~targs_num:0 ~args_num:5 at targs values in
     match vs with
     | [ v1; v2; v3; v4; v5 ] ->
@@ -105,7 +152,7 @@ end
 module T1 = struct
   let a1 (p1 : 'a Arg.t)
       (impl : at:Location.t -> targ -> 'a -> (Value.t, Error.t) result) : t =
-   fun ~at targs values ->
+    make @@ fun ~at targs values ->
     let* (), vs = Extract.extract ~targs_num:1 ~args_num:1 at targs values in
     match (targs, vs) with
     | [ targ1 ], [ v1 ] ->
@@ -122,7 +169,7 @@ module T1 = struct
   let a2 (p1 : 'a Arg.t) (p2 : 'b Arg.t)
       (impl : at:Location.t -> targ -> 'a -> 'b -> (Value.t, Error.t) result) :
       t =
-   fun ~at targs values ->
+    make @@ fun ~at targs values ->
     let* (), vs = Extract.extract ~targs_num:1 ~args_num:2 at targs values in
     match (targs, vs) with
     | [ targ1 ], [ v1; v2 ] ->
@@ -141,7 +188,7 @@ module T1 = struct
       (impl :
         at:Location.t -> targ -> 'a -> 'b -> 'c -> (Value.t, Error.t) result) :
       t =
-   fun ~at targs values ->
+    make @@ fun ~at targs values ->
     let* (), vs = Extract.extract ~targs_num:1 ~args_num:3 at targs values in
     match (targs, vs) with
     | [ targ1 ], [ v1; v2; v3 ] ->
@@ -162,7 +209,7 @@ module T2 = struct
   let a1 (p1 : 'a Arg.t)
       (impl : at:Location.t -> targ -> targ -> 'a -> (Value.t, Error.t) result)
       : t =
-   fun ~at targs values ->
+    make @@ fun ~at targs values ->
     let* (), vs = Extract.extract ~targs_num:2 ~args_num:1 at targs values in
     match (targs, vs) with
     | [ targ1; targ2 ], [ v1 ] ->
@@ -180,7 +227,7 @@ module T2 = struct
       (impl :
         at:Location.t -> targ -> targ -> 'a -> 'b -> (Value.t, Error.t) result)
       : t =
-   fun ~at targs values ->
+    make @@ fun ~at targs values ->
     let* (), vs = Extract.extract ~targs_num:2 ~args_num:2 at targs values in
     match (targs, vs) with
     | [ targ1; targ2 ], [ v1; v2 ] ->
@@ -204,7 +251,7 @@ module T2 = struct
         'b ->
         'c ->
         (Value.t, Error.t) result) : t =
-   fun ~at targs values ->
+    make @@ fun ~at targs values ->
     let* (), vs = Extract.extract ~targs_num:2 ~args_num:3 at targs values in
     match (targs, vs) with
     | [ targ1; targ2 ], [ v1; v2; v3 ] ->

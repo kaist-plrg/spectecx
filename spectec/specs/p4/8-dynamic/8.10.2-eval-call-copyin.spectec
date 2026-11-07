@@ -1,0 +1,170 @@
+;;
+;; Copy-in (non-default, single argument)
+;;
+
+;;; _EMPTY | IN
+
+
+rule Copy_in_arg/abort:
+  ARCH_0 |-
+    p_caller EC_caller_0 (_ direction typeIR nameIR _)
+    '@' p_callee EC_callee_0 argumentIR
+  ~> ARCH_1 EC_caller_1 EC_callee_0 '#' abortResult
+  ---- ;; check parameter direction
+  -- if direction = _EMPTY \/ direction = IN
+  ---- ;; evaluate argument
+  -- Argument_eval:
+      p_caller EC_caller_0 ARCH_0 |- argumentIR
+                                   : EC_caller_1 ARCH_1 abortResult
+
+rule Copy_in_arg/cont:
+  ARCH_0 |-
+    p_caller EC_caller_0 (_ direction typeIR nameIR _)
+    '@' p_callee EC_callee_0 argumentIR
+  ~> ARCH_1 EC_caller_1 EC_callee_1 '#' (_CONT eps)
+  ---- ;; check parameter direction
+  -- if direction = _EMPTY \/ direction = IN
+  ---- ;; evaluate argument
+  -- Argument_eval:
+      p_caller EC_caller_0 ARCH_0 |- argumentIR
+                                   : EC_caller_1 ARCH_1 (_CONT value)
+  ---- ;; update callee context
+  -- if EC_callee_1
+      = $add_var_e(p_callee, EC_callee_0, _BARE nameIR, value)
+
+
+;;; INOUT
+
+
+rule Copy_in_arg/abort:
+  ARCH_0 |-
+    p_caller EC_caller_0 (_  INOUT typeIR nameIR _)
+    '@' p_callee EC_callee_0 argumentIR
+  ~> ARCH_1 EC_caller_1 EC_callee_0 '#' abortResult
+  ---- ;; get storage reference of argument
+  -- Argument_eval_lvalue:
+      p_caller EC_caller_0 ARCH_0 |- argumentIR
+                                   : EC_caller_1 ARCH_1 abortResult
+
+rule Copy_in_arg/cont:
+  ARCH_0 |-
+    p_caller EC_caller_0 (_  INOUT typeIR nameIR _)
+    '@' p_callee EC_callee_0 argumentIR
+  ~> ARCH_1 EC_caller_1 EC_callee_1 '#' (_CONT storageReference)
+  ---- ;; get storage reference of argument
+  -- Argument_eval_lvalue:
+      p_caller EC_caller_0 ARCH_0 |- argumentIR
+                                   : EC_caller_1 ARCH_1 (_CONT storageReference)
+  ---- ;; read value from storage reference
+  -- Lvalue_read:
+      p_caller EC_caller_1 ARCH_1 |- storageReference : value
+  ---- ;; update callee context
+  -- if EC_callee_1
+      = $add_var_e(p_callee, EC_callee_0, _BARE nameIR, value)
+
+
+;;; OUT
+
+
+rule Copy_in_arg/abort:
+  ARCH_0 |-
+    p_caller EC_caller_0 (_  OUT typeIR nameIR _)
+    '@' p_callee EC_callee_0 argumentIR
+  ~> ARCH_1 EC_caller_1 EC_callee_0 '#' abortResult
+  ---- ;; get storage reference of argument
+  -- Argument_eval_lvalue:
+      p_caller EC_caller_0 ARCH_0 |- argumentIR
+                                   : EC_caller_1 ARCH_1 abortResult
+
+rule Copy_in_arg/cont:
+  ARCH_0 |-
+    p_caller EC_caller_0 (_  OUT typeIR nameIR _)
+    '@' p_callee EC_callee_0 argumentIR
+  ~> ARCH_1 EC_caller_1 EC_callee_1 '#' (_CONT storageReference?)
+  ---- ;; get storage reference of argument
+  -- Argument_eval_lvalue:
+      p_caller EC_caller_0 ARCH_0 |- argumentIR
+                                   : EC_caller_1 ARCH_1 (_CONT storageReference?)
+  ---- ;; get initial value
+  -- if typeIR_subst = $subst_type_e(p_callee, EC_callee_0, typeIR)
+  -- if value_init = $default(typeIR_subst)
+  ---- ;; update callee context
+  -- if EC_callee_1
+      = $add_var_e(p_callee, EC_callee_0, _BARE nameIR, value_init)
+
+
+;;
+;; Copy-in (non-default, multiple arguments)
+;;
+
+
+rule Copy_in/nil:
+  p_shared ARCH |-
+    p_caller EC_caller eps
+    '@' p_callee EC_callee_0 eps
+  ~> ARCH EC_caller EC_callee_1 '#' (_CONT eps)
+  ---- ;; propagate shared layer
+  -- if EC_callee_1 = $copy_e(p_shared, EC_caller, EC_callee_0)
+
+rule Copy_in/cons-head-abort:
+  p_shared ARCH_0 |-
+    p_caller EC_caller_0 (parameterIR_h :: parameterIR_t*)
+    '@' p_callee EC_callee_0 (argumentIR_h :: argumentIR_t*)
+  ~> ARCH_1 EC_caller_1 EC_callee_1 '#' abortResult
+  ----
+  -- Copy_in_arg:
+      ARCH_0 |-
+        p_caller EC_caller_0 parameterIR_h
+        '@' p_callee EC_callee_0 argumentIR_h
+      ~> ARCH_1 EC_caller_1 EC_callee_1 '#' abortResult
+
+rule Copy_in/cons-head-cont-tail-abort:
+  p_shared ARCH_0 |-
+    p_caller EC_caller_0 (parameterIR_h :: parameterIR_t*)
+    '@' p_callee EC_callee_0 (argumentIR_h :: argumentIR_t*)
+  ~> ARCH_2 EC_caller_2 EC_callee_2 '#' abortResult
+  ----
+  -- Copy_in_arg:
+      ARCH_0 |-
+        p_caller EC_caller_0 parameterIR_h
+        '@' p_callee EC_callee_0 argumentIR_h
+      ~> ARCH_1 EC_caller_1 EC_callee_1 '#' (_CONT storageReference_h?)
+  ----
+  -- Copy_in:
+      p_shared ARCH_1 |-
+        p_caller EC_caller_1 parameterIR_t*
+        '@' p_callee EC_callee_1 argumentIR_t*
+      ~> ARCH_2 EC_caller_2 EC_callee_2 '#' abortResult
+
+rule Copy_in/cons-head-cont-tail-cont:
+  p_shared ARCH_0 |-
+    p_caller EC_caller_0 (parameterIR_h :: parameterIR_t*)
+    '@' p_callee EC_callee_0 (argumentIR_h :: argumentIR_t*)
+  ~> ARCH_2 EC_caller_2 EC_callee_2 '#' (_CONT storageReference?*)
+  ----
+  -- Copy_in_arg:
+      ARCH_0 |-
+        p_caller EC_caller_0 parameterIR_h
+        '@' p_callee EC_callee_0 argumentIR_h
+      ~> ARCH_1 EC_caller_1 EC_callee_1 '#' (_CONT storageReference_h?)
+  ----
+  -- Copy_in:
+      p_shared ARCH_1 |-
+        p_caller EC_caller_1 parameterIR_t*
+        '@' p_callee EC_callee_1 argumentIR_t*
+      ~> ARCH_2 EC_caller_2 EC_callee_2 '#' (_CONT storageReference_t?*)
+  ----
+  -- if storageReference?*
+      = storageReference_h? :: storageReference_t?*
+
+
+;;
+;; Copy-in (default, multiple argument)
+;;
+
+rule Copy_in_default:
+  parameterIR* '@' p_callee EC_callee_0 ~> EC_callee_1
+  ----
+  -- if (_ _ _ nameIR ('=' _VALUE value) = parameterIR)*
+  -- if EC_callee_1
+      = $add_vars_e(p_callee, EC_callee_0, (_BARE nameIR)*, value*)

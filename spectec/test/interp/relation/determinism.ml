@@ -44,7 +44,11 @@ let check_undeclared_builtin () =
     include H.Pure_target
 
     let builtins =
-      [ ("boom", fun ~at:_ _ _ -> failwith "undeclared builtin was invoked") ]
+      [
+        ( "boom",
+          Interp.Builtins.Define.make (fun ~at:_ _ _ ->
+              failwith "undeclared builtin was invoked") );
+      ]
   end in
   (* Elaboration requires declarations, so remove them from the compiled forms. *)
   let spec : H.compiled_spec =

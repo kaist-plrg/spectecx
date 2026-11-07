@@ -185,7 +185,7 @@ and to_doc_exp_ctx ?(values = fun _ -> None) ~ctx (exp : exp) =
       match values id with Some s -> P.string s | None -> to_doc_varid id)
   | UnE (op, e) when lift_unop () ->
       P.string "$(" ^^ to_doc_unop op ^^ in_arith e ^^ P.string ")"
-  | UnE (op, e) -> to_doc_unop op ^^ in_arith e
+  | UnE (op, e) -> to_doc_unop op ^^ to_doc_exp_ctx ~values ~ctx e
   | BinE (l, op, r) when lift_binop op ->
       P.string "$("
       ^^ break_at_op (in_arith l) (to_doc_binop op) (in_arith r)
@@ -219,7 +219,7 @@ and to_doc_exp_ctx ?(values = fun _ -> None) ~ctx (exp : exp) =
   | UpdE (b, path, e) ->
       in_arith b
       ^^ P.brackets (to_doc_path path ^^ P.string " = " ^^ in_notation e)
-  | ParenE e -> P.parens (in_arith e)
+  | ParenE e -> P.parens (if ctx = Arith then in_arith e else in_notation e)
   | TupleE exps -> P.parens (comma_list in_notation exps)
   | CallE (id, targs, args) ->
       to_doc_defid id ^^ to_doc_targs targs ^^ to_doc_args args

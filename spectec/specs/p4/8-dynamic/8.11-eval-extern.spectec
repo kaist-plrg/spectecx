@@ -1,0 +1,37 @@
+;;
+;; Extern calls
+;;
+;; Each architecture implements its extern functions and methods as builtins.
+;;
+
+;;
+;;;; Extern function calls
+;;
+
+builtin dec $eval_extern_function_call(evalContext, arch, nameIR, nameIR*)
+  : (evalContext, arch, callResult)
+  hint(prose_in "the result of calling the extern function" %2 `( %3 `)
+                "under context" %0 "and state" %1)
+
+rule ExternFunctionCall_eval:
+  EC_0 ARCH_0 |- nameIR `( nameIR_param* `) : EC_1 ARCH_1 callResult
+  -- if (EC_1, ARCH_1, callResult)
+      = $eval_extern_function_call(EC_0, ARCH_0, nameIR, nameIR_param*)
+
+;;
+;;;; Extern method calls
+;;
+
+builtin dec $eval_extern_method_call(
+    evalContext, arch, objectId, nameIR, nameIR*
+  )
+  : (evalContext, arch, callResult)
+  hint(prose_in "the result of calling the extern method" %3 `( %4 `)
+                "on object" %2 "under context" %0 "and state" %1)
+
+rule ExternMethodCall_eval:
+  EC_0 ARCH_0 |- objectId '.' nameIR `( nameIR_param* `)
+               : EC_1 ARCH_1 callResult
+  -- if (EC_1, ARCH_1, callResult)
+      = $eval_extern_method_call(
+          EC_0, ARCH_0, objectId, nameIR, nameIR_param*)

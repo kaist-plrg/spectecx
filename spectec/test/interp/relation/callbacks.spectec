@@ -1,0 +1,75 @@
+opaque syntax state
+
+builtin dec $host_step(state) : state
+builtin dec $host_identity<X>(X) : X
+builtin dec $fresh(nat) : nat
+builtin dec $host_choice(nat) : nat
+builtin dec $host_fatal(nat) : nat
+builtin dec $host_bad_input(nat) : nat
+builtin dec $host_bad_arity(nat) : nat
+builtin dec $host_bad_type_arity(nat) : nat
+builtin dec $host_unmatched(nat) : nat
+builtin dec $explode : nat
+builtin dec $probe(nat) : nat
+builtin dec $host_probe(nat) : nat
+builtin dec $host_local(nat) : nat
+
+dec $keep<X>(X) : X
+def $keep<X>(X) = X
+
+dec $via<X>(X) : X
+def $via<X>(X) = $host_identity<X>(X)
+
+dec $next(nat) : nat
+def $next(nat) = $($via<nat>(nat) + $fresh(nat) + 1)
+
+dec $positive(nat) : nat
+def $positive(nat) = nat
+  -- if $(nat > 0)
+
+dec $choice(nat) : nat
+def $choice(nat) = 1
+def $choice(nat) = 2
+
+relation Nested_callbacks : state ~> state state nat nat
+  hint(input %0)
+rule Nested_callbacks : state ~> state state_2 nat_fresh nat_saved
+  -- if nat_saved = 42
+  -- if state_1 = $host_step(state)
+  -- if state_2 = $host_step(state_1)
+  -- if nat_fresh = $fresh(0)
+  -- if $probe(0) = $host_probe(0)
+
+relation Fatal : nat ~> nat
+  hint(input %0)
+rule Fatal : nat ~> $host_fatal(nat)
+
+relation Bad_input : nat ~> nat
+  hint(input %0)
+rule Bad_input : nat ~> $host_bad_input(nat)
+
+relation Bad_arity : nat ~> nat
+  hint(input %0)
+rule Bad_arity : nat ~> $host_bad_arity(nat)
+
+relation Bad_type_arity : nat ~> nat
+  hint(input %0)
+rule Bad_type_arity : nat ~> $host_bad_type_arity(nat)
+
+relation Unmatched : nat ~> nat
+  hint(input %0)
+rule Unmatched : nat ~> $host_unmatched(nat)
+
+relation Callback_choice : nat ~> nat
+  hint(input %0)
+rule Callback_choice : nat ~> $host_choice(nat)
+
+dec $one(nat) : nat
+def $one(nat) = 1
+
+dec $apply_local(def $f(nat) : nat, nat) : nat
+def $apply_local(def $f, nat) = $host_local(nat)
+
+relation Local_callback : nat ~> nat
+  hint(input %0)
+rule Local_callback : nat ~> $apply_local(def $one, nat)

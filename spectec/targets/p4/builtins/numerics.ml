@@ -118,6 +118,54 @@ let bitacc ~at (n : Bigint.t) (m : Bigint.t) (l : Bigint.t) : Value.t result =
            (Printf.sprintf "bitacc: slice index is too large (%s)" msg))
   | _ -> Error (Error.runtime at "bitacc: unexpected error during calculation")
 
+(* dec $bitacc_replace(int, int, int, int) : int *)
+
+let bitacc_replace' (n : Bigint.t) (m : Bigint.t) (l : Bigint.t) (r : Bigint.t)
+    : Bigint.t =
+  let r = Bigint.(r lsl to_int_exn l) in
+  let mask_hi = Bigint.(pow2' (m + one) - one) in
+  let mask_lo = Bigint.(pow2' l - one) in
+  let mask = Bigint.(lnot (mask_hi lxor mask_lo)) in
+  Bigint.(n land mask lxor r)
+
+let bitacc_replace ~at (n : Bigint.t) (m : Bigint.t) (l : Bigint.t)
+    (r : Bigint.t) : Value.t result =
+  if Bigint.(l < zero) then
+    Error (Error.runtime at "bitacc_replace: slice x[y:z] must have z >= 0")
+  else if Bigint.(m < l) then
+    Error (Error.runtime at "bitacc_replace: slice x[y:z] must have y >= z")
+  else
+    try Ok (Value.int (bitacc_replace' n m l r))
+    with Failure msg ->
+      Error
+        (Error.runtime at
+           (Printf.sprintf "bitacc_replace: slice index is too large (%s)" msg))
+
+(* The first bit of a bit list is the most significant. *)
+
+(* dec $bits_to_int_unsigned(bits) : int *)
+
+let bits_to_int_unsigned' (bits : bool list) : Bigint.t =
+  List.fold_left
+    (fun n bit -> Bigint.((n lsl 1) + if bit then one else zero))
+    Bigint.zero bits
+
+let bits_to_int_unsigned ~at (bits : bool list) : Value.t result =
+  at |> ignore;
+  Ok (Value.int (bits_to_int_unsigned' bits))
+
+(* dec $bits_to_int_signed(bits) : int *)
+
+let bits_to_int_signed ~at (bits : bool list) : Value.t result =
+  match bits with
+  | [] -> Error (Error.runtime at "bits_to_int_signed: empty bit list")
+  | sign :: _ ->
+      let n = bits_to_int_unsigned' bits in
+      let n =
+        if sign then Bigint.(n - pow2' (of_int (List.length bits))) else n
+      in
+      Ok (Value.int n)
+
 let builtins : (string * Define.t) list =
   [
     ("shl", Define.T0.a2 Arg.int Arg.int shl);
@@ -131,4 +179,10 @@ let builtins : (string * Define.t) list =
     ("bxor", Define.T0.a2 Arg.int Arg.int bxor);
     ("bor", Define.T0.a2 Arg.int Arg.int bor);
     ("bitacc", Define.T0.a3 Arg.int Arg.int Arg.int bitacc);
+    ( "bitacc_replace",
+      Define.T0.a4 Arg.int Arg.int Arg.int Arg.int bitacc_replace );
+    ( "bits_to_int_unsigned",
+      Define.T0.a1 (Arg.list_of Arg.bool) bits_to_int_unsigned );
+    ( "bits_to_int_signed",
+      Define.T0.a1 (Arg.list_of Arg.bool) bits_to_int_signed );
   ]

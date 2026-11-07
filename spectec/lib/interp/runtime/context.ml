@@ -10,6 +10,7 @@ module TDEnv = Envs.Il.TDEnv
 module VEnv = Envs.Interp.VEnv
 module IdHashtbl = Envs.Make.IdHashtbl
 module FIdMap = Envs.Make.FIdMap
+module TIdMap = Envs.Make.TIdMap
 
 exception Error of Location.t * string
 
@@ -211,8 +212,19 @@ struct
   let for_call ctx = { ctx with local = empty_local }
   let without_values ctx = replace_values ctx VEnv.empty
 
-  let fold_local_typdefs ctx ~init ~f =
-    TDEnv.fold (fun id typdef acc -> f acc id typdef) ctx.local.syntaxes init
+  let resolve_targs ctx ~targs =
+    match targs with
+    | [] -> []
+    | targs ->
+        let theta =
+          TDEnv.fold
+            (fun tid (tparams, deftyp) theta ->
+              match (tparams, deftyp.it) with
+              | [], Il.PlainT typ -> TIdMap.add tid typ theta
+              | _ -> theta)
+            ctx.local.syntaxes TIdMap.empty
+        in
+        Envs.Il.Typ.subst_targs theta targs
 
   let for_optional_iteration ctx ~vars =
     let values =
@@ -335,7 +347,25 @@ struct
   let has_determinism_checks ctx = ctx.check_determinism
   let opaque_types ctx = ctx.opaque_types
   let has_builtin ctx ~id = ctx.builtins.is_builtin id
-  let call_builtin ctx ~id ~targs ~values = ctx.builtins.invoke id targs values
+
+  let call_builtin ctx ~callback ~id ~targs ~values =
+    ctx.builtins.invoke ~callback id targs values
+
+  let check_inputs_exn ctx ~kind ~id ~signature:(tparams, typs) ~targs ~values =
+    let result =
+      Result.bind (Envs.Il.Typ.make_theta ~tparams ~targs) (fun theta ->
+          let typs = Envs.Il.Typ.subst_typs theta typs in
+          Value_typecheck.check_values ~opaque_types:ctx.opaque_types
+            ~find_typdef_opt:(fun id -> find_typdef_opt ctx ~id)
+            ~typs values)
+    in
+    match result with
+    | Ok () -> ()
+    | Result.Error message ->
+        let kind =
+          match kind with `Relation -> "relation" | `Function -> "function"
+        in
+        raise (Error (id.at, kind ^ " " ^ id.it ^ " input: " ^ message))
 
   let memoize_func ctx ~id ~values ~f =
     Cache.with_func_cache ctx.cache (id.it, values) f

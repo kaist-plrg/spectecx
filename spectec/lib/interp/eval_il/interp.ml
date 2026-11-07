@@ -1,8 +1,6 @@
 open Common.Annotated
 module Location = Common.Location
 open Lang.Il
-open Envs.Make
-module Typ = Envs.Il.Typ
 open Error
 open Attempt
 module Events = Instrumentation.Event
@@ -249,6 +247,16 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
 and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     value attempt =
   let values_input = eval_args ctx args in
+  let targs = Ctx.resolve_targs ctx ~targs in
+  invoke_func_values ctx id targs values_input
+  |> nest id.at
+       (F.asprintf "invocation of function %s%s%s failed"
+          (Print.string_of_defid id)
+          (Print.string_of_targs targs)
+          (Print.string_of_args args))
+
+and invoke_func_values (ctx : Ctx.t) (id : id) (targs : targ list)
+    (values_input : value list) : value attempt =
   Instrumentation.Dispatcher.emit
     (Events.Func_enter { id = id.it; at = id.at; inputs = values_input });
   (* Clause matching *)
@@ -270,7 +278,9 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
       Instrumentation.Dispatcher.emit
         (Events.Clause_enter { id = id.it; clause_idx = 0; at = id.at });
       let value_output =
-        Ctx.call_builtin ctx ~id ~targs ~values:values_input |> unwrap_builtin
+        Ctx.call_builtin ctx ~callback:(callback ctx) ~id ~targs
+          ~values:values_input
+        |> unwrap_builtin
       in
       (match
          Builtins.check_result ~opaque_types:(Ctx.opaque_types ctx)
@@ -289,21 +299,6 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
   in
   (* User-defined function invocation *)
   let invoke_func_def tparams clauses =
-    (* Evaluate type arguments *)
-    let targs =
-      match targs with
-      | [] -> []
-      | targs ->
-          let theta =
-            Ctx.fold_local_typdefs ctx ~init:TIdMap.empty
-              ~f:(fun theta tid typdef ->
-                let tparams, deftyp = typdef in
-                match (tparams, deftyp.it) with
-                | [], PlainT typ -> TIdMap.add tid typ theta
-                | _ -> theta)
-          in
-          List.map (Typ.subst_typ theta) targs
-    in
     let attempt_of_clause idx_clause clause =
       let attempt_clause' (ctx_local : Ctx.t) (prems : prem list)
           (exp_output : exp) : value attempt =
@@ -387,11 +382,11 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
   let result, cached =
     let invoke_func' () =
       match Ctx.find_func_opt ctx ~id with
-      | Some (Ctx.Func.Builtin (tparams, typ)) ->
+      | Some (Ctx.Func.Builtin (tparams, _, typ)) ->
           checkf (Ctx.has_builtin ctx ~id) id.at
             "builtin $%s is declared in the spec but not implemented" id.it;
           invoke_func_builtin (tparams, typ)
-      | Some (Ctx.Func.Defined (tparams, clauses)) ->
+      | Some (Ctx.Func.Defined (tparams, _, clauses)) ->
           check_warnf (clauses <> []) id.at "function has no clauses";
           invoke_func_def tparams clauses
       | None ->
@@ -423,15 +418,27 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
   Instrumentation.Dispatcher.emit
     (Events.Func_exit { id = id.it; at = id.at; output });
   result
-  |> nest id.at
-       (F.asprintf "invocation of function %s%s%s failed"
-          (Print.string_of_defid id)
-          (Print.string_of_targs targs)
-          (Print.string_of_args args))
+
+and callback (ctx : Ctx.t) : Builtins.Callback.t =
+ fun id targs values ->
+  let ctx = Ctx.for_call ctx in
+  let signature =
+    match Ctx.find_func_opt ctx ~id with
+    | Some func -> Ctx.Func.signature func
+    | None -> error id.at ("unknown function " ^ id.it)
+  in
+  Ctx.check_inputs_exn ctx ~kind:`Function ~id ~signature ~targs ~values;
+  invoke_func_values ctx id targs values |> unwrap_or_error
 
 (* Load definitions into the context *)
 
 let global_definition_of_def ~opaque_types (def : def) : Ctx.Global.definition =
+  let input_types params =
+    List.map
+      (fun param ->
+        match param.it with ExpP typ -> typ | DefP _ -> FuncT $ param.at)
+      params
+  in
   match def.it with
   | TypD { synid = id; tparams; deftyp } ->
       (match Opaque_types.check_declaration opaque_types ~id ~deftyp with
@@ -440,10 +447,12 @@ let global_definition_of_def ~opaque_types (def : def) : Ctx.Global.definition =
       Ctx.Global.Syntax (id, (tparams, deftyp))
   | RelD { relid = id; reltyp; rules } ->
       Ctx.Global.Relation (id, (reltyp, rules))
-  | BuiltinDecD { defid = id; tparams; typ; _ } ->
-      Ctx.Global.Function (id, Ctx.Func.Builtin (tparams, typ))
-  | DecD { defid = id; tparams; clauses; _ } ->
-      Ctx.Global.Function (id, Ctx.Func.Defined (tparams, clauses))
+  | BuiltinDecD { defid = id; tparams; params; typ; _ } ->
+      Ctx.Global.Function
+        (id, Ctx.Func.Builtin (tparams, input_types params, typ))
+  | DecD { defid = id; tparams; params; clauses; _ } ->
+      Ctx.Global.Function
+        (id, Ctx.Func.Defined (tparams, input_types params, clauses))
 
 let context_of_spec (spec : spec) ~builtins ~cache ~opaque_types
     ~check_determinism : Ctx.t =

@@ -1,0 +1,291 @@
+;;
+;; Layered context
+;;
+
+;; Global layer
+
+syntax globalEvalLayer = globalInstLayer
+
+;; Block Layer
+
+syntax blockEvalLayer = blockInstLayer
+
+;; Local layer
+
+syntax localEvalLayer = localInstLayer
+
+;;
+;; Instantiation context
+;;
+
+syntax evalContext =
+  { GLOBAL globalEvalLayer,
+    BLOCK blockEvalLayer,
+    LOCAL localEvalLayer }
+
+var EC : evalContext
+
+;;
+;; Frame entry and exit
+;;
+
+dec $enter_e(evalContext) : evalContext
+  hint(prose_in %0 "with a new local frame")
+
+def $enter_e(EC) = EC[ .LOCAL.FRAMES = $empty_frame :: EC.LOCAL.FRAMES ]
+
+dec $exit_e(evalContext) : evalContext
+  hint(prose_in %0 "with the innermost frame removed")
+
+def $exit_e(EC) = EC[ .LOCAL.FRAMES = frame_t* ]
+  -- if EC.LOCAL.FRAMES = frame_h :: frame_t*
+
+;;
+;; Context inheritance
+;;
+
+dec $inherit_e(cursor, evalContext) : evalContext
+  hint(prose_in "copy of" %1 "from the" %0 "layer")
+
+def $inherit_e(GLOBAL, EC)
+  = EC[ .BLOCK = blockEvalLayer ][ .LOCAL = localEvalLayer ]
+  -- if blockEvalLayer = { TYPE $empty_theta,
+                           CALLABLE $empty_callableDefEnv,
+                           STATE $empty_stateEnv,
+                           FRAME $empty_frame }
+  -- if localEvalLayer = { TYPE $empty_theta,
+                           FRAMES ([ $empty_frame ]) }
+def $inherit_e(BLOCK, EC) = EC[ .LOCAL = localEvalLayer ]
+  -- if localEvalLayer = { TYPE $empty_theta,
+                           FRAMES ([ $empty_frame ]) }
+def $inherit_e(LOCAL, EC) = EC
+
+;;
+;; Context copy
+;;
+
+dec $copy_e(cursor, evalContext, evalContext) : evalContext
+
+def $copy_e(GLOBAL, EC_from, EC_to)
+  = EC_to[ .GLOBAL = EC_from.GLOBAL ]
+def $copy_e(BLOCK, EC_from, EC_to)
+  = EC_to[ .GLOBAL = EC_from.GLOBAL ]
+         [ .BLOCK = EC_from.BLOCK ]
+def $copy_e(LOCAL, EC_from, EC_to)
+  = EC_to[ .GLOBAL = EC_from.GLOBAL ]
+         [ .BLOCK = EC_from.BLOCK ]
+         [ .LOCAL = EC_from.LOCAL ]
+
+;;
+;; Adders
+;;
+
+;;; Adder for values
+
+dec $add_var_e(cursor, evalContext, prefixedNameIR, value): evalContext
+  hint(prose_in %1 "where" %2 "to" %3 "is added to the" %0 "layer")
+dec $add_vars_e(cursor, evalContext, prefixedNameIR*, value*): evalContext
+
+def $add_var_e(GLOBAL, EC, '.' id, value) = EC[ .GLOBAL.FRAME = frame ]
+  -- if frame = $add_map<id, value>(EC.GLOBAL.FRAME, id, value)
+def $add_var_e(GLOBAL, EC, _BARE id, value) = EC[ .GLOBAL.FRAME = frame ]
+  -- if frame = $add_map<id, value>(EC.GLOBAL.FRAME, id, value)
+def $add_var_e(BLOCK, EC, _BARE id, value) = EC[ .BLOCK.FRAME = frame ]
+  -- if frame = $add_map<id, value>(EC.BLOCK.FRAME, id, value)
+def $add_var_e(LOCAL, EC, _BARE id, value) = EC[ .LOCAL.FRAMES = frame_h' :: frame_t* ]
+  -- if EC.LOCAL.FRAMES = frame_h :: frame_t*
+  -- if frame_h' = $add_map<id, value>(frame_h, id, value)
+
+def $add_vars_e(p, EC, eps, eps) = EC
+def $add_vars_e(
+    p, EC,
+    prefixedNameIR_h :: prefixedNameIR_t*,
+    value_h :: value_t*)
+  = EC''
+  -- if EC' = $add_var_e(p, EC, prefixedNameIR_h, value_h)
+  -- if EC'' = $add_vars_e(p, EC', prefixedNameIR_t*, value_t*)
+
+;;
+;; Updaters
+;;
+
+dec $update_var_e(cursor, evalContext, prefixedNameIR, value) : evalContext
+  hint(prose_in %1 "where" %2 "is updated to" %3 "from the" %0 "layer")
+
+def $update_var_e(p, EC, '.' id, value) = EC[ .GLOBAL.FRAME = frame ]
+  -- if frame = $update_map<id, value>(EC.GLOBAL.FRAME, id, value)
+def $update_var_e(GLOBAL, EC, _BARE id, value) = EC[ .GLOBAL.FRAME = frame' ]
+  -- if frame = EC.GLOBAL.FRAME
+  -- if $in_set<id>(id, $dom_map<id, value>(frame))
+  -- if frame' = $update_map<id, value>(frame, id, value)
+def $update_var_e(BLOCK, EC, _BARE id, value) = EC[ .BLOCK.FRAME = frame' ]
+  -- if frame = EC.BLOCK.FRAME
+  -- if $in_set<id>(id, $dom_map<id, value>(frame))
+  -- if frame' = $update_map<id, value>(frame, id, value)
+def $update_var_e(BLOCK, EC, _BARE id, value)
+  = $update_var_e(GLOBAL, EC, _BARE id, value)
+  -- if frame = EC.BLOCK.FRAME
+  -- if ~$in_set<id>(id, $dom_map<id, value>(frame))
+def $update_var_e(LOCAL, EC, _BARE id, value)
+  = $update_var_e(BLOCK, EC, _BARE id, value)
+  -- if eps = EC.LOCAL.FRAMES
+def $update_var_e(LOCAL, EC, _BARE id, value)
+  = EC[ .LOCAL.FRAMES = frame_h' :: frame_t* ]
+  -- if frame_h :: frame_t* = EC.LOCAL.FRAMES
+  -- if $in_set<id>(id, $dom_map<id, value>(frame_h))
+  -- if frame_h' = $update_map<id, value>(frame_h, id, value)
+def $update_var_e(LOCAL, EC, _BARE id, value)
+  = EC_pop'[ .LOCAL.FRAMES = frame_h :: EC_pop'.LOCAL.FRAMES ]
+  -- if frame_h :: frame_t* = EC.LOCAL.FRAMES
+  -- if ~$in_set<id>(id, $dom_map<id, value>(frame_h))
+  -- if EC_pop = EC[ .LOCAL.FRAMES = frame_t* ]
+  -- if EC_pop' = $update_var_e(LOCAL, EC_pop, _BARE id, value)
+
+;;
+;; Finders
+;;
+
+;;; Finder for values
+
+dec $find_var_e(prefixedNameIR, cursor, evalContext) : value
+  hint(prose_in "the value of" %0 "from the" %1 "layer of" %2)
+
+def $find_var_e('.' id, p, EC) = value
+  -- if value = $find_map<id, value>(EC.GLOBAL.FRAME, id)
+def $find_var_e(_BARE id, GLOBAL, EC) = value
+  -- if value = $find_map<id, value>(EC.GLOBAL.FRAME, id)
+def $find_var_e(_BARE id, BLOCK, EC) = value
+  -- if value = $find_map<id, value>(EC.BLOCK.FRAME, id)
+def $find_var_e(_BARE id, BLOCK, EC)
+  = $find_var_e(_BARE id, GLOBAL, EC)
+  -- if eps = $find_map<id, value>(EC.BLOCK.FRAME, id)
+def $find_var_e(_BARE id, LOCAL, EC) = value
+  -- if value = $find_maps<id, value>(EC.LOCAL.FRAMES, id)
+def $find_var_e(_BARE id, LOCAL, EC)
+  = $find_var_e(_BARE id, BLOCK, EC)
+  -- if eps = $find_maps<id, value>(EC.LOCAL.FRAMES, id)
+
+;;; Finder for type definitions
+
+dec $find_typeDef_e(cursor, evalContext, prefixedNameIR) : typeDefIR?
+
+def $find_typeDef_e(_, EC, _BARE nameIR)
+  = $find_map<typeId, typeDefIR>(EC.GLOBAL.TYPE, nameIR)
+def $find_typeDef_e(_, EC, '.' nameIR)
+  = $find_map<typeId, typeDefIR>(EC.GLOBAL.TYPE, nameIR)
+
+;;; Finder for types
+
+dec $find_type_e(cursor, evalContext, nameIR) : typeIR?
+
+def $find_type_e(BLOCK, EC, nameIR)
+  = $find_map<typeId, typeIR>(EC.BLOCK.TYPE, nameIR)
+def $find_type_e(LOCAL, EC, nameIR) = typeIR
+  -- if typeIR = $find_map<typeId, typeIR>(EC.LOCAL.TYPE, nameIR)
+def $find_type_e(LOCAL, EC, nameIR)
+  = $find_type_e(BLOCK, EC, nameIR)
+  -- if eps = $find_map<typeId, typeIR>(EC.LOCAL.TYPE, nameIR)
+
+;;; Finder for callable definitions
+
+dec $find_callableDef_overloaded_e(cursor, evalContext, prefixedNameIR, argumentIR*)
+  : callResolution<(cursor, callableDef)>?
+  hint(prose_in "the overloaded callable definition of" %2#"("%3")" "in the" %0 "layer of" %1)
+
+def $find_callableDef_overloaded_e(GLOBAL, EC, _BARE nameIR, argumentIR*)
+  = callableId ':' (GLOBAL, callableDef) '#' id_default* '#' id_optional*
+  -- if callTargetKey = $callTargetKey(nameIR, argumentIR*)
+  -- if callableId ':' callableDef '#' id_default* '#' id_optional*
+      = $find_overloaded<callableDef>(
+          EC.GLOBAL.CALLABLE,
+          callTargetKey,
+          def $parameterListIR_of_callableDef)
+def $find_callableDef_overloaded_e(GLOBAL, EC, _BARE nameIR, argumentIR*)
+  = eps
+  -- if callTargetKey = $callTargetKey(nameIR, argumentIR*)
+  -- if eps
+      = $find_overloaded<callableDef>(
+          EC.GLOBAL.CALLABLE,
+          callTargetKey,
+          def $parameterListIR_of_callableDef)
+def $find_callableDef_overloaded_e(GLOBAL, EC, '.' nameIR, argumentIR*)
+  = callableId ':' (GLOBAL, callableDef) '#' id_default* '#' id_optional*
+  -- if callTargetKey = $callTargetKey(nameIR, argumentIR*)
+  -- if callableId ':' callableDef '#' id_default* '#' id_optional*
+      = $find_overloaded<callableDef>(
+          EC.GLOBAL.CALLABLE,
+          callTargetKey,
+          def $parameterListIR_of_callableDef)
+def $find_callableDef_overloaded_e(GLOBAL, EC, '.' nameIR, argumentIR*)
+  = eps
+  -- if callTargetKey = $callTargetKey(nameIR, argumentIR*)
+  -- if eps
+      = $find_overloaded<callableDef>(
+          EC.GLOBAL.CALLABLE,
+          callTargetKey,
+          def $parameterListIR_of_callableDef)
+def $find_callableDef_overloaded_e(BLOCK, EC, _BARE nameIR, argumentIR*)
+  = callableId ':' (BLOCK, callableDef) '#' id_default* '#' id_optional*
+  -- if callTargetKey = $callTargetKey(nameIR, argumentIR*)
+  -- if callableId ':' callableDef '#' id_default* '#' id_optional*
+      = $find_overloaded<callableDef>(
+          EC.BLOCK.CALLABLE,
+          callTargetKey,
+          def $parameterListIR_of_callableDef)
+def $find_callableDef_overloaded_e(BLOCK, EC, _BARE nameIR, argumentIR*)
+  = $find_callableDef_overloaded_e(GLOBAL, EC, _BARE nameIR, argumentIR*)
+  -- if callTargetKey = $callTargetKey(nameIR, argumentIR*)
+  -- if eps
+      = $find_overloaded<callableDef>(
+          EC.BLOCK.CALLABLE,
+          callTargetKey,
+          def $parameterListIR_of_callableDef)
+def $find_callableDef_overloaded_e(LOCAL, EC, _BARE nameIR, argumentIR*)
+  = $find_callableDef_overloaded_e(BLOCK, EC, _BARE nameIR, argumentIR*)
+def $find_callableDef_overloaded_e(BLOCK, EC, '.' nameIR, argumentIR*)
+  = $find_callableDef_overloaded_e(GLOBAL, EC, '.' nameIR, argumentIR*)
+def $find_callableDef_overloaded_e(LOCAL, EC, '.' nameIR, argumentIR*)
+  = $find_callableDef_overloaded_e(GLOBAL, EC, '.' nameIR, argumentIR*)
+
+;;; Finder for constructors
+
+dec $find_constructorDef_e(evalContext, prefixedNameIR, argumentIR*)
+  : callResolution<constructorDef>?
+
+def $find_constructorDef_e(EC, _BARE nameIR, argumentIR*)
+  = $find_overloaded<constructorDef>(
+      EC.GLOBAL.CONSTRUCTOR,
+      callTargetKey,
+      def $parameterListIR_of_constructorDef)
+  -- if callTargetKey = $callTargetKey(nameIR, argumentIR*)
+def $find_constructorDef_e(EC, '.' nameIR, argumentIR*)
+  = $find_overloaded<constructorDef>(
+      EC.GLOBAL.CONSTRUCTOR,
+      callTargetKey,
+      def $parameterListIR_of_constructorDef)
+  -- if callTargetKey = $callTargetKey(nameIR, argumentIR*)
+
+;;; Finder for parser states
+
+dec $find_parserState_e(evalContext, nameIR) : parserStateIR?
+  hint(prose_in "the parser state of" %1 "in" %0)
+
+def $find_parserState_e(EC, nameIR)
+  = $find_map<nameIR, parserStateIR>(EC.BLOCK.STATE, nameIR)
+
+;;
+;; Type substitutions
+;;
+
+dec $subst_type_e(cursor, evalContext, typeIR) : typeIR
+  hint(prose_in %2 "substituted by bound type variables in" %1 "from the" %0 "layer")
+
+def $subst_type_e(GLOBAL, EC, typeIR) = typeIR
+def $subst_type_e(BLOCK, EC, typeIR) = typeIR_subst
+  -- if theta = EC.BLOCK.TYPE
+  -- if typeIR_subst = $subst_typeIR(theta, typeIR)
+def $subst_type_e(LOCAL, EC, typeIR) = typeIR_subst
+  -- if theta_block = EC.BLOCK.TYPE
+  -- if theta_local = EC.LOCAL.TYPE
+  -- if theta = $extend_map<typeId, typeIR>(theta_block, theta_local)
+  -- if typeIR_subst = $subst_typeIR(theta, typeIR)

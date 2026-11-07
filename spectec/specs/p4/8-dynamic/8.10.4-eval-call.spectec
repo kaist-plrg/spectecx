@@ -1,0 +1,1157 @@
+;;
+;; Call evaluation
+;;
+;; syntax callee
+;;
+
+;;; actionCallee
+;;; syntax actionCallee
+;;;   ACTION cursor '.' nameIR `( parameterListIR '#' id* ) blockStatementIR
+
+syntax actionResult =
+  | exitResult
+  | returnResult
+
+relation ActionBody_eval:
+  evalContext arch |- blockStatementIR
+                    : evalContext arch actionResult
+  hint(input %0 %1 %2)
+  hint(prose_in "evaluating action body" %2#", under context" %0 "and state" %1)
+  hint(prose_out "context" %3#", state" %4 "and result" %5)
+
+
+rule ActionBody_eval/cont:
+  EC_0 ARCH_0 |- blockStatementIR
+               : EC_1 ARCH_1 (RETURN eps)
+  -- Block_eval:
+      EC_0 ARCH_0 |- blockStatementIR
+                   : EC_1 ARCH_1 _EMPTY
+
+rule ActionBody_eval/exit:
+  EC_0 ARCH_0 |- blockStatementIR
+               : EC_1 ARCH_1 EXIT
+  -- Block_eval:
+      EC_0 ARCH_0 |- blockStatementIR
+                   : EC_1 ARCH_1 EXIT
+
+rule ActionBody_eval/return-void:
+  EC_0 ARCH_0 |- blockStatementIR
+               : EC_1 ARCH_1 (RETURN eps)
+  -- Block_eval:
+      EC_0 ARCH_0 |- blockStatementIR
+                   : EC_1 ARCH_1 (RETURN eps)
+
+
+
+rule Call_eval/copyin-exit:
+  p EC_0 ARCH_0 |- actionCallee
+                  '@' `< eps `> `( argumentListIR `)
+                 : EC_1 ARCH_1 EXIT
+  ---- ;; unpack the action callee
+  ---- ;; if the action is in a block
+  -- if ACTION p_shared '.' nameIR
+          `( parameterIR* '#' id_default* `) blockStatementIR
+      = actionCallee
+  ---- ;; create the callee context
+  -- if EC_callee_0 = $inherit_e(p_shared, EC_0)
+  ---- ;; align parameters with arguments
+  -- if GIVEN parameterIR_aligned*
+        DEFAULT parameterIR_default*
+        OPTIONAL _
+      = $align_parameterListIR(
+          parameterIR*, argumentListIR, id_default*, eps)
+  ---- ;; copy-in
+  -- Copy_in:
+      p_shared ARCH_0 |-
+        p EC_0 parameterIR_aligned*
+        '@' LOCAL EC_callee_0 argumentListIR
+      ~> ARCH_1 EC_1 EC_callee_1 '#' EXIT
+
+rule Call_eval/copyin-cont-ActionBody-exit:
+  p EC_0 ARCH_0 |- actionCallee
+                  '@' `< eps `> `( argumentListIR `)
+                 : EC_2 ARCH_2 EXIT
+  ---- ;; unpack the action callee
+  ---- ;; if the action is in a block
+  -- if ACTION p_shared '.' nameIR
+          `( parameterIR* '#' id_default* `) blockStatementIR
+      = actionCallee
+  ---- ;; create the callee context
+  -- if EC_callee_0 = $inherit_e(p_shared, EC_0)
+  ---- ;; align parameters with arguments
+  -- if GIVEN parameterIR_aligned*
+        DEFAULT parameterIR_default*
+        OPTIONAL _
+      = $align_parameterListIR(
+          parameterIR*, argumentListIR, id_default*, eps)
+  ---- ;; copy-in
+  -- Copy_in:
+      p_shared ARCH_0 |-
+        p EC_0 parameterIR_aligned*
+        '@' LOCAL EC_callee_0 argumentListIR
+      ~> ARCH_1 EC_1 EC_callee_1 '#' (_CONT storageReference?*)
+  -- Copy_in_default:
+      parameterIR_default* '@' LOCAL EC_callee_1 ~> EC_callee_2
+  ---- ;; evaluate action body
+  -- ActionBody_eval:
+      EC_callee_2 ARCH_1 |- blockStatementIR
+                          : EC_callee_3 ARCH_2 EXIT
+  ---- ;; copy-out
+  -- Copy_out:
+      p_shared ARCH_2 |-
+        p EC_1 parameterIR_aligned*
+        '@' LOCAL EC_callee_3 storageReference?*
+      ~> EC_2
+
+rule Call_eval/return:
+  p EC_0 ARCH_0 |- actionCallee
+                  '@' `< eps `> `( argumentListIR `)
+                 : EC_2 ARCH_2 (RETURN eps)
+  ---- ;; unpack the action callee
+  -- if ACTION p_shared '.' nameIR
+          `( parameterIR* '#' id_default* `) blockStatementIR
+      = actionCallee
+  ---- ;; create the callee context
+  -- if EC_callee_0 = $inherit_e(p_shared, EC_0)
+  ---- ;; align parameters with arguments
+  -- if GIVEN parameterIR_aligned*
+        DEFAULT parameterIR_default*
+        OPTIONAL _
+      = $align_parameterListIR(
+          parameterIR*, argumentListIR, id_default*, eps)
+  ---- ;; copy-in
+  -- Copy_in:
+      p_shared ARCH_0 |-
+        p EC_0 parameterIR_aligned*
+        '@' LOCAL EC_callee_0 argumentListIR
+      ~> ARCH_1 EC_1 EC_callee_1 '#' (_CONT storageReference?*)
+  -- Copy_in_default:
+      parameterIR_default* '@' LOCAL EC_callee_1 ~> EC_callee_2
+  ---- ;; evaluate action body
+  -- ActionBody_eval:
+      EC_callee_2 ARCH_1 |- blockStatementIR
+                          : EC_callee_3 ARCH_2 (RETURN eps)
+  ---- ;; copy-out
+  -- Copy_out:
+      p_shared ARCH_2 |-
+        p EC_1 parameterIR_aligned*
+        '@' LOCAL EC_callee_3 storageReference?*
+      ~> EC_2
+
+
+syntax definedFunctionResult =
+  | exitResult
+  | returnResult
+
+relation DefinedFunctionBody_eval:
+  evalContext arch |- blockStatementIR
+                    : evalContext arch definedFunctionResult
+  hint(input %0 %1 %2)
+  hint(prose_in "evaluating function body" %2#", under context" %0 "and state" %1)
+  hint(prose_out "context" %3#", state" %4 "and result" %5)
+
+
+rule DefinedFunctionBody_eval/cont:
+  EC_0 ARCH_0 |- blockStatementIR
+               : EC_1 ARCH_1 (RETURN eps)
+  -- Block_eval:
+      EC_0 ARCH_0 |- blockStatementIR
+                   : EC_1 ARCH_1 _EMPTY
+
+rule DefinedFunctionBody_eval/exit:
+  EC_0 ARCH_0 |- blockStatementIR
+               : EC_1 ARCH_1 EXIT
+  -- Block_eval:
+      EC_0 ARCH_0 |- blockStatementIR
+                   : EC_1 ARCH_1 EXIT
+
+rule DefinedFunctionBody_eval/return-void:
+  EC_0 ARCH_0 |- blockStatementIR
+               : EC_1 ARCH_1 returnResult
+  -- Block_eval:
+      EC_0 ARCH_0 |- blockStatementIR
+                   : EC_1 ARCH_1 returnResult
+
+
+;;; functionCallee
+;;; syntax functionCallee
+;;;; definedFunctionCallee
+
+
+rule Call_eval/definedFunctionCallee-copyin-abort:
+  p EC_0 ARCH_0 |- definedFunctionCallee
+                  '@' `< typeArgumentIR* `> `( argumentListIR `)
+                 : EC_1 ARCH_1 abortResult
+  -- if FUNCTION nameIR `< typeParameterIR* `>
+          `( parameterIR* '#' id_default* `) blockStatementIR
+      = definedFunctionCallee
+  ---- ;; create the callee context
+  -- if EC_callee_0 = $inherit_e(GLOBAL, EC_0)
+  ---- ;; bind type parameters and arguments in callee context
+  -- if EC_callee_1
+      = EC_callee_0[ .LOCAL.TYPE = `{ (typeParameterIR ':' typeArgumentIR)* `} ]
+  ---- ;; align parameters with arguments
+  -- if GIVEN parameterIR_aligned*
+        DEFAULT parameterIR_default*
+        OPTIONAL _
+      = $align_parameterListIR(
+          parameterIR*, argumentListIR, id_default*, eps)
+  ---- ;; copy-in
+  -- if p_shared = GLOBAL
+  -- Copy_in:
+      p_shared ARCH_0 |-
+        p EC_0 parameterIR_aligned*
+        '@' LOCAL EC_callee_1 argumentListIR
+      ~> ARCH_1 EC_1 EC_callee_2 '#' abortResult
+
+rule Call_eval/definedFunctionCallee-cont:
+  p EC_0 ARCH_0 |- definedFunctionCallee
+                  '@' `< typeArgumentIR* `> `( argumentListIR `)
+                 : EC_2 ARCH_2 definedFunctionResult
+  -- if FUNCTION nameIR `< typeParameterIR* `>
+          `( parameterIR* '#' id_default* `) blockStatementIR
+      = definedFunctionCallee
+  ---- ;; create the callee context
+  -- if EC_callee_0 = $inherit_e(GLOBAL, EC_0)
+  ---- ;; bind type parameters and arguments in callee context
+  -- if EC_callee_1
+      = EC_callee_0[ .LOCAL.TYPE = `{ (typeParameterIR ':' typeArgumentIR)* `} ]
+  ---- ;; align parameters with arguments
+  -- if GIVEN parameterIR_aligned*
+        DEFAULT parameterIR_default*
+        OPTIONAL _
+      = $align_parameterListIR(
+          parameterIR*, argumentListIR, id_default*, eps)
+  ---- ;; copy-in
+  -- if p_shared = GLOBAL
+  -- Copy_in:
+      p_shared ARCH_0 |-
+        p EC_0 parameterIR_aligned*
+        '@' LOCAL EC_callee_1 argumentListIR
+      ~> ARCH_1 EC_1 EC_callee_2 '#' (_CONT storageReference?*)
+  -- Copy_in_default:
+      parameterIR_default* '@' LOCAL EC_callee_2 ~> EC_callee_3
+  ---- ;; evaluate function body
+  -- DefinedFunctionBody_eval:
+      EC_callee_3 ARCH_1 |- blockStatementIR
+                          : EC_callee_4 ARCH_2 definedFunctionResult
+  ---- ;; copy-out
+  -- Copy_out:
+      p_shared ARCH_2 |-
+        p EC_1 parameterIR_aligned*
+        '@' LOCAL EC_callee_4 storageReference?*
+      ~> EC_2
+
+
+;;;; externFunctionCallee
+;;;; syntax externFunctionCallee =
+;;;;   EXTERN_FUNCTION nameIR
+;;;;     `< typeParameterListIR > `( parameterListIR '#' id* )
+
+
+rule Call_eval/externFunctionCallee-copyin-abort:
+  p EC_0 ARCH_0 |- externFunctionCallee
+                  '@' `< typeArgumentIR* `> `( argumentIR* `)
+                 : EC_1 ARCH_1 abortResult
+  ---- ;; unpack the extern function callee
+  -- if EXTERN_FUNCTION nameIR
+          `< typeParameterIR* `> `( parameterIR* '#' id_default* '#' id_optional* `)
+      = externFunctionCallee
+  ---- ;; create the callee context
+  -- if EC_callee_0 = $inherit_e(GLOBAL, EC_0)
+  ---- ;; bind type parameters and arguments in callee context
+  -- if EC_callee_1
+      = EC_callee_0[ .LOCAL.TYPE = `{ (typeParameterIR ':' typeArgumentIR)* `} ]
+  ---- ;; align parameters with arguments
+  -- if GIVEN parameterIR_aligned*
+        DEFAULT parameterIR_default*
+        OPTIONAL _
+      = $align_parameterListIR(parameterIR*, argumentIR*, id_default*, id_optional*)
+  ---- ;; copy-in
+  -- if p_shared = GLOBAL
+  -- Copy_in:
+      p_shared ARCH_0 |-
+        p EC_0 parameterIR_aligned*
+        '@' LOCAL EC_callee_1 argumentIR*
+      ~> ARCH_1 EC_1 EC_callee_2 '#' abortResult
+
+rule Call_eval/externFunctionCallee-copyin-cont-call-reject:
+  p EC_0 ARCH_0 |- externFunctionCallee
+                  '@' `< typeArgumentIR* `> `( argumentIR* `)
+                 : EC_1 ARCH_2 rejectTransitionResult
+  ---- ;; unpack the extern function callee
+  -- if EXTERN_FUNCTION nameIR
+          `< typeParameterIR* `> `( parameterIR* '#' id_default* '#' id_optional* `)
+      = externFunctionCallee
+  ---- ;; create the callee context
+  -- if EC_callee_0 = $inherit_e(GLOBAL, EC_0)
+  ---- ;; bind type parameters and arguments in callee context
+  -- if EC_callee_1
+      = EC_callee_0[ .LOCAL.TYPE = `{ (typeParameterIR ':' typeArgumentIR)* `} ]
+  ---- ;; align parameters with arguments
+  -- if GIVEN parameterIR_aligned*
+        DEFAULT parameterIR_default*
+        OPTIONAL _
+      = $align_parameterListIR(parameterIR*, argumentIR*, id_default*, id_optional*)
+  ---- ;; copy-in
+  -- if p_shared = GLOBAL
+  -- Copy_in:
+      p_shared ARCH_0 |-
+        p EC_0 parameterIR_aligned*
+        '@' LOCAL EC_callee_1 argumentIR*
+      ~> ARCH_1 EC_1 EC_callee_2 '#' (_CONT storageReference?*)
+  -- Copy_in_default:
+      parameterIR_default* '@' LOCAL EC_callee_2 ~> EC_callee_3
+  ---- ;; evaluate function body
+  -- if (_ _ _ nameIR_param _ = parameterIR)*
+  -- ExternFunctionCall_eval:
+      EC_callee_3 ARCH_1 |- nameIR `( nameIR_param* `)
+                          : EC_callee_4 ARCH_2 rejectTransitionResult
+
+rule Call_eval/externFunctionCallee-copyin-cont-call-non-reject:
+  p EC_0 ARCH_0 |- externFunctionCallee
+                  '@' `< typeArgumentIR* `> `( argumentIR* `)
+                 : EC_2 ARCH_2 callResult
+  ---- ;; unpack the extern function callee
+  -- if EXTERN_FUNCTION nameIR
+          `< typeParameterIR* `> `( parameterIR* '#' id_default* '#' id_optional* `)
+      = externFunctionCallee
+  ---- ;; create the callee context
+  -- if EC_callee_0 = $inherit_e(GLOBAL, EC_0)
+  ---- ;; bind type parameters and arguments in callee context
+  -- if EC_callee_1
+      = EC_callee_0[ .LOCAL.TYPE = `{ (typeParameterIR ':' typeArgumentIR)* `} ]
+  ---- ;; align parameters with arguments
+  -- if GIVEN parameterIR_aligned*
+        DEFAULT parameterIR_default*
+        OPTIONAL _
+      = $align_parameterListIR(parameterIR*, argumentIR*, id_default*, id_optional*)
+  ---- ;; copy-in
+  -- if p_shared = GLOBAL
+  -- Copy_in:
+      p_shared ARCH_0 |-
+        p EC_0 parameterIR_aligned*
+        '@' LOCAL EC_callee_1 argumentIR*
+      ~> ARCH_1 EC_1 EC_callee_2 '#' (_CONT storageReference?*)
+  -- Copy_in_default:
+      parameterIR_default* '@' LOCAL EC_callee_2 ~> EC_callee_3
+  ---- ;; evaluate function body
+  -- if (_ _ _ nameIR_param _ = parameterIR)*
+  -- ExternFunctionCall_eval:
+      EC_callee_3 ARCH_1 |- nameIR `( nameIR_param* `)
+                          : EC_callee_4 ARCH_2 callResult
+  -- if ~(callResult <: rejectTransitionResult)
+  ---- ;; copy-out
+  -- Copy_out:
+      p_shared ARCH_2 |-
+        p EC_1 parameterIR_aligned*
+        '@' LOCAL EC_callee_4 storageReference?*
+      ~> EC_2
+
+
+;;; methodCallee
+;;; syntax methodCallee
+
+;;;; builtinPushFrontMethodCallee
+;;;; syntax builtinPushFrontMethodCallee = BUILTIN_PUSH_FRONT storageReference
+
+
+rule Call_eval/abort:
+  p EC_0 ARCH_0 |- builtinPushFrontMethodCallee '@' `< eps `> `( argumentIR `)
+                 : EC_1 ARCH_1 abortResult
+  ---- ;; unpack the builtin method callee
+  -- if BUILTIN_PUSH_FRONT storageReference
+      = builtinPushFrontMethodCallee
+  ---- ;; read the value
+  -- Lvalue_read:
+      p EC_0 ARCH_0 |- storageReference : headerStackValue
+  -- if HEADER_STACK `[ value_element* `(n_idx`) `]
+      = headerStackValue
+  ---- ;; evaluate argument
+  -- Argument_eval:
+      p EC_0 ARCH_0 |- argumentIR : EC_1 ARCH_1 abortResult
+
+rule Call_eval/cont:
+  p EC_0 ARCH_0 |- builtinPushFrontMethodCallee '@' `< eps `> `( argumentIR `)
+                 : EC_2 ARCH_1 (RETURN eps)
+  ---- ;; unpack the builtin method callee
+  -- if BUILTIN_PUSH_FRONT storageReference
+      = builtinPushFrontMethodCallee
+  ---- ;; read the value
+  -- Lvalue_read:
+      p EC_0 ARCH_0 |- storageReference : headerStackValue
+  -- if HEADER_STACK `[ value_element* `(n_idx`) `]
+      = headerStackValue
+  -- if n_size = |value_element*|
+  ---- ;; evaluate argument
+  -- Argument_eval:
+      p EC_0 ARCH_0 |- argumentIR
+                    : EC_1 ARCH_1 (_CONT integerValue_count)
+  -- if n_count = $nat_of_integerValue(integerValue_count)
+  -- if $(n_count < n_size)
+  ---- ;; push front operation
+  -- if value_front* = value_element*[0 : n_count]
+  -- if (value_front_invalidated = $invalidate_value(value_front))*
+  -- if n_back = $max_int([ 0, $(n_size - n_count) ])
+  -- if value_back* = value_element*[0 : n_back]
+  -- if value_element_updated* = value_front_invalidated* ++ value_back*
+  -- if n_idx_updated = $min_nat([ n_size, $(n_idx + n_count) ])
+  -- if headerStackValue_updated
+      = HEADER_STACK `[ value_element_updated* `(n_idx_updated`) `]
+  ---- ;; write back the updated header stack
+  -- Lvalue_write:
+      p EC_1 ARCH_1 |- storageReference := headerStackValue_updated
+                     : EC_2
+
+rule Call_eval/cont-overflow:
+  p EC_0 ARCH_0 |- builtinPushFrontMethodCallee '@' `< eps `> `( argumentIR `)
+                 : EC_2 ARCH_1 (RETURN eps)
+  ---- ;; unpack the builtin method callee
+  -- if BUILTIN_PUSH_FRONT storageReference
+      = builtinPushFrontMethodCallee
+  ---- ;; read the value
+  -- Lvalue_read:
+      p EC_0 ARCH_0 |- storageReference : headerStackValue
+  -- if HEADER_STACK `[ value_element* `(n_idx`) `]
+      = headerStackValue
+  -- if n_size = |value_element*|
+  ---- ;; evaluate argument
+  -- Argument_eval:
+      p EC_0 ARCH_0 |- argumentIR
+                    : EC_1 ARCH_1 (_CONT integerValue_count)
+  -- if n_count = $nat_of_integerValue(integerValue_count)
+  -- if $(n_count >= n_size)
+  ---- ;; push front operation
+  -- if (value_element_updated = $invalidate_value(value_element))*
+  -- if n_idx_updated = $min_nat([ n_size, $(n_idx + n_count) ])
+  -- if headerStackValue_updated
+      = HEADER_STACK `[ value_element_updated* `(n_idx_updated`) `]
+  ---- ;; write back the updated header stack
+  -- Lvalue_write:
+      p EC_1 ARCH_1 |- storageReference := headerStackValue_updated
+                     : EC_2
+
+
+;;;; builtinPopFrontMethodCallee
+;;;; syntax builtinPopFrontMethodCallee = BUILTIN_POP_FRONT storageReference
+
+
+rule Call_eval/abort:
+  p EC_0 ARCH_0 |- builtinPopFrontMethodCallee '@' `< eps `> `( argumentIR `)
+                 : EC_1 ARCH_1 abortResult
+  ---- ;; unpack the builtin method callee
+  -- if BUILTIN_POP_FRONT storageReference
+      = builtinPopFrontMethodCallee
+  ---- ;; read the value
+  -- Lvalue_read:
+      p EC_0 ARCH_0 |- storageReference : headerStackValue
+  -- if HEADER_STACK `[ value_element* `(n_idx`) `]
+      = headerStackValue
+  ---- ;; evaluate argument
+  -- Argument_eval:
+      p EC_0 ARCH_0 |- argumentIR : EC_1 ARCH_1 abortResult
+
+rule Call_eval/cont:
+  p EC_0 ARCH_0 |- builtinPopFrontMethodCallee '@' `< eps `> `( argumentIR `)
+                 : EC_2 ARCH_1 (RETURN eps)
+  ---- ;; unpack the builtin method callee
+  -- if BUILTIN_POP_FRONT storageReference
+      = builtinPopFrontMethodCallee
+  ---- ;; read the value
+  -- Lvalue_read:
+      p EC_0 ARCH_0 |- storageReference : headerStackValue
+  -- if HEADER_STACK `[ value_element* `(n_idx`) `]
+      = headerStackValue
+  -- if n_size = |value_element*|
+  ---- ;; evaluate argument
+  -- Argument_eval:
+      p EC_0 ARCH_0 |- argumentIR
+                    : EC_1 ARCH_1 (_CONT integerValue_count)
+  -- if n_count = $nat_of_integerValue(integerValue_count)
+  -- if $(n_count < n_size)
+  ---- ;; pop front operation
+  -- if n_front = $max_int([ 0, $(n_size - n_count) ])
+  -- if value_front* = value_element*[n_count : n_front]
+  -- if value_back* = value_element*[0 : n_count]
+  -- if (value_back_invalidated = $invalidate_value(value_back))*
+  -- if value_element_updated* = value_front* ++ value_back_invalidated*
+  -- if n_idx_updated = n_front
+  -- if headerStackValue_updated
+      = HEADER_STACK `[ value_element_updated* `(n_idx_updated`) `]
+  ---- ;; write back the updated header stack
+  -- Lvalue_write:
+      p EC_1 ARCH_1 |- storageReference := headerStackValue_updated
+                     : EC_2
+
+rule Call_eval/cont-overflow:
+  p EC_0 ARCH_0 |- builtinPopFrontMethodCallee '@' `< eps `> `( argumentIR `)
+                 : EC_2 ARCH_1 (RETURN eps)
+  ---- ;; unpack the builtin method callee
+  -- if BUILTIN_POP_FRONT storageReference
+      = builtinPopFrontMethodCallee
+  ---- ;; read the value
+  -- Lvalue_read:
+      p EC_0 ARCH_0 |- storageReference : headerStackValue
+  -- if HEADER_STACK `[ value_element* `(n_idx`) `]
+      = headerStackValue
+  -- if n_size = |value_element*|
+  ---- ;; evaluate argument
+  -- Argument_eval:
+      p EC_0 ARCH_0 |- argumentIR
+                    : EC_1 ARCH_1 (_CONT integerValue_count)
+  -- if n_count = $nat_of_integerValue(integerValue_count)
+  -- if $(n_count >= n_size)
+  ---- ;; pop front operation
+  -- if (value_element_updated = $invalidate_value(value_element))*
+  -- if n_idx_updated = $max_int([ 0, $(n_size - n_count) ])
+  -- if headerStackValue_updated
+      = HEADER_STACK `[ value_element_updated* `(n_idx_updated`) `]
+  ---- ;; write back the updated header stack
+  -- Lvalue_write:
+      p EC_1 ARCH_1 |- storageReference := headerStackValue_updated
+                     : EC_2
+
+
+;;;; builtinIsValidMethodCallee
+;;;; syntax builtinIsValidMethodCallee = BUILTIN_IS_VALID storageReference
+
+rule Call_eval/builtinIsValidMethodCallee-header:
+  p EC ARCH |- builtinIsValidMethodCallee '@' `< eps `> `( eps `)
+             : EC ARCH returnResult
+  ---- ;; unpack the builtin method callee
+  -- if BUILTIN_IS_VALID storageReference
+      = builtinIsValidMethodCallee
+  ---- ;; read the value
+  -- Lvalue_read:
+      p EC ARCH |- storageReference : headerValue
+  -- if HEADER _ `{ b_valid ';' _ `} = headerValue
+  -- if returnResult = RETURN (_B b_valid)
+
+;;;; builtinSetValidMethodCallee
+;;;; syntax builtinSetValidMethodCallee = BUILTIN_SET_VALID storageReference
+
+rule Call_eval/builtinSetValidMethodCallee:
+  p EC_0 ARCH |- builtinSetValidMethodCallee '@' `< eps `> `( eps `)
+             : EC_1 ARCH returnResult
+  ---- ;; unpack the builtin method callee
+  -- if BUILTIN_SET_VALID storageReference
+      = builtinSetValidMethodCallee
+  ---- ;; read the value
+  -- Lvalue_read:
+      p EC_0 ARCH |- storageReference : headerValue
+  -- if HEADER typeId `{ _ ';' fieldValue* `} = headerValue
+  -- if value = HEADER typeId `{ true ';' fieldValue* `}
+  -- Lvalue_write:
+      p EC_0 ARCH |- storageReference := value : EC_1
+  -- if returnResult = RETURN eps
+
+;;;; builtinSetInvalidMethodCallee
+;;;; syntax builtinSetInvalidMethodCallee = BUILTIN_SET_INVALID storageReference
+
+rule Call_eval/builtinSetInvalidMethodCallee:
+  p EC_0 ARCH |- builtinSetInvalidMethodCallee '@' `< eps `> `( eps `)
+               : EC_1 ARCH returnResult
+  ---- ;; unpack the builtin method callee
+  -- if BUILTIN_SET_INVALID storageReference
+      = builtinSetInvalidMethodCallee
+  ---- ;; read the value
+  -- Lvalue_read:
+      p EC_0 ARCH |- storageReference : headerValue
+  -- if HEADER typeId `{ _ ';' fieldValue* `} = headerValue
+  -- if value = HEADER typeId `{ false ';' fieldValue* `}
+  -- Lvalue_write:
+      p EC_0 ARCH |- storageReference := value : EC_1
+  -- if returnResult = RETURN eps
+
+rule Call_eval/builtinIsValidMethodCallee-header-union:
+  p EC ARCH |- builtinIsValidMethodCallee '@' `< eps `> `( eps `)
+             : EC ARCH returnResult
+  ---- ;; unpack the builtin method callee
+  -- if BUILTIN_IS_VALID storageReference
+      = builtinIsValidMethodCallee
+  ---- ;; read the value
+  -- Lvalue_read:
+      p EC ARCH |- storageReference : headerUnionValue
+  -- if HEADER_UNION typeId `{ fieldValue* `} = headerUnionValue
+  -- if (value_field _ ';' = fieldValue)*
+  -- if fieldValue_valid*
+      = $filter_<fieldValue>(
+          fieldValue*, $isValid_header(value_field)*)
+  -- if b_valid = (fieldValue_valid* = eps)
+  -- if returnResult = RETURN (_B b_valid)
+
+;;;; builtinSizeMethodCallee
+;;;; syntax builtinSizeMethodCallee = BUILTIN_SIZE_OF nameIR typeIR
+
+rule Call_eval/builtinSizeMethodCallee:
+  p EC ARCH |- builtinSizeMethodCallee '@' `< eps `> `( eps `)
+             : EC ARCH returnResult
+  ---- ;; unpack the builtin method callee
+  -- if BUILTIN_SIZE_OF nameIR typeIR_base
+      = builtinSizeMethodCallee
+  ---- ;; compute the size from the receiver's static type
+  -- if returnResult = RETURN $sizeof(typeIR_base, nameIR)
+
+;;;; syntax externMethodCallee =
+;;;;   EXTERN_METHOD objectId '.' nameIR `< typeParameterListIR >
+;;;;     `( parameterListIR '#' id* )
+;;;;     `{ theta ';' frame ';' blockStatementIR? }
+
+
+rule Call_eval/copyin-abort-initializer:
+  p EC_0 ARCH_0 |- externMethodCallee
+                  '@' `< typeArgumentIR* `> `( argumentIR* `)
+                 : EC_1 ARCH_1 abortResult
+  ---- ;; unpack the extern method callee
+  ---- ;; if the method carries an initializer-provided body
+  -- if EXTERN_METHOD objectId '.' nameIR `< typeParameterIR* `>
+          `( parameterIR* '#' id_default* '#' id_optional* `)
+          `{ theta ';' frame ';' blockStatementIR `}
+      = externMethodCallee
+  ---- ;; create the callee context
+  -- if EC_callee_0 = $inherit_e(GLOBAL, EC_0)
+  -- if EC_callee_1 = EC_callee_0[ .BLOCK.TYPE = theta ]
+  -- if EC_callee_2 = EC_callee_1[ .BLOCK.FRAME = frame ]
+  ---- ;; bind type parameters and arguments in callee context
+  -- if EC_callee_3
+      = EC_callee_2[ .LOCAL.TYPE = `{ (typeParameterIR ':' typeArgumentIR)* `} ]
+  ---- ;; align parameters with arguments
+  -- if GIVEN parameterIR_aligned*
+        DEFAULT parameterIR_default*
+        OPTIONAL _
+      = $align_parameterListIR(
+          parameterIR*, argumentIR*, id_default*, id_optional*)
+  ---- ;; copy-in
+  -- if p_shared = GLOBAL
+  -- Copy_in:
+      p_shared ARCH_0 |-
+        p EC_0 parameterIR_aligned*
+        '@' LOCAL EC_callee_3 argumentIR*
+      ~> ARCH_1 EC_1 EC_callee_4 '#' abortResult
+
+rule Call_eval/copyin-cont-initializer:
+  p EC_0 ARCH_0 |- externMethodCallee
+                  '@' `< typeArgumentIR* `> `( argumentIR* `)
+                 : EC_2 ARCH_2 definedFunctionResult
+  ---- ;; unpack the extern method callee
+  ---- ;; if the method carries an initializer-provided body
+  -- if EXTERN_METHOD objectId '.' nameIR `< typeParameterIR* `>
+          `( parameterIR* '#' id_default* '#' id_optional* `)
+          `{ theta ';' frame ';' blockStatementIR `}
+      = externMethodCallee
+  ---- ;; create the callee context
+  -- if EC_callee_0 = $inherit_e(GLOBAL, EC_0)
+  -- if EC_callee_1 = EC_callee_0[ .BLOCK.TYPE = theta ]
+  -- if EC_callee_2 = EC_callee_1[ .BLOCK.FRAME = frame ]
+  ---- ;; bind type parameters and arguments in callee context
+  -- if EC_callee_3
+      = EC_callee_2[ .LOCAL.TYPE = `{ (typeParameterIR ':' typeArgumentIR)* `} ]
+  ---- ;; align parameters with arguments
+  -- if GIVEN parameterIR_aligned*
+        DEFAULT parameterIR_default*
+        OPTIONAL _
+      = $align_parameterListIR(
+          parameterIR*, argumentIR*, id_default*, id_optional*)
+  ---- ;; copy-in
+  -- if p_shared = GLOBAL
+  -- Copy_in:
+      p_shared ARCH_0 |-
+        p EC_0 parameterIR_aligned*
+        '@' LOCAL EC_callee_3 argumentIR*
+      ~> ARCH_1 EC_1 EC_callee_4 '#' (_CONT storageReference?*)
+  -- Copy_in_default:
+      parameterIR_default* '@' LOCAL EC_callee_4 ~> EC_callee_5
+  ---- ;; evaluate the initializer-provided body like a function body
+  -- DefinedFunctionBody_eval:
+      EC_callee_5 ARCH_1 |- blockStatementIR
+                          : EC_callee_6 ARCH_2 definedFunctionResult
+  ---- ;; copy-out
+  -- Copy_out:
+      p_shared ARCH_2 |-
+        p EC_1 parameterIR_aligned*
+        '@' LOCAL EC_callee_6 storageReference?*
+      ~> EC_2
+
+rule Call_eval/copyin-abort:
+  p EC_0 ARCH_0 |- externMethodCallee
+                  '@' `< typeArgumentIR* `> `( argumentIR* `)
+                 : EC_1 ARCH_1 abortResult
+  ---- ;; unpack the extern method callee
+  ---- ;; if the extern method is non-abstract
+  -- if EXTERN_METHOD objectId '.' nameIR `< typeParameterIR* `>
+          `( parameterIR* '#' id_default* '#' id_optional* `)
+          `{ theta ';' frame ';' eps `}
+      = externMethodCallee
+  ---- ;; create the callee context
+  -- if EC_callee_0 = $inherit_e(GLOBAL, EC_0)
+  -- if EC_callee_1 = EC_callee_0[ .BLOCK.TYPE = theta ]
+  -- if EC_callee_2 = EC_callee_1[ .BLOCK.FRAME = frame ]
+  ---- ;; bind type parameters and arguments in callee context
+  -- if EC_callee_3
+      = EC_callee_2[ .LOCAL.TYPE = `{ (typeParameterIR ':' typeArgumentIR)* `} ]
+  ---- ;; align parameters with arguments
+  -- if GIVEN parameterIR_aligned*
+        DEFAULT parameterIR_default*
+        OPTIONAL _
+      = $align_parameterListIR(
+          parameterIR*, argumentIR*, id_default*, id_optional*)
+  ---- ;; copy-in
+  -- if p_shared = GLOBAL
+  -- Copy_in:
+      p_shared ARCH_0 |-
+        p EC_0 parameterIR_aligned*
+        '@' LOCAL EC_callee_3 argumentIR*
+      ~> ARCH_1 EC_1 EC_callee_4 '#' abortResult
+
+rule Call_eval/copyin-cont-non-abstract-reject:
+  p EC_0 ARCH_0 |- externMethodCallee
+                  '@' `< typeArgumentIR* `> `( argumentIR* `)
+                 : EC_1 ARCH_2 rejectTransitionResult
+  ---- ;; unpack the extern method callee
+  ---- ;; if the extern method is non-abstract
+  -- if EXTERN_METHOD objectId '.' nameIR `< typeParameterIR* `>
+          `( parameterIR* '#' id_default* '#' id_optional* `)
+          `{ theta ';' frame ';' eps `}
+      = externMethodCallee
+  ---- ;; create the callee context
+  -- if EC_callee_0 = $inherit_e(GLOBAL, EC_0)
+  -- if EC_callee_1 = EC_callee_0[ .BLOCK.TYPE = theta ]
+  -- if EC_callee_2 = EC_callee_1[ .BLOCK.FRAME = frame ]
+  ---- ;; bind type parameters and arguments in callee context
+  -- if EC_callee_3
+      = EC_callee_2[ .LOCAL.TYPE = `{ (typeParameterIR ':' typeArgumentIR)* `} ]
+  ---- ;; align parameters with arguments
+  -- if GIVEN parameterIR_aligned*
+        DEFAULT parameterIR_default*
+        OPTIONAL _
+      = $align_parameterListIR(
+          parameterIR*, argumentIR*, id_default*, id_optional*)
+  ---- ;; copy-in
+  -- if p_shared = GLOBAL
+  -- Copy_in:
+      p_shared ARCH_0 |-
+        p EC_0 parameterIR_aligned*
+        '@' LOCAL EC_callee_3 argumentIR*
+      ~> ARCH_1 EC_1 EC_callee_4 '#' (_CONT storageReference?*)
+  -- Copy_in_default:
+      parameterIR_default* '@' LOCAL EC_callee_4 ~> EC_callee_5
+  ---- ;; evaluate method body
+  -- if (_ _ _ nameIR_param _ = parameterIR)*
+  -- ExternMethodCall_eval:
+      EC_callee_5 ARCH_1 |- objectId '.' nameIR `( nameIR_param* `)
+                         : EC_callee_6 ARCH_2 rejectTransitionResult
+
+rule Call_eval/copyin-cont-non-abstract-non-reject:
+  p EC_0 ARCH_0 |- externMethodCallee
+                  '@' `< typeArgumentIR* `> `( argumentIR* `)
+                 : EC_2 ARCH_2 callResult
+  ---- ;; unpack the extern method callee
+  ---- ;; if the extern method is non-abstract
+  -- if EXTERN_METHOD objectId '.' nameIR `< typeParameterIR* `>
+          `( parameterIR* '#' id_default* '#' id_optional* `)
+          `{ theta ';' frame ';' eps `}
+      = externMethodCallee
+  ---- ;; create the callee context
+  -- if EC_callee_0 = $inherit_e(GLOBAL, EC_0)
+  -- if EC_callee_1 = EC_callee_0[ .BLOCK.TYPE = theta ]
+  -- if EC_callee_2 = EC_callee_1[ .BLOCK.FRAME = frame ]
+  ---- ;; bind type parameters and arguments in callee context
+  -- if EC_callee_3
+      = EC_callee_2[ .LOCAL.TYPE = `{ (typeParameterIR ':' typeArgumentIR)* `} ]
+  ---- ;; align parameters with arguments
+  -- if GIVEN parameterIR_aligned*
+        DEFAULT parameterIR_default*
+        OPTIONAL _
+      = $align_parameterListIR(
+          parameterIR*, argumentIR*, id_default*, id_optional*)
+  ---- ;; copy-in
+  -- if p_shared = GLOBAL
+  -- Copy_in:
+      p_shared ARCH_0 |-
+        p EC_0 parameterIR_aligned*
+        '@' LOCAL EC_callee_3 argumentIR*
+      ~> ARCH_1 EC_1 EC_callee_4 '#' (_CONT storageReference?*)
+  -- Copy_in_default:
+      parameterIR_default* '@' LOCAL EC_callee_4 ~> EC_callee_5
+  ---- ;; evaluate method body
+  -- if (_ _ _ nameIR_param _ = parameterIR)*
+  -- ExternMethodCall_eval:
+      EC_callee_5 ARCH_1 |- objectId '.' nameIR `( nameIR_param* `)
+                         : EC_callee_6 ARCH_2 callResult
+  -- if ~(callResult <: rejectTransitionResult)
+  ---- ;; copy-out
+  -- Copy_out:
+      p_shared ARCH_2 |-
+        p EC_1 parameterIR_aligned*
+        '@' LOCAL EC_callee_6 storageReference?*
+      ~> EC_2
+
+
+;;;; parserApplyMethodCallee
+
+
+rule Call_eval/copyin-reject:
+  p EC_0 ARCH_0 |- parserApplyMethodCallee
+                  '@' `< typeArgumentListIR `> `( argumentListIR `)
+                 : EC_1 ARCH_1 rejectTransitionResult
+  ---- ;; unpack the parser apply method callee
+  -- if PARSER _ '.' APPLY `( parameterListIR '#' id_default* `)
+          `{ theta ';' frame ';'
+             parserLocalDeclarationListIR ';' stateEnv `}
+      = parserApplyMethodCallee
+  ---- ;; create the callee context
+  -- if EC_callee_0 = $inherit_e(GLOBAL, EC_0)
+  -- if EC_callee_1
+      = EC_callee_0[ .BLOCK.TYPE = theta ]
+                   [ .BLOCK.FRAME = frame ]
+                   [ .BLOCK.STATE = stateEnv ]
+  ---- ;; align parameters with arguments
+  -- if GIVEN parameterIR_aligned*
+        DEFAULT parameterIR_default*
+        OPTIONAL _
+      = $align_parameterListIR(
+          parameterListIR, argumentListIR, id_default*, eps)
+  ---- ;; copy-in
+  -- if p_shared = GLOBAL
+  -- Copy_in:
+      p_shared ARCH_0 |-
+        p EC_0 parameterIR_aligned*
+        '@' BLOCK EC_callee_1 argumentListIR
+      ~> ARCH_1 EC_1 EC_callee_2 '#' rejectTransitionResult
+
+rule Call_eval/copyin-cont-parserLocalDeclarationListIR-reject:
+  p EC_0 ARCH_0 |- parserApplyMethodCallee
+                  '@' `< typeArgumentListIR `> `( argumentListIR `)
+                 : EC_2 ARCH_2 rejectTransitionResult
+  ---- ;; unpack the parser apply method callee
+  -- if PARSER _ '.' APPLY `( parameterListIR '#' id_default* `)
+          `{ theta ';' frame ';' parserLocalDeclarationListIR ';' stateEnv `}
+      = parserApplyMethodCallee
+  ---- ;; create the callee context
+  -- if EC_callee_0 = $inherit_e(GLOBAL, EC_0)
+  -- if EC_callee_1
+      = EC_callee_0[ .BLOCK.TYPE = theta ]
+                   [ .BLOCK.FRAME = frame ]
+                   [ .BLOCK.STATE = stateEnv ]
+  ---- ;; align parameters with arguments
+  -- if GIVEN parameterIR_aligned*
+        DEFAULT parameterIR_default*
+        OPTIONAL _
+      = $align_parameterListIR(
+          parameterListIR, argumentListIR, id_default*, eps)
+  ---- ;; copy-in
+  -- if p_shared = GLOBAL
+  -- Copy_in:
+      p_shared ARCH_0 |-
+        p EC_0 parameterIR_aligned*
+        '@' BLOCK EC_callee_1 argumentListIR
+      ~> ARCH_1 EC_1 EC_callee_2 '#' (_CONT storageReference?*)
+  -- Copy_in_default:
+      parameterIR_default* '@' BLOCK EC_callee_2 ~> EC_callee_3
+  ---- ;; evaluate local declarations
+  -- ParserLocalDecls_eval:
+      EC_callee_3 ARCH_1 |- parserLocalDeclarationListIR
+                          : EC_callee_4 ARCH_2 rejectTransitionResult
+  ---- ;; copy-out
+  -- Copy_out:
+      p_shared ARCH_2 |-
+        p EC_1 parameterIR_aligned*
+        '@' BLOCK EC_callee_4 storageReference?*
+      ~> EC_2
+
+rule Call_eval/copyin-cont-parserLocalDeclarationListIR-cont-transition-reject:
+  p EC_0 ARCH_0 |- parserApplyMethodCallee
+                  '@' `< typeArgumentListIR `> `( argumentListIR `)
+                 : EC_2 ARCH_3 rejectTransitionResult
+  ---- ;; unpack the parser apply method callee
+  -- if PARSER _ '.' APPLY `( parameterListIR '#' id_default* `)
+          `{ theta ';' frame ';' parserLocalDeclarationListIR ';' stateEnv `}
+      = parserApplyMethodCallee
+  ---- ;; create the callee context
+  -- if EC_callee_0 = $inherit_e(GLOBAL, EC_0)
+  -- if EC_callee_1
+      = EC_callee_0[ .BLOCK.TYPE = theta ]
+                   [ .BLOCK.FRAME = frame ]
+                   [ .BLOCK.STATE = stateEnv ]
+  ---- ;; align parameters with arguments
+  -- if GIVEN parameterIR_aligned*
+        DEFAULT parameterIR_default*
+        OPTIONAL _
+      = $align_parameterListIR(
+          parameterListIR, argumentListIR, id_default*, eps)
+  ---- ;; copy-in
+  -- if p_shared = GLOBAL
+  -- Copy_in:
+      p_shared ARCH_0 |-
+        p EC_0 parameterIR_aligned*
+        '@' BLOCK EC_callee_1 argumentListIR
+      ~> ARCH_1 EC_1 EC_callee_2 '#' (_CONT storageReference?*)
+  -- Copy_in_default:
+      parameterIR_default* '@' BLOCK EC_callee_2 ~> EC_callee_3
+  ---- ;; evaluate local declarations
+  -- ParserLocalDecls_eval:
+      EC_callee_3 ARCH_1 |- parserLocalDeclarationListIR
+                          : EC_callee_4 ARCH_2 continueEmptyResult
+  ---- ;; execute the parser state machine
+  -- ParserState_trans:
+      EC_callee_4 ARCH_2 |- TRANSITION "start"
+                          : EC_callee_5 ARCH_3 rejectTransitionResult
+  ---- ;; copy-out
+  -- Copy_out:
+      p_shared ARCH_3 |-
+        p EC_1 parameterIR_aligned*
+        '@' BLOCK EC_callee_5 storageReference?*
+      ~> EC_2
+
+rule Call_eval/parserLocalDeclarationListIR-cont-transition-accept:
+  p EC_0 ARCH_0 |- parserApplyMethodCallee
+                  '@' `< typeArgumentListIR `> `( argumentListIR `)
+                 : EC_2 ARCH_3 (RETURN eps)
+  ---- ;; unpack the parser apply method callee
+  -- if PARSER _ '.' APPLY `( parameterListIR '#' id_default* `)
+          `{ theta ';' frame ';' parserLocalDeclarationListIR ';' stateEnv `}
+      = parserApplyMethodCallee
+  ---- ;; create the callee context
+  -- if EC_callee_0 = $inherit_e(GLOBAL, EC_0)
+  -- if EC_callee_1
+      = EC_callee_0[ .BLOCK.TYPE = theta ]
+                   [ .BLOCK.FRAME = frame ]
+                   [ .BLOCK.STATE = stateEnv ]
+  ---- ;; align parameters with arguments
+  -- if GIVEN parameterIR_aligned*
+        DEFAULT parameterIR_default*
+        OPTIONAL _
+      = $align_parameterListIR(
+          parameterListIR, argumentListIR, id_default*, eps)
+  ---- ;; copy-in
+  -- if p_shared = GLOBAL
+  -- Copy_in:
+      p_shared ARCH_0 |-
+        p EC_0 parameterIR_aligned*
+        '@' BLOCK EC_callee_1 argumentListIR
+      ~> ARCH_1 EC_1 EC_callee_2 '#' (_CONT storageReference?*)
+  -- Copy_in_default:
+      parameterIR_default* '@' BLOCK EC_callee_2 ~> EC_callee_3
+  ---- ;; evaluate local declarations
+  -- ParserLocalDecls_eval:
+      EC_callee_3 ARCH_1 |- parserLocalDeclarationListIR
+                          : EC_callee_4 ARCH_2 continueEmptyResult
+  ---- ;; execute the parser state machine
+  -- ParserState_trans:
+      EC_callee_4 ARCH_2 |- TRANSITION "start"
+                          : EC_callee_5 ARCH_3 ACCEPT
+  ---- ;; copy-out
+  -- Copy_out:
+      p_shared ARCH_3 |-
+        p EC_1 parameterIR_aligned*
+        '@' BLOCK EC_callee_5 storageReference?*
+      ~> EC_2
+
+
+;;;; controlApplyMethodCallee
+
+
+rule Call_eval/controlApplyMethodCallee-copyin-exit:
+  p EC_0 ARCH_0 |- controlApplyMethodCallee
+                  '@' `< typeArgumentListIR `> `( argumentListIR `)
+                 : EC_1 ARCH_1 EXIT
+  ---- ;; unpack the control apply method callee
+  -- if CONTROL _ '.' APPLY `( parameterListIR '#' id_default* `)
+          `{ theta ';' frame ';' controlLocalDeclarationListIR ';'
+             actionDefEnv ';' controlBodyIR `}
+      = controlApplyMethodCallee
+  ---- ;; create the callee context
+  -- if EC_callee_0 = $inherit_e(GLOBAL, EC_0)
+  -- if `{ (callableId ':' actionDef)* `} = actionDefEnv
+  -- if EC_callee_1
+      = EC_callee_0[ .BLOCK.TYPE = theta ]
+                   [ .BLOCK.FRAME = frame ]
+                   [ .BLOCK.CALLABLE = `{ (callableId ':' actionDef)* `} ]
+  ---- ;; align parameters with arguments
+  -- if GIVEN parameterIR_aligned*
+        DEFAULT parameterIR_default*
+        OPTIONAL _
+      = $align_parameterListIR(
+          parameterListIR, argumentListIR, id_default*, eps)
+  ---- ;; copy-in
+  -- if p_shared = GLOBAL
+  -- Copy_in:
+      p_shared ARCH_0 |-
+        p EC_0 parameterIR_aligned*
+        '@' BLOCK EC_callee_1 argumentListIR
+      ~> ARCH_1 EC_1 EC_callee_2 '#' EXIT
+
+rule Call_eval/controlApplyMethodCallee-localDecl-exit:
+  p EC_0 ARCH_0 |- controlApplyMethodCallee
+                  '@' `< typeArgumentListIR `> `( argumentListIR `)
+                 : EC_2 ARCH_2 EXIT
+  ---- ;; unpack the control apply method callee
+  -- if CONTROL _ '.' APPLY `( parameterListIR '#' id_default* `)
+          `{ theta ';' frame ';' controlLocalDeclarationListIR ';'
+             actionDefEnv ';' controlBodyIR `}
+      = controlApplyMethodCallee
+  ---- ;; create the callee context
+  -- if EC_callee_0 = $inherit_e(GLOBAL, EC_0)
+  -- if `{ (callableId ':' actionDef)* `} = actionDefEnv
+  -- if EC_callee_1
+      = EC_callee_0[ .BLOCK.TYPE = theta ]
+                   [ .BLOCK.FRAME = frame ]
+                   [ .BLOCK.CALLABLE = `{ (callableId ':' actionDef)* `} ]
+  ---- ;; align parameters with arguments
+  -- if GIVEN parameterIR_aligned*
+        DEFAULT parameterIR_default*
+        OPTIONAL _
+      = $align_parameterListIR(
+          parameterListIR, argumentListIR, id_default*, eps)
+  ---- ;; copy-in
+  -- if p_shared = GLOBAL
+  -- Copy_in:
+      p_shared ARCH_0 |-
+        p EC_0 parameterIR_aligned*
+        '@' BLOCK EC_callee_1 argumentListIR
+      ~> ARCH_1 EC_1 EC_callee_2 '#' (_CONT storageReference?*)
+  -- Copy_in_default:
+      parameterIR_default* '@' BLOCK EC_callee_2 ~> EC_callee_3
+  ---- ;; evaluate local declarations
+  -- ControlLocalDecls_eval:
+      EC_callee_3 ARCH_1 |- controlLocalDeclarationListIR
+                          : EC_callee_4 ARCH_2 EXIT
+  ---- ;; copy-out
+  -- Copy_out:
+      p_shared ARCH_2 |-
+        p EC_1 parameterIR_aligned*
+        '@' BLOCK EC_callee_4 storageReference?*
+      ~> EC_2
+
+rule Call_eval/controlApplyMethodCallee-controlBodyIR-exit:
+  p EC_0 ARCH_0 |- controlApplyMethodCallee
+                  '@' `< typeArgumentListIR `> `( argumentListIR `)
+                 : EC_2 ARCH_3 EXIT
+  ---- ;; unpack the control apply method callee
+  -- if CONTROL _ '.' APPLY `( parameterListIR '#' id_default* `)
+          `{ theta ';' frame ';' controlLocalDeclarationListIR ';'
+             actionDefEnv ';' controlBodyIR `}
+      = controlApplyMethodCallee
+  ---- ;; create the callee context
+  -- if EC_callee_0 = $inherit_e(GLOBAL, EC_0)
+  -- if `{ (callableId ':' actionDef)* `} = actionDefEnv
+  -- if EC_callee_1
+      = EC_callee_0[ .BLOCK.TYPE = theta ]
+                   [ .BLOCK.FRAME = frame ]
+                   [ .BLOCK.CALLABLE = `{ (callableId ':' actionDef)* `} ]
+  ---- ;; align parameters with arguments
+  -- if GIVEN parameterIR_aligned*
+        DEFAULT parameterIR_default*
+        OPTIONAL _
+      = $align_parameterListIR(
+          parameterListIR, argumentListIR, id_default*, eps)
+  ---- ;; copy-in
+  -- if p_shared = GLOBAL
+  -- Copy_in:
+      p_shared ARCH_0 |-
+        p EC_0 parameterIR_aligned*
+        '@' BLOCK EC_callee_1 argumentListIR
+      ~> ARCH_1 EC_1 EC_callee_2 '#' (_CONT storageReference?*)
+  -- Copy_in_default:
+      parameterIR_default* '@' BLOCK EC_callee_2 ~> EC_callee_3
+  ---- ;; evaluate local declarations
+  -- ControlLocalDecls_eval:
+      EC_callee_3 ARCH_1 |- controlLocalDeclarationListIR
+                          : EC_callee_4 ARCH_2 _EMPTY
+  ---- ;; execute the control body
+  -- ControlBody_eval:
+      EC_callee_4 ARCH_2 |- controlBodyIR
+                          : EC_callee_5 ARCH_3 EXIT
+  ---- ;; copy-out
+  -- Copy_out:
+      p_shared ARCH_3 |-
+        p EC_1 parameterIR_aligned*
+        '@' BLOCK EC_callee_5 storageReference?*
+      ~> EC_2
+
+rule Call_eval/controlApplyMethodCallee-cont:
+  p EC_0 ARCH_0 |- controlApplyMethodCallee
+                  '@' `< typeArgumentListIR `> `( argumentListIR `)
+                 : EC_2 ARCH_3 (RETURN eps)
+  ---- ;; unpack the control apply method callee
+  -- if CONTROL _ '.' APPLY `( parameterListIR '#' id_default* `)
+          `{ theta ';' frame ';' controlLocalDeclarationListIR ';'
+             actionDefEnv ';' controlBodyIR `}
+      = controlApplyMethodCallee
+  ---- ;; create the callee context
+  -- if EC_callee_0 = $inherit_e(GLOBAL, EC_0)
+  -- if `{ (callableId ':' actionDef)* `} = actionDefEnv
+  -- if EC_callee_1
+      = EC_callee_0[ .BLOCK.TYPE = theta ]
+                   [ .BLOCK.FRAME = frame ]
+                   [ .BLOCK.CALLABLE = `{ (callableId ':' actionDef)* `} ]
+  ---- ;; align parameters with arguments
+  -- if GIVEN parameterIR_aligned*
+        DEFAULT parameterIR_default*
+        OPTIONAL _
+      = $align_parameterListIR(
+          parameterListIR, argumentListIR, id_default*, eps)
+  ---- ;; copy-in
+  -- if p_shared = GLOBAL
+  -- Copy_in:
+      p_shared ARCH_0 |-
+        p EC_0 parameterIR_aligned*
+        '@' BLOCK EC_callee_1 argumentListIR
+      ~> ARCH_1 EC_1 EC_callee_2 '#' (_CONT storageReference?*)
+  -- Copy_in_default:
+      parameterIR_default* '@' BLOCK EC_callee_2 ~> EC_callee_3
+  ---- ;; evaluate local declarations
+  -- ControlLocalDecls_eval:
+      EC_callee_3 ARCH_1 |- controlLocalDeclarationListIR
+                          : EC_callee_4 ARCH_2 _EMPTY
+  ---- ;; execute the control body
+  -- ControlBody_eval:
+      EC_callee_4 ARCH_2 |- controlBodyIR
+                          : EC_callee_5 ARCH_3 (RETURN eps)
+  ---- ;; copy-out
+  -- Copy_out:
+      p_shared ARCH_3 |-
+        p EC_1 parameterIR_aligned*
+        '@' BLOCK EC_callee_5 storageReference?*
+      ~> EC_2
+
+
+;;;; tableApplyMethodCallee
+
+
+  rule Call_eval/tableApplyMethodCallee-exit:
+    p EC_0 ARCH_0 |- tableApplyMethodCallee
+                    '@' `< typeArgumentListIR `> `( argumentListIR `)
+                   : EC_1 ARCH_1 EXIT
+    ---- ;; unpack the table apply method callee
+    -- if TABLE objectId '.' APPLY `{ frame ';' TBL `}
+        = tableApplyMethodCallee
+    ---- ;; create the callee context
+    -- if EC_callee_0 = $inherit_e(BLOCK, EC_0)
+    -- if EC_callee_1 = EC_callee_0[ .LOCAL.FRAMES = [ frame ] ]
+    ---- ;; evaluate match-action
+    -- if typeId :: _ = $rev_<id>(objectId)
+    -- Table_eval:
+        EC_callee_1 ARCH_0 |- typeId TBL
+                            : EC_callee_2 ARCH_1 EXIT
+    ---- ;; propagate shared layers
+    -- if EC_1 = $copy_e(BLOCK, EC_callee_2, EC_0)
+
+  rule Call_eval/tableApplyMethodCallee-return:
+    p EC_0 ARCH_0 |- tableApplyMethodCallee
+                    '@' `< typeArgumentListIR `> `( argumentListIR `)
+                   : EC_1 ARCH_1 returnResult
+    ---- ;; unpack the table apply method callee
+    -- if TABLE objectId '.' APPLY `{ frame ';' TBL `}
+        = tableApplyMethodCallee
+    ---- ;; create the callee context
+    -- if EC_callee_0 = $inherit_e(BLOCK, EC_0)
+    -- if EC_callee_1 = EC_callee_0[ .LOCAL.FRAMES = [ frame ] ]
+    ---- ;; evaluate match-action
+    -- if typeId :: _ = $rev_<id>(objectId)
+    -- Table_eval:
+        EC_callee_1 ARCH_0 |- typeId TBL
+                            : EC_callee_2 ARCH_1 returnResult
+    ---- ;; propagate shared layers
+    -- if EC_1 = $copy_e(BLOCK, EC_callee_2, EC_0)
+

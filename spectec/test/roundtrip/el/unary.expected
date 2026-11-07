@@ -1,0 +1,12 @@
+;; === unary.spectec ===
+dec $negated(nat) : bool
+
+def $negated(nat_n) = ~($(nat_n <= 1))
+
+dec $parenthesized(nat) : bool
+
+def $parenthesized(nat_n) = (~($(nat_n < 1)))
+
+dec $arithmetic(nat) : int
+
+def $arithmetic(nat_n) = $(1 + -(nat_n + 1))

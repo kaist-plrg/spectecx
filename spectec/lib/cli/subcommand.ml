@@ -87,7 +87,17 @@ let make_parse (module Tgt : Spectec.Target.S) ~name ~summary
       in
       let* _files, spec_il, _henv = load_spec source in
       TC.Task.Target.with_state @@ fun () ->
-      let* _, values = TC.Task.parse_input ~spec:spec_il input in
+      let* values =
+        match TC.Task.parse_input ~spec:spec_il input with
+        | Ok (Relation (_, values)) -> Ok values
+        | Ok (Driver _) ->
+            Error
+              (Error.TaskParseError
+                 ( Common.Location.Unknown,
+                   "this task runs several relations and has no single parsed \
+                    input" ))
+        | Error e -> Error e
+      in
       match output with
       | `Roundtrip ->
           let unparsed = TC.Task.unparse ~spec:spec_il values in

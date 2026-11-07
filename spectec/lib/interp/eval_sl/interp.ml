@@ -5,8 +5,6 @@ module Mixop = Lang.Il.Mixfix
 module Value = Lang.Il.Value
 open Il.Expression
 open Lang.Sl
-open Envs.Make
-module Typ = Envs.Il.Typ
 open Error
 module Events = Instrumentation.Event
 module F = Format
@@ -261,10 +259,17 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
 and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     value =
   let values_input = eval_args ctx args in
+  let targs = Ctx.resolve_targs ctx ~targs in
+  invoke_func_values ctx id targs values_input
+
+and invoke_func_values (ctx : Ctx.t) (id : id) (targs : targ list)
+    (values_input : value list) : value =
   (* Builtin function invocation *)
   let invoke_func_builtin signature =
     let value_output =
-      Ctx.call_builtin ctx ~id ~targs ~values:values_input |> unwrap_builtin
+      Ctx.call_builtin ctx ~callback:(callback ctx) ~id ~targs
+        ~values:values_input
+      |> unwrap_builtin
     in
     (match
        Builtins.check_result ~opaque_types:(Ctx.opaque_types ctx)
@@ -281,20 +286,6 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     checkf
       (List.length targs = List.length tparams)
       id.at "arity mismatch in type arguments";
-    let targs =
-      match targs with
-      | [] -> []
-      | targs ->
-          let theta =
-            Ctx.fold_local_typdefs ctx ~init:TIdMap.empty
-              ~f:(fun theta tid typdef ->
-                let tparams, deftyp = typdef in
-                match (tparams, deftyp.it) with
-                | [], Il.PlainT typ -> TIdMap.add tid typ theta
-                | _ -> theta)
-          in
-          List.map (Typ.subst_typ theta) targs
-    in
     let ctx_local =
       List.fold_left2
         (fun ctx_local tparam targ ->
@@ -336,7 +327,7 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     let invoke () =
       let v =
         match Ctx.find_func_opt ctx ~id with
-        | Some (Ctx.Func.Builtin (tparams, typ)) ->
+        | Some (Ctx.Func.Builtin (tparams, _, typ)) ->
             checkf (Ctx.has_builtin ctx ~id) id.at
               "builtin $%s is declared in the spec but not implemented" id.it;
             invoke_func_builtin (tparams, typ)
@@ -378,6 +369,17 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
     (Events.Func_exit { id = id.it; at = id.at; output = Some result });
   result
 
+and callback (ctx : Ctx.t) : Builtins.Callback.t =
+ fun id targs values ->
+  let ctx = Ctx.for_call ctx in
+  let signature =
+    match Ctx.find_func_opt ctx ~id with
+    | Some func -> Ctx.Func.signature func
+    | None -> error id.at ("unknown function " ^ id.it)
+  in
+  Ctx.check_inputs_exn ctx ~kind:`Function ~id ~signature ~targs ~values;
+  invoke_func_values ctx id targs values
+
 (* Load definitions into the context *)
 
 let global_definition_of_def ~opaque_types (def : def) : Ctx.Global.definition =
@@ -389,8 +391,9 @@ let global_definition_of_def ~opaque_types (def : def) : Ctx.Global.definition =
       Ctx.Global.Syntax (id, (tparams, deftyp))
   | RelD (id, mode, block, elseblock_opt) ->
       Ctx.Global.Relation (id, (mode, block, elseblock_opt))
-  | BuiltinDecD (id, tparams, _, typ) ->
-      Ctx.Global.Function (id, Ctx.Func.Builtin (tparams, typ))
+  | BuiltinDecD (id, tparams, args, typ) ->
+      let typs = List.map Il.Expression.typ_of_arg args in
+      Ctx.Global.Function (id, Ctx.Func.Builtin (tparams, typs, typ))
   | DecD (id, tparams, args_input, block, elseblock_opt) ->
       Ctx.Global.Function
         (id, Ctx.Func.Defined (tparams, args_input, block, elseblock_opt))
