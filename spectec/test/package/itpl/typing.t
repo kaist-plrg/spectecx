@@ -108,6 +108,7 @@ Ill-typed expressions parse successfully but fail both typecheck and eval, inclu
   >   rejects "$target" 'missing' || exit 1
   >   rejects "$target" '1 2' || exit 1
   >   rejects "$target" '(fun (x : num) -> x) + 1' || exit 1
+  >   rejects "$target" '1 + (fun (x : num) -> x)' || exit 1
   >   rejects "$target" '1 - (fun (x : num) -> x)' || exit 1
   >   rejects "$target" '(fun (x : num) -> 7) (fun (y : num) -> y)' || exit 1
   >   rejects "$target" '(fun (f : num -> num) -> 7) 3' || exit 1
