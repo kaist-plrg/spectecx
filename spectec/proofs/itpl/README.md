@@ -12,6 +12,10 @@ With [Lean's toolchain manager](https://github.com/leanprover/elan) installed, r
 
 The `lean-toolchain` file selects Lean 4.35.0. An installation of that release with its `bin` directory on `PATH` also works. The script builds the proofs, collects every axiom that a declaration in the `Itpl` modules depends on, and compares that list against `Audit.expected`. The accepted axioms are Lean's standard `propext`, `Quot.sound`, and `Classical.choice`. An admitted proof would add `sorryAx` to the list, and a project-specific axiom would add its own name.
 
+Before building, `check.sh` compares the TFAE and TRFAE spec fingerprints against `Specs.expected`. A mismatch means a spec changed after the last comparison with the Lean definitions.
+
+Comments and blank lines do not change a spec's fingerprint. After a spec change, compare the changed rules with `Definitions/Spec` and the `error` and `outOfFuel` cases of `eval`. Then copy the new fingerprint from the `diff` output of `check.sh` into `Specs.expected`.
+
 ## UB-to-NB refinement
 
 Both interpretations use the same evaluator and differ only in the treatment of runtime errors.
