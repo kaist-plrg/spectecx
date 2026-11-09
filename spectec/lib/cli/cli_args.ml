@@ -7,11 +7,8 @@ open Instrumentation
 type color = Auto | Always | Never
 
 let color_arg : color Core.Command.Arg_type.t =
-  Core.Command.Arg_type.create (function
-    | "auto" -> Auto
-    | "always" -> Always
-    | "never" -> Never
-    | s -> failwith ("expected auto|always|never, got: " ^ s))
+  Core.Command.Arg_type.of_alist_exn ~list_values_in_help:false
+    [ ("auto", Auto); ("always", Always); ("never", Never) ]
 
 (** Output presentation. *)
 module Output = struct
