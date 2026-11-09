@@ -1,7 +1,7 @@
-module Il = Lang.Il
+module Al = Lang.Al
 module Sl = Lang.Sl
 
-type spec = IlSpec of Il.spec | SlSpec of Sl.spec
+type spec = IlSpec of Al.spec | SlSpec of Sl.spec
 
 module type S = sig
   type export_data

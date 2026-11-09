@@ -6,7 +6,7 @@
 
 open Common.Annotated
 module Location = Common.Location
-module Il = Lang.Il
+module Al = Lang.Al
 open Static
 
 (* Normalize whitespace to single spaces *)
@@ -30,7 +30,7 @@ let truncate max_len s =
 
 (* Create a unique key for a premise using location + content prefix *)
 let prem_key prem =
-  let content = Il.Print.string_of_prem prem |> normalize_whitespace in
+  let content = Al.Print.string_of_prem prem |> normalize_whitespace in
   (prem.at, truncate 30 content)
 
 (* Shared state for premise UID mapping *)
@@ -76,16 +76,16 @@ let init spec =
       List.iter
         (fun def ->
           match def.it with
-          | Il.RelD { rules; _ } ->
+          | Al.RelD { rules; _ } ->
               List.iter
                 (fun rule ->
-                  let ({ Il.prems; _ } : Il.rule') = rule.it in
+                  let ({ Al.prems; _ } : Al.rule') = rule.it in
                   List.iter (fun prem -> assign_premise_uid prem) prems)
                 rules
-          | Il.DecD { clauses; _ } ->
+          | Al.DecD { clauses; _ } ->
               List.iter
                 (fun clause ->
-                  let ({ Il.prems; _ } : Il.clause') = clause.it in
+                  let ({ Al.prems; _ } : Al.clause') = clause.it in
                   List.iter (fun prem -> assign_premise_uid prem) prems)
                 clauses
           | _ -> ())

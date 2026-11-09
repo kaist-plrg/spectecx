@@ -1,5 +1,5 @@
 type error = Diag.t list
-type 'a result = ('a, error) Stdlib.result
 
-val elab_spec : Lang.El.spec -> Lang.Il.spec result
-val error_to_diagnostics : error -> Diag.Bag.t
+(** Returns the definitions, rules and clauses accepted by elaboration, together
+    with the errors it reports. *)
+val elab_spec : Lang.El.spec -> Lang.Il.spec * error

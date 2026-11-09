@@ -1,0 +1,9 @@
+var x : nat
+
+dec $f(nat) : nat
+
+def $f(x) = true
+  -- otherwise
+
+def $f(x) = 3
+  -- otherwise

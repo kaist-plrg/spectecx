@@ -226,14 +226,6 @@ and string_of_iterexp iterexp =
 and string_of_iterexps iterexps =
   iterexps |> List.map string_of_iterexp |> String.concat ""
 
-and string_of_iterinstr iterinstr =
-  let iter, vars = iterexp_of_iterinstr iterinstr in
-  let vars = List.sort (fun a b -> String.compare a.varid.it b.varid.it) vars in
-  string_of_iterexp (iter, vars)
-
-and string_of_iterinstrs iterinstrs =
-  iterinstrs |> List.map string_of_iterinstr |> String.concat ""
-
 (* Patterns *)
 
 and string_of_pattern pattern =
@@ -339,14 +331,11 @@ and string_of_prem prem =
   | RelAssertPr { call; expect } ->
       "if " ^ string_of_relcall call
       ^ if expect then " holds" else " does not hold"
-  | IfPr { cond; _ } -> "if " ^ string_of_exp cond
+  | IfPr cond -> "if " ^ string_of_exp cond
   | ElsePr -> "otherwise"
-  | LetPr (exp_l, exp_r) ->
-      "let " ^ string_of_exp exp_l ^ " = " ^ string_of_exp exp_r
-  | IterPr (({ it = IterPr _; _ } as prem), iterinstr) ->
-      string_of_prem prem ^ string_of_iterinstr iterinstr
-  | IterPr (prem, iterinstr) ->
-      "(" ^ string_of_prem prem ^ ")" ^ string_of_iterinstr iterinstr
+  | IterPr (({ it = IterPr _; _ } as prem), iter) ->
+      string_of_prem prem ^ string_of_iter iter
+  | IterPr (prem, iter) -> "(" ^ string_of_prem prem ^ ")" ^ string_of_iter iter
   | DebugPr exp -> "debug " ^ string_of_exp exp
 
 and string_of_prems prems =

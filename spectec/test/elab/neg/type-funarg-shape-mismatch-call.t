@@ -27,10 +27,4 @@
     |
   6 | dec $caller(def $f(nat) : nat) : nat
     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  
-  warning[elab/dec-missing-clauses]: dec $main has no clauses defined
-    --> type-funarg-shape-mismatch-call.spectec:8:1
-    |
-  8 | dec $main : nat
-    | ^^^^^^^^^^^^^^^
   [1]

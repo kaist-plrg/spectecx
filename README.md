@@ -48,20 +48,21 @@ This creates an executable `spectecx` in the project root.
 
 ### Structure
 
-SpecTecX currently consists of four main components.
+The compiler processes a specification through EL -> IL -> AL -> SL.
 
 * SpecTec EL is the surface language in which the spec is authored.
-* SpecTec IL (internal language). EL -> IL conversion is called "elaboration". Elaboration makes the spec more algorithmic and unambiguous.
-* SpecTec SL (structured language). IL -> SL conversion is called "structuring". Structuring groups related execution paths into explicit branching with over-approximation. This minimizes backtracking, making the SL interpreter much faster than the IL interpreter.
-* Interpreter backends for IL/SL.
-  * Needs to be coupled with a parser that converts an input file into a SpecTec IL value.
+* SpecTec IL (internal language) holds the result of elaboration, which checks types and resolves source notation.
+* SpecTec AL (algorithmic language) holds executable rules and clauses. The algo pass turns IL into AL by deciding variable bindings, adding checks and annotating iterations.
+* SpecTec SL (structured language) groups related AL execution paths into explicit branches to reduce backtracking.
+
+The default interpreter executes AL, and `--sl` selects the SL interpreter. The default mode is named IL in command-line help and test targets. Targets provide parsers that turn programs into IL values.
 
 Repository layout:
 
 ```
-spectec/lib/lang/        ASTs for el / il / sl / xl
-spectec/lib/pass/        parse, elaborate (EL→IL), structure (IL→SL)
-spectec/lib/interp/      IL and SL interpreters, builtins, target interface
+spectec/lib/lang/        ASTs for el / il / al / sl / pl / xl
+spectec/lib/pass/        parse, elaborate (EL->IL), algo (IL->AL), structure (AL->SL)
+spectec/lib/interp/      interpreters, builtins, target interface
 spectec/lib/cli/         reusable CLI machinery and target plugin loading
 spectec/lib/spectec.ml   public facade (pipeline + eval + Error/Task/Target)
 spectec/targets/<t>/     per-target code, CLI modules, and plugin registration
@@ -76,16 +77,18 @@ The target-specific examples require the corresponding target package.
 
 ```bash
 # print out the IL representation of a SpecTec spec
-./spectecx elab spec/*.spectec
+./spectecx elab spectec/specs/impty/base/spec.spectec
+# print the AL representation of a SpecTec spec
+./spectecx algo spectec/specs/impty/base/spec.spectec
 # print the SL representation of a SpecTec spec
-./spectecx struct spec/*.spectec
+./spectecx struct spectec/specs/impty/base/spec.spectec
 
 ## P4-specific commands
 
 # parse a P4 program to an IL value (-r to do a roundtrip test)
 ./spectecx p4 parse spec/*.spectec -i spectec/testdata/interp/p4-tests/includes -p target/file.p4 [-r]
 
-# run a P4 program based on SpecTec IL/SL
+# run a P4 program with the default AL interpreter or SL
 ./spectecx p4 typecheck -i spectec/testdata/interp/p4-tests/includes -p target/file.p4
 ./spectecx p4 typecheck -i spectec/testdata/interp/p4-tests/includes -p target/file.p4 --sl
 
@@ -126,7 +129,7 @@ The [ITPL specifications](spectec/specs/itpl/README.md) follow the languages in 
 Integrations for `.spectec` files live in `editors/`:
 
 - **Syntax highlighting** for VS Code, Emacs, and Vim/Neovim, one per subdirectory.
-- **Diagnostics**: `make lsp` builds `spectecx-lsp`, a language server that reports parse and elaboration errors as you edit.
+- **Diagnostics**: `make lsp` builds `spectecx-lsp`, a language server that reports parse, elaboration and algo errors as you edit.
 
 See [editors/README.md](editors/README.md) for installing a highlighter and turning on the language server.
 
@@ -135,8 +138,8 @@ See [editors/README.md](editors/README.md) for installing a highlighter and turn
 make test
 ```
 
-- Checks parsing, elaboration and structuring using the `spectec/examples/p4-concrete` spec corpus.
-- Checks IL/SL interpreter coupled with the P4 parser using `spectec/testdata/interp/p4-tests` files.
+- Checks parsing, elaboration, algo and structuring using the specs under `spectec/specs/p4` and `spectec/specs/p4-old`.
+- Checks interpreter results with the P4 parser using files under `spectec/testdata/interp/p4`.
 
 ### Adding a New Target
 

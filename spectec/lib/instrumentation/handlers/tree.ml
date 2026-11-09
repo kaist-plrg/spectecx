@@ -14,6 +14,7 @@
       concretized with runtime values. IL only. *)
 
 module Il = Lang.Il
+module Al = Lang.Al
 module El = Lang.El
 module Ansi = Diag.Ansi
 open Util
@@ -56,7 +57,7 @@ type node = {
   mutable binding_env : (Il.id * Il.Value.t) list;
 }
 
-and prem_entry = { prem : Il.prem; mutable subderiv : node option }
+and prem_entry = { prem : Al.prem; mutable subderiv : node option }
 
 (* One rule's attempt at a goal; [unmet_prem] is the premise that defeated it, or
    [None] if the rule fired. *)
@@ -64,7 +65,7 @@ and derivation = {
   mutable rule : string option;
   mutable prems_rev : prem_entry list;
   mutable children_rev : node list;
-  mutable unmet_prem : Il.prem option;
+  mutable unmet_prem : Al.prem option;
 }
 
 let empty_derivation () =
@@ -88,7 +89,7 @@ let is_failed node =
   | _ -> false
 
 let is_applied = function
-  | Some { it = Il.IfPr { role = Il.Guard; _ }; _ } -> false
+  | Some { it = Al.IfPr { role = Al.Guard; _ }; _ } -> false
   | _ -> true
 
 (* === Mutable state ================================================= *)
@@ -152,7 +153,7 @@ module State = struct
 end
 
 let is_authored_prem prem =
-  match prem.note with Some Il.Synthesized -> false | _ -> true
+  match prem.note with Some Al.Synthesized -> false | _ -> true
 
 (* === Rendering ===================================================== *)
 
@@ -222,8 +223,8 @@ let render_prem ~binding_env entry =
     | None -> Some (dim "?")
   in
   match entry.prem.note with
-  | Some (Il.Source el_prem) -> El.Unparse.string_of_prem ~values el_prem
-  | _ -> Il.Print.string_of_prem entry.prem
+  | Some (Al.Source el_prem) -> El.Unparse.string_of_prem ~values el_prem
+  | _ -> Al.Print.string_of_prem entry.prem
 
 let derivations_of node =
   if is_failed node then List.rev node.failures_rev else [ node.derivation ]
@@ -282,7 +283,7 @@ and print_derivation_body ~rest_prefix node derivation out =
       let is_culprit = Option.is_some derivation.unmet_prem && i = last in
       let show_as_text = is_culprit && is_synthesized in
       match (entry.prem.it, entry.subderiv) with
-      | (Il.RelPr _ | Il.RelAssertPr { expect = true; _ }), Some subderiv
+      | (Al.RelPr _ | Al.RelAssertPr { expect = true; _ }), Some subderiv
         when not show_as_text ->
           print_child ~rest_prefix out subderiv
       | _ -> print_prem ~marked:is_culprit entry)

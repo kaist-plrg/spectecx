@@ -112,7 +112,7 @@ end) : sig
       [Error]. Apply [f] directly when [iterinstrs] is empty. *)
   val eval_iterations :
     t ->
-    iterinstrs:Lang.Il.iterinstr list ->
+    iterinstrs:Lang.Al.iterinstr list ->
     f:(t -> t Common.Attempt.attempt) ->
     t Common.Attempt.attempt
 

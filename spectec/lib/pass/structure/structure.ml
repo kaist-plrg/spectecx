@@ -4,6 +4,7 @@ open Common.Domain
 open Lang
 open Lang.Il.Expression
 open Lang.Il
+open Lang.Al
 module RTEnv = Envs.RTEnv
 module TDEnv = Envs.Il.TDEnv
 

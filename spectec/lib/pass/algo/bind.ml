@@ -2,7 +2,7 @@ open Common.Domain
 open Common.Annotated
 open Lang.Il
 open Envs.Make
-open Ctx
+open Dctx
 open Diagnostic
 
 (* Binding occurrences of identifiers, singular or multiple (parallel) *)
@@ -42,11 +42,11 @@ module BEnv = struct
                    "inconsistent dimensions for multiple bindings: (left) %s, \
                     (right) %s"
                    (Occ.to_string bind_a) (Occ.to_string bind_b))
-                ~code:Dataflow_multibind_dimension_mismatch
+                ~code:Multibind_dimension_mismatch
                 ~detail:
                   "A variable can have only one inferred type per binder \
                    pattern. Here, the same variable is bound in two parallel \
-                   positions at different dimensions, so the elaborator cannot \
+                   positions at different dimensions, so the algo pass cannot \
                    pick one.";
             add id (Occ.Multi typ_a) benv
         | Some bind, None | None, Some bind -> add id bind benv

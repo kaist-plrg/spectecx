@@ -12,6 +12,7 @@
     All levels stream — events are printed as they happen, not buffered. *)
 
 module Il = Lang.Il
+module Al = Lang.Al
 open Util
 
 type level = Summary | Rules | Inputs | Full
@@ -93,7 +94,7 @@ module M : Instrumentation_api.Handler.S = struct
         printf_at_least Full "%s  ← [iteration]\n%!" (State.indent ())
     | Prem_enter { prem; at = _ } ->
         printf_at_least Full "%s  | -- %s\n%!" (State.indent ())
-          (Il.Print.string_of_prem prem |> normalize_whitespace)
+          (Al.Print.string_of_prem prem |> normalize_whitespace)
     | Prem_exit _ -> ()
     | Instr _ -> ()
 end

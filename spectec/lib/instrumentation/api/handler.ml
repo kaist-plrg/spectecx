@@ -6,7 +6,7 @@
     and construction. *)
 
 type spec = Instrumentation_static.Static.spec =
-  | IlSpec of Lang.Il.spec
+  | IlSpec of Lang.Al.spec
   | SlSpec of Lang.Sl.spec
 
 (** Base handler signature. Handlers pattern-match on {!Event.t} and only need

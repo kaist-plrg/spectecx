@@ -11,7 +11,7 @@ type context
 val context_of_spec :
   ?check_determinism:bool ->
   (module Target.S) ->
-  Lang.Il.spec ->
+  Lang.Al.spec ->
   (context, error) result
 
 val eval_rel :

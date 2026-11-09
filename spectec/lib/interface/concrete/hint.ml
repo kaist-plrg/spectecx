@@ -1,4 +1,5 @@
 open Lang.Il
+open Lang.Al
 open Common.Annotated
 module SMap = Map.Make (String)
 

@@ -17,4 +17,4 @@ val string_of_prog : Lang.Il.Value.t -> string
     with newlines. [spec] is unused (rendering is purely structural).
 
     @raise Unsupported if any value has a construct with no surface form. *)
-val unparse : spec:Lang.Il.spec -> Lang.Il.Value.t list -> string
+val unparse : spec:Lang.Al.spec -> Lang.Il.Value.t list -> string

@@ -15,8 +15,8 @@ let filename = "<test>"
 let load_grammar spec : Grammar.t =
   match parse_spec_files [ spec ] with
   | Ok el -> (
-      match elaborate el with
-      | Ok il -> Grammar.extract ~start:"prog" il
+      match elaborate_and_algorithmize el with
+      | Ok spec_al -> Grammar.extract ~start:"prog" spec_al
       | Error _ -> failwith "could not elaborate the impty spec")
   | Error _ -> failwith "could not parse the impty spec"
 

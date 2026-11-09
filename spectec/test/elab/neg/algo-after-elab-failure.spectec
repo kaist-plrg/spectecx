@@ -1,0 +1,12 @@
+var x : nat
+var y : nat
+
+relation R:
+  nat |- nat
+  hint(input %0)
+
+rule R/ill-typed:
+  x |- true
+
+rule R/unbound-output:
+  x |- y

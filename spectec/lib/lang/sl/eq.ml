@@ -51,9 +51,15 @@ let eq_iterexp (iterexp_a : iterexp) (iterexp_b : iterexp) : bool =
 let eq_iterexps (iterexps_a : iterexp list) (iterexps_b : iterexp list) : bool =
   Il.Eq.eq_iterexps iterexps_a iterexps_b
 
+let eq_iterinstr (iterinstr_a : iterinstr) (iterinstr_b : iterinstr) : bool =
+  Il.Eq.eq_iter iterinstr_a.iter iterinstr_b.iter
+  && Il.Eq.eq_vars iterinstr_a.vars_input iterinstr_b.vars_input
+  && Il.Eq.eq_vars iterinstr_a.vars_output iterinstr_b.vars_output
+
 let eq_iterinstrs (iterinstrs_a : iterinstr list)
     (iterinstrs_b : iterinstr list) : bool =
-  Il.Eq.eq_iterinstrs iterinstrs_a iterinstrs_b
+  List.length iterinstrs_a = List.length iterinstrs_b
+  && List.for_all2 eq_iterinstr iterinstrs_a iterinstrs_b
 
 (* Relation calls *)
 

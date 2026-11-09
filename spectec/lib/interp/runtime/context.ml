@@ -3,6 +3,7 @@ open Common.Annotated
 module Location = Common.Location
 open Common.Attempt
 module Il = Lang.Il
+module Al = Lang.Al
 module Var = Envs.Interp.Var
 module Value = Il.Value
 module Typdef = Envs.Il.Typdef
@@ -309,7 +310,7 @@ struct
       in
       ignore (Emit_value.combined value ~sources:(ranged @ produced))
 
-  let iteration_outputs ctx ~iterinstr:Il.{ iter; vars_input; vars_output } ~f =
+  let iteration_outputs ctx ~iterinstr:Al.{ iter; vars_input; vars_output } ~f =
     let* ctxs = expand_iteration_inputs ctx ~iter ~vars:vars_input in
     let* ctxs_output_rev =
       List.fold_left

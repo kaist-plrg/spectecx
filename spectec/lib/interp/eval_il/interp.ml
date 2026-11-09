@@ -1,6 +1,8 @@
 open Common.Annotated
 module Location = Common.Location
 open Lang.Il
+open Lang.Al
+module Il = Lang.Il
 open Error
 open Attempt
 module Events = Instrumentation.Event
@@ -67,7 +69,8 @@ and eval_prem (ctx : Ctx.t) (prem : prem) : Ctx.t attempt =
     if cond then Ok ctx
     else
       fail_with exp_cond.at
-        (F.asprintf "condition %s was not met" (Print.string_of_exp exp_cond))
+        (F.asprintf "condition %s was not met"
+           (Il.Print.string_of_exp exp_cond))
   in
   let eval_rel_assert_prem ctx (call : relcall) (expect : bool) =
     let id = call.relid in
@@ -86,8 +89,10 @@ and eval_prem (ctx : Ctx.t) (prem : prem) : Ctx.t attempt =
   let eval_debug_prem ctx exp =
     let value = eval_exp ctx exp in
     print_endline
-    @@ F.sprintf "%s: %s" (Location.to_string exp.at) (Print.string_of_exp exp);
-    print_endline @@ Print.string_of_value value;
+    @@ F.sprintf "%s: %s"
+         (Location.to_string exp.at)
+         (Il.Print.string_of_exp exp);
+    print_endline @@ Il.Print.string_of_value value;
     Ok ctx
   in
   (match prem.it with
@@ -251,9 +256,9 @@ and invoke_func (ctx : Ctx.t) (id : id) (targs : targ list) (args : arg list) :
   invoke_func_values ctx id targs values_input
   |> nest id.at
        (F.asprintf "invocation of function %s%s%s failed"
-          (Print.string_of_defid id)
-          (Print.string_of_targs targs)
-          (Print.string_of_args args))
+          (Il.Print.string_of_defid id)
+          (Il.Print.string_of_targs targs)
+          (Il.Print.string_of_args args))
 
 and invoke_func_values (ctx : Ctx.t) (id : id) (targs : targ list)
     (values_input : value list) : value attempt =
@@ -333,7 +338,7 @@ and invoke_func_values (ctx : Ctx.t) (id : id) (targs : targ list)
           attempt_clause' ctx_local prems exp_output
           |> nest id.at
                (F.asprintf "application of clause %s%s failed" id.it
-                  (Print.string_of_args args_input))
+                  (Il.Print.string_of_args args_input))
         in
         Instrumentation.Dispatcher.emit
           (Events.Clause_exit

@@ -1,5 +1,6 @@
 module Location = Common.Location
 module Il = Lang.Il
+module Al = Lang.Al
 module Sl = Lang.Sl
 
 type t =
@@ -28,11 +29,11 @@ type t =
       at : Location.t;
       success : bool;
     }
-  | Iter_prem_enter of { prem : Il.prem; at : Location.t }
+  | Iter_prem_enter of { prem : Al.prem; at : Location.t }
   | Iter_prem_exit of { at : Location.t }
-  | Prem_enter of { prem : Il.prem; at : Location.t }
+  | Prem_enter of { prem : Al.prem; at : Location.t }
   | Prem_exit of {
-      prem : Il.prem;
+      prem : Al.prem;
       at : Location.t;
       success : bool;
       bindings : (Il.id * Il.Value.t) list;

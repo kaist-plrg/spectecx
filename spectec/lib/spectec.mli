@@ -1,7 +1,7 @@
 (** Spectec - Entrypoint API facade.
 
-    Provides the core pipeline (parse, elaborate, structure), a unified
-    interpreter entry point, and the core type modules (Error, Task, Target). *)
+    Provides the core pipeline, a unified interpreter entry point, and the core
+    type modules (Error, Task, Target). *)
 
 module Error = Error
 module Task = Task
@@ -73,9 +73,15 @@ val parse_spec_sources : spec_source list -> Lang.El.spec result
 val parse_spec_files : string list -> Lang.El.spec result
 
 val elaborate : Lang.El.spec -> Lang.Il.spec result
-val structure : Lang.Il.spec -> Lang.Sl.spec
+
+(** Runs algo on the rules and clauses accepted by elaboration, including when
+    elaboration reports errors elsewhere. Returns errors from elaboration and
+    algo. *)
+val elaborate_and_algorithmize : Lang.El.spec -> Lang.Al.spec result
+
+val structure : Lang.Al.spec -> Lang.Sl.spec
 val henv_of_el_spec : Lang.El.spec -> Hints.Henv.t
-val henv_with_il_spec : Hints.Henv.t -> Lang.Il.spec -> Hints.Henv.t
+val henv_with_al_spec : Hints.Henv.t -> Lang.Al.spec -> Hints.Henv.t
 val annotate : henv:Hints.Henv.t -> Lang.Sl.spec -> Pl.spec
 val shorten : Pl.spec -> Pl.spec
 
@@ -96,7 +102,7 @@ val eval_task :
   (module Task.S with type input = 'i) ->
   ?check_determinism:bool ->
   mode:Interp_mode.t ->
-  spec_il:Lang.Il.spec ->
+  spec_al:Lang.Al.spec ->
   'i ->
   Lang.Il.Value.t list result
 
@@ -111,6 +117,6 @@ val eval_task_with_instrumentation :
   ?config:Instrumentation.Config.t ->
   ?check_determinism:bool ->
   mode:Interp_mode.t ->
-  spec_il:Lang.Il.spec ->
+  spec_al:Lang.Al.spec ->
   'i ->
   Lang.Il.Value.t list result

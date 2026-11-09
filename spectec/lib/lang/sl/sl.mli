@@ -1,4 +1,4 @@
-(** Data types and pure data functions for SL. SL is IL with structured control
+(** Data types and pure data functions for SL. SL is AL with structured control
     flow *)
 
 include module type of Types

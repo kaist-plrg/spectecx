@@ -72,7 +72,7 @@ type exp' = Il.exp'
 
 type notexp = Il.notexp
 type iterexp = Il.iterexp
-type iterinstr = Il.iterinstr
+type iterinstr = Al.iterinstr
 
 (* Patterns *)
 

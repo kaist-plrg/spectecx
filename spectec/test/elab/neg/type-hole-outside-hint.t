@@ -8,10 +8,4 @@
     | note: A `%`, `%N`, `%%`, or `!%` marks an argument slot inside a `hint(...)`
     |       expression, like `hint(input %0 %1)`. Outside a hint, it has no
     |       meaning.
-  
-  warning[elab/dec-missing-clauses]: dec $f has no clauses defined
-    --> type-hole-outside-hint.spectec:4:1
-    |
-  4 | dec $f : nat
-    | ^^^^^^^^^^^^
   [1]

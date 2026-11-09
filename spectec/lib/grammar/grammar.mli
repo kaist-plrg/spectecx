@@ -32,7 +32,7 @@ type t = syntax list
     read from [spec]'s variant and plain-alias [syntax] declarations. Raises
     [Failure] if a reachable production uses a type the grammar cannot render as
     surface syntax. *)
-val extract : start:string -> Il.spec -> t
+val extract : start:string -> Al.spec -> t
 
 (** The operator or keyword atom that names a production, if it has one. *)
 val operator_atom : production -> Xl.Atom.t option

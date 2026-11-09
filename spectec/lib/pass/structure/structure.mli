@@ -1,1 +1,1 @@
-val struct_spec : Lang.Il.spec -> Lang.Sl.spec
+val struct_spec : Lang.Al.spec -> Lang.Sl.spec

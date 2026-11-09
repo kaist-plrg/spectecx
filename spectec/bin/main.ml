@@ -20,6 +20,21 @@ let elab_command =
     let* spec_il = elaborate spec in
     Ok spec_il
 
+let algo_command =
+  Core.Command.basic ~summary:"parse, elaborate and algorithmize a spec"
+  @@
+  let open Core.Command.Let_syntax in
+  let open Core.Command.Param in
+  let%map filenames = anon (sequence ("spec files" %: string))
+  and color = Cli.Cli_args.Output.color_flag in
+  fun () ->
+    Cli.Error_handling.guard ~color ~on_ok:(fun spec_al ->
+        Format.printf "%s\n" (Lang.Al.Print.string_of_spec spec_al))
+    @@ fun () ->
+    let* spec = parse_spec_files filenames in
+    let* spec_al = elaborate_and_algorithmize spec in
+    Ok spec_al
+
 let unparse_roundtrip filenames =
   let* spec_el = parse_spec_files filenames in
   let printed = Lang.El.Unparse.string_of_spec spec_el in
@@ -67,13 +82,13 @@ let grammar_command =
       ~doc:"SYMBOL syntax to extract the reachable grammar from"
   and color = Cli.Cli_args.Output.color_flag in
   fun () ->
-    Cli.Error_handling.guard ~color ~on_ok:(fun spec_il ->
+    Cli.Error_handling.guard ~color ~on_ok:(fun spec_al ->
         Format.printf "%s\n"
-          (Grammar.string_of_t (Grammar.extract ~start spec_il)))
+          (Grammar.string_of_t (Grammar.extract ~start spec_al)))
     @@ fun () ->
     let* spec = parse_spec_files filenames in
-    let* spec_il = elaborate spec in
-    Ok spec_il
+    let* spec_al = elaborate_and_algorithmize spec in
+    Ok spec_al
 
 let structure_command =
   Core.Command.basic ~summary:"structure a spec"
@@ -87,8 +102,8 @@ let structure_command =
         Format.printf "%s\n" (Lang.Sl.Print.string_of_spec spec_sl))
     @@ fun () ->
     let* spec = parse_spec_files filenames in
-    let* spec_il = elaborate spec in
-    let spec_sl = structure spec_il in
+    let* spec_al = elaborate_and_algorithmize spec in
+    let spec_sl = structure spec_al in
     Ok spec_sl
 
 let annotate_command =
@@ -103,10 +118,10 @@ let annotate_command =
         Format.printf "%s\n" (Pl.Print.string_of_spec spec_pl))
     @@ fun () ->
     let* spec = parse_spec_files filenames in
-    let* spec_il = elaborate spec in
-    let spec_sl = structure spec_il in
+    let* spec_al = elaborate_and_algorithmize spec in
+    let spec_sl = structure spec_al in
     let henv = henv_of_el_spec spec in
-    let henv = henv_with_il_spec henv spec_il in
+    let henv = henv_with_al_spec henv spec_al in
     let spec_pl = annotate ~henv spec_sl |> shorten in
     Ok spec_pl
 
@@ -157,10 +172,10 @@ let splice_command =
         | None -> ())
     @@ fun () ->
     let* spec = parse_spec_files filenames in
-    let* spec_il = elaborate spec in
-    let spec_sl = structure spec_il in
+    let* spec_al = elaborate_and_algorithmize spec in
+    let spec_sl = structure spec_al in
     let henv = henv_of_el_spec spec in
-    let henv = henv_with_il_spec henv spec_il in
+    let henv = henv_with_al_spec henv spec_al in
     let spec_pl = annotate ~henv spec_sl |> shorten in
     let inputs = collect_files ~exts:[ ".adoc" ] input_dir in
     let pairs =
@@ -182,6 +197,7 @@ let command =
     ([
        ("unparse", unparse_command);
        ("elab", elab_command);
+       ("algo", algo_command);
        ("grammar", grammar_command);
        ("struct", structure_command);
        ("annotate", annotate_command);

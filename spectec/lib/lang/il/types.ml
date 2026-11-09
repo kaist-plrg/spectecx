@@ -259,35 +259,15 @@ and clause' = { args : arg list; body : exp; prems : prem list }
 
 and relcall = { relid : id; notexp : notexp }
 
-and prem = (prem', prem_prov option) annotated
-and prem_prov =
-  | Source of El.prem  (* lowered from this EL premise *)
-  | Synthesized        (* introduced by elaboration; no EL source *)
+and prem = (prem', El.prem) annotated  (* lowered from this EL premise *)
 and prem' =
   | RelPr of relcall               (* id `:` notexp *)
   | RelAssertPr of { call : relcall; expect : bool }
                                    (* `if` id `:` notexp `holds` when expect, else `does not hold` *)
-  | IfPr of { cond : exp; role : if_role }  (* `if` exp *)
+  | IfPr of exp                    (* `if` exp *)
   | ElsePr                         (* `otherwise` *)
-  | LetPr of exp * exp             (* `let` exp `=` exp *)
-  | IterPr of prem * iterinstr     (* prem iterinstr *)
+  | IterPr of prem * iter          (* prem iter *)
   | DebugPr of exp                 (* `debug` exp *)
-
-and if_role =
-  | Condition
-  | Guard  (* failing it means the rule does not apply *)
-
-(* Each run of an iterated premise reads [vars_input] and binds
-   [vars_output]. *)
-and iterinstr = { iter : iter; vars_input : var list; vars_output : var list }
-
-(* Dimension analysis fills in the variables. *)
-let unannotated_iterinstr (iter : iter) : iterinstr =
-  { iter; vars_input = []; vars_output = [] }
-
-let iterexp_of_iterinstr ({ iter; vars_input; vars_output } : iterinstr) :
-    iterexp =
-  (iter, vars_input @ vars_output)
 
 (* Definitions *)
 

@@ -3,9 +3,9 @@ let parse_file includes filename =
   with Error.P4ParseError (at, msg) ->
     Spectec.Error.TaskParseError (at, msg) |> Result.error
 
-let unparse ~spec:spec_il value_program =
+let unparse ~spec:spec_al value_program =
   match value_program with
-  | [ v ] -> Format.asprintf "%a\n" (Concrete.Pp.pp_program spec_il) v
+  | [ v ] -> Format.asprintf "%a\n" (Concrete.Pp.pp_program spec_al) v
   | _ -> failwith "unexpected number of values"
 
 let parse_string ~spec:_ ~filename content =

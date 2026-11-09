@@ -2,8 +2,9 @@ open Common.Domain
 open Common.Annotated
 open Lang.Il.Expression
 open Lang.Il
+open Lang.Al
 open Envs.Make
-open Ctx
+open Dctx
 module Mixop = Lang.Il.Mixfix
 
 (* Helper for identifying singleton case *)
@@ -11,9 +12,8 @@ module Mixop = Lang.Il.Mixfix
 let rec is_singleton_case (dctx : Dctx.t) (typ : typ) : bool =
   match typ.it with
   | VarT { synid; targs } -> (
-      let td = Dctx.find_typdef dctx synid in
-      match td with
-      | Defined (tparams, deftyp) -> (
+      match Dctx.find_typdef_opt dctx synid with
+      | Some (tparams, deftyp) -> (
           match deftyp.it with
           | PlainT typ ->
               let theta = List.combine tparams targs |> TIdMap.of_list in
@@ -21,7 +21,7 @@ let rec is_singleton_case (dctx : Dctx.t) (typ : typ) : bool =
               is_singleton_case dctx typ
           | OpaqueT | StructT _ -> false
           | VariantT cases -> List.length cases = 1)
-      | _ -> false)
+      | None -> false)
   | _ -> false
 
 (* Rename for an expression *)
@@ -98,7 +98,8 @@ let gen_prem_bound (dctx : Dctx.t) (to_ : To.t) (exp_from : exp)
   in
   List.fold_left
     (fun sidecondition iter ->
-      IterPr (sidecondition, unannotated_iterinstr iter) $$ (exp_from.at, None))
+      IterPr (sidecondition, Dimension.unannotated_iterinstr iter)
+      $$ (exp_from.at, None))
     sidecondition iters
 
 let gen_prem_bind_match (to_ : To.t) (pattern : pattern) (exp_from : exp)
@@ -118,7 +119,8 @@ let gen_prem_bind_match (to_ : To.t) (pattern : pattern) (exp_from : exp)
     (fun prem ->
       List.fold_left
         (fun prem iter ->
-          IterPr (prem, unannotated_iterinstr iter) $$ (exp_from.at, None))
+          IterPr (prem, Dimension.unannotated_iterinstr iter)
+          $$ (exp_from.at, None))
         prem iters)
     prems
 
@@ -143,7 +145,8 @@ let gen_prem_bind_sub (to_ : To.t) (typ_sub : typ) (exp_sub : exp)
     (fun prem ->
       List.fold_left
         (fun prem iter ->
-          IterPr (prem, unannotated_iterinstr iter) $$ (exp_from.at, None))
+          IterPr (prem, Dimension.unannotated_iterinstr iter)
+          $$ (exp_from.at, None))
         prem iters)
     prems
 

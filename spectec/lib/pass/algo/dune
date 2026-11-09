@@ -1,0 +1,4 @@
+(library
+ (name algo)
+ (public_name spectec.pass.algo)
+ (libraries spectec.common spectec.diagnostic spectec.lang spectec.envs))

@@ -3,7 +3,7 @@ module Location = Common.Location
 open Lang.Il.Expression
 open Lang.Il
 open Diagnostic
-open Ctx
+open Dctx
 module Mixop = Lang.Il.Mixfix
 
 (* Collect binding identifiers,
@@ -16,9 +16,9 @@ let collect_noninvertible (at : Location.t) (construct : string)
     error at
       (Format.asprintf "invalid binding position(s) for %s in non-invertible %s"
          (Bind.BEnv.to_string benv) construct)
-      ~code:Dataflow_bind_in_non_invertible
+      ~code:Bind_in_non_invertible
       ~detail:
-        "The elaborator assigns each variable a specific piece of the \
+        "The algo pass assigns each variable a specific piece of the \
          surrounding value: a tuple element, a variant case's argument, a \
          struct field, or a list element. It does not invert operators, even \
          when their inverse would be unique."

@@ -1,0 +1,9 @@
+var x : nat
+
+dec $f(undefined) : nat
+
+def $f(x) = 1
+  -- otherwise
+
+def $f(x) = 2
+  -- otherwise

@@ -2,7 +2,6 @@ module Location = Common.Location
 open Common.Attempt
 
 type error = Diag.t list
-type 'a result = ('a, error) Stdlib.result
 
 exception ElabError of Diag.t
 
@@ -67,15 +66,6 @@ type code =
   | Ctx_builtin_dec_redefined
   | Ctx_dec_redefined
   | Ctx_dec_fallback_redefined
-  (* dataflow *)
-  | Dataflow_free_variable_in_output
-  | Dataflow_bind_both_sides_of_equality
-  | Dataflow_multibind_dimension_mismatch
-  | Dataflow_bind_in_non_invertible
-  | Dataflow_empty_iter_expression
-  | Dataflow_empty_iter_premise
-  | Dataflow_iter_binding_only
-  | Dataflow_iter_dimension_mismatch
 
 let string_of_code = function
   | Functyp_tparam_arity_mismatch -> "functyp-tparam-arity-mismatch"
@@ -128,16 +118,6 @@ let string_of_code = function
   | Ctx_builtin_dec_redefined -> "ctx-builtin-dec-redefined"
   | Ctx_dec_redefined -> "ctx-dec-redefined"
   | Ctx_dec_fallback_redefined -> "ctx-dec-fallback-redefined"
-  | Dataflow_free_variable_in_output -> "dataflow-free-variable-in-output"
-  | Dataflow_bind_both_sides_of_equality ->
-      "dataflow-bind-both-sides-of-equality"
-  | Dataflow_multibind_dimension_mismatch ->
-      "dataflow-multibind-dimension-mismatch"
-  | Dataflow_bind_in_non_invertible -> "dataflow-bind-in-non-invertible"
-  | Dataflow_empty_iter_expression -> "dataflow-empty-iter-expression"
-  | Dataflow_empty_iter_premise -> "dataflow-empty-iter-premise"
-  | Dataflow_iter_binding_only -> "dataflow-iter-binding-only"
-  | Dataflow_iter_dimension_mismatch -> "dataflow-iter-dimension-mismatch"
 
 let render_code (c : code) : string = "elab/" ^ string_of_code c
 
@@ -179,5 +159,3 @@ let error_with_traces ?code ?detail ?(related = [])
     }
   in
   raise (ElabError d)
-
-let to_diagnostics (errors : error) : Diag.Bag.t = Diag.Bag.of_list errors

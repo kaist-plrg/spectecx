@@ -11,7 +11,6 @@ open Common.Attempt
 (** {1 Diagnostic payload} *)
 
 type error = Diag.t list
-type 'a result = ('a, error) Stdlib.result
 
 exception ElabError of Diag.t
 
@@ -88,15 +87,6 @@ type code =
   | Ctx_builtin_dec_redefined
   | Ctx_dec_redefined
   | Ctx_dec_fallback_redefined
-  (* dataflow *)
-  | Dataflow_free_variable_in_output
-  | Dataflow_bind_both_sides_of_equality
-  | Dataflow_multibind_dimension_mismatch
-  | Dataflow_bind_in_non_invertible
-  | Dataflow_empty_iter_expression
-  | Dataflow_empty_iter_premise
-  | Dataflow_iter_binding_only
-  | Dataflow_iter_dimension_mismatch
 
 (** {1 Raising and emitting}
 
@@ -133,7 +123,3 @@ val error_with_traces :
   ?related:(Location.t * string) list ->
   failtrace list ->
   'a
-
-(** {1 Boundary - payload to {!Diag.Bag.t}} *)
-
-val to_diagnostics : error -> Diag.Bag.t

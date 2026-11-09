@@ -8,10 +8,11 @@ open Test_lib
 module Annotated = Common.Annotated
 module El = Lang.El
 module Il = Lang.Il
+module Al = Lang.Al
 
-let recover (prems : Il.prem list) : El.prem list =
+let recover (prems : Al.prem list) : El.prem list =
   List.filter_map prems ~f:(fun prem ->
-      match prem.note with Some (Il.Source el) -> Some el | _ -> None)
+      match prem.note with Some (Al.Source el) -> Some el | _ -> None)
 
 let authored_rule_premises (spec : El.spec) relid : El.prem list list =
   List.filter_map spec ~f:(fun def ->
@@ -60,13 +61,13 @@ type tally = {
   failures : string list;
 }
 
-let check_def (spec : El.spec) (tally : tally) (def : Il.def) : tally =
+let check_def (spec : El.spec) (tally : tally) (def : Al.def) : tally =
   match Annotated.it def with
-  | Il.RelD { relid; rules; _ } ->
+  | Al.RelD { relid; rules; _ } ->
       let authored = authored_rule_premises spec (Annotated.it relid) in
       let failures =
         List.filter_mapi rules ~f:(fun i rule ->
-            let { Il.ruleid; prems; _ } = Annotated.it rule in
+            let { Al.ruleid; prems; _ } = Annotated.it rule in
             find_mismatch
               ~label:
                 (sprintf "%s/%s" (Annotated.it relid) (Annotated.it ruleid))
@@ -77,11 +78,11 @@ let check_def (spec : El.spec) (tally : tally) (def : Il.def) : tally =
         rules_checked = tally.rules_checked + List.length rules;
         failures = tally.failures @ failures;
       }
-  | Il.DecD { defid; clauses; _ } ->
+  | Al.DecD { defid; clauses; _ } ->
       let authored = authored_clause_premises spec (Annotated.it defid) in
       let failures =
         List.filter_mapi clauses ~f:(fun i clause ->
-            let { Il.prems; _ } = Annotated.it clause in
+            let { Al.prems; _ } = Annotated.it clause in
             find_mismatch
               ~label:(sprintf "%s clause %d" (Annotated.it defid) i)
               ~authored:(List.nth authored i) ~recovered:(recover prems))
@@ -98,13 +99,13 @@ let run specdir =
     let open Result.Let_syntax in
     let spec_files = Files.collect ~suffix:".spectec" specdir in
     let%bind spec = Spectec.parse_spec_files spec_files in
-    let%bind spec_il = Spectec.elaborate spec in
-    return (spec, spec_il)
+    let%bind spec_al = Spectec.elaborate_and_algorithmize spec in
+    return (spec, spec_al)
   in
   match result with
-  | Ok (spec, spec_il) ->
+  | Ok (spec, spec_al) ->
       let { rules_checked; clauses_checked; failures } =
-        List.fold spec_il
+        List.fold spec_al
           ~init:{ rules_checked = 0; clauses_checked = 0; failures = [] }
           ~f:(check_def spec)
       in

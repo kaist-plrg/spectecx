@@ -23,7 +23,7 @@ type context
 val context_of_il_spec :
   ?check_determinism:bool ->
   target_state ->
-  Lang.Il.spec ->
+  Lang.Al.spec ->
   (context, error) result
 
 val context_of_sl_spec :

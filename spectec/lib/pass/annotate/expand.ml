@@ -369,7 +369,7 @@ let replace_call_exp ~(lift : lift) ?(iter_locals = IdSet.empty)
     List.fold_left
       (fun (iterinstrs_let, var_bind) (iter, vars_iterated) ->
         let iterinstr =
-          Il.{ iter; vars_input = vars_iterated; vars_output = [ var_bind ] }
+          Al.{ iter; vars_input = vars_iterated; vars_output = [ var_bind ] }
         in
         let var_bind =
           { var_bind with Il.iters = var_bind.Il.iters @ [ iter ] }

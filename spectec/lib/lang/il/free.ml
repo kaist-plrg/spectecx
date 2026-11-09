@@ -74,8 +74,7 @@ let rec free_prem (prem : prem) : t =
   match prem.it with
   | RelPr call -> free_relcall call
   | RelAssertPr { call; _ } -> free_relcall call
-  | IfPr { cond; _ } -> free_exp cond
-  | LetPr (exp_l, exp_r) -> free_exp exp_l + free_exp exp_r
+  | IfPr cond -> free_exp cond
   | ElsePr -> empty
   | IterPr (prem, _) -> free_prem prem
   | DebugPr exp -> free_exp exp
