@@ -7,10 +7,10 @@ These Lean 4 proofs show that well-typed TFAE and TRFAE programs cannot encounte
 With [Lean's toolchain manager](https://github.com/leanprover/elan) installed, run from this directory:
 
 ```sh
-lake build
+./check.sh
 ```
 
-The `lean-toolchain` file selects Lean 4.35.0. An installation of that release with its `bin` directory on `PATH` also works.
+The `lean-toolchain` file selects Lean 4.35.0. An installation of that release with its `bin` directory on `PATH` also works. The script builds the proofs, collects every axiom that a declaration in the `Itpl` modules depends on, and compares that list against `Audit.expected`. The accepted axioms are Lean's standard `propext`, `Quot.sound`, and `Classical.choice`. An admitted proof would add `sorryAx` to the list, and a project-specific axiom would add its own name.
 
 ## UB-to-NB refinement
 
