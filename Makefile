@@ -95,6 +95,9 @@ vsix:
 #   make test-sl-neg     - SL interpreter negative tests
 #   make test-pl-pos     - PL interpreter positive tests (slow)
 #   make test-pl-neg     - PL interpreter negative tests
+#   make test-il-eval    - IL STF evaluation tests on eBPF programs
+#   make test-sl-eval    - SL STF evaluation tests on eBPF programs
+#   make test-pl-eval    - PL STF evaluation tests on eBPF programs
 #
 # Relation and per-case interpreter tests:
 #   make test-interp-relation - Relation tests across IL/SL/PL
@@ -108,9 +111,9 @@ vsix:
 # Grouped tests:
 #   make test-quick      - Fast tests, including P4 instantiation across IL/SL/PL
 #   make test-interp     - Interpreter tests for p4, impty, and Mini-ML, including P4 instantiation
-#   make test-il         - IL tests for p4 (pos + neg)
-#   make test-sl         - SL tests for p4 (pos + neg)
-#   make test-pl         - PL tests for p4 (pos + neg)
+#   make test-il         - IL tests for p4 (pos + neg + eval)
+#   make test-sl         - SL tests for p4 (pos + neg + eval)
+#   make test-pl         - PL tests for p4 (pos + neg + eval)
 #
 # impty interpreter tests (per-variant: base, closure):
 #   make test-impty-<v>-il-pos / -il-neg / -sl-pos / -sl-neg
@@ -126,9 +129,9 @@ vsix:
 #   make test            - quick + interpreter tests
 
 .PHONY: test test-quick test-lang test-context test-interp test-elab test-algo test-elab-neg test-interp-relation test-interp-neg test-cli test-launcher test-lsp test-struct test-annotate test-roundtrip-il test-roundtrip-el test-parsegen test-package
-.PHONY: test-il test-il-pos test-il-neg
-.PHONY: test-sl test-sl-pos test-sl-neg
-.PHONY: test-pl test-pl-pos test-pl-neg
+.PHONY: test-il test-il-pos test-il-neg test-il-eval
+.PHONY: test-sl test-sl-pos test-sl-neg test-sl-eval
+.PHONY: test-pl test-pl-pos test-pl-neg test-pl-eval
 .PHONY: test-impty test-impty-base test-impty-closure
 .PHONY: test-impty-base-il test-impty-base-sl test-impty-base-pl
 .PHONY: test-impty-closure-il test-impty-closure-sl test-impty-closure-pl
@@ -209,7 +212,7 @@ test-package:
 
 # $(1): target prefix, such as p4 or impty-base
 # $(2): il / sl / pl
-# $(3): pos / neg
+# $(3): pos / neg / eval
 define run_interp_test
 	@echo "#### Running $(2) interpreter $(3) tests ($(1))"
 	@$(DUNE) build @test/interp/$(1)-$(2)-$(3) --profile=release
@@ -235,6 +238,15 @@ test-pl-pos:
 test-pl-neg:
 	$(call run_interp_test,p4,pl,neg)
 
+test-il-eval:
+	$(call run_interp_test,p4,il,eval)
+
+test-sl-eval:
+	$(call run_interp_test,p4,sl,eval)
+
+test-pl-eval:
+	$(call run_interp_test,p4,pl,eval)
+
 test-quick: test-context test-lang test-elab test-algo test-elab-neg test-interp-relation test-interp-neg test-cli test-launcher test-lsp test-struct test-annotate test-roundtrip-il test-roundtrip-el test-impty test-miniml test-parsegen test-package
 	@$(DUNE) build @test/interp/p4/runtest --profile=release
 	@echo "#### Quick tests passed"
@@ -243,13 +255,13 @@ test-interp: test-interp-relation test-interp-neg test-il test-sl test-pl test-i
 	@$(DUNE) build @test/interp/p4/runtest --profile=release
 	@echo "#### Interpreter tests passed"
 
-test-il: test-il-pos test-il-neg
+test-il: test-il-pos test-il-neg test-il-eval
 	@echo "#### IL tests passed"
 
-test-sl: test-sl-pos test-sl-neg
+test-sl: test-sl-pos test-sl-neg test-sl-eval
 	@echo "#### SL tests passed"
 
-test-pl: test-pl-pos test-pl-neg
+test-pl: test-pl-pos test-pl-neg test-pl-eval
 	@echo "#### PL tests passed"
 
 test-impty-base-il-pos:
