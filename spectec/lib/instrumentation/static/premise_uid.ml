@@ -30,7 +30,7 @@ let truncate max_len s =
 
 (* Create a unique key for a premise using location + content prefix *)
 let prem_key prem =
-  let content = Al.Print.string_of_prem prem |> normalize_whitespace in
+  let content = Al.Print.string_of_instr prem |> normalize_whitespace in
   (prem.at, truncate 30 content)
 
 (* Shared state for premise UID mapping *)
@@ -79,14 +79,14 @@ let init spec =
           | Al.RelD { rules; _ } ->
               List.iter
                 (fun rule ->
-                  let ({ Al.prems; _ } : Al.rule') = rule.it in
-                  List.iter (fun prem -> assign_premise_uid prem) prems)
+                  let ({ Al.instrs; _ } : Al.rule') = rule.it in
+                  List.iter (fun prem -> assign_premise_uid prem) instrs)
                 rules
           | Al.DecD { clauses; _ } ->
               List.iter
                 (fun clause ->
-                  let ({ Al.prems; _ } : Al.clause') = clause.it in
-                  List.iter (fun prem -> assign_premise_uid prem) prems)
+                  let ({ Al.instrs; _ } : Al.clause') = clause.it in
+                  List.iter (fun prem -> assign_premise_uid prem) instrs)
                 clauses
           | _ -> ())
         il_spec

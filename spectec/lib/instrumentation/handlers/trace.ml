@@ -1,15 +1,9 @@
-(** Trace: live-logs interpreter events as they happen.
+(** Trace levels include the output from earlier levels in this list.
 
-    Levels are a strict progression of verbosity:
-    - [Summary]: relation/function enter/exit only.
-    - [Rules]: above + each rule attempt's enter/exit (which rule fired, which
-      rules were tried and failed before it).
-    - [Inputs]: above + input values on enter and the output on exit, one value
-      per line under the matching enter/exit.
-    - [Full]: above + premises, iteration markers, and clauses (the inner-loop
-      noise needed for debugging non-terminating evaluations).
-
-    All levels stream — events are printed as they happen, not buffered. *)
+    - [Summary] shows the start and end of each call.
+    - [Rules] adds rule attempts.
+    - [Inputs] adds call arguments and results.
+    - [Full] adds AL instructions, clauses and iterations. *)
 
 module Il = Lang.Il
 module Al = Lang.Al
@@ -94,7 +88,7 @@ module M : Instrumentation_api.Handler.S = struct
         printf_at_least Full "%s  ← [iteration]\n%!" (State.indent ())
     | Prem_enter { prem; at = _ } ->
         printf_at_least Full "%s  | -- %s\n%!" (State.indent ())
-          (Al.Print.string_of_prem prem |> normalize_whitespace)
+          (Al.Print.string_of_instr prem |> normalize_whitespace)
     | Prem_exit _ -> ()
     | Instr _ -> ()
 end

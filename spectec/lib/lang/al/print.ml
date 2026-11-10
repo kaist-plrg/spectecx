@@ -21,9 +21,9 @@ let string_of_iterinstrs iterinstrs =
 (* Rules *)
 
 let rec string_of_rule rule =
-  let { ruleid; concl; prems } = rule.it in
+  let { ruleid; concl; instrs } = rule.it in
   ";; " ^ Location.to_string rule.at ^ ":\n   rule " ^ string_of_ruleid ruleid
-  ^ ": " ^ string_of_notexp concl ^ string_of_prems prems
+  ^ ": " ^ string_of_notexp concl ^ string_of_instrs instrs
 
 and string_of_rules rules =
   String.concat ""
@@ -32,11 +32,11 @@ and string_of_rules rules =
 (* Clause *)
 
 and string_of_clause idx clause =
-  let { args; body; prems } = clause.it in
+  let { args; body; instrs } = clause.it in
   ";; "
   ^ Location.to_string clause.at
   ^ ":\n   clause " ^ string_of_int idx ^ string_of_args args ^ " = "
-  ^ string_of_exp body ^ string_of_prems prems
+  ^ string_of_exp body ^ string_of_instrs instrs
 
 and string_of_clauses clauses =
   String.concat ""
@@ -44,27 +44,27 @@ and string_of_clauses clauses =
        (fun idx clause -> "\n\n   " ^ string_of_clause idx clause)
        clauses)
 
-(* Premises *)
+(* Instructions *)
 
-and string_of_prem prem =
-  match prem.it with
-  | RelPr call -> "rel " ^ string_of_relcall call
-  | RelAssertPr { call; expect } ->
+and string_of_instr instr =
+  match instr.it with
+  | RelI call -> "rel " ^ string_of_relcall call
+  | RelAssertI { call; expect } ->
       "if " ^ string_of_relcall call
       ^ if expect then " holds" else " does not hold"
-  | IfPr { cond; _ } -> "if " ^ string_of_exp cond
-  | ElsePr -> "otherwise"
-  | LetPr (exp_l, exp_r) ->
+  | IfI { cond; _ } -> "if " ^ string_of_exp cond
+  | OtherwiseI -> "otherwise"
+  | LetI (exp_l, exp_r) ->
       "let " ^ string_of_exp exp_l ^ " = " ^ string_of_exp exp_r
-  | IterPr (({ it = IterPr _; _ } as prem), iterinstr) ->
-      string_of_prem prem ^ string_of_iterinstr iterinstr
-  | IterPr (prem, iterinstr) ->
-      "(" ^ string_of_prem prem ^ ")" ^ string_of_iterinstr iterinstr
-  | DebugPr exp -> "debug " ^ string_of_exp exp
+  | IterI (({ it = IterI _; _ } as instr), iterinstr) ->
+      string_of_instr instr ^ string_of_iterinstr iterinstr
+  | IterI (instr, iterinstr) ->
+      "(" ^ string_of_instr instr ^ ")" ^ string_of_iterinstr iterinstr
+  | DebugI exp -> "debug " ^ string_of_exp exp
 
-and string_of_prems prems =
+and string_of_instrs instrs =
   String.concat ""
-    (List.map (fun prem -> "\n      -- " ^ string_of_prem prem) prems)
+    (List.map (fun instr -> "\n      -- " ^ string_of_instr instr) instrs)
 
 (* Definitions *)
 

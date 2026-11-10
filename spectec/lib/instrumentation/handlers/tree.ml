@@ -37,7 +37,7 @@ type outcome =
 
 (* The failed step may be an input side condition, which has no IL premise.
    The step's exit event supplies [bindings]. *)
-type unmet_prem = { prem_al : Al.prem; bindings : (Il.id * Il.Value.t) list }
+type unmet_prem = { prem_al : Al.instr; bindings : (Il.id * Il.Value.t) list }
 
 type node = {
   kind : kind;
@@ -91,7 +91,7 @@ let is_failed node =
   | _ -> false
 
 let is_applied = function
-  | Some { prem_al = { it = Al.IfPr { role = Al.Guard; _ }; _ }; _ } -> false
+  | Some { prem_al = { it = Al.IfI { role = Al.Guard; _ }; _ }; _ } -> false
   | _ -> true
 
 (* === Mutable state ================================================= *)

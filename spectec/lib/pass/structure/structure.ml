@@ -8,14 +8,14 @@ open Lang.Al
 module RTEnv = Envs.RTEnv
 module SEnv = Envs.Il.SEnv
 
-(* Structuring premises *)
+(* Structuring instructions *)
 
-let rec internalize_iter ?(iterinstrs : iterinstr list = []) (prem : prem) :
-    prem * iterinstr list =
-  match prem.it with
-  | IterPr (prem, iterinstr) ->
-      internalize_iter ~iterinstrs:(iterinstr :: iterinstrs) prem
-  | _ -> (prem, iterinstrs)
+let rec internalize_iter ?(iterinstrs : iterinstr list = []) (instr : instr) :
+    instr * iterinstr list =
+  match instr.it with
+  | IterI (instr, iterinstr) ->
+      internalize_iter ~iterinstrs:(iterinstr :: iterinstrs) instr
+  | _ -> (instr, iterinstrs)
 
 let condition_iterexps (iterinstrs : iterinstr list) : iterexp list =
   List.map
@@ -24,89 +24,90 @@ let condition_iterexps (iterinstrs : iterinstr list) : iterexp list =
       iterexp_of_iterinstr iterinstr)
     iterinstrs
 
-let rec struct_prems (prems : prem list) (instr_ret : Ol.Ast.instr) :
+let rec struct_instrs (instrs : instr list) (instr_ret : Ol.Ast.instr) :
     Ol.Ast.instr =
-  let prems_internalized = List.map internalize_iter prems in
-  struct_prems' prems_internalized instr_ret
+  let instrs_internalized = List.map internalize_iter instrs in
+  struct_instrs' instrs_internalized instr_ret
 
-and struct_prems' (prems_internalized : (prem * iterinstr list) list)
+and struct_instrs' (instrs_internalized : (instr * iterinstr list) list)
     (instr_ret : Ol.Ast.instr) : Ol.Ast.instr =
-  match prems_internalized with
+  match instrs_internalized with
   | [] -> instr_ret
-  | (prem_h, iterinstrs_h) :: prems_internalized_t -> (
-      let at = prem_h.at in
-      match prem_h.it with
-      | RelPr { relid = id; notexp } ->
-          let instr_t = struct_prems' prems_internalized_t instr_ret in
+  | (instr_h, iterinstrs_h) :: instrs_internalized_t -> (
+      let at = instr_h.at in
+      match instr_h.it with
+      | RelI { relid = id; notexp } ->
+          let instr_rest = struct_instrs' instrs_internalized_t instr_ret in
           let call = Ol.Ast.{ relid = id; notexp } in
-          Ol.Ast.RelI { call; iterinstrs = iterinstrs_h; block = [ instr_t ] }
+          Ol.Ast.RelI
+            { call; iterinstrs = iterinstrs_h; block = [ instr_rest ] }
           $ at
-      | IfPr { cond; _ } ->
-          let instr_t = struct_prems' prems_internalized_t instr_ret in
-          Ol.Ast.IfI (cond, condition_iterexps iterinstrs_h, [ instr_t ]) $ at
-      | RelAssertPr { call = { relid = id; notexp }; expect } ->
-          let instr_t = struct_prems' prems_internalized_t instr_ret in
+      | IfI { cond; _ } ->
+          let instr_rest = struct_instrs' instrs_internalized_t instr_ret in
+          Ol.Ast.IfI (cond, condition_iterexps iterinstrs_h, [ instr_rest ])
+          $ at
+      | RelAssertI { call = { relid = id; notexp }; expect } ->
+          let instr_rest = struct_instrs' instrs_internalized_t instr_ret in
           let call = Ol.Ast.{ relid = id; notexp } in
           Ol.Ast.RelAssertI
             {
               call;
               expect;
               iterexps = condition_iterexps iterinstrs_h;
-              block = [ instr_t ];
+              block = [ instr_rest ];
             }
           $ at
-      | LetPr (exp_l, exp_r) ->
-          let instr_t = struct_prems' prems_internalized_t instr_ret in
-          Ol.Ast.LetI (exp_l, exp_r, iterinstrs_h, [ instr_t ]) $ at
-      | DebugPr exp ->
-          let instr_t = struct_prems' prems_internalized_t instr_ret in
-          Ol.Ast.DebugI (exp, instr_t) $ at
+      | LetI (exp_l, exp_r) ->
+          let instr_rest = struct_instrs' instrs_internalized_t instr_ret in
+          Ol.Ast.LetI (exp_l, exp_r, iterinstrs_h, [ instr_rest ]) $ at
+      | DebugI exp ->
+          let instr_rest = struct_instrs' instrs_internalized_t instr_ret in
+          Ol.Ast.DebugI (exp, instr_rest) $ at
       | _ -> assert false)
 
-let split_else_path ((prems, payload) : prem list * 'a) :
-    (prem list * 'a) option * (prem list * 'a) =
-  match List.rev prems with
-  | { it = ElsePr; _ } :: prems_rev ->
-      (Some (List.rev prems_rev, payload), (prems, payload))
-  | _ -> (None, (prems, payload))
+let split_otherwise_path ((instrs, payload) : instr list * 'a) :
+    (instr list * 'a) option * (instr list * 'a) =
+  match List.rev instrs with
+  | { it = OtherwiseI; _ } :: instrs_rev ->
+      (Some (List.rev instrs_rev, payload), (instrs, payload))
+  | _ -> (None, (instrs, payload))
 
-let partition_else_paths (paths : (prem list * 'a) list) :
-    (prem list * 'a) list * (prem list * 'a) option =
-  let normal_paths, else_paths =
+let partition_otherwise_paths (paths : (instr list * 'a) list) :
+    (instr list * 'a) list * (instr list * 'a) option =
+  let normal_paths, otherwise_paths =
     List.fold_right
-      (fun path (normal_paths, else_paths) ->
-        match split_else_path path with
-        | Some else_path, _ ->
-            if else_paths <> None then
+      (fun path (normal_paths, otherwise_paths) ->
+        match split_otherwise_path path with
+        | Some otherwise_path, _ ->
+            if otherwise_paths <> None then
               failwith "multiple otherwise paths are not supported"
-            else (normal_paths, Some else_path)
-        | None, normal_path -> (normal_path :: normal_paths, else_paths))
+            else (normal_paths, Some otherwise_path)
+        | None, normal_path -> (normal_path :: normal_paths, otherwise_paths))
       paths ([], None)
   in
-  (normal_paths, else_paths)
+  (normal_paths, otherwise_paths)
 
 (* Structuring rules *)
 
-let struct_rule_path ((prems, exps_output) : prem list * exp list) :
+let struct_rule_path ((instrs, exps_output) : instr list * exp list) :
     Ol.Ast.instr list =
   let at =
-    (* if exps_output is empty, use last prem's location *)
     if exps_output = [] then
-      match List.rev prems with
-      | prem_last :: _ -> prem_last.at
+      match List.rev instrs with
+      | instr_last :: _ -> instr_last.at
       | [] -> Location.Unknown
     else exps_output |> List.map at |> Location.cover
   in
   let instr_ret = Ol.Ast.ResultI exps_output $ at in
-  [ struct_prems prems instr_ret ]
+  [ struct_instrs instrs instr_ret ]
 
 (* Structuring clauses *)
 
-let struct_clause_path ((prems, exp_output) : prem list * exp) :
+let struct_clause_path ((instrs, exp_output) : instr list * exp) :
     Ol.Ast.instr list =
   let at = exp_output.at in
   let instr_ret = Ol.Ast.ReturnI exp_output $ at in
-  [ struct_prems prems instr_ret ]
+  [ struct_instrs instrs instr_ret ]
 
 (* Structuring definitions *)
 
@@ -140,14 +141,14 @@ let rec struct_def (rtenv : RTEnv.t) (senv : SEnv.t) (def : def) : Sl.def =
 and struct_rel_def (rtenv : RTEnv.t) (senv : SEnv.t) (at : Location.t)
     (id_rel : id) (reltyp : reltyp) (rules : rule list) : Sl.def =
   let exps_input, paths = Antiunify.antiunify_rules reltyp.it rules in
-  let block_paths, else_path_opt = partition_else_paths paths in
+  let block_paths, otherwise_path_opt = partition_otherwise_paths paths in
   let block =
     List.concat_map struct_rule_path block_paths |> Optimize.optimize rtenv senv
   in
   let elseblock_opt =
     Option.map
       (fun path -> struct_rule_path path |> Optimize.optimize rtenv senv)
-      else_path_opt
+      otherwise_path_opt
   in
   let block, elseblock_opt = Instrument.instrument block elseblock_opt in
   let in_typs = Il.Mode.inputs reltyp.it in
@@ -187,7 +188,7 @@ and struct_dec_def (rtenv : RTEnv.t) (senv : SEnv.t) (at : Location.t)
     | [] -> (args_input_of_params params, [])
     | _ -> Antiunify.antiunify_clauses clauses
   in
-  let block_paths, else_path_opt = partition_else_paths paths in
+  let block_paths, otherwise_path_opt = partition_otherwise_paths paths in
   let block =
     List.concat_map struct_clause_path block_paths
     |> Optimize.optimize rtenv senv
@@ -195,7 +196,7 @@ and struct_dec_def (rtenv : RTEnv.t) (senv : SEnv.t) (at : Location.t)
   let elseblock_opt =
     Option.map
       (fun path -> struct_clause_path path |> Optimize.optimize rtenv senv)
-      else_path_opt
+      otherwise_path_opt
   in
   let block, elseblock_opt = Instrument.instrument block elseblock_opt in
   Sl.DecD (id_dec, tparams, args_input, block, elseblock_opt) $ at

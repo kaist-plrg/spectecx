@@ -10,9 +10,9 @@ module El = Lang.El
 module Il = Lang.Il
 module Al = Lang.Al
 
-let recover (prems : Al.prem list) : El.prem list =
-  List.filter_map prems ~f:(fun prem ->
-      match prem.note with
+let recover (instrs : Al.instr list) : El.prem list =
+  List.filter_map instrs ~f:(fun instr ->
+      match instr.note with
       | Al.Premise prem_il -> Some prem_il.note
       | Al.Sidecondition _ | Al.Input_sidecondition -> None)
 
@@ -69,11 +69,11 @@ let check_def (spec : El.spec) (tally : tally) (def : Al.def) : tally =
       let authored = authored_rule_premises spec (Annotated.it relid) in
       let failures =
         List.filter_mapi rules ~f:(fun i rule ->
-            let { Al.ruleid; prems; _ } = Annotated.it rule in
+            let { Al.ruleid; instrs; _ } = Annotated.it rule in
             find_mismatch
               ~label:
                 (sprintf "%s/%s" (Annotated.it relid) (Annotated.it ruleid))
-              ~authored:(List.nth authored i) ~recovered:(recover prems))
+              ~authored:(List.nth authored i) ~recovered:(recover instrs))
       in
       {
         tally with
@@ -84,10 +84,10 @@ let check_def (spec : El.spec) (tally : tally) (def : Al.def) : tally =
       let authored = authored_clause_premises spec (Annotated.it defid) in
       let failures =
         List.filter_mapi clauses ~f:(fun i clause ->
-            let { Al.prems; _ } = Annotated.it clause in
+            let { Al.instrs; _ } = Annotated.it clause in
             find_mismatch
               ~label:(sprintf "%s clause %d" (Annotated.it defid) i)
-              ~authored:(List.nth authored i) ~recovered:(recover prems))
+              ~authored:(List.nth authored i) ~recovered:(recover instrs))
       in
       {
         tally with

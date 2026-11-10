@@ -8,18 +8,11 @@ open Dctx
 open Diagnostic
 module Mixop = Lang.Il.Mixfix
 
-(* Dimension analysis :
-
-   Annotate iteration constructs with what variables are iterated over,
-   and record which of them an iterated premise binds
-    - Check that iteration is non-empty
-    - Check that the dimension of binding variables are not ambiguous,
-      i.e., guided by at least one bound iteration variable
-    - Check that the dimension of binding variables is coherent *)
+(* An iteration needs a variable already bound at the dimension it consumes.
+   Dimension analysis uses it to check the dimensions of new bindings. *)
 
 (* Constructors *)
 
-(* [annotate_prem] fills in [vars_input] and [vars_output]. *)
 let unannotated_iterinstr (iter : iter) : iterinstr =
   { iter; vars_input = []; vars_output = [] }
 
@@ -238,13 +231,13 @@ and annotate_args (bounds : VEnv.t) (args : arg list) : VEnv.t * arg list =
       let occurs = union occurs_h occurs_t in
       (occurs, args)
 
-(* Premise *)
+(* Instruction *)
 
-and annotate_prem (dctx : Dctx.t) (bounds : VEnv.t) (prem : prem) :
-    IdSet.t * VEnv.t * prem =
-  let at, note = (prem.at, prem.note) in
-  match prem.it with
-  | RelPr { relid; notexp } ->
+and annotate_instr (dctx : Dctx.t) (bounds : VEnv.t) (instr : instr) :
+    IdSet.t * VEnv.t * instr =
+  let at, note = (instr.at, instr.note) in
+  match instr.it with
+  | RelI { relid; notexp } ->
       let mixop, exps = Mixop.split notexp in
       let reltyp = Dctx.find_reltyp dctx relid in
       let exps_input, exps_output = Mode.partition reltyp.it exps in
@@ -252,30 +245,30 @@ and annotate_prem (dctx : Dctx.t) (bounds : VEnv.t) (prem : prem) :
       let occurs_output, exps_output = annotate_exps bounds exps_output in
       let exps = Mode.interleave reltyp.it ~ins:exps_input ~outs:exps_output in
       let notexp = Mixop.fill mixop exps in
-      let prem = RelPr { relid; notexp } $$ (at, note) in
+      let instr = RelI { relid; notexp } $$ (at, note) in
       let occurs = union occurs_input occurs_output in
-      (VEnv.dom occurs_output, occurs, prem)
-  | IfPr { cond; role } ->
+      (VEnv.dom occurs_output, occurs, instr)
+  | IfI { cond; role } ->
       let occurs, cond = annotate_exp bounds cond in
-      let prem = IfPr { cond; role } $$ (at, note) in
-      (IdSet.empty, occurs, prem)
-  | RelAssertPr { call = { relid; notexp }; expect } ->
+      let instr = IfI { cond; role } $$ (at, note) in
+      (IdSet.empty, occurs, instr)
+  | RelAssertI { call = { relid; notexp }; expect } ->
       let mixop, exps = Mixop.split notexp in
       let occurs, exps = annotate_exps bounds exps in
       let notexp = Mixop.fill mixop exps in
-      let prem =
-        RelAssertPr { call = { relid; notexp }; expect } $$ (at, note)
+      let instr =
+        RelAssertI { call = { relid; notexp }; expect } $$ (at, note)
       in
-      (IdSet.empty, occurs, prem)
-  | ElsePr -> (IdSet.empty, empty, prem)
-  | LetPr (exp_l, exp_r) ->
+      (IdSet.empty, occurs, instr)
+  | OtherwiseI -> (IdSet.empty, empty, instr)
+  | LetI (exp_l, exp_r) ->
       let occurs_l, exp_l = annotate_exp bounds exp_l in
       let occurs_r, exp_r = annotate_exp bounds exp_r in
-      let prem = LetPr (exp_l, exp_r) $$ (at, note) in
+      let instr = LetI (exp_l, exp_r) $$ (at, note) in
       let occurs = union occurs_l occurs_r in
-      (VEnv.dom occurs_l, occurs, prem)
-  | IterPr (prem, { iter; vars_input = []; vars_output = [] }) -> (
-      let binds, occurs, prem = annotate_prem dctx bounds prem in
+      (VEnv.dom occurs_l, occurs, instr)
+  | IterI (instr, { iter; vars_input = []; vars_output = [] }) -> (
+      let binds, occurs, instr = annotate_instr dctx bounds instr in
       let itervars = collect_itervars bounds occurs iter in
       let vars_output, vars_input =
         List.partition (fun { varid; _ } -> IdSet.mem varid binds) itervars
@@ -293,7 +286,7 @@ and annotate_prem (dctx : Dctx.t) (bounds : VEnv.t) (prem : prem) :
             ("cannot determine dimension of binding identifier(s) only: "
             ^ String.concat ", " (List.map Il.Print.string_of_var itervars)
             ^ " "
-            ^ Al.Print.string_of_prem prem)
+            ^ Al.Print.string_of_instr instr)
             ~code:Iter_binding_only
             ~detail:
               "An iteration needs a loop variable inside it: a variable \
@@ -301,8 +294,8 @@ and annotate_prem (dctx : Dctx.t) (bounds : VEnv.t) (prem : prem) :
                every variable inside is newly bound rather than already bound, \
                so there is no loop variable."
       | _ ->
-          let prem =
-            IterPr (prem, { iter; vars_input; vars_output }) $$ (at, note)
+          let instr =
+            IterI (instr, { iter; vars_input; vars_output }) $$ (at, note)
           in
           let occurs =
             List.fold_left
@@ -310,23 +303,23 @@ and annotate_prem (dctx : Dctx.t) (bounds : VEnv.t) (prem : prem) :
                 VEnv.add varid (typ, iters @ [ iter ]) occurs)
               occurs itervars
           in
-          (binds, occurs, prem))
-  | IterPr _ -> assert false
-  | DebugPr exp ->
+          (binds, occurs, instr))
+  | IterI _ -> assert false
+  | DebugI exp ->
       let occurs, exp = annotate_exp bounds exp in
-      let prem = DebugPr exp $$ (at, note) in
-      (IdSet.empty, occurs, prem)
+      let instr = DebugI exp $$ (at, note) in
+      (IdSet.empty, occurs, instr)
 
-and annotate_prems (dctx : Dctx.t) (bounds : VEnv.t) (prems : prem list) :
-    VEnv.t * prem list =
-  match prems with
+and annotate_instrs (dctx : Dctx.t) (bounds : VEnv.t) (instrs : instr list) :
+    VEnv.t * instr list =
+  match instrs with
   | [] -> (empty, [])
-  | prem :: prems ->
-      let _, occurs_h, prem_h = annotate_prem dctx bounds prem in
-      let occurs_t, prems_t = annotate_prems dctx bounds prems in
-      let prems = prem_h :: prems_t in
+  | instr :: instrs ->
+      let _, occurs_h, instr_h = annotate_instr dctx bounds instr in
+      let occurs_t, instrs_t = annotate_instrs dctx bounds instrs in
+      let instrs = instr_h :: instrs_t in
       let occurs = union occurs_h occurs_t in
-      (occurs, prems)
+      (occurs, instrs)
 
 (* Analysis *)
 
@@ -355,12 +348,12 @@ let analyze_exps (bounds : VEnv.t) (exps : exp list) : exp list =
 let analyze_args (bounds : VEnv.t) (args : arg list) : arg list =
   analyze annotate_args bounds args
 
-let analyze_prem (dctx : Dctx.t) (prem : prem) : prem =
+let analyze_instr (dctx : Dctx.t) (instr : instr) : instr =
   analyze
-    (fun bounds prem ->
-      let _, occurs, prem = annotate_prem dctx bounds prem in
-      (occurs, prem))
-    dctx.bounds prem
+    (fun bounds instr ->
+      let _, occurs, instr = annotate_instr dctx bounds instr in
+      (occurs, instr))
+    dctx.bounds instr
 
-let analyze_prems (dctx : Dctx.t) (prems : prem list) : prem list =
-  analyze (annotate_prems dctx) dctx.bounds prems
+let analyze_instrs (dctx : Dctx.t) (instrs : instr list) : instr list =
+  analyze (annotate_instrs dctx) dctx.bounds instrs

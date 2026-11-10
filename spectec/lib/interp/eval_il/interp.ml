@@ -8,18 +8,18 @@ open Attempt
 module Events = Instrumentation.Event
 module F = Format
 
-(* Structuring also identifies fallback paths by a trailing ElsePr. *)
+(* Structuring also recognizes a trailing [OtherwiseI] as a fallback marker. *)
 
-let is_fallback_prems (prems : prem list) : bool =
-  match List.rev prems with { it = ElsePr; _ } :: _ -> true | _ -> false
+let is_fallback_instrs (instrs : instr list) : bool =
+  match List.rev instrs with { it = OtherwiseI; _ } :: _ -> true | _ -> false
 
 let is_fallback_rule (rule : rule) : bool =
-  let ({ prems; _ } : rule') = rule.it in
-  is_fallback_prems prems
+  let ({ instrs; _ } : rule') = rule.it in
+  is_fallback_instrs instrs
 
 let is_fallback_clause (clause : clause) : bool =
-  let ({ prems; _ } : clause') = clause.it in
-  is_fallback_prems prems
+  let ({ instrs; _ } : clause') = clause.it in
+  is_fallback_instrs instrs
 
 let describe_rule (id_rel : id) (rule : rule) : string =
   let ({ ruleid = id_rule; _ } : rule') = rule.it in
@@ -48,10 +48,10 @@ and eval_args ctx args =
 and call_func_or_error ctx id targs args =
   invoke_func ctx id targs args |> Attempt.unwrap_or_error
 
-(* Premise evaluation *)
+(* Instruction evaluation *)
 
-and eval_prem (ctx : Ctx.t) (prem : prem) : Ctx.t attempt =
-  let eval_rule_prem ctx id notexp =
+and eval_instr (ctx : Ctx.t) (instr : instr) : Ctx.t attempt =
+  let eval_rel_instr ctx id notexp =
     let reltyp, _ = Ctx.find_rel_exn ctx ~id in
     let exps_input, exps_output =
       Mode.partition reltyp.it (Mixfix.args notexp)
@@ -63,7 +63,7 @@ and eval_prem (ctx : Ctx.t) (prem : prem) : Ctx.t attempt =
     in
     Ok ctx
   in
-  let eval_cond_prem fail_with ctx exp_cond =
+  let eval_if_instr fail_with ctx exp_cond =
     let value_cond = eval_exp ctx exp_cond in
     let cond = Value.get_bool value_cond in
     if cond then Ok ctx
@@ -72,7 +72,7 @@ and eval_prem (ctx : Ctx.t) (prem : prem) : Ctx.t attempt =
         (F.asprintf "condition %s was not met"
            (Il.Print.string_of_exp exp_cond))
   in
-  let eval_rel_assert_prem ctx (call : relcall) (expect : bool) =
+  let eval_rel_assert_instr ctx (call : relcall) (expect : bool) =
     let id = call.relid in
     let values_input = eval_exps ctx (Mixfix.args call.notexp) in
     match (invoke_rel ctx id values_input, expect) with
@@ -81,12 +81,12 @@ and eval_prem (ctx : Ctx.t) (prem : prem) : Ctx.t attempt =
         fail id.at (F.asprintf "condition not-hold %s was not met" id.it)
     | Error failtraces, true -> Error failtraces
   in
-  let eval_let_prem ctx exp_l exp_r =
+  let eval_let_instr ctx exp_l exp_r =
     let value = eval_exp ctx exp_r in
     let ctx = Expressions.assign_exp ctx ~exp:exp_l ~value in
     Ok ctx
   in
-  let eval_debug_prem ctx exp =
+  let eval_debug_instr ctx exp =
     let value = eval_exp ctx exp in
     print_endline
     @@ F.sprintf "%s: %s"
@@ -95,55 +95,56 @@ and eval_prem (ctx : Ctx.t) (prem : prem) : Ctx.t attempt =
     print_endline @@ Il.Print.string_of_value value;
     Ok ctx
   in
-  (match prem.it with
-  | IterPr _ -> ()
+  (match instr.it with
+  | IterI _ -> ()
   | _ ->
-      Instrumentation.Dispatcher.emit (Events.Prem_enter { prem; at = prem.at }));
+      Instrumentation.Dispatcher.emit
+        (Events.Prem_enter { prem = instr; at = instr.at }));
   let result =
-    match prem.it with
-    | RelPr { relid; notexp } -> eval_rule_prem ctx relid notexp
-    | RelAssertPr { call; expect } -> eval_rel_assert_prem ctx call expect
-    | IfPr { cond; role } ->
+    match instr.it with
+    | RelI { relid; notexp } -> eval_rel_instr ctx relid notexp
+    | RelAssertI { call; expect } -> eval_rel_assert_instr ctx call expect
+    | IfI { cond; role } ->
         let fail_with =
           match role with Guard -> fail_guard | Condition -> fail
         in
-        eval_cond_prem fail_with ctx cond
-    | ElsePr -> Ok ctx
-    | LetPr (exp_l, exp_r) -> eval_let_prem ctx exp_l exp_r
-    | IterPr (prem, iterinstr) -> eval_iter_prem ctx prem iterinstr
-    | DebugPr exp -> eval_debug_prem ctx exp
+        eval_if_instr fail_with ctx cond
+    | OtherwiseI -> Ok ctx
+    | LetI (exp_l, exp_r) -> eval_let_instr ctx exp_l exp_r
+    | IterI (instr, iterinstr) -> eval_iter_instr ctx instr iterinstr
+    | DebugI exp -> eval_debug_instr ctx exp
   in
-  (match prem.it with
-  | IterPr _ -> ()
+  (match instr.it with
+  | IterI _ -> ()
   | _ ->
       Instrumentation.Dispatcher.emit_on_demand @@ fun () ->
       let ctx_out = Result.value ~default:ctx result in
       let bindings =
-        Free.free_prem prem |> Common.Domain.IdSet.elements
+        Free.free_instr instr |> Common.Domain.IdSet.elements
         |> List.filter_map (fun id ->
                Ctx.find_value_opt ctx_out ~var:(id, [])
                |> Option.map (fun value -> (id, value)))
       in
       Events.Prem_exit
-        { prem; at = prem.at; success = Result.is_ok result; bindings });
+        { prem = instr; at = instr.at; success = Result.is_ok result; bindings });
   result
 
-and eval_prems (ctx : Ctx.t) (prems : prem list) : Ctx.t attempt =
+and eval_instrs (ctx : Ctx.t) (instrs : instr list) : Ctx.t attempt =
   List.fold_left
-    (fun ctx prem ->
+    (fun ctx instr ->
       let* ctx = ctx in
-      eval_prem ctx prem)
-    (Ok ctx) prems
+      eval_instr ctx instr)
+    (Ok ctx) instrs
 
-(* Iterated premise evaluation *)
+(* Iterated instruction evaluation *)
 
-and eval_iter_prem (ctx : Ctx.t) (prem : prem) (iterinstr : iterinstr) :
+and eval_iter_instr (ctx : Ctx.t) (instr : instr) (iterinstr : iterinstr) :
     Ctx.t attempt =
   let eval_iteration ctx_sub =
     Instrumentation.Dispatcher.emit
-      (Events.Iter_prem_enter { prem; at = prem.at });
-    let* ctx_sub = eval_prem ctx_sub prem in
-    Instrumentation.Dispatcher.emit (Events.Iter_prem_exit { at = prem.at });
+      (Events.Iter_prem_enter { prem = instr; at = instr.at });
+    let* ctx_sub = eval_instr ctx_sub instr in
+    Instrumentation.Dispatcher.emit (Events.Iter_prem_exit { at = instr.at });
     Ok ctx_sub
   in
   Ctx.eval_iterations ctx ~iterinstrs:[ iterinstr ] ~f:eval_iteration
@@ -156,7 +157,7 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
     (Events.Rel_enter { id = id.it; at = id.at; inputs = values_input });
   (* Rule matching *)
   let match_rule ctx reltyp rule values_input =
-    let { concl; prems; _ } = rule.it in
+    let { concl; instrs; _ } = rule.it in
     let exps_input, exps_output =
       Mode.partition reltyp.it (Mixfix.args concl)
     in
@@ -166,14 +167,14 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
     let ctx =
       Expressions.assign_exps ctx ~exps:exps_input ~values:values_input
     in
-    (ctx, prems, exps_output)
+    (ctx, instrs, exps_output)
   in
   let reltyp, rules = Ctx.find_rel_exn ctx ~id in
   let attempt_of_rule rule =
     let { ruleid = id_rule; _ } = rule.it in
-    let attempt_rule' (ctx_local : Ctx.t) (prems : prem list)
+    let attempt_rule' (ctx_local : Ctx.t) (instrs : instr list)
         (exps_output : exp list) : value list attempt =
-      let* ctx_local = eval_prems ctx_local prems in
+      let* ctx_local = eval_instrs ctx_local instrs in
       let values_output = eval_exps ctx_local exps_output in
       Ok values_output
     in
@@ -183,12 +184,12 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
       (* Create a subtrace for the rule *)
       let ctx_local = Ctx.for_call ctx in
       (* Try to match the rule *)
-      let ctx_local, prems, exps_output =
+      let ctx_local, instrs, exps_output =
         match_rule ctx_local reltyp rule values_input
       in
       (* Try evaluating the rule *)
       let result =
-        attempt_rule' ctx_local prems exps_output
+        attempt_rule' ctx_local instrs exps_output
         |> nest id.at
              (F.asprintf "application of rule %s/%s failed" id.it id_rule.it)
       in
@@ -266,7 +267,7 @@ and invoke_func_values (ctx : Ctx.t) (id : id) (targs : targ list)
     (Events.Func_enter { id = id.it; at = id.at; inputs = values_input });
   (* Clause matching *)
   let match_clause ctx_caller ctx_callee clause values_input =
-    let { args = args_input; body = exp_output; prems } = clause.it in
+    let { args = args_input; body = exp_output; instrs } = clause.it in
     checkf
       (List.length args_input = List.length values_input)
       clause.at "arity mismatch while matching clause";
@@ -274,7 +275,7 @@ and invoke_func_values (ctx : Ctx.t) (id : id) (targs : targ list)
       Expressions.assign_args ctx_callee ~caller:ctx_caller ~args:args_input
         ~values:values_input
     in
-    (ctx, args_input, prems, exp_output)
+    (ctx, args_input, instrs, exp_output)
   in
   (* Builtin function invocation *)
   let invoke_func_builtin signature =
@@ -305,9 +306,9 @@ and invoke_func_values (ctx : Ctx.t) (id : id) (targs : targ list)
   (* User-defined function invocation *)
   let invoke_func_def tparams clauses =
     let attempt_of_clause idx_clause clause =
-      let attempt_clause' (ctx_local : Ctx.t) (prems : prem list)
+      let attempt_clause' (ctx_local : Ctx.t) (instrs : instr list)
           (exp_output : exp) : value attempt =
-        let* ctx_local = eval_prems ctx_local prems in
+        let* ctx_local = eval_instrs ctx_local instrs in
         let value_output = eval_exp ctx_local exp_output in
         Ok value_output
       in
@@ -330,12 +331,12 @@ and invoke_func_values (ctx : Ctx.t) (id : id) (targs : targ list)
           Ctx.add_syntaxes_exn ctx_local ~bindings:syntax_bindings
         in
         (* Try to match the clause *)
-        let ctx_local, args_input, prems, exp_output =
+        let ctx_local, args_input, instrs, exp_output =
           match_clause ctx ctx_local clause values_input
         in
         (* Try evaluating the clause *)
         let result =
-          attempt_clause' ctx_local prems exp_output
+          attempt_clause' ctx_local instrs exp_output
           |> nest id.at
                (F.asprintf "application of clause %s%s failed" id.it
                   (Il.Print.string_of_args args_input))

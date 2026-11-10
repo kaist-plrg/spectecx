@@ -31,7 +31,7 @@ end
 (* Generate sideconditions *)
 
 let gen_sidecondition (benv : Bind.BEnv.t) ~(origin : origin) (id : Id.t)
-    (ids_rename : Ids.t) : prem =
+    (ids_rename : Ids.t) : instr =
   let typ, iters = Bind.BEnv.find id benv |> Bind.Occ.strip in
   let id_rename, ids_rename =
     ids_rename |> IdSet.elements |> fun ids -> (List.hd ids, List.tl ids)
@@ -59,17 +59,15 @@ let gen_sidecondition (benv : Bind.BEnv.t) ~(origin : origin) (id : Id.t)
         $$ (id_rename.at, { typ = BoolT; annot = () }))
       exp ids_rename
   in
-  let sidecondition =
-    IfPr { cond = exp; role = Condition } $$ (id.at, origin)
-  in
+  let sidecondition = IfI { cond = exp; role = Condition } $$ (id.at, origin) in
   List.fold_left
     (fun sidecondition iter ->
-      IterPr (sidecondition, Dimension.unannotated_iterinstr iter)
+      IterI (sidecondition, Dimension.unannotated_iterinstr iter)
       $$ (id.at, origin))
     sidecondition iters
 
 let gen_sideconditions (benv : Bind.BEnv.t) ~(origin : origin) (renv : REnv.t) :
-    prem list =
+    instr list =
   let renv = REnv.mapi Ids.remove renv in
   REnv.fold
     (fun id ids_rename sideconditions ->

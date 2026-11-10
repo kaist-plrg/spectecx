@@ -157,7 +157,9 @@ rule Type/applyE:
 ```
 The typing rules for lambda functions is similar to let expressions. Function applications are typed by checking whether the left expression is a function type, then also checks if the argument matches the parameter type.
 
-The two rule premises share the meta-variable `type_p`. The algo pass inserts premises that check whether the values bound to `type_p` are equal.
+The two rule premises share the meta-variable `type_p`.
+
+The algo pass inserts instructions to check that both premises bind `type_p` to the same value.
 
 In addition, SpecTec does not explicitly define error states. For example, we do not define addition between two function types, or a function type and an integer. Instead, every control flow that is not defined will automatically result in an error. The interpreter backend uses backtracking to check whether any single rule is applicable to the given input, and errors if no rule can apply.
 

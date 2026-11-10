@@ -29,11 +29,11 @@ type t =
       at : Location.t;
       success : bool;
     }
-  | Iter_prem_enter of { prem : Al.prem; at : Location.t }
+  | Iter_prem_enter of { prem : Al.instr; at : Location.t }
   | Iter_prem_exit of { at : Location.t }
-  | Prem_enter of { prem : Al.prem; at : Location.t }
+  | Prem_enter of { prem : Al.instr; at : Location.t }
   | Prem_exit of {
-      prem : Al.prem;
+      prem : Al.instr;
       at : Location.t;
       success : bool;
       bindings : (Il.id * Il.Value.t) list;

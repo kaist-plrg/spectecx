@@ -73,9 +73,9 @@ end
 
 let rec is_fallible prem =
   match prem.it with
-  | LetPr _ | ElsePr | DebugPr _ | RelAssertPr _ -> false
-  | IterPr (inner, _) -> is_fallible inner
-  | IfPr _ | RelPr _ -> true
+  | LetI _ | OtherwiseI | DebugI _ | RelAssertI _ -> false
+  | IterI (inner, _) -> is_fallible inner
+  | IfI _ | RelI _ -> true
 
 module M : Instrumentation_api.Handler.S = struct
   let static_dependencies =
@@ -86,15 +86,14 @@ module M : Instrumentation_api.Handler.S = struct
 
   let rec count_prem prem =
     match prem.it with
-    (* count IfPr, RelPr, and their iterations *)
-    | LetPr _ | ElsePr | DebugPr _ | RelAssertPr _ ->
+    | LetI _ | OtherwiseI | DebugI _ | RelAssertI _ ->
         State.total_prems := !State.total_prems + 1
-    | IterPr (inner, _) -> count_prem inner
-    | IfPr _ ->
+    | IterI (inner, _) -> count_prem inner
+    | IfI _ ->
         State.total_prems := !State.total_prems + 1;
         State.total_fallible_prems := !State.total_fallible_prems + 1;
         State.total_if_prems := !State.total_if_prems + 1
-    | RelPr _ ->
+    | RelI _ ->
         State.total_prems := !State.total_prems + 1;
         State.total_fallible_prems := !State.total_fallible_prems + 1;
         State.total_rel_prems := !State.total_rel_prems + 1
@@ -110,14 +109,14 @@ module M : Instrumentation_api.Handler.S = struct
             | RelD { rules; _ } ->
                 List.iter
                   (fun rule ->
-                    let ({ prems; _ } : rule') = rule.it in
-                    List.iter (fun prem -> count_prem prem) prems)
+                    let ({ instrs; _ } : rule') = rule.it in
+                    List.iter (fun prem -> count_prem prem) instrs)
                   rules
             | DecD { clauses; _ } ->
                 List.iter
                   (fun clause ->
-                    let { prems; _ } = clause.it in
-                    List.iter (fun prem -> count_prem prem) prems)
+                    let { instrs; _ } = clause.it in
+                    List.iter (fun prem -> count_prem prem) instrs)
                   clauses
             | _ -> ())
           il_spec
@@ -140,9 +139,9 @@ module M : Instrumentation_api.Handler.S = struct
         else
           let rec incr_failures prem =
             match prem.it with
-            | LetPr _ | ElsePr | DebugPr _ | RelAssertPr _ -> ()
-            | IterPr (inner, _) -> incr_failures inner
-            | IfPr _ | RelPr _ ->
+            | LetI _ | OtherwiseI | DebugI _ | RelAssertI _ -> ()
+            | IterI (inner, _) -> incr_failures inner
+            | IfI _ | RelI _ ->
                 let key = prem_key prem in
                 State.incr_count State.prems_failed key
           in
@@ -215,20 +214,20 @@ module M : Instrumentation_api.Handler.S = struct
           | RelD { relid = id; rules; _ } ->
               List.iter
                 (fun rule ->
-                  let ({ ruleid = rule_id; prems; _ } : rule') = rule.it in
+                  let ({ ruleid = rule_id; instrs; _ } : rule') = rule.it in
                   List.iter
                     (fun prem ->
                       if not (Hashtbl.mem State.prems_succeeded (prem_key prem))
                       then
                         uncovered :=
-                          (id.it, rule_id.it, Print.string_of_prem prem)
+                          (id.it, rule_id.it, Print.string_of_instr prem)
                           :: !uncovered)
-                    prems)
+                    instrs)
                 rules
           | DecD { defid = id; clauses; _ } ->
               List.iteri
                 (fun idx clause ->
-                  let { prems; _ } = clause.it in
+                  let { instrs; _ } = clause.it in
                   List.iter
                     (fun prem ->
                       if not (Hashtbl.mem State.prems_succeeded (prem_key prem))
@@ -236,9 +235,9 @@ module M : Instrumentation_api.Handler.S = struct
                         uncovered :=
                           ( id.it,
                             Format.sprintf "clause/%d" idx,
-                            Print.string_of_prem prem )
+                            Print.string_of_instr prem )
                           :: !uncovered)
-                    prems)
+                    instrs)
                 clauses
           | _ -> ())
         !State.il_spec;
@@ -260,7 +259,7 @@ module M : Instrumentation_api.Handler.S = struct
     in
     let succ_str = format_count succ in
     match prem.it with
-    | LetPr _ -> Format.sprintf "%s     " succ_str
+    | LetI _ -> Format.sprintf "%s     " succ_str
     | _ ->
         let fail =
           Hashtbl.find_opt State.prems_failed key |> Option.value ~default:0
@@ -272,7 +271,7 @@ module M : Instrumentation_api.Handler.S = struct
     Hashtbl.find_opt State.prems_succeeded key |> Option.value ~default:0
 
   let print_prem indent prem =
-    let content = Print.string_of_prem prem |> normalize_whitespace in
+    let content = Print.string_of_instr prem |> normalize_whitespace in
     let uid =
       match get_uid (prem_key prem) with Some uid -> uid | None -> -1
     in
@@ -303,23 +302,25 @@ module M : Instrumentation_api.Handler.S = struct
             Format.fprintf !fmt "\nrelation %s:\n" id.it;
             List.iter
               (fun rule ->
-                let ({ ruleid = rule_id; concl; prems; _ } : rule') = rule.it in
+                let ({ ruleid = rule_id; concl; instrs; _ } : rule') =
+                  rule.it
+                in
                 let result_str =
                   Il.Print.string_of_notexp concl |> normalize_whitespace
                 in
                 Format.fprintf !fmt "      rule %s:\n" rule_id.it;
-                print_prems "    " result_str prems)
+                print_prems "    " result_str instrs)
               rules
         | DecD { defid = id; clauses; _ } ->
             Format.fprintf !fmt "\ndef $%s:\n" id.it;
             List.iteri
               (fun idx clause ->
-                let { body; prems; _ } = clause.it in
+                let { body; instrs; _ } = clause.it in
                 let result_str =
                   Il.Print.string_of_exp body |> normalize_whitespace
                 in
                 Format.fprintf !fmt "      clause %d:\n" idx;
-                print_prems "    " result_str prems)
+                print_prems "    " result_str instrs)
               clauses
         | _ -> ())
       !State.il_spec

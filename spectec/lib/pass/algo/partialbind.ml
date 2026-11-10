@@ -72,10 +72,10 @@ module REnv = struct
       renv_post
 end
 
-(* Generate premises *)
+(* Generate instructions *)
 
-let gen_prem_bound (dctx : Dctx.t) ~(origin : origin) (to_ : To.t)
-    (exp_from : exp) (iters : iter list) : prem =
+let gen_sidecondition_bound (dctx : Dctx.t) ~(origin : origin) (to_ : To.t)
+    (exp_from : exp) (iters : iter list) : instr =
   let exp_cond =
     let exp_l = To.as_exp to_ in
     match exp_from.it with
@@ -94,74 +94,76 @@ let gen_prem_bound (dctx : Dctx.t) ~(origin : origin) (to_ : To.t)
         $$ (exp_from.at, { typ = BoolT; annot = () })
   in
   let sidecondition =
-    IfPr { cond = exp_cond; role = Condition } $$ (exp_from.at, origin)
+    IfI { cond = exp_cond; role = Condition } $$ (exp_from.at, origin)
   in
   List.fold_left
     (fun sidecondition iter ->
-      IterPr (sidecondition, Dimension.unannotated_iterinstr iter)
+      IterI (sidecondition, Dimension.unannotated_iterinstr iter)
       $$ (exp_from.at, origin))
     sidecondition iters
 
-let gen_prem_bind_match ~(origin : origin) (to_ : To.t) (pattern : pattern)
-    (exp_from : exp) (iters : iter list) : prem list =
+let gen_sidecondition_bind_match ~(origin : origin) (to_ : To.t)
+    (pattern : pattern) (exp_from : exp) (iters : iter list) : instr list =
   let exp_to = To.as_exp to_ in
-  let prems =
+  let instrs =
     let exp_guard_match =
       MatchE (exp_to, pattern) $$ (exp_from.at, { typ = BoolT; annot = () })
     in
     let sidecondition_guard_match =
-      IfPr { cond = exp_guard_match; role = Condition } $$ (exp_from.at, origin)
+      IfI { cond = exp_guard_match; role = Condition } $$ (exp_from.at, origin)
     in
-    let prem_bind = LetPr (exp_from, exp_to) $$ (exp_from.at, origin) in
-    [ sidecondition_guard_match; prem_bind ]
+    let instr_bind = LetI (exp_from, exp_to) $$ (exp_from.at, origin) in
+    [ sidecondition_guard_match; instr_bind ]
   in
   List.map
-    (fun prem ->
+    (fun instr ->
       List.fold_left
-        (fun prem iter ->
-          IterPr (prem, Dimension.unannotated_iterinstr iter)
+        (fun instr iter ->
+          IterI (instr, Dimension.unannotated_iterinstr iter)
           $$ (exp_from.at, origin))
-        prem iters)
-    prems
+        instr iters)
+    instrs
 
-let gen_prem_bind_sub ~(origin : origin) (to_ : To.t) (typ_sub : typ)
-    (exp_sub : exp) (exp_from : exp) (iters : iter list) : prem list =
+let gen_sidecondition_bind_sub ~(origin : origin) (to_ : To.t) (typ_sub : typ)
+    (exp_sub : exp) (exp_from : exp) (iters : iter list) : instr list =
   let exp_to = To.as_exp to_ in
-  let prems =
+  let instrs =
     let exp_guard_sub =
       SubE (exp_to, typ_sub) $$ (exp_from.at, { typ = BoolT; annot = () })
     in
     let sidecondition_guard_sub =
-      IfPr { cond = exp_guard_sub; role = Condition } $$ (exp_from.at, origin)
+      IfI { cond = exp_guard_sub; role = Condition } $$ (exp_from.at, origin)
     in
     let exp_downcast =
       DownCastE (typ_sub, exp_to)
       $$ (exp_from.at, { typ = typ_sub.it; annot = () })
     in
-    let prem_bind = LetPr (exp_sub, exp_downcast) $$ (exp_from.at, origin) in
-    [ sidecondition_guard_sub; prem_bind ]
+    let instr_bind = LetI (exp_sub, exp_downcast) $$ (exp_from.at, origin) in
+    [ sidecondition_guard_sub; instr_bind ]
   in
   List.map
-    (fun prem ->
+    (fun instr ->
       List.fold_left
-        (fun prem iter ->
-          IterPr (prem, Dimension.unannotated_iterinstr iter)
+        (fun instr iter ->
+          IterI (instr, Dimension.unannotated_iterinstr iter)
           $$ (exp_from.at, origin))
-        prem iters)
-    prems
+        instr iters)
+    instrs
 
-let gen_prem (dctx : Dctx.t) ~(origin : origin) (to_ : To.t) (from : From.t)
-    (iters : iter list) : prem list =
+let gen_sidecondition (dctx : Dctx.t) ~(origin : origin) (to_ : To.t)
+    (from : From.t) (iters : iter list) : instr list =
   match from with
-  | Bound { exp_from } -> [ gen_prem_bound dctx ~origin to_ exp_from iters ]
+  | Bound { exp_from } ->
+      [ gen_sidecondition_bound dctx ~origin to_ exp_from iters ]
   | Bindmatch { pattern; exp_from } ->
-      gen_prem_bind_match ~origin to_ pattern exp_from iters
+      gen_sidecondition_bind_match ~origin to_ pattern exp_from iters
   | Bindsub { typ_sub; exp_sub; exp_from } ->
-      gen_prem_bind_sub ~origin to_ typ_sub exp_sub exp_from iters
+      gen_sidecondition_bind_sub ~origin to_ typ_sub exp_sub exp_from iters
 
-let gen_prems (dctx : Dctx.t) ~(origin : origin) (renv : REnv.t) : prem list =
+let gen_sideconditions (dctx : Dctx.t) ~(origin : origin) (renv : REnv.t) :
+    instr list =
   List.concat_map
-    (fun (to_, from_, iters) -> gen_prem dctx ~origin to_ from_ iters)
+    (fun (to_, from_, iters) -> gen_sidecondition dctx ~origin to_ from_ iters)
     renv
 
 (* Desugar partial bindings, occuring as either:
