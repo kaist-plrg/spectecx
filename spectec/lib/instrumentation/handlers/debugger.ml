@@ -2,12 +2,14 @@
 
     The prompt opens before the run starts, so breakpoints can be set and the
     run started with [run]. Breakpoints name a relation ([Rel]) or one of its
-    rules ([Rel/rule]). Enabled by the [debug] subcommand, which also restricts
-    it to single IL runs. *)
+    rules ([Rel/rule]). Stepping stops at the premises written in the spec,
+    skipping those the algo pass synthesized. Enabled by the [debug] subcommand,
+    which also restricts it to single IL runs. *)
 
 module Al = Lang.Al
 module Il = Lang.Il
 module Location = Common.Location
+module VEnv = Envs_interp.VEnv
 open Common.Annotated
 
 exception Bad_command of string
@@ -24,7 +26,16 @@ type frame = {
   mutable clause_idx : int option;
   (* A rule breakpoint waiting for its rule's guards, listed here, to pass. *)
   mutable pending : (breakpoint * Al.instr list) option;
+  (* The bindings in scope, as of the last event in this call. *)
+  mutable env : VEnv.t;
+  (* The written premise this call is at. *)
+  mutable prem_at : Location.t option;
 }
+
+(* Where a step stops, by call depth: [Step] at the next premise anywhere,
+   [Next] at the next one in a call no deeper, and [Finish] when the call at
+   that depth returns. *)
+type step = Step | Next of int | Finish of int
 
 let string_of_target = function
   | Rel id -> id
@@ -55,12 +66,14 @@ module State = struct
   let next_number = ref 1
   let frames : frame list ref = ref []
   let running = ref false
+  let step : step option ref = ref None
 
   let reset () =
     breakpoints := [];
     next_number := 1;
     frames := [];
-    running := false
+    running := false;
+    step := None
 
   let add_breakpoint target =
     if not (defines !spec target) then
@@ -104,20 +117,45 @@ let print_backtrace () =
         (describe_call_site frame.at))
     !State.frames
 
+(* Prints [value] after [label], aligning its continuation lines. *)
+let say_value label value =
+  let continuation = "\n" ^ String.make (String.length label) ' ' in
+  Il.Print.string_of_value ~parens:true value
+  |> String.split_on_char '\n' |> String.concat continuation |> say "%s%s" label
+
+let say_values values =
+  List.iteri
+    (fun index value -> say_value (Format.sprintf "  %d: " index) value)
+    values
+
 let print_args () =
   match !State.frames with
   | [] -> say "No call in progress."
   | frame :: _ when frame.inputs = [] ->
       say "%s takes no inputs." (string_of_frame frame)
+  | frame :: _ -> say_values frame.inputs
+
+let say_binding (var, value) =
+  say_value ("  " ^ Envs_interp.Var.to_string var ^ " = ") value
+
+let print_locals () =
+  match !State.frames with
+  | [] -> say "No call in progress."
+  | frame :: _ when VEnv.is_empty frame.env -> say "No local bindings."
   | frame :: _ ->
-      List.iteri
-        (fun index value ->
-          let label = Format.sprintf "  %d: " index in
-          let continuation = "\n" ^ String.make (String.length label) ' ' in
-          Il.Print.string_of_value value
-          |> String.split_on_char '\n' |> String.concat continuation
-          |> say "%s%s" label)
-        frame.inputs
+      VEnv.iter (fun var value -> say_binding (var, value)) frame.env
+
+(* Prints the bindings of [name], one per iteration depth. *)
+let print_local name =
+  match !State.frames with
+  | [] -> say "No call in progress."
+  | frame :: _ -> (
+      match
+        VEnv.bindings frame.env
+        |> List.filter (fun (((id : Il.id), _), _) -> id.it = name)
+      with
+      | [] -> raise (Bad_command ("No local `" ^ name ^ "`."))
+      | bindings -> List.iter say_binding bindings)
 
 (* Source *)
 
@@ -161,7 +199,13 @@ let lines_of_file file =
 let context_lines = 2
 let max_span_lines = 20
 
-let print_source at =
+(* Marks [at]'s lines with [>], and [current]'s with [=>]. *)
+let print_source ?current at =
+  let within line = function
+    | Location.Span { left; right; _ } ->
+        line >= left.line && line <= right.line
+    | Location.Unknown | Location.File _ -> false
+  in
   match at with
   | Location.Unknown -> say "No source location."
   | Location.File file -> say "No line information in %s." file
@@ -181,7 +225,10 @@ let print_source at =
           |> Array.iteri (fun offset text ->
                  let line = first + offset in
                  let marker =
-                   if line >= left.line && line <= right.line then ">" else " "
+                   if Option.fold ~none:false ~some:(within line) current then
+                     "=>"
+                   else if within line at then " >"
+                   else "  "
                  in
                  say "%s%5d  %s" marker line text);
           if truncated then say "   ...")
@@ -189,7 +236,7 @@ let print_source at =
 let print_current_source () =
   match !State.frames with
   | [] -> say "No call in progress."
-  | frame :: _ -> print_source (location_of_frame frame)
+  | frame :: _ -> print_source ?current:frame.prem_at (location_of_frame frame)
 
 let print_breakpoints () =
   match !State.breakpoints with
@@ -204,8 +251,13 @@ let help =
   {|Commands:
   r, run             start the run
   c, continue        resume until the next breakpoint
+  s, step            run to the next premise, entering calls
+  n, next            run to the next premise, stepping over calls
+  f, finish          run until the current call returns
   bt, backtrace      show the call stack, innermost call first
   args               show the current call's input values
+  locals             show the bindings in scope
+  p, print NAME      show the binding of NAME
   show               show the source of the current rule or clause
   b, break NAME      stop at NAME: Rel or Rel/rule
   d, delete N        remove breakpoint N
@@ -228,6 +280,15 @@ let read_command () =
 let require_running () =
   if not !State.running then raise (Bad_command "The run hasn't started.")
 
+let depth () = List.length !State.frames
+
+(* Resumes the run, stepping as [step]. *)
+let resume_stepping step =
+  require_running ();
+  if !State.frames = [] then raise (Bad_command "No call in progress.");
+  State.step := Some (step (depth ()));
+  true
+
 (* Returns once the user starts or resumes the run. *)
 let rec prompt () =
   let resume =
@@ -240,7 +301,11 @@ let rec prompt () =
           true
       | [ ("c" | "continue") ] ->
           require_running ();
+          State.step := None;
           true
+      | [ ("s" | "step") ] -> resume_stepping (fun _ -> Step)
+      | [ ("n" | "next") ] -> resume_stepping (fun depth -> Next depth)
+      | [ ("f" | "finish") ] -> resume_stepping (fun depth -> Finish depth)
       | [ ("bt" | "backtrace") ] ->
           require_running ();
           print_backtrace ();
@@ -252,6 +317,14 @@ let rec prompt () =
       | [ "show" ] ->
           require_running ();
           print_current_source ();
+          false
+      | [ "locals" ] ->
+          require_running ();
+          print_locals ();
+          false
+      | [ ("p" | "print"); name ] ->
+          require_running ();
+          print_local name;
           false
       | [ ("b" | "break"); name ] -> (
           match target_of_string name with
@@ -289,10 +362,68 @@ let current_call_site () =
   | frame :: _ -> describe_call_site frame.at
   | [] -> ""
 
+(* Every stop ends the step in progress. *)
+let pause () =
+  State.step := None;
+  prompt ()
+
 let stop_at { number; target } =
   say "Breakpoint %d, %s%s" number (string_of_target target)
     (current_call_site ());
-  prompt ()
+  pause ()
+
+(* Stepping *)
+
+(* Prints the first line of [at], as gdb does when stepping. *)
+let say_line frame at =
+  match at with
+  | Location.Span { file; left; _ } -> (
+      say "%s, %s:%d" (string_of_frame frame) file left.line;
+      match lines_of_file file with
+      | Some lines when left.line <= Array.length lines ->
+          say "%7d  %s" left.line lines.(left.line - 1)
+      | _ -> ())
+  | Location.Unknown | Location.File _ -> say "%s" (string_of_frame frame)
+
+(* Stops at a written premise when the step in progress lands on it. *)
+let step_at at =
+  match (!State.frames, !State.step) with
+  | frame :: _, Some Step ->
+      say_line frame at;
+      pause ()
+  | frame :: _, Some (Next depth') when depth () <= depth' ->
+      say_line frame at;
+      pause ()
+  | _ -> ()
+
+(* Pops the innermost call, stopping when it is the one being finished. *)
+let leave_call describe_result =
+  let finishing =
+    match !State.step with
+    | Some (Finish depth') -> depth () = depth'
+    | _ -> false
+  in
+  let name =
+    match !State.frames with frame :: _ -> string_of_frame frame | [] -> ""
+  in
+  (match !State.frames with _ :: frames -> State.frames := frames | [] -> ());
+  if finishing then (
+    describe_result name;
+    pause ())
+
+let describe_rel_exit success conclusion name =
+  if not success then say "%s failed." name
+  else
+    match Il.Mode.outputs conclusion |> List.filter_map Fun.id with
+    | [] -> say "%s holds." name
+    | outputs ->
+        say "%s returned:" name;
+        say_values outputs
+
+let describe_func_exit output name =
+  match output with
+  | None -> say "%s failed." name
+  | Some value -> say_value (name ^ " returned ") value
 
 let stop_if_breakpoint target =
   Option.iter stop_at (State.breakpoint_for target)
@@ -341,14 +472,16 @@ let enter_rule id rule_id =
       | [], _ | _, [] -> stop_at breakpoint
       | guards, frame :: _ -> frame.pending <- Some (breakpoint, guards))
 
-(* Stops a pending rule breakpoint, when [applied] given the guards. *)
+(* Stops a pending rule breakpoint, when [applied] given the guards, and says
+   whether it stopped. *)
 let resolve_pending applied =
   match !State.frames with
   | ({ pending = Some (breakpoint, guards); _ } as frame) :: _
     when applied guards ->
       frame.pending <- None;
-      stop_at breakpoint
-  | _ -> ()
+      stop_at breakpoint;
+      true
+  | _ -> false
 
 (* The rule applies once it reaches a premise past its guards. *)
 let enter_prem prem =
@@ -356,16 +489,23 @@ let enter_prem prem =
 
 (* A rule whose premises are all guards applies when it succeeds. *)
 let exit_rule success =
-  resolve_pending (fun _ -> success);
+  ignore (resolve_pending (fun _ -> success));
   match !State.frames with frame :: _ -> frame.pending <- None | [] -> ()
 
 let push_frame kind id at inputs =
   State.frames :=
-    { kind; id; at; inputs; rule_id = None; clause_idx = None; pending = None }
+    {
+      kind;
+      id;
+      at;
+      inputs;
+      rule_id = None;
+      clause_idx = None;
+      pending = None;
+      env = VEnv.empty;
+      prem_at = None;
+    }
     :: !State.frames
-
-let pop_frame () =
-  match !State.frames with _ :: frames -> State.frames := frames | [] -> ()
 
 let set_rule_id rule_id =
   match !State.frames with frame :: _ -> frame.rule_id <- rule_id | [] -> ()
@@ -374,6 +514,27 @@ let set_clause_idx clause_idx =
   match !State.frames with
   | frame :: _ -> frame.clause_idx <- clause_idx
   | [] -> ()
+
+let set_env env =
+  match !State.frames with frame :: _ -> frame.env <- env | [] -> ()
+
+let set_prem_at at =
+  match !State.frames with frame :: _ -> frame.prem_at <- Some at | [] -> ()
+
+(* A rule or clause ended: nothing from it stays in scope. *)
+let leave_scope () =
+  match !State.frames with
+  | frame :: _ ->
+      frame.env <- VEnv.empty;
+      frame.prem_at <- None
+  | [] -> ()
+
+(* An instruction the spec's author wrote as a premise, not one the algo pass
+   synthesized. *)
+let is_written (instr : Al.instr) =
+  match instr.note with
+  | Al.Premise _ -> true
+  | Al.Sidecondition _ | Al.Input_sidecondition -> false
 
 module M : Instrumentation_api.Handler.S = struct
   let static_dependencies = []
@@ -393,17 +554,30 @@ module M : Instrumentation_api.Handler.S = struct
     | Rel_enter { id; at; inputs } ->
         push_frame `Rel id at inputs;
         stop_if_breakpoint (Rel id)
-    | Rel_exit _ | Func_exit _ -> pop_frame ()
-    | Rule_enter { id; rule_id; at = _; env = _ } ->
+    | Rel_exit { success; conclusion; _ } ->
+        leave_call (describe_rel_exit success conclusion)
+    | Func_exit { output; _ } -> leave_call (describe_func_exit output)
+    | Rule_enter { id; rule_id; at = _; env } ->
         set_rule_id (Some rule_id);
+        set_env env;
         enter_rule id rule_id
     | Rule_exit { success; _ } ->
         exit_rule success;
-        set_rule_id None
-    | Instr_enter { instr = AlInstr instr; _ } -> enter_prem instr
+        set_rule_id None;
+        leave_scope ()
+    | Instr_enter { instr = AlInstr instr; at; env } ->
+        set_env env;
+        if is_written instr then set_prem_at at;
+        (* No rule breakpoint stopped on this written premise. *)
+        if (not (enter_prem instr)) && is_written instr then step_at at
+    | Instr_exit { instr = AlInstr _; env; _ } -> set_env env
     | Func_enter { id; at; inputs } -> push_frame `Func id at inputs
-    | Clause_enter { clause_idx; _ } -> set_clause_idx (Some clause_idx)
-    | Clause_exit _ -> set_clause_idx None
+    | Clause_enter { clause_idx; env; _ } ->
+        set_clause_idx (Some clause_idx);
+        set_env env
+    | Clause_exit _ ->
+        set_clause_idx None;
+        leave_scope ()
     | Test_start _ | Test_end _ | Repetition_enter _ | Repetition_exit _
     | Case_match _ | Instr_enter _ | Instr_exit _ ->
         ()
