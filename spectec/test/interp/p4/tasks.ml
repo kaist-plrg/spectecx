@@ -224,6 +224,8 @@ let () =
       check_evaluation spec_al mode
         (samples ^ "ternary_ebpf.p4")
         ~stf:"eval-ternary.stf";
+      check_evaluation spec_al mode (samples ^ "test_ebpf.p4")
+        ~stf:"eval-key-forms.stf";
       match run spec_al mode "unsupported.p4" with
       | Ok _ -> failwith (name ^ ": unsupported object was instantiated")
       | Error error ->

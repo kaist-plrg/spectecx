@@ -38,3 +38,16 @@ STF statements other than packet, expect, add and setdefault are rejected.
   $ spectec p4 eval --spec-dir ../../specs/p4 -i ../../testdata/interp/p4/p4c/includes -p $SAMPLES/valid_ebpf.p4 -stf wait.stf --color never 2>&1 | grep -A1 '^error'
   error: unsupported STF statement: wait
     --> wait.stf
+
+An add line without an action is rejected as malformed.
+
+  $ echo 'add pipe_Check_src_ip 0 key.field0:0x0a019845' > add-malformed.stf
+  $ spectec p4 eval --spec-dir ../../specs/p4 -i ../../testdata/interp/p4/p4c/includes -p $SAMPLES/test_ebpf.p4 -stf add-malformed.stf --color never 2>&1 | grep -A1 '^error'
+  error: malformed add statement
+    --> add-malformed.stf
+
+An add line that names a table the program lacks is rejected.
+
+  $ echo 'add pipe_Missing 0 key.field0:0x0a019845 pipe_Reject()' > add-unknown-table.stf
+  $ spectec p4 eval --spec-dir ../../specs/p4 -i ../../testdata/interp/p4/p4c/includes -p $SAMPLES/test_ebpf.p4 -stf add-unknown-table.stf --color never 2>&1 | grep '^error'
+  error: unknown table main.filt.Missing
