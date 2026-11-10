@@ -194,6 +194,22 @@ rule Offset_let:
   n*; m |- k*
   -- (if k = $(n + m))*
 
+relation Offset_pair:
+  nat*; nat |- nat*
+  hint(input %0 %1)
+
+rule Offset_pair:
+  n*; m |- k*
+  -- (if (k, k) = ($(n + m), $(n + m)))*
+
+relation Pair_mismatch:
+  nat*; nat* |- nat*
+  hint(input %0 %1)
+
+rule Pair_mismatch:
+  n*; m* |- k*
+  -- (if (k, k) = (n, m))*
+
 relation Offset_rel:
   nat*; nat |- nat*
   hint(input %0 %1)

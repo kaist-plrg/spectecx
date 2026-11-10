@@ -39,7 +39,7 @@ and clause' = { args : arg list; body : exp; prems : prem list }
 
 and relcall = Il.relcall = { relid : id; notexp : notexp }
 
-and prem = (prem', origin option) annotated
+and prem = (prem', origin) annotated
 and origin =
   | Premise of Il.prem
   | Sidecondition of Il.prem  (* Checks for variables bound by the given

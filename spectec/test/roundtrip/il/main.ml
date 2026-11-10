@@ -13,8 +13,8 @@ module Al = Lang.Al
 let recover (prems : Al.prem list) : El.prem list =
   List.filter_map prems ~f:(fun prem ->
       match prem.note with
-      | Some (Al.Premise prem_il) -> Some prem_il.note
-      | Some (Al.Sidecondition _ | Al.Input_sidecondition) | None -> None)
+      | Al.Premise prem_il -> Some prem_il.note
+      | Al.Sidecondition _ | Al.Input_sidecondition -> None)
 
 let authored_rule_premises (spec : El.spec) relid : El.prem list list =
   List.filter_map spec ~f:(fun def ->

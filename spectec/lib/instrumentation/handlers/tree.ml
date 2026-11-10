@@ -1,17 +1,10 @@
-(** Tree: buffers a top-level relation invocation and emits one ASCII derivation
-    tree when it completes: conclusion on top, sub-derivations below as premises
-    led by [--]. Unlike {!Trace}, backtracking is pruned to the rules that
-    applied, yielding a clean derivation tree.
+(** Prints a tree when a top-level relation call finishes. Failed calls show the
+    rules that could not finish.
 
-    A failed run is rendered like a successful one, with the rule that could not
-    be completed crossed out.
-
-    Levels:
-    - [Rule]: each relation node tagged with the rule that matched.
-    - [Conclusion]: [Rule] + the conclusion judgment under each tag (e.g.
-      [[ x -> int ] |- 5 : int]).
-    - [Premise]: [Conclusion] + each rule's premises in source order,
-      concretized with runtime values. IL only. *)
+    - [Rule] labels each relation with its rule.
+    - [Conclusion] adds the conclusion judgment.
+    - [Premise] adds source premises with runtime values, once per repetition
+      for iterated premises. This level requires IL mode. *)
 
 module Il = Lang.Il
 module Al = Lang.Al
@@ -42,6 +35,10 @@ type outcome =
   | Rel_result of { conclusion : judgment; holds : bool }
   | Func_result of Il.Value.t option (* [None] if the call got stuck. *)
 
+(* The failed step may be an input side condition, which has no IL premise.
+   The step's exit event supplies [bindings]. *)
+type unmet_prem = { prem_al : Al.prem; bindings : (Il.id * Il.Value.t) list }
+
 type node = {
   kind : kind;
   id : string;
@@ -57,7 +54,12 @@ type node = {
   mutable binding_env : (Il.id * Il.Value.t) list;
 }
 
-and prem_entry = { prem : Al.prem; mutable subderiv : node option }
+and prem_entry = {
+  prem_il : Il.prem;
+  (* Values for this repetition of the premise. *)
+  mutable bindings : (Il.id * Il.Value.t) list;
+  mutable subderiv : node option;
+}
 
 (* One rule's attempt at a goal; [unmet_prem] is the premise that defeated it, or
    [None] if the rule fired. *)
@@ -65,7 +67,7 @@ and derivation = {
   mutable rule : string option;
   mutable prems_rev : prem_entry list;
   mutable children_rev : node list;
-  mutable unmet_prem : Al.prem option;
+  mutable unmet_prem : unmet_prem option;
 }
 
 let empty_derivation () =
@@ -89,7 +91,7 @@ let is_failed node =
   | _ -> false
 
 let is_applied = function
-  | Some { it = Al.IfPr { role = Al.Guard; _ }; _ } -> false
+  | Some { prem_al = { it = Al.IfPr { role = Al.Guard; _ }; _ }; _ } -> false
   | _ -> true
 
 (* === Mutable state ================================================= *)
@@ -131,14 +133,15 @@ module State = struct
         if (not success) && is_applied derivation.unmet_prem then
           current.failures_rev <- derivation :: current.failures_rev)
 
-  let enter_premise prem =
+  let enter_premise ~prem_il =
     with_current (fun current ->
-        current.pending_prem <- Some { prem; subderiv = None })
+        current.pending_prem <- Some { prem_il; bindings = []; subderiv = None })
 
-  let record_premise () =
+  let record_premise ~bindings =
     with_current (fun current ->
         Option.iter
           (fun entry ->
+            entry.bindings <- bindings;
             current.derivation.prems_rev <-
               entry :: current.derivation.prems_rev)
           current.pending_prem;
@@ -148,14 +151,15 @@ module State = struct
     with_current (fun current ->
         current.binding_env <- bindings @ current.binding_env)
 
-  let record_unmet_prem prem =
-    with_current (fun current -> current.derivation.unmet_prem <- Some prem)
+  let record_unmet_prem prem_al ~bindings =
+    with_current (fun current ->
+        current.derivation.unmet_prem <- Some { prem_al; bindings })
 end
 
-let is_authored_prem prem =
+let as_premise_opt prem =
   match prem.note with
-  | Some (Al.Premise _) | None -> true
-  | Some (Al.Sidecondition _ | Al.Input_sidecondition) -> false
+  | Al.Premise prem_il -> Some prem_il
+  | Al.Sidecondition _ | Al.Input_sidecondition -> None
 
 (* === Rendering ===================================================== *)
 
@@ -220,14 +224,41 @@ let render_prem ~binding_env entry =
   (* Returning [None] would let the unparser print the variable's name; show [?]
      for an unbound variable instead. *)
   let values varid =
-    match List.find_opt (fun (id, _) -> id.it = varid.it) binding_env with
+    match
+      List.find_opt
+        (fun (id, _) -> id.it = varid.it)
+        (entry.bindings @ binding_env)
+    with
     | Some (_, v) -> Some (render_value v)
     | None -> Some (dim "?")
   in
-  match entry.prem.note with
-  | Some (Al.Premise prem_il) -> El.Unparse.string_of_prem ~values prem_il.note
-  | Some (Al.Sidecondition _ | Al.Input_sidecondition) | None ->
-      Al.Print.string_of_prem entry.prem
+  El.Unparse.string_of_prem ~values entry.prem_il.note
+
+(* Side conditions run after all repetitions of the premise, so a failed
+   check may belong to an earlier repetition. *)
+let marked_index entries ~unmet =
+  let last = List.length entries - 1 in
+  match unmet with
+  | None -> None
+  | Some { prem_al; bindings } -> (
+      match prem_al.note with
+      | Al.Sidecondition prem_il ->
+          (* The algo pass shares this [Il.prem] with the side conditions. *)
+          let agrees entry =
+            entry.prem_il == prem_il
+            && List.for_all
+                 (fun (id, value) ->
+                   match
+                     List.find_opt
+                       (fun (id', _) -> id'.it = id.it)
+                       entry.bindings
+                   with
+                   | Some (_, value') -> Il.Eq.eq_value value value'
+                   | None -> true)
+                 bindings
+          in
+          Some (Option.value (List.find_index agrees entries) ~default:last)
+      | Al.Premise _ | Al.Input_sidecondition -> Some last)
 
 let derivations_of node =
   if is_failed node then List.rev node.failures_rev else [ node.derivation ]
@@ -276,20 +307,20 @@ and print_derivation_body ~rest_prefix node derivation out =
   in
   let unmet_is_sidecondition =
     match derivation.unmet_prem with
-    | Some p -> not (is_authored_prem p)
+    | Some { prem_al; _ } -> Option.is_none (as_premise_opt prem_al)
     | None -> false
   in
   let entries = List.rev derivation.prems_rev in
-  let last = List.length entries - 1 in
+  let marked = marked_index entries ~unmet:derivation.unmet_prem in
   List.iteri
     (fun i entry ->
-      let is_culprit = Option.is_some derivation.unmet_prem && i = last in
-      let show_as_text = is_culprit && unmet_is_sidecondition in
-      match (entry.prem.it, entry.subderiv) with
-      | (Al.RelPr _ | Al.RelAssertPr { expect = true; _ }), Some subderiv
+      let is_marked = marked = Some i in
+      let show_as_text = is_marked && unmet_is_sidecondition in
+      match (entry.prem_il.it, entry.subderiv) with
+      | (Il.RelPr _ | Il.RelAssertPr { expect = true; _ }), Some subderiv
         when not show_as_text ->
           print_child ~rest_prefix out subderiv
-      | _ -> print_prem ~marked:is_culprit entry)
+      | _ -> print_prem ~marked:is_marked entry)
     entries;
   let children =
     match !config.level with
@@ -331,13 +362,16 @@ module M : Instrumentation_api.Handler.S = struct
     | Clause_enter _ | Clause_exit _ -> ()
     | Iter_prem_enter _ | Iter_prem_exit _ -> ()
     | Prem_enter { prem; at = _ } ->
-        if !config.level = Premise && is_authored_prem prem then
-          State.enter_premise prem
+        if !config.level = Premise then
+          Option.iter
+            (fun prem_il -> State.enter_premise ~prem_il)
+            (as_premise_opt prem)
     | Prem_exit { prem; at = _; success; bindings } ->
-        if not success then State.record_unmet_prem prem;
+        if not success then State.record_unmet_prem prem ~bindings;
         if !config.level = Premise then (
           State.record_bindings ~bindings;
-          if is_authored_prem prem then State.record_premise ())
+          if Option.is_some (as_premise_opt prem) then
+            State.record_premise ~bindings)
     | Instr _ -> ()
 end
 

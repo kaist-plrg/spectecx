@@ -15,14 +15,14 @@ let rec as_guard (prem : Al.prem) : Al.prem =
     | IterPr (prem_inner, iterinstr) -> IterPr (as_guard prem_inner, iterinstr)
     | _ -> prem.it
   in
-  guard $$ (prem.at, Some Input_sidecondition)
+  guard $$ (prem.at, prem.note)
 
 (* Expression analysis *)
 
-let analyze_exps_as_bind (dctx : Dctx.t) (exps : exp list) :
+let analyze_exps_as_bind (dctx : Dctx.t) ~(origin : origin) (exps : exp list) :
     Dctx.t * exp list * Al.prem list =
   let dctx, venv, exps, sideconditions =
-    Binding.analyze_exps_as_bind dctx exps
+    Binding.analyze_exps_as_bind dctx ~origin exps
   in
   let dctx = Dctx.add_bounds dctx venv in
   let exps = Dimension.analyze_exps dctx.bounds exps in
@@ -38,10 +38,10 @@ let analyze_exps_as_bound (dctx : Dctx.t) (exps : exp list) : exp list =
 
 (* Argument analysis *)
 
-let analyze_args_as_bind (dctx : Dctx.t) (args : arg list) :
+let analyze_args_as_bind (dctx : Dctx.t) ~(origin : origin) (args : arg list) :
     Dctx.t * arg list * Al.prem list =
   let dctx, venv, args, sideconditions =
-    Binding.analyze_args_as_bind dctx args
+    Binding.analyze_args_as_bind dctx ~origin args
   in
   let dctx = Dctx.add_bounds dctx venv in
   let args = Dimension.analyze_args dctx.bounds args in
@@ -56,14 +56,7 @@ let analyze_prem (dctx : Dctx.t) (prem : Il.prem) : Dctx.t * Al.prem list =
   in
   let dctx = Dctx.add_bounds dctx venv in
   let prem_analyzed = Dimension.analyze_prem dctx prem_analyzed in
-  let prem_analyzed =
-    prem_analyzed.it $$ (prem_analyzed.at, Some (Premise prem))
-  in
-  let sideconditions =
-    Dimension.analyze_prems dctx sideconditions
-    |> List.map (fun sidecondition ->
-           sidecondition.it $$ (sidecondition.at, Some (Sidecondition prem)))
-  in
+  let sideconditions = Dimension.analyze_prems dctx sideconditions in
   (dctx, prem_analyzed :: sideconditions)
 
 let analyze_prems (dctx : Dctx.t) (prems : Il.prem list) : Dctx.t * Al.prem list
@@ -79,7 +72,9 @@ let analyze_rule (env : Dctx.env) ~(reltyp : reltyp) (rule : Il.rule) : Al.rule
   let dctx = Dctx.make env ~frees:(Il.Free.free_rule rule) in
   let mixop, exps = Mixop.split concl in
   let exps_input, exps_output = Mode.partition reltyp.it exps in
-  let dctx, exps_input, sideconditions = analyze_exps_as_bind dctx exps_input in
+  let dctx, exps_input, sideconditions =
+    analyze_exps_as_bind dctx ~origin:Input_sidecondition exps_input
+  in
   let dctx, prems = analyze_prems dctx prems in
   let prems = List.map as_guard sideconditions @ prems in
   let exps_output = analyze_exps_as_bound dctx exps_output in
@@ -94,7 +89,9 @@ let analyze_rule (env : Dctx.env) ~(reltyp : reltyp) (rule : Il.rule) : Al.rule
 let analyze_clause (env : Dctx.env) (clause : Il.clause) : Al.clause =
   let ({ args; body; prems } : Il.clause') = clause.it in
   let dctx = Dctx.make env ~frees:(Il.Free.free_clause clause) in
-  let dctx, args, sideconditions = analyze_args_as_bind dctx args in
+  let dctx, args, sideconditions =
+    analyze_args_as_bind dctx ~origin:Input_sidecondition args
+  in
   let dctx, prems = analyze_prems dctx prems in
   let prems = List.map as_guard sideconditions @ prems in
   let body = analyze_exp_as_bound dctx body in

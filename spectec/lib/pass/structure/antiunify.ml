@@ -25,7 +25,7 @@ let rec populate_exp_template (uenv : UEnv.t) (exp_template : exp) (exp : exp) :
   let populate_exp_template_unequal () =
     match (exp_template.it, exp.it) with
     | VarE id_template, _ when UEnv.unified id_template uenv ->
-        let prem = LetPr (exp, exp_template) $$ (exp.at, None) in
+        let prem = LetPr (exp, exp_template) $$ (exp.at, Input_sidecondition) in
         [ prem ]
     | TupleE exps_template, TupleE exps ->
         populate_exps_templates uenv exps_template exps
@@ -49,8 +49,8 @@ let rec populate_exp_template (uenv : UEnv.t) (exp_template : exp) (exp : exp) :
           in
           { iter = iter_template; vars_input = vars_template; vars_output }
         in
-        let prem = LetPr (exp, exp_template) $$ (exp.at, None) in
-        let prem = IterPr (prem, iterinstr) $$ (exp.at, None) in
+        let prem = LetPr (exp, exp_template) $$ (exp.at, Input_sidecondition) in
+        let prem = IterPr (prem, iterinstr) $$ (exp.at, Input_sidecondition) in
         [ prem ]
     | _ ->
         Format.asprintf "cannot populate anti-unified expressions %s and %s"
