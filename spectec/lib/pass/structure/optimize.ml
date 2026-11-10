@@ -275,26 +275,26 @@ let rec merge_block (instrs_a : instr list) (instrs_b : instr list) : instr list
       merge_block (instr_h :: instrs_a) instrs_b
   | _ -> instrs_a @ instrs_b
 
+let as_binding_with_block_opt (instr : instr) ~(rtenv : RTEnv.t) :
+    (Bind.t * instr list) option =
+  match instr.it with
+  | LetI (exp_l, exp_r, iterinstrs, block) ->
+      Some (Bind.init_let_bind exp_l exp_r iterinstrs, block)
+  | RelI { call; iterinstrs; block } ->
+      Some (Bind.init_rel_bind rtenv call.relid call.notexp iterinstrs, block)
+  | _ -> None
+
 let downstream_binding (rtenv : RTEnv.t) (bind : Bind.t) (instrs : instr list) :
     (instr list * instr list) option =
   match instrs with
-  | { it = LetI (exp_l, exp_r, iterinstrs, block); _ } :: instrs_t -> (
-      let bind_target = Bind.init_let_bind exp_l exp_r iterinstrs in
-      match Bind.collapse_bind bind bind_target with
-      | Some rename ->
-          let block = Renamer.rename_instrs rename block in
-          Some (block, instrs_t)
+  | instr_h :: instrs_t -> (
+      match as_binding_with_block_opt instr_h ~rtenv with
+      | Some (bind_target, block) ->
+          Bind.collapse_bind bind bind_target
+          |> Option.map (fun rename ->
+                 (Renamer.rename_instrs rename block, instrs_t))
       | None -> None)
-  | { it = RelI { call; iterinstrs; block }; _ } :: instrs_t -> (
-      let bind_target =
-        Bind.init_rel_bind rtenv call.relid call.notexp iterinstrs
-      in
-      match Bind.collapse_bind bind bind_target with
-      | Some rename ->
-          let block = Renamer.rename_instrs rename block in
-          Some (block, instrs_t)
-      | None -> None)
-  | _ -> None
+  | [] -> None
 
 let rec merge_binding (rtenv : RTEnv.t) (instrs : instr list) : instr list =
   match instrs with
