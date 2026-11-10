@@ -31,3 +31,18 @@ let extract ~callback ~at ~ctx (packet : t) :
       Spec_calls.update_var_local ~callback ctx ~name:"hdr" ~value:hdr
     in
     Ok (packet, ctx, P4_values.return_empty)
+
+(* [void advance(in bit<32> sizeInBits)] *)
+
+let advance ~callback ~at ~ctx (packet : t) :
+    (t * Lang.Il.Value.t * Lang.Il.Value.t) result =
+  let* size =
+    Spec_calls.find_bit32_local_exn ~callback ~at ctx ~name:"sizeInBits"
+  in
+  if packet.cursor + size > length packet then
+    Ok (packet, ctx, P4_values.reject (P4_values.error_value "PacketTooShort"))
+  else
+    Ok
+      ( { packet with cursor = packet.cursor + size },
+        ctx,
+        P4_values.return_empty )

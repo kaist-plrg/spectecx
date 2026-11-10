@@ -12,3 +12,13 @@ val extract :
   ctx:Lang.Il.Value.t ->
   t ->
   (t * Lang.Il.Value.t * Lang.Il.Value.t) Builtins.result
+
+(** [ctx] must bind the [bit<32>] argument [sizeInBits]. If [sizeInBits] exceeds
+    the remaining bits, return [Ok] with a [PacketTooShort] rejection and leave
+    the packet unchanged. *)
+val advance :
+  callback:Builtins.Callback.t ->
+  at:Common.Location.t ->
+  ctx:Lang.Il.Value.t ->
+  t ->
+  (t * Lang.Il.Value.t * Lang.Il.Value.t) Builtins.result
