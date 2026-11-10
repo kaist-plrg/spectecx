@@ -1,0 +1,14 @@
+var x : nat
+
+relation R:
+  nat |- nat
+  hint(input %0)
+
+rule R/low:
+  x |- 1
+  -- if $(x < 10)
+
+rule R/other:
+  x |- 2
+  -- otherwise
+  -- if $(x < 20)

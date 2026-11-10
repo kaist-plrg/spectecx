@@ -45,6 +45,7 @@ type code =
   (* premise shape *)
   | Negated_premise_takes_inputs
   | Iter_only_rule_or_if_premise
+  | Otherwise_premise_not_last
   (* relation input hints *)
   | Relation_input_hint_empty
   | Relation_input_hint_duplicate_index
@@ -101,6 +102,7 @@ let string_of_code = function
   | Var_def_type_redefined -> "var-def-type-redefined"
   | Negated_premise_takes_inputs -> "negated-premise-takes-inputs"
   | Iter_only_rule_or_if_premise -> "iter-only-rule-or-if-premise"
+  | Otherwise_premise_not_last -> "otherwise-premise-not-last"
   | Relation_input_hint_empty -> "relation-input-hint-empty"
   | Relation_input_hint_duplicate_index -> "relation-input-hint-duplicate-index"
   | Relation_input_hint_non_hole -> "relation-input-hint-non-hole"

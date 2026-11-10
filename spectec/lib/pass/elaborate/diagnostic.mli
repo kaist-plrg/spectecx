@@ -67,6 +67,7 @@ type code =
   (* premise shape *)
   | Negated_premise_takes_inputs
   | Iter_only_rule_or_if_premise
+  | Otherwise_premise_not_last
   (* relation input hints *)
   | Relation_input_hint_empty
   | Relation_input_hint_duplicate_index
