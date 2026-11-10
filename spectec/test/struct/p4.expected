@@ -45590,7 +45590,7 @@ relation TableObject_create_entry_key: EC, (nameIR_key, text, typeIR), tableKeyI
 
             5. (Let typedExpressionIR_mask be (((d i_key_mask_value) as expressionIR) # (( ((int) as typeIR) (dyn) ))))
 
-            6. (Let typedExpressionIR'? be $cast_control_plane(EC, typedExpressionIR_base, typeIR))
+            6. (Let typedExpressionIR'? be $cast_control_plane(EC, typedExpressionIR_mask, typeIR))
 
             7. If ((typedExpressionIR'? matches pattern (_))), then
 
@@ -45628,7 +45628,7 @@ relation TableObject_create_entry_key: EC, (nameIR_key, text, typeIR), tableKeyI
 
             5. (Let typedExpressionIR_mask be (((d i_key_mask_value) as expressionIR) # (( ((int) as typeIR) (dyn) ))))
 
-            6. (Let typedExpressionIR'? be $cast_control_plane(EC, typedExpressionIR_base, typeIR))
+            6. (Let typedExpressionIR'? be $cast_control_plane(EC, typedExpressionIR_mask, typeIR))
 
             7. If ((typedExpressionIR'? matches pattern (_))), then
 
@@ -45684,7 +45684,7 @@ relation TableObject_create_entry_key: EC, (nameIR_key, text, typeIR), tableKeyI
 
               5. (Let typedExpressionIR_mask be (((d i_key_mask_value) as expressionIR) # (( ((int) as typeIR) (dyn) ))))
 
-              6. (Let typedExpressionIR'? be $cast_control_plane(EC, typedExpressionIR_base, typeIR))
+              6. (Let typedExpressionIR'? be $cast_control_plane(EC, typedExpressionIR_mask, typeIR))
 
               7. If ((typedExpressionIR'? matches pattern (_))), then
 
@@ -45728,7 +45728,7 @@ relation TableObject_create_entry_key: EC, (nameIR_key, text, typeIR), tableKeyI
 
               5. (Let typedExpressionIR_mask be (((d i_key_mask_value) as expressionIR) # (( ((int) as typeIR) (dyn) ))))
 
-              6. (Let typedExpressionIR'? be $cast_control_plane(EC, typedExpressionIR_base, typeIR))
+              6. (Let typedExpressionIR'? be $cast_control_plane(EC, typedExpressionIR_mask, typeIR))
 
               7. If ((typedExpressionIR'? matches pattern (_))), then
 
@@ -45772,7 +45772,7 @@ relation TableObject_create_entry_key: EC, (nameIR_key, text, typeIR), tableKeyI
 
               3. (Let typedExpressionIR_mask be (((d i_key_mask_value) as expressionIR) # (( ((int) as typeIR) (dyn) ))))
 
-              4. (Let typedExpressionIR'? be $cast_control_plane(EC, typedExpressionIR_base, typeIR))
+              4. (Let typedExpressionIR'? be $cast_control_plane(EC, typedExpressionIR_mask, typeIR))
 
               5. If ((typedExpressionIR'? matches pattern (_))), then
 
@@ -45826,7 +45826,7 @@ relation TableObject_create_entry_key: EC, (nameIR_key, text, typeIR), tableKeyI
 
             5. (Let typedExpressionIR_mask be (((d i_key_mask_value) as expressionIR) # (( ((int) as typeIR) (dyn) ))))
 
-            6. (Let typedExpressionIR'? be $cast_control_plane(EC, typedExpressionIR_base, typeIR))
+            6. (Let typedExpressionIR'? be $cast_control_plane(EC, typedExpressionIR_mask, typeIR))
 
             7. If ((typedExpressionIR'? matches pattern (_))), then
 

@@ -32040,7 +32040,7 @@ relation TableObject_create_entry_key: evalContext |- (nameIR, nameIR, typeIR) @
       -- let text_key_mask_value' = $replace_text(text_key_mask_value, "*", "0")
       -- let i_key_mask_value = $text_to_int("0x" ++ text_key_mask_value')
       -- let typedExpressionIR_mask = d i_key_mask_value as expressionIR # ( int as typeIR dyn )
-      -- let typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} = $cast_control_plane(EC, typedExpressionIR_base, typeIR)
+      -- let typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} = $cast_control_plane(EC, typedExpressionIR_mask, typeIR)
       -- if typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} matches (_)
       -- let ?(typedExpressionIR_mask_cast) = typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?}
       -- let simpleKeysetExpressionIR = typedExpressionIR_base_cast &&& typedExpressionIR_mask_cast
@@ -32063,7 +32063,7 @@ relation TableObject_create_entry_key: evalContext |- (nameIR, nameIR, typeIR) @
       -- let text_key_mask_value' = $replace_text(text_key_mask_value, "*", "0")
       -- let i_key_mask_value = $text_to_int("0b" ++ text_key_mask_value')
       -- let typedExpressionIR_mask = d i_key_mask_value as expressionIR # ( int as typeIR dyn )
-      -- let typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} = $cast_control_plane(EC, typedExpressionIR_base, typeIR)
+      -- let typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} = $cast_control_plane(EC, typedExpressionIR_mask, typeIR)
       -- if typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} matches (_)
       -- let ?(typedExpressionIR_mask_cast) = typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?}
       -- let simpleKeysetExpressionIR = typedExpressionIR_base_cast &&& typedExpressionIR_mask_cast
@@ -32088,7 +32088,7 @@ relation TableObject_create_entry_key: evalContext |- (nameIR, nameIR, typeIR) @
       -- let text_key_mask_value' = $replace_text(text_key_mask_value, "*", "0")
       -- let i_key_mask_value = $text_to_int("0x" ++ text_key_mask_value')
       -- let typedExpressionIR_mask = d i_key_mask_value as expressionIR # ( int as typeIR dyn )
-      -- let typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} = $cast_control_plane(EC, typedExpressionIR_base, typeIR)
+      -- let typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} = $cast_control_plane(EC, typedExpressionIR_mask, typeIR)
       -- if typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} matches (_)
       -- let ?(typedExpressionIR_mask_cast) = typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?}
       -- let simpleKeysetExpressionIR = typedExpressionIR_base_cast &&& typedExpressionIR_mask_cast
@@ -32113,7 +32113,7 @@ relation TableObject_create_entry_key: evalContext |- (nameIR, nameIR, typeIR) @
       -- let text_key_mask_value' = $replace_text(text_key_mask_value, "*", "0")
       -- let i_key_mask_value = $text_to_int("0b" ++ text_key_mask_value')
       -- let typedExpressionIR_mask = d i_key_mask_value as expressionIR # ( int as typeIR dyn )
-      -- let typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} = $cast_control_plane(EC, typedExpressionIR_base, typeIR)
+      -- let typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} = $cast_control_plane(EC, typedExpressionIR_mask, typeIR)
       -- if typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} matches (_)
       -- let ?(typedExpressionIR_mask_cast) = typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?}
       -- let simpleKeysetExpressionIR = typedExpressionIR_base_cast &&& typedExpressionIR_mask_cast
@@ -32138,7 +32138,7 @@ relation TableObject_create_entry_key: evalContext |- (nameIR, nameIR, typeIR) @
       -- let ?(typedExpressionIR_base_cast) = typedExpressionIR?{typedExpressionIR <- typedExpressionIR?}
       -- let i_key_mask_value = ($pow2(n_key_type_width) - $pow2(n_key_remaining_width))
       -- let typedExpressionIR_mask = d i_key_mask_value as expressionIR # ( int as typeIR dyn )
-      -- let typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} = $cast_control_plane(EC, typedExpressionIR_base, typeIR)
+      -- let typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} = $cast_control_plane(EC, typedExpressionIR_mask, typeIR)
       -- if typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} matches (_)
       -- let ?(typedExpressionIR_mask_cast) = typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?}
       -- let simpleKeysetExpressionIR = typedExpressionIR_base_cast &&& typedExpressionIR_mask_cast
@@ -32162,7 +32162,7 @@ relation TableObject_create_entry_key: evalContext |- (nameIR, nameIR, typeIR) @
       -- let text_key_mask_value' = $replace_text(text_key_mask_value, "*", "0")
       -- let i_key_mask_value = $text_to_int("0b" ++ text_key_mask_value')
       -- let typedExpressionIR_mask = d i_key_mask_value as expressionIR # ( int as typeIR dyn )
-      -- let typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} = $cast_control_plane(EC, typedExpressionIR_base, typeIR)
+      -- let typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} = $cast_control_plane(EC, typedExpressionIR_mask, typeIR)
       -- if typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} matches (_)
       -- let ?(typedExpressionIR_mask_cast) = typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?}
       -- let simpleKeysetExpressionIR = typedExpressionIR_base_cast &&& typedExpressionIR_mask_cast

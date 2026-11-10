@@ -157,7 +157,7 @@ rule TableObject_create_entry_key/ternary-hex:
   -- if i_key_mask_value = $text_to_int("0x" ++ text_key_mask_value')
   -- if typedExpressionIR_mask = (D i_key_mask_value) '#' `( INT DYN `)
   -- if typedExpressionIR_mask_cast
-      = $cast_control_plane(EC, typedExpressionIR_base, typeIR)
+      = $cast_control_plane(EC, typedExpressionIR_mask, typeIR)
   ---- ;; create ternary match expression
   -- if simpleKeysetExpressionIR
       = typedExpressionIR_base_cast '&&&' typedExpressionIR_mask_cast
@@ -180,7 +180,7 @@ rule TableObject_create_entry_key/ternary-bin:
   -- if i_key_mask_value = $text_to_int("0b" ++ text_key_mask_value')
   -- if typedExpressionIR_mask = (D i_key_mask_value) '#' `( INT DYN `)
   -- if typedExpressionIR_mask_cast
-      = $cast_control_plane(EC, typedExpressionIR_base, typeIR)
+      = $cast_control_plane(EC, typedExpressionIR_mask, typeIR)
   ---- ;; create ternary match expression
   -- if simpleKeysetExpressionIR
       = typedExpressionIR_base_cast '&&&' typedExpressionIR_mask_cast
@@ -206,7 +206,7 @@ rule TableObject_create_entry_key/lpm-hex:
   -- if i_key_mask_value = $text_to_int("0x" ++ text_key_mask_value')
   -- if typedExpressionIR_mask = (D i_key_mask_value) '#' `( INT DYN `)
   -- if typedExpressionIR_mask_cast
-      = $cast_control_plane(EC, typedExpressionIR_base, typeIR)
+      = $cast_control_plane(EC, typedExpressionIR_mask, typeIR)
   ---- ;; create ternary match expression
   -- if simpleKeysetExpressionIR
       = typedExpressionIR_base_cast '&&&' typedExpressionIR_mask_cast
@@ -232,7 +232,7 @@ rule TableObject_create_entry_key/lpm-bin:
   -- if i_key_mask_value = $text_to_int("0b" ++ text_key_mask_value')
   -- if typedExpressionIR_mask = (D i_key_mask_value) '#' `( INT DYN `)
   -- if typedExpressionIR_mask_cast
-      = $cast_control_plane(EC, typedExpressionIR_base, typeIR)
+      = $cast_control_plane(EC, typedExpressionIR_mask, typeIR)
   ---- ;; create ternary match expression
   -- if simpleKeysetExpressionIR
       = typedExpressionIR_base_cast '&&&' typedExpressionIR_mask_cast
@@ -256,7 +256,7 @@ rule TableObject_create_entry_key/lpm-prefix:
   -- if i_key_mask_value = $($pow2(n_key_type_width) - $pow2(n_key_remaining_width))
   -- if typedExpressionIR_mask = (D i_key_mask_value) '#' `( INT DYN `)
   -- if typedExpressionIR_mask_cast
-      = $cast_control_plane(EC, typedExpressionIR_base, typeIR)
+      = $cast_control_plane(EC, typedExpressionIR_mask, typeIR)
   ---- ;; create lpm expression
   -- if simpleKeysetExpressionIR
       = typedExpressionIR_base_cast '&&&' typedExpressionIR_mask_cast
@@ -281,7 +281,7 @@ rule TableObject_create_entry_key/optional:
   -- if i_key_mask_value = $text_to_int("0b" ++ text_key_mask_value')
   -- if typedExpressionIR_mask = (D i_key_mask_value) '#' `( INT DYN `)
   -- if typedExpressionIR_mask_cast
-      = $cast_control_plane(EC, typedExpressionIR_base, typeIR)
+      = $cast_control_plane(EC, typedExpressionIR_mask, typeIR)
   ---- ;; create optional match expression
   -- if simpleKeysetExpressionIR
       = typedExpressionIR_base_cast '&&&' typedExpressionIR_mask_cast

@@ -22054,7 +22054,7 @@ relation TableObject_create_entry_key: evalContext |- (nameIR, nameIR, typeIR) @
       -- if (text_key_mask_value' = $replace_text(text_key_mask_value, "*", "0"))
       -- if (i_key_mask_value = $text_to_int("0x" ++ text_key_mask_value'))
       -- if (typedExpressionIR_mask = d i_key_mask_value as expressionIR # ( int as typeIR dyn ))
-      -- if (?(typedExpressionIR_mask_cast) = $cast_control_plane(EC, typedExpressionIR_base, typeIR))
+      -- if (?(typedExpressionIR_mask_cast) = $cast_control_plane(EC, typedExpressionIR_mask, typeIR))
       -- if (simpleKeysetExpressionIR = typedExpressionIR_base_cast &&& typedExpressionIR_mask_cast)
 
    ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:165:1-186:70:
@@ -22068,7 +22068,7 @@ relation TableObject_create_entry_key: evalContext |- (nameIR, nameIR, typeIR) @
       -- if (text_key_mask_value' = $replace_text(text_key_mask_value, "*", "0"))
       -- if (i_key_mask_value = $text_to_int("0b" ++ text_key_mask_value'))
       -- if (typedExpressionIR_mask = d i_key_mask_value as expressionIR # ( int as typeIR dyn ))
-      -- if (?(typedExpressionIR_mask_cast) = $cast_control_plane(EC, typedExpressionIR_base, typeIR))
+      -- if (?(typedExpressionIR_mask_cast) = $cast_control_plane(EC, typedExpressionIR_mask, typeIR))
       -- if (simpleKeysetExpressionIR = typedExpressionIR_base_cast &&& typedExpressionIR_mask_cast)
 
    ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:188:1-212:70:
@@ -22084,7 +22084,7 @@ relation TableObject_create_entry_key: evalContext |- (nameIR, nameIR, typeIR) @
       -- if (text_key_mask_value' = $replace_text(text_key_mask_value, "*", "0"))
       -- if (i_key_mask_value = $text_to_int("0x" ++ text_key_mask_value'))
       -- if (typedExpressionIR_mask = d i_key_mask_value as expressionIR # ( int as typeIR dyn ))
-      -- if (?(typedExpressionIR_mask_cast) = $cast_control_plane(EC, typedExpressionIR_base, typeIR))
+      -- if (?(typedExpressionIR_mask_cast) = $cast_control_plane(EC, typedExpressionIR_mask, typeIR))
       -- if (simpleKeysetExpressionIR = typedExpressionIR_base_cast &&& typedExpressionIR_mask_cast)
 
    ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:214:1-238:70:
@@ -22100,7 +22100,7 @@ relation TableObject_create_entry_key: evalContext |- (nameIR, nameIR, typeIR) @
       -- if (text_key_mask_value' = $replace_text(text_key_mask_value, "*", "0"))
       -- if (i_key_mask_value = $text_to_int("0b" ++ text_key_mask_value'))
       -- if (typedExpressionIR_mask = d i_key_mask_value as expressionIR # ( int as typeIR dyn ))
-      -- if (?(typedExpressionIR_mask_cast) = $cast_control_plane(EC, typedExpressionIR_base, typeIR))
+      -- if (?(typedExpressionIR_mask_cast) = $cast_control_plane(EC, typedExpressionIR_mask, typeIR))
       -- if (simpleKeysetExpressionIR = typedExpressionIR_base_cast &&& typedExpressionIR_mask_cast)
 
    ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:240:1-262:70:
@@ -22116,7 +22116,7 @@ relation TableObject_create_entry_key: evalContext |- (nameIR, nameIR, typeIR) @
       -- if (?(typedExpressionIR_base_cast) = $cast_control_plane(EC, typedExpressionIR_base, typeIR))
       -- if (i_key_mask_value = ($pow2(n_key_type_width) - $pow2(n_key_remaining_width)))
       -- if (typedExpressionIR_mask = d i_key_mask_value as expressionIR # ( int as typeIR dyn ))
-      -- if (?(typedExpressionIR_mask_cast) = $cast_control_plane(EC, typedExpressionIR_base, typeIR))
+      -- if (?(typedExpressionIR_mask_cast) = $cast_control_plane(EC, typedExpressionIR_mask, typeIR))
       -- if (simpleKeysetExpressionIR = typedExpressionIR_base_cast &&& typedExpressionIR_mask_cast)
 
    ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:264:1-287:70:
@@ -22131,7 +22131,7 @@ relation TableObject_create_entry_key: evalContext |- (nameIR, nameIR, typeIR) @
       -- if (text_key_mask_value' = $replace_text(text_key_mask_value, "*", "0"))
       -- if (i_key_mask_value = $text_to_int("0b" ++ text_key_mask_value'))
       -- if (typedExpressionIR_mask = d i_key_mask_value as expressionIR # ( int as typeIR dyn ))
-      -- if (?(typedExpressionIR_mask_cast) = $cast_control_plane(EC, typedExpressionIR_base, typeIR))
+      -- if (?(typedExpressionIR_mask_cast) = $cast_control_plane(EC, typedExpressionIR_mask, typeIR))
       -- if (simpleKeysetExpressionIR = typedExpressionIR_base_cast &&& typedExpressionIR_mask_cast)
 
    ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:289:1-297:60:

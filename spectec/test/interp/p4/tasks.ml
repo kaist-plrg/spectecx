@@ -219,6 +219,11 @@ let () =
         ~stf:(samples ^ "valid_ebpf.stf");
       check_evaluation spec_al mode "eval-operations.p4"
         ~stf:"eval-operations.stf";
+      check_evaluation spec_al mode (samples ^ "lpm_ebpf.p4")
+        ~stf:"eval-lpm.stf";
+      check_evaluation spec_al mode
+        (samples ^ "ternary_ebpf.p4")
+        ~stf:"eval-ternary.stf";
       match run spec_al mode "unsupported.p4" with
       | Ok _ -> failwith (name ^ ": unsupported object was instantiated")
       | Error error ->

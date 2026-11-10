@@ -1,0 +1,9 @@
+# The entry matches 10.1.*.*. NoAction leaves pass false, so matching packets are dropped.
+add pipe_Check_src_ip 1 key.field0:0x0a01**** _NoAction()
+
+# A packet from 10.1.152.69 matches the entry and is dropped.
+packet 0 001b1700 0130b881 98b7aeb7 08004500 00344a6f 40004006 53920a01 98453212 c86acf2c 01bbd0fa 585c4ccc b2ac8010 0353c314 00000101 080a0192 463911a0 c06f
+
+# A packet from 11.1.152.69 misses the entry and is transmitted.
+packet 0 001b1700 0130b881 98b7aeb7 08004500 00344a6f 40004006 53920b01 98453212 c86acf2c 01bbd0fa 585c4ccc b2ac8010 0353c314 00000101 080a0192 463911a0 c06f
+expect 0 001b1700 0130b881 98b7aeb7 08004500 00344a6f 40004006 53920b01 98453212 c86acf2c 01bbd0fa 585c4ccc b2ac8010 0353c314 00000101 080a0192 463911a0 c06f

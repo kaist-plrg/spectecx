@@ -18802,7 +18802,7 @@ xref:TableObject_create_entry_key[TableObject_create_entry_key: ``EC ⊢ ( nameI
   ... Let ``text~key_mask_value'~`` be xref:replace_text[the text ``text~key_mask_value~`` with all occurrences of ``"*"`` replaced by ``"0"``].
   ... Let ``i~key_mask_value~`` be ``xref:text_to_int[$text_to_int("0x" {pp} text~key_mask_value'~)]``.
   ... Let ``typedExpressionIR~mask~`` be xref:typedExpressionIR[``+D+ i~key_mask_value~`` annotated with a pair of type ``+INT+`` and compile-time known-ness ``+DYN+``].
-  ... Let ``typedExpressionIR~mask_cast~`` be xref:option_get[*!*] xref:cast_control_plane[``typedExpressionIR~base~`` from control plane cast to ``typeIR`` in ``EC``].
+  ... Let ``typedExpressionIR~mask_cast~`` be xref:option_get[*!*] xref:cast_control_plane[``typedExpressionIR~mask~`` from control plane cast to ``typeIR`` in ``EC``].
   ... Let ``simpleKeysetExpressionIR`` be ``typedExpressionIR~base_cast~ +&&&+ typedExpressionIR~mask_cast~``.
   ... Result in ``simpleKeysetExpressionIR``.
  .. Else if let ``text~key_value~`` be ``tableKeyValueInterface``:
@@ -18814,7 +18814,7 @@ xref:TableObject_create_entry_key[TableObject_create_entry_key: ``EC ⊢ ( nameI
   ... Let ``text~key_mask_value'~`` be xref:replace_text[the text ``text~key_mask_value~`` with all occurrences of ``"*"`` replaced by ``"0"``].
   ... Let ``i~key_mask_value~`` be ``xref:text_to_int[$text_to_int("0b" {pp} text~key_mask_value'~)]``.
   ... Let ``typedExpressionIR~mask~`` be xref:typedExpressionIR[``+D+ i~key_mask_value~`` annotated with a pair of type ``+INT+`` and compile-time known-ness ``+DYN+``].
-  ... Let ``typedExpressionIR~mask_cast~`` be xref:option_get[*!*] xref:cast_control_plane[``typedExpressionIR~base~`` from control plane cast to ``typeIR`` in ``EC``].
+  ... Let ``typedExpressionIR~mask_cast~`` be xref:option_get[*!*] xref:cast_control_plane[``typedExpressionIR~mask~`` from control plane cast to ``typeIR`` in ``EC``].
   ... Let ``simpleKeysetExpressionIR`` be ``typedExpressionIR~base_cast~ +&&&+ typedExpressionIR~mask_cast~``.
   ... Result in ``simpleKeysetExpressionIR``.
 . Else if ``text`` is equal to ``"lpm"``:
@@ -18831,7 +18831,7 @@ xref:TableObject_create_entry_key[TableObject_create_entry_key: ``EC ⊢ ( nameI
   ... Let ``text~key_mask_value'~`` be xref:replace_text[the text ``text~key_mask_value~`` with all occurrences of ``"*"`` replaced by ``"0"``].
   ... Let ``i~key_mask_value~`` be ``xref:text_to_int[$text_to_int("0x" {pp} text~key_mask_value'~)]``.
   ... Let ``typedExpressionIR~mask~`` be xref:typedExpressionIR[``+D+ i~key_mask_value~`` annotated with a pair of type ``+INT+`` and compile-time known-ness ``+DYN+``].
-  ... Let ``typedExpressionIR~mask_cast~`` be xref:option_get[*!*] xref:cast_control_plane[``typedExpressionIR~base~`` from control plane cast to ``typeIR`` in ``EC``].
+  ... Let ``typedExpressionIR~mask_cast~`` be xref:option_get[*!*] xref:cast_control_plane[``typedExpressionIR~mask~`` from control plane cast to ``typeIR`` in ``EC``].
   ... Let ``simpleKeysetExpressionIR`` be ``typedExpressionIR~base_cast~ +&&&+ typedExpressionIR~mask_cast~``.
   ... Result in ``simpleKeysetExpressionIR``.
  .. Else if let ``text~key_value~`` be ``tableKeyValueInterface``:
@@ -18846,7 +18846,7 @@ xref:TableObject_create_entry_key[TableObject_create_entry_key: ``EC ⊢ ( nameI
   ... Let ``text~key_mask_value'~`` be xref:replace_text[the text ``text~key_mask_value~`` with all occurrences of ``"*"`` replaced by ``"0"``].
   ... Let ``i~key_mask_value~`` be ``xref:text_to_int[$text_to_int("0b" {pp} text~key_mask_value'~)]``.
   ... Let ``typedExpressionIR~mask~`` be xref:typedExpressionIR[``+D+ i~key_mask_value~`` annotated with a pair of type ``+INT+`` and compile-time known-ness ``+DYN+``].
-  ... Let ``typedExpressionIR~mask_cast~`` be xref:option_get[*!*] xref:cast_control_plane[``typedExpressionIR~base~`` from control plane cast to ``typeIR`` in ``EC``].
+  ... Let ``typedExpressionIR~mask_cast~`` be xref:option_get[*!*] xref:cast_control_plane[``typedExpressionIR~mask~`` from control plane cast to ``typeIR`` in ``EC``].
   ... Let ``simpleKeysetExpressionIR`` be ``typedExpressionIR~base_cast~ +&&&+ typedExpressionIR~mask_cast~``.
   ... Result in ``simpleKeysetExpressionIR``.
  .. Else if let ``text~key_prefix_value~ n~key_prefix_width~`` be ``tableKeyValueInterface``:
@@ -18863,7 +18863,7 @@ xref:TableObject_create_entry_key[TableObject_create_entry_key: ``EC ⊢ ( nameI
   ... Let ``int'`` be xref:pow2[2 to the power of ``n~key_remaining_width~``].
   ... Let ``i~key_mask_value~`` be ``int`` - ``int'``.
   ... Let ``typedExpressionIR~mask~`` be xref:typedExpressionIR[``+D+ i~key_mask_value~`` annotated with a pair of type ``+INT+`` and compile-time known-ness ``+DYN+``].
-  ... Let ``typedExpressionIR~mask_cast~`` be xref:option_get[*!*] xref:cast_control_plane[``typedExpressionIR~base~`` from control plane cast to ``typeIR`` in ``EC``].
+  ... Let ``typedExpressionIR~mask_cast~`` be xref:option_get[*!*] xref:cast_control_plane[``typedExpressionIR~mask~`` from control plane cast to ``typeIR`` in ``EC``].
   ... Let ``simpleKeysetExpressionIR`` be ``typedExpressionIR~base_cast~ +&&&+ typedExpressionIR~mask_cast~``.
   ... Result in ``simpleKeysetExpressionIR``.
 . Else if ``text`` is equal to ``"optional"``:
@@ -18880,7 +18880,7 @@ xref:TableObject_create_entry_key[TableObject_create_entry_key: ``EC ⊢ ( nameI
  .. Let ``text~key_mask_value'~`` be xref:replace_text[the text ``text~key_mask_value~`` with all occurrences of ``"*"`` replaced by ``"0"``].
  .. Let ``i~key_mask_value~`` be ``xref:text_to_int[$text_to_int("0b" {pp} text~key_mask_value'~)]``.
  .. Let ``typedExpressionIR~mask~`` be xref:typedExpressionIR[``+D+ i~key_mask_value~`` annotated with a pair of type ``+INT+`` and compile-time known-ness ``+DYN+``].
- .. Let ``typedExpressionIR~mask_cast~`` be xref:option_get[*!*] xref:cast_control_plane[``typedExpressionIR~base~`` from control plane cast to ``typeIR`` in ``EC``].
+ .. Let ``typedExpressionIR~mask_cast~`` be xref:option_get[*!*] xref:cast_control_plane[``typedExpressionIR~mask~`` from control plane cast to ``typeIR`` in ``EC``].
  .. Let ``simpleKeysetExpressionIR`` be ``typedExpressionIR~base_cast~ +&&&+ typedExpressionIR~mask_cast~``.
  .. Result in ``simpleKeysetExpressionIR``.
 . Else if ``text`` is equal to ``"selector"``:
