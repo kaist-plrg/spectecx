@@ -5,7 +5,7 @@ open Test_lib
 
 (** Generic test runner - works with any TASK, in any interpreter mode *)
 let run_with_task (type i) (module T : Spectec.Task.S with type input = i)
-    ~(request : Spectec.Interp_mode.request) ~spec_files ~inputs ~exclude_dirs =
+    ~(request : Spectec.Interp_mode.request) ~spec_files ~inputs ~exclude_set =
   let mode_name = Spectec.Interp_mode.to_string request in
   let open Core.Result.Let_syntax in
   let suite_result =
@@ -18,7 +18,6 @@ let run_with_task (type i) (module T : Spectec.Task.S with type input = i)
       | `PL ->
           Pl (Spectec.henv_with_al_spec (Spectec.henv_of_el_spec spec) spec_al)
     in
-    let exclude_set = Exclude.load exclude_dirs in
     let mode_suffix = "(" ^ String.lowercase mode_name ^ ")" in
     let config : Suite.config =
       {
@@ -87,7 +86,8 @@ let run_p4_typecheck ~negative ~request ~includes ~exclude_dirs ~testdirs =
   in
   run_with_task
     (module Targets_p4.P4.Typecheck)
-    ~request ~spec_files ~inputs ~exclude_dirs
+    ~request ~spec_files ~inputs
+    ~exclude_set:(Exclude.load exclude_dirs)
 
 (** Impty Typecheck test - per-variant spec dispatch *)
 let run_impty_typecheck ~variant ~negative ~request ~testdirs =
@@ -110,7 +110,7 @@ let run_impty_typecheck ~variant ~negative ~request ~testdirs =
   in
   run_with_task
     (module Targets_impty.Impty.Typecheck)
-    ~request ~spec_files ~inputs ~exclude_dirs:[]
+    ~request ~spec_files ~inputs ~exclude_set:Exclude.empty
 
 let run_miniml_eval ~negative ~request ~testdirs =
   let expectation =
@@ -139,7 +139,7 @@ let run_miniml_eval ~negative ~request ~testdirs =
   in
   run_with_task
     (module Targets_miniml.Miniml.Eval)
-    ~request ~spec_files ~inputs ~exclude_dirs:[]
+    ~request ~spec_files ~inputs ~exclude_set:Exclude.empty
 
 let command =
   Command.basic ~summary:"run interpreter test (IL, SL, or PL)"
