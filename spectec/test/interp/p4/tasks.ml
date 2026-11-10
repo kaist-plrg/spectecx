@@ -183,9 +183,26 @@ let check_min_nat () =
   | Ok value when V.eq value (V.nat (Bigint.of_int 3)) -> ()
   | _ -> failwith "min_nat did not return the smallest element"
 
+let check_text_to_int () =
+  let builtins = B.make P4.Builtins.builtins in
+  let text_to_int text =
+    builtins.invoke
+      ~callback:(fun _ _ _ -> failwith "text_to_int does not call back")
+      ("text_to_int" $ at) []
+      [ V.text text ]
+  in
+  let wide = "0x8000000000000001" in
+  (match text_to_int wide with
+  | Ok value when V.eq value (V.int (Bigint.of_string wide)) -> ()
+  | _ -> failwith "text_to_int did not read a 64-bit value");
+  match text_to_int "0x0a01****" with
+  | Error _ -> ()
+  | Ok _ -> failwith "text_to_int accepted a wildcard"
+
 let () =
   check_field_location ();
   check_min_nat ();
+  check_text_to_int ();
   let spec_al, henv = compile () in
   List.iter
     (fun (name, mode) ->

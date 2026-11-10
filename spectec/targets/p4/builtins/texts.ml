@@ -6,9 +6,16 @@ open Builtins
 (* dec $text_to_int(text) : int *)
 
 let text_to_int ~at (text : string) : Value.t result =
-  at |> ignore;
-  let i = text |> int_of_string |> Bigint.of_int in
-  Ok (Value.int i)
+  let not_an_integer () =
+    Error
+      (Error.runtime at
+         (Printf.sprintf "text_to_int: %S is not an integer" text))
+  in
+  if text = "" then not_an_integer ()
+  else
+    match Bigint.of_string text with
+    | n -> Ok (Value.int n)
+    | exception (Failure _ | Invalid_argument _) -> not_an_integer ()
 
 (* dec $int_to_text(int) : text *)
 
