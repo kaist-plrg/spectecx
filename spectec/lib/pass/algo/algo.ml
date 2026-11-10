@@ -7,7 +7,7 @@ module Mixop = Lang.Il.Mixfix
 
 type error = Diagnostic.error
 
-(* Re-tag the checks synthesized from a rule/clause input pattern as guards. *)
+(* A failed input [Guard] makes the rule or clause inapplicable. *)
 let rec as_guard (prem : Al.prem) : Al.prem =
   let guard =
     match prem.it with
@@ -15,10 +15,7 @@ let rec as_guard (prem : Al.prem) : Al.prem =
     | IterPr (prem_inner, iterinstr) -> IterPr (as_guard prem_inner, iterinstr)
     | _ -> prem.it
   in
-  guard $$ (prem.at, Some Synthesized)
-
-let as_synthesized (prem : Al.prem) : Al.prem =
-  prem.it $$ (prem.at, Some Synthesized)
+  guard $$ (prem.at, Some Input_sidecondition)
 
 (* Expression analysis *)
 
@@ -60,10 +57,12 @@ let analyze_prem (dctx : Dctx.t) (prem : Il.prem) : Dctx.t * Al.prem list =
   let dctx = Dctx.add_bounds dctx venv in
   let prem_analyzed = Dimension.analyze_prem dctx prem_analyzed in
   let prem_analyzed =
-    prem_analyzed.it $$ (prem_analyzed.at, Some (Source prem.note))
+    prem_analyzed.it $$ (prem_analyzed.at, Some (Premise prem))
   in
   let sideconditions =
-    Dimension.analyze_prems dctx sideconditions |> List.map as_synthesized
+    Dimension.analyze_prems dctx sideconditions
+    |> List.map (fun sidecondition ->
+           sidecondition.it $$ (sidecondition.at, Some (Sidecondition prem)))
   in
   (dctx, prem_analyzed :: sideconditions)
 

@@ -39,10 +39,13 @@ and clause' = { args : arg list; body : exp; prems : prem list }
 
 and relcall = Il.relcall = { relid : id; notexp : notexp }
 
-and prem = (prem', prem_prov option) annotated
-and prem_prov =
-  | Source of El.prem  (* lowered from this EL premise *)
-  | Synthesized        (* introduced by the algo pass, with no EL source *)
+and prem = (prem', origin option) annotated
+and origin =
+  | Premise of Il.prem
+  | Sidecondition of Il.prem  (* Checks for variables bound by the given
+                                 premise. *)
+  | Input_sidecondition       (* Checks for variables bound by inputs or
+                                 arguments. *)
 and prem' =
   | RelPr of relcall               (* id `:` notexp *)
   | RelAssertPr of { call : relcall; expect : bool }

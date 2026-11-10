@@ -53,7 +53,7 @@ type node = {
   mutable failures_rev : derivation list;
   (* The premise being evaluated now, awaiting its sub-derivation; premise level. *)
   mutable pending_prem : prem_entry option;
-  (* Variable values across the rule's premises, synthesized binders included. *)
+  (* Newest values first across all rule attempts. *)
   mutable binding_env : (Il.id * Il.Value.t) list;
 }
 
@@ -153,7 +153,9 @@ module State = struct
 end
 
 let is_authored_prem prem =
-  match prem.note with Some Al.Synthesized -> false | _ -> true
+  match prem.note with
+  | Some (Al.Premise _) | None -> true
+  | Some (Al.Sidecondition _ | Al.Input_sidecondition) -> false
 
 (* === Rendering ===================================================== *)
 
@@ -223,8 +225,9 @@ let render_prem ~binding_env entry =
     | None -> Some (dim "?")
   in
   match entry.prem.note with
-  | Some (Al.Source el_prem) -> El.Unparse.string_of_prem ~values el_prem
-  | _ -> Al.Print.string_of_prem entry.prem
+  | Some (Al.Premise prem_il) -> El.Unparse.string_of_prem ~values prem_il.note
+  | Some (Al.Sidecondition _ | Al.Input_sidecondition) | None ->
+      Al.Print.string_of_prem entry.prem
 
 let derivations_of node =
   if is_failed node then List.rev node.failures_rev else [ node.derivation ]
@@ -271,7 +274,7 @@ and print_derivation_body ~rest_prefix node derivation out =
     let text = render_prem ~binding_env:node.binding_env entry in
     Format.fprintf out "%s%s\n" (rest_prefix ^ connector marked) text
   in
-  let is_synthesized =
+  let unmet_is_sidecondition =
     match derivation.unmet_prem with
     | Some p -> not (is_authored_prem p)
     | None -> false
@@ -281,7 +284,7 @@ and print_derivation_body ~rest_prefix node derivation out =
   List.iteri
     (fun i entry ->
       let is_culprit = Option.is_some derivation.unmet_prem && i = last in
-      let show_as_text = is_culprit && is_synthesized in
+      let show_as_text = is_culprit && unmet_is_sidecondition in
       match (entry.prem.it, entry.subderiv) with
       | (Al.RelPr _ | Al.RelAssertPr { expect = true; _ }), Some subderiv
         when not show_as_text ->

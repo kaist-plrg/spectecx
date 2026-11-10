@@ -12,7 +12,9 @@ module Al = Lang.Al
 
 let recover (prems : Al.prem list) : El.prem list =
   List.filter_map prems ~f:(fun prem ->
-      match prem.note with Some (Al.Source el) -> Some el | _ -> None)
+      match prem.note with
+      | Some (Al.Premise prem_il) -> Some prem_il.note
+      | Some (Al.Sidecondition _ | Al.Input_sidecondition) | None -> None)
 
 let authored_rule_premises (spec : El.spec) relid : El.prem list list =
   List.filter_map spec ~f:(fun def ->
@@ -124,7 +126,7 @@ let run specdir =
       exit 1
 
 let command =
-  Command.basic ~summary:"run premise-provenance roundtrip test"
+  Command.basic ~summary:"run premise-origin roundtrip test"
   @@
   let open Command.Let_syntax in
   let open Command.Param in
