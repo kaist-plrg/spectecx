@@ -46,3 +46,9 @@ let advance ~callback ~at ~ctx (packet : t) :
       ( { packet with cursor = packet.cursor + size },
         ctx,
         P4_values.return_empty )
+
+(* [bit<32> length()] *)
+
+let length (packet : t) : Lang.Il.Value.t =
+  let bytes = (bit_length packet + 7) / 8 in
+  P4_values.return_value (P4_values.value_of_bit32 bytes)

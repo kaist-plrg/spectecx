@@ -129,6 +129,8 @@ let eval_extern_method_call ~callback ~at ctx arch object_id name params =
           Packet_in.advance ~callback ~at ~ctx packet
         in
         Ok (PacketIn packet, ctx, call_result)
+    | PacketIn packet, "length", [] ->
+        Ok (PacketIn packet, ctx, Packet_in.length packet)
     | CounterArray counters, "increment", [ "index" ] ->
         let* counters, ctx, call_result =
           increment ~callback ~at ~ctx counters

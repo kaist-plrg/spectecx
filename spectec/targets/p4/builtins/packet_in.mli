@@ -22,3 +22,7 @@ val advance :
   ctx:Lang.Il.Value.t ->
   t ->
   (t * Lang.Il.Value.t * Lang.Il.Value.t) Builtins.result
+
+(** Return the whole packet's length in bytes as a P4 [bit<32>] call result. A
+    partial last byte counts as a whole byte. *)
+val length : t -> Lang.Il.Value.t
