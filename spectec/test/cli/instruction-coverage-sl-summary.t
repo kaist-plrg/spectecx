@@ -17,67 +17,67 @@ instruction and case that never succeeded, including nested entries.
   
   Never succeeded:
     lookup:
-      Case (% matches pattern [])
+      Case (% matches [])
     lookup:
       Return ?()
     lookup:
-      If ((pair<K, V>* matches pattern _ :: _)), then
+      If (pair<K, V>*{pair<K, V> <- pair<K, V>*} matches _ :: _), then
     lookup:
-      (Let (K_h -> V_h) :: (K_t -> V_t)* be pair<K, V>*)
+      (Let K_h -> V_h :: K_t -> V_t*{K_t <- K_t*, V_t <- V_t*} be pair<K, V>*{pair<K, V> <- pair<K, V>*})
     lookup:
-      Return $lookup<K, V>((K_t -> V_t)*, K_query)
+      Return $lookup<K, V>(K_t -> V_t*{K_t <- K_t*, V_t <- V_t*}, K_query)
     Check_expr:
-      Case (% matches pattern `_BOOL %`)
+      Case (% matches `_BOOL %`)
     Check_expr:
-      (Let (b) be literal)
+      (Let b be literal)
     Check_expr:
-      Result in (bool)
+      Result in bool
     Check_expr:
-      Case (% matches pattern `! %`)
+      Case (% matches `! %`)
     Check_expr:
-      (Let (! e) be expr)
+      (Let ! e be expr)
     Check_expr:
       (Check_expr: tenv |- e : type)
     Check_expr:
-      If ((type matches pattern `BOOL`)), then
+      If (type matches `BOOL`), then
     Check_expr:
-      Result in (bool)
+      Result in bool
     Check_expr:
-      Case (% matches pattern `% + %`)
+      Case (% matches `% + %`)
     Check_expr:
-      (Let (e_l + e_r) be expr)
-    Check_expr:
-      (Check_expr: tenv |- e_l : type)
-    Check_expr:
-      If ((type matches pattern `INT`)), then
-    Check_expr:
-      (Check_expr: tenv |- e_r : type')
-    Check_expr:
-      If ((type' matches pattern `INT`)), then
-    Check_expr:
-      Result in (int)
-    Check_expr:
-      Case (% matches pattern `% && %`)
-    Check_expr:
-      (Let (e_l && e_r) be expr)
+      (Let e_l + e_r be expr)
     Check_expr:
       (Check_expr: tenv |- e_l : type)
     Check_expr:
-      If ((type matches pattern `BOOL`)), then
+      If (type matches `INT`), then
     Check_expr:
       (Check_expr: tenv |- e_r : type')
     Check_expr:
-      If ((type' matches pattern `BOOL`)), then
+      If (type' matches `INT`), then
     Check_expr:
-      Result in (bool)
+      Result in int
+    Check_expr:
+      Case (% matches `% && %`)
+    Check_expr:
+      (Let e_l && e_r be expr)
+    Check_expr:
+      (Check_expr: tenv |- e_l : type)
+    Check_expr:
+      If (type matches `BOOL`), then
+    Check_expr:
+      (Check_expr: tenv |- e_r : type')
+    Check_expr:
+      If (type' matches `BOOL`), then
+    Check_expr:
+      Result in bool
     Check_command:
-      Case (% matches pattern `SKIP`)
+      Case (% matches `SKIP`)
     Check_command:
       Result in tenv
     Check_command:
-      Case (% matches pattern `% = %`)
+      Case (% matches `% = %`)
     Check_command:
-      (Let (x = e) be command)
+      (Let x = e be command)
     Check_command:
       (Check_expr: tenv |- e : t)
     Check_command:
@@ -85,13 +85,13 @@ instruction and case that never succeeded, including nested entries.
     Check_command:
       Result in tenv
     Check_command:
-      Case (% matches pattern `IF % THEN % ELSE % END`)
+      Case (% matches `IF % THEN % ELSE % END`)
     Check_command:
-      (Let (if e then c_1 else c_2 end) be command)
+      (Let if e then c_1 else c_2 end be command)
     Check_command:
       (Check_expr: tenv |- e : type)
     Check_command:
-      If ((type matches pattern `BOOL`)), then
+      If (type matches `BOOL`), then
     Check_command:
       (Check_command: tenv |- c_1 -| tenv_1)
     Check_command:
@@ -99,123 +99,123 @@ instruction and case that never succeeded, including nested entries.
     Check_command:
       Result in tenv
     Check_command:
-      Case (% matches pattern `WHILE % DO % END`)
+      Case (% matches `WHILE % DO % END`)
     Check_command:
-      (Let (while e do c end) be command)
+      (Let while e do c end be command)
     Check_command:
       (Check_expr: tenv |- e : type)
     Check_command:
-      If ((type matches pattern `BOOL`)), then
+      If (type matches `BOOL`), then
     Check_command:
       (Check_command: tenv |- c -| tenv_1)
     Check_command:
       Result in tenv
     Eval_expr:
-      Case (% matches pattern `_BOOL %`)
+      Case (% matches `_BOOL %`)
     Eval_expr:
-      (Let (b) be literal)
+      (Let b be literal)
     Eval_expr:
-      Result in (b)
+      Result in b
     Eval_expr:
-      Case (% matches pattern `! %`)
+      Case (% matches `! %`)
     Eval_expr:
-      (Let (! e) be expr)
+      (Let ! e be expr)
     Eval_expr:
       (Eval_expr: env |- e ==> literal)
     Eval_expr:
-      If ((literal matches pattern `_BOOL %`)), then
+      If (literal matches `_BOOL %`), then
     Eval_expr:
-      (Let (b_e) be literal)
+      (Let b_e be literal)
     Eval_expr:
       (Let b be ~b_e)
     Eval_expr:
-      Result in (b)
+      Result in b
     Eval_expr:
-      Case (% matches pattern `% + %`)
+      Case (% matches `% + %`)
     Eval_expr:
-      (Let (e_l + e_r) be expr)
+      (Let e_l + e_r be expr)
     Eval_expr:
       (Eval_expr: env |- e_l ==> literal)
     Eval_expr:
-      If ((literal matches pattern `_NUM %`)), then
+      If (literal matches `_NUM %`), then
     Eval_expr:
-      (Let (i_l) be literal)
+      (Let i_l be literal)
     Eval_expr:
       (Eval_expr: env |- e_r ==> literal')
     Eval_expr:
-      If ((literal' matches pattern `_NUM %`)), then
+      If (literal' matches `_NUM %`), then
     Eval_expr:
-      (Let (i_r) be literal')
+      (Let i_r be literal')
     Eval_expr:
       (Let i be (i_l + i_r))
     Eval_expr:
-      Result in (i)
+      Result in i
     Eval_expr:
-      Case (% matches pattern `% && %`)
+      Case (% matches `% && %`)
     Eval_expr:
-      (Let (e_l && e_r) be expr)
+      (Let e_l && e_r be expr)
     Eval_expr:
       (Eval_expr: env |- e_l ==> literal)
     Eval_expr:
-      If ((literal matches pattern `_BOOL %`)), then
+      If (literal matches `_BOOL %`), then
     Eval_expr:
-      (Let (b_l) be literal)
+      (Let b_l be literal)
     Eval_expr:
       (Eval_expr: env |- e_r ==> literal')
     Eval_expr:
-      If ((literal' matches pattern `_BOOL %`)), then
+      If (literal' matches `_BOOL %`), then
     Eval_expr:
-      (Let (b_r) be literal')
+      (Let b_r be literal')
     Eval_expr:
       (Let b be (b_l /\ b_r))
     Eval_expr:
-      Result in (b)
+      Result in b
     Eval_command:
-      Case (% matches pattern `SKIP`)
+      Case (% matches `SKIP`)
     Eval_command:
       Result in env
     Eval_command:
-      Case (% matches pattern `% = %`)
+      Case (% matches `% = %`)
     Eval_command:
-      (Let (x = e) be command)
+      (Let x = e be command)
     Eval_command:
       (Eval_expr: env |- e ==> v)
     Eval_command:
-      Result in (x -> v) :: env
+      Result in x -> v :: env
     Eval_command:
-      Case (% matches pattern `IF % THEN % ELSE % END`)
+      Case (% matches `IF % THEN % ELSE % END`)
     Eval_command:
-      (Let (if e then c_1 else c_2 end) be command)
+      (Let if e then c_1 else c_2 end be command)
     Eval_command:
       (Eval_expr: env |- e ==> literal)
     Eval_command:
-      If ((literal = (true))), then
+      If ((literal = true)), then
     Eval_command:
       (Eval_command: env |- c_1 -| env_1)
     Eval_command:
       Result in env_1
     Eval_command:
-      If ((literal = (false))), then
+      If ((literal = false)), then
     Eval_command:
       (Eval_command: env |- c_2 -| env_2)
     Eval_command:
       Result in env_2
     Eval_command:
-      Case (% matches pattern `WHILE % DO % END`)
+      Case (% matches `WHILE % DO % END`)
     Eval_command:
-      (Let (while e do c end) be command)
+      (Let while e do c end be command)
     Eval_command:
       (Eval_expr: env |- e ==> literal)
     Eval_command:
-      If ((literal = (false))), then
+      If ((literal = false)), then
     Eval_command:
       Result in env
     Eval_command:
-      If ((literal = (true))), then
+      If ((literal = true)), then
     Eval_command:
       (Eval_command: env |- c -| env_1)
     Eval_command:
-      (Eval_command: env_1 |- (while e do c end) -| env_2)
+      (Eval_command: env_1 |- while e do c end -| env_2)
     Eval_command:
       Result in env_2
   [
