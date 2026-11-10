@@ -159,9 +159,63 @@ and string_of_cmpop = function
   | #Bool.cmpop as op -> Bool.string_of_cmpop op
   | #Num.cmpop as op -> Num.string_of_cmpop op
 
+(* Patterns *)
+
+and string_of_pattern pattern =
+  match pattern with
+  | CaseP mixop -> string_of_mixop mixop
+  | ListP `Cons -> "_ :: _"
+  | ListP (`Fixed len) -> Format.asprintf "[ _/%d ]" len
+  | ListP `Nil -> "[]"
+  | OptP `Some -> "(_)"
+  | OptP `None -> "()"
+
+(* Parameters *)
+
+and string_of_param param =
+  match param.it with
+  | ExpP typ -> string_of_typ typ
+  | DefP { defid; tparams; params; typ } ->
+      string_of_defid defid ^ string_of_tparams tparams
+      ^ string_of_params params ^ " : " ^ string_of_typ typ
+
+and string_of_params params =
+  match params with
+  | [] -> ""
+  | params -> "(" ^ String.concat ", " (List.map string_of_param params) ^ ")"
+
+(* Type parameters *)
+
+and string_of_tparam tparam = tparam.it
+
+and string_of_tparams tparams =
+  match tparams with
+  | [] -> ""
+  | tparams ->
+      "<" ^ String.concat ", " (List.map string_of_tparam tparams) ^ ">"
+
+(* Type arguments *)
+
+and string_of_targ targ = string_of_typ targ
+
+and string_of_targs targs =
+  match targs with
+  | [] -> ""
+  | targs -> "<" ^ String.concat ", " (List.map string_of_targ targs) ^ ">"
+
+(* Hints *)
+
+and string_of_hint hint =
+  " hint(" ^ hint.hintid.it ^ " " ^ El.Print.string_of_exp hint.hintexp ^ ")"
+
+and string_of_hints hints = String.concat "" (List.map string_of_hint hints)
+
 (* Expressions *)
 
-and string_of_exp exp =
+(* The definitions of string_of_rule, string_of_clause and string_of_prem fix
+   expression annotations to unit and must stay separate from string_of_exp
+   so Pl.Print can pass expressions annotated with Annot.hints. *)
+let rec string_of_exp exp =
   match exp.it with
   | BoolE b -> string_of_bool b
   | NumE n -> string_of_num n
@@ -226,17 +280,6 @@ and string_of_iterexp iterexp =
 and string_of_iterexps iterexps =
   iterexps |> List.map string_of_iterexp |> String.concat ""
 
-(* Patterns *)
-
-and string_of_pattern pattern =
-  match pattern with
-  | CaseP mixop -> string_of_mixop mixop
-  | ListP `Cons -> "_ :: _"
-  | ListP (`Fixed len) -> Format.asprintf "[ _/%d ]" len
-  | ListP `Nil -> "[]"
-  | OptP `Some -> "(_)"
-  | OptP `None -> "()"
-
 (* Paths *)
 
 and string_of_path path =
@@ -248,30 +291,6 @@ and string_of_path path =
       ^ string_of_exp exp_h ^ "]"
   | DotP ({ it = RootP; _ }, atom) -> string_of_atom atom
   | DotP (path, atom) -> string_of_path path ^ "." ^ string_of_atom atom
-
-(* Parameters *)
-
-and string_of_param param =
-  match param.it with
-  | ExpP typ -> string_of_typ typ
-  | DefP { defid; tparams; params; typ } ->
-      string_of_defid defid ^ string_of_tparams tparams
-      ^ string_of_params params ^ " : " ^ string_of_typ typ
-
-and string_of_params params =
-  match params with
-  | [] -> ""
-  | params -> "(" ^ String.concat ", " (List.map string_of_param params) ^ ")"
-
-(* Type parameters *)
-
-and string_of_tparam tparam = tparam.it
-
-and string_of_tparams tparams =
-  match tparams with
-  | [] -> ""
-  | tparams ->
-      "<" ^ String.concat ", " (List.map string_of_tparam tparams) ^ ">"
 
 (* Arguments *)
 
@@ -285,18 +304,9 @@ and string_of_args args =
   | [] -> ""
   | args -> "(" ^ String.concat ", " (List.map string_of_arg args) ^ ")"
 
-(* Type arguments *)
-
-and string_of_targ targ = string_of_typ targ
-
-and string_of_targs targs =
-  match targs with
-  | [] -> ""
-  | targs -> "<" ^ String.concat ", " (List.map string_of_targ targs) ^ ">"
-
 (* Rules *)
 
-and string_of_rule rule =
+let rec string_of_rule rule =
   let { ruleid; concl; prems } = rule.it in
   ";; " ^ Location.to_string rule.at ^ ":\n   rule " ^ string_of_ruleid ruleid
   ^ ": " ^ string_of_notexp concl ^ string_of_prems prems
@@ -341,13 +351,6 @@ and string_of_prem prem =
 and string_of_prems prems =
   String.concat ""
     (List.map (fun prem -> "\n      -- " ^ string_of_prem prem) prems)
-
-(* Hints *)
-
-and string_of_hint hint =
-  " hint(" ^ hint.hintid.it ^ " " ^ El.Print.string_of_exp hint.hintexp ^ ")"
-
-and string_of_hints hints = String.concat "" (List.map string_of_hint hints)
 
 (* Definitions *)
 
