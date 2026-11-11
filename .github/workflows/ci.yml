@@ -55,7 +55,62 @@ jobs:
       - name: Check proofs
         run: ./check.sh
 
+  success-record:
+    runs-on: ubuntu-latest
+    outputs:
+      key: ${{ steps.record.outputs.key }}
+      tests: ${{ steps.record.outputs.tests }}
+      found: ${{ steps.lookup.outputs.cache-matched-key != '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # The ci job must not execute or compare the excluded Markdown,
+      # documentation/ and editors/ files, or .github/ files other than ci.yml.
+      # A dune mdx stanza runs code in Markdown. dune-project enables mdx,
+      # so adding such a stanza requires including its Markdown files here.
+      #
+      # Commit messages are outside the hash, so rewording commits can reuse
+      # a success. This step hashes the pull request merged into its base,
+      # so changes to files covered by the hash on the base also change it.
+      #
+      # Quick tests accept a full test success because full tests include
+      # the quick tests.
+      - name: Name the success record
+        id: record
+        run: |
+          hash=$({
+            git ls-files -s -- . ':(exclude).github' ':(exclude)documentation' ':(exclude)editors' ':(exclude,glob)**/*.md'
+            git ls-files -s -- .github/workflows/ci.yml
+          } | git hash-object --stdin)
+          if [ "$GITHUB_EVENT_NAME" = push ] && [ "$GITHUB_REF" = refs/heads/main ]; then
+            tests=full
+          else
+            tests=quick
+            echo "full-key=ci-success-$hash-full" >> "$GITHUB_OUTPUT"
+          fi
+          echo "tests=$tests" >> "$GITHUB_OUTPUT"
+          echo "key=ci-success-$hash-$tests" >> "$GITHUB_OUTPUT"
+
+      # Reruns skip this lookup to check the same files after changes to
+      # runner images, opam-repository or action versions behind major tags.
+      # GitHub limits this lookup to successes from the same pull request and main.
+      - name: Look up a previous success
+        id: lookup
+        if: github.run_attempt == 1
+        uses: actions/cache/restore@v6
+        with:
+          path: ci-success
+          key: ${{ steps.record.outputs.key }}
+          restore-keys: ${{ steps.record.outputs.full-key }}
+
+      - name: Report the earlier success
+        if: steps.lookup.outputs.cache-matched-key != ''
+        run: echo "The ci job passed for matching file contents in $(cat ci-success)" >> "$GITHUB_STEP_SUMMARY"
+
   ci:
+    needs: success-record
+    if: needs.success-record.outputs.found != 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -151,5 +206,18 @@ jobs:
         run: bash spectec/test/package/install.sh
 
       - name: Full tests
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: needs.success-record.outputs.tests == 'full'
         run: make test
+
+  save-success-record:
+    needs: [success-record, ci]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write the success record
+        run: echo "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" > ci-success
+
+      - name: Save the success record
+        uses: actions/cache/save@v6
+        with:
+          path: ci-success
+          key: ${{ needs.success-record.outputs.key }}
