@@ -41,12 +41,12 @@ module Task : Spectec.Task.S with type input = input = struct
   let parse_string ~spec:_ ~filename:_ _ = Ok []
   let unparse ~spec:_ _ = ""
 
-  let parse_input ~spec:_ { relation; decode } =
-    match decode () with
-    | Ok values -> Ok (Spectec.Task.Relation (relation, values))
-    | Error message ->
-        Error (Spectec.Error.TaskParseError (Common.Location.Unknown, message))
+  let parse_input ~spec:_ { decode; _ } =
+    decode ()
+    |> Result.map_error (fun message ->
+           Spectec.Error.TaskParseError (Common.Location.Unknown, message))
 
+  let run { relation; _ } ~values ~eval_rel = eval_rel relation values
   let source { relation; _ } = relation
   let expectation _ = Spectec.Task.Positive
   let collect ?dir:_ () = []

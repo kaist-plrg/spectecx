@@ -133,9 +133,9 @@ module Typecheck = struct
   let parse_string = Frontend.parse_string
 
   let parse_input ~spec:_ { includes; filename; _ } =
-    Frontend.parse_file includes filename
-    |> Result.map (fun v -> Spectec.Task.Relation ("Program_ok", [ v ]))
+    Frontend.parse_file includes filename |> Result.map (fun v -> [ v ])
 
+  let run _ ~values ~eval_rel = eval_rel "Program_ok" values
   let source { filename; _ } = filename
   let expectation { expect; _ } = expect
   let format_output _values = "Typechecker succeeded"
@@ -146,11 +146,7 @@ module Instantiate = struct
   include Typecheck
 
   let name = "instantiator"
-
-  let parse_input ~spec:_ { includes; filename; _ } =
-    Frontend.parse_file includes filename
-    |> Result.map (fun v -> Spectec.Task.Relation ("Program_inst", [ v ]))
-
+  let run _ ~values ~eval_rel = eval_rel "Program_inst" values
   let format_output _values = "Instantiation succeeded"
 end
 
@@ -182,11 +178,18 @@ module Sim = struct
   let unparse = Frontend.unparse
   let parse_string = Frontend.parse_string
 
-  let parse_input ~spec:_ { includes; filename; stf; _ } =
+  let parse_input ~spec:_ { includes; filename; _ } =
+    Frontend.parse_file includes filename |> Result.map (fun v -> [ v ])
+
+  let run { stf; _ } ~values ~eval_rel =
     let ( let* ) = Result.bind in
-    let* program = Frontend.parse_file includes filename in
     let* statements = Stf.parse_file stf in
-    Ok (Spectec.Task.Driver (Ebpf_sim.drive program ~statements))
+    match values with
+    | [ program ] -> Ebpf_sim.drive program ~statements ~eval_rel
+    | _ ->
+        Error
+          (Spectec.Error.TaskError
+             (Common.Location.Unknown, "expected one parsed P4 program"))
 
   let source { filename; _ } = filename
   let expectation _ = Spectec.Task.Positive
