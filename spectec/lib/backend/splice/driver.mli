@@ -9,6 +9,9 @@
     recognises anchor names from the [frame.name] fields of entries in
     [entries_el] and [entries_pl].
 
+    [run] raises [Invalid_argument] if two entries share a [frame.name], within
+    either list or across [entries_el] and [entries_pl].
+
     Returns a {!Report.t} listing every key registered in a store but never
     referenced by any anchor. *)
 val run :

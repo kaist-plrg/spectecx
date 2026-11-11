@@ -16,8 +16,12 @@ let add_anchors (anchors : anchor StringMap.t) ~(spec : 'spec)
     ~(entries : 'spec Anchor.entry list) : anchor StringMap.t =
   List.fold_left
     (fun anchors (entry : 'spec Anchor.entry) ->
+      let name = entry.frame.name in
+      if StringMap.mem name anchors then
+        invalid_arg
+          ("Splice.Driver.run: two entries share the anchor name " ^ name);
       let store = Store.create (entry.extract spec) in
-      StringMap.add entry.frame.name { frame = entry.frame; store } anchors)
+      StringMap.add name { frame = entry.frame; store } anchors)
     anchors entries
 
 let build_anchors ~spec_el ~spec_pl
