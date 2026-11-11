@@ -31,15 +31,14 @@ module type S = sig
   type input
 
   (** Parse a string into IL values. *)
-  val parse_string :
-    spec:Al.spec -> filename:string -> string -> Il.Value.t list result
+  val parse_string : filename:string -> string -> Il.Value.t list result
 
   (** Unparse IL values back into a string for display. *)
   val unparse : spec:Al.spec -> Il.Value.t list -> string
 
   (** May report decoded values through {!Instrumentation.Value_event.Decoded}.
   *)
-  val parse_input : spec:Al.spec -> input -> Il.Value.t list result
+  val parse_input : input -> Il.Value.t list result
 
   (** [values] must come from [parse_input] on the same input. Calls through
       [eval_rel] and [eval_func] share one context, cache and target state. Both

@@ -66,7 +66,7 @@ rule token = parse
     let lb = from_channel c in
     let r = parse ~filename lb in close_in c; r
 
-  let parse_string ~spec:_ ~filename content =
+  let parse_string ~filename content =
     let lb = from_string content in
     Result.bind (parse ~filename lb) (fun e -> Ok [e])
 

@@ -57,7 +57,7 @@ module Make (Language : Language) = struct
       | Some path when Sys.file_exists path -> gather path
       | _ -> []
 
-    let parse_input ~spec:_ { filename; _ } =
+    let parse_input { filename; _ } =
       Lexer.parse_file Language.parser filename
       |> Result.map (fun input -> [ input ])
 
@@ -126,7 +126,7 @@ module Make_typed (Language : Language) = struct
              then { input with expect = Spectec.Task.Positive }
              else input)
 
-    let parse_input ~spec:_ ({ filename; _ } : input) =
+    let parse_input ({ filename; _ } : input) =
       Lexer.parse_file Language.parser filename
       |> Result.map (fun input -> [ input ])
 

@@ -68,6 +68,6 @@ let parse_file parser filename =
   Fun.protect ~finally:(fun () -> close_in channel)
     (fun () -> parse parser ~filename (from_channel channel))
 
-let parse_string parser ~spec:_ ~filename contents =
+let parse_string parser ~filename contents =
   parse parser ~filename (from_string contents) |> Result.map (fun input -> [input])
 }

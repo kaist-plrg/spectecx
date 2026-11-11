@@ -84,7 +84,7 @@ module Typecheck = struct
   let name = "typechecker"
   let collect = collect_with ~classify:typecheck_classify
 
-  let parse_input ~spec:_ { filename; _ } =
+  let parse_input { filename; _ } =
     Parse.parse_file filename |> Result.map (fun v -> [ v ])
 
   let run _ ~values ~eval_rel ~eval_func:_ = eval_rel "Check_prog" values
@@ -97,7 +97,7 @@ module Eval = struct
   let name = "evaluator"
   let collect = collect_with ~classify:eval_classify
 
-  let parse_input ~spec:_ { filename; _ } =
+  let parse_input { filename; _ } =
     Parse.parse_file filename |> Result.map (fun v -> [ v ])
 
   let run _ ~values ~eval_rel ~eval_func:_ = eval_rel "Run_prog" values

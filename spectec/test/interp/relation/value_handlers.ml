@@ -38,10 +38,10 @@ module Task : Spectec.Task.S with type input = input = struct
 
   type nonrec input = input
 
-  let parse_string ~spec:_ ~filename:_ _ = Ok []
+  let parse_string ~filename:_ _ = Ok []
   let unparse ~spec:_ _ = ""
 
-  let parse_input ~spec:_ { decode; _ } =
+  let parse_input { decode; _ } =
     decode ()
     |> Result.map_error (fun message ->
            Spectec.Error.TaskParseError (Common.Location.Unknown, message))

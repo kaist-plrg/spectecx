@@ -109,7 +109,7 @@ let eval_run ~check_determinism ~(mode : Interp_mode.t) ~spec_al target_state
 let eval_task (type i) (module T : Task.S with type input = i)
     ?(check_determinism = false) ~(mode : Interp_mode.t) ~spec_al (input : i) =
   Interp.with_target_state (module T.Target) @@ fun target_state ->
-  let* values = T.parse_input ~spec:spec_al input in
+  let* values = T.parse_input input in
   eval_run ~check_determinism ~mode ~spec_al target_state (T.run input ~values)
 
 let eval_task_with_instrumentation (type i)

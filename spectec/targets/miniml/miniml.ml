@@ -64,7 +64,7 @@ module Eval = struct
   let name = "evaluator"
   let collect = collect_with ~classify:eval_classify
 
-  let parse_input ~spec:_ { filename; _ } =
+  let parse_input { filename; _ } =
     Lexer.parse_file filename |> Result.map (fun v -> [ v ])
 
   let run _ ~values ~eval_rel ~eval_func:_ = eval_rel "Eval_expr" values

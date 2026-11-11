@@ -87,14 +87,12 @@ let make_parse (module Tgt : Spectec.Target.S) ~name ~summary
       in
       let* _files, spec_al, _henv = load_spec source in
       TC.Task.Target.with_state @@ fun () ->
-      let* values = TC.Task.parse_input ~spec:spec_al input in
+      let* values = TC.Task.parse_input input in
       match output with
       | `Roundtrip ->
           let unparsed = TC.Task.unparse ~spec:spec_al values in
           let* values_rt =
-            unparsed
-            |> TC.Task.parse_string ~spec:spec_al
-                 ~filename:(TC.Task.source input)
+            unparsed |> TC.Task.parse_string ~filename:(TC.Task.source input)
           in
           let eq = Lang.Il.Eq.eq_values ~dbg:true values values_rt in
           if eq then Ok unparsed

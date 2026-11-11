@@ -8,5 +8,5 @@ let unparse ~spec:spec_al value_program =
   | [ v ] -> Format.asprintf "%a\n" (Concrete.Pp.pp_program spec_al) v
   | _ -> failwith "unexpected number of values"
 
-let parse_string ~spec:_ ~filename content =
+let parse_string ~filename content =
   Parse.parse_string filename content |> fun v -> Ok [ v ]
