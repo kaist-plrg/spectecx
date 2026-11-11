@@ -13,9 +13,9 @@ val error_to_diagnostic : error -> Diag.t
     fields. The supplied [target_state] is valid only while [f] runs. *)
 val with_target_state : (module Target.S) -> (target_state -> 'a) -> 'a
 
-(** Relation calls from one context share its cache. A context is valid only
-    within the [with_target_state] call that supplied its target state. All
-    context constructors default [check_determinism] to [false]. With
+(** Relation and function calls from one context share its cache. A context is
+    valid only within the [with_target_state] call that supplied its target
+    state. All context constructors default [check_determinism] to [false]. With
     [check_determinism=true], the interpreter rejects multiple successful
     alternatives, even when outputs agree. *)
 type context
@@ -43,3 +43,10 @@ val eval_rel :
   rel:string ->
   values:Lang.Il.Value.t list ->
   (Lang.Il.Value.t list, error) result
+
+(** Calls a global specification function without type arguments. *)
+val eval_func :
+  context ->
+  func:string ->
+  values:Lang.Il.Value.t list ->
+  (Lang.Il.Value.t, error) result

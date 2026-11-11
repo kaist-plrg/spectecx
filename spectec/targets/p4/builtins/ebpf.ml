@@ -53,13 +53,6 @@ let packet_in_state bits =
 
 (* Counter arrays *)
 
-let find_bit32 ~callback ~at ctx ~name =
-  let* n =
-    Spec_calls.find_var_local_exn ~callback ctx ~name
-    |> P4_values.bit32_of_value at
-  in
-  Ok (Bigint.to_int_exn n)
-
 let add_to_counter counters ~index ~value =
   List.mapi
     (fun idx count -> if idx = index then count + value else count)
@@ -68,14 +61,20 @@ let add_to_counter counters ~index ~value =
 (* [void increment(in bit<32> index)] *)
 
 let increment ~callback ~at ~ctx counters =
-  let* index = find_bit32 ~callback ~at ctx ~name:"index" in
+  let* index =
+    Spec_calls.find_bit32_local_exn ~callback ~at ctx ~name:"index"
+  in
   Ok (add_to_counter counters ~index ~value:1, ctx, P4_values.return_empty)
 
 (* [void add(in bit<32> index, in bit<32> value)] *)
 
 let add ~callback ~at ~ctx counters =
-  let* index = find_bit32 ~callback ~at ctx ~name:"index" in
-  let* value = find_bit32 ~callback ~at ctx ~name:"value" in
+  let* index =
+    Spec_calls.find_bit32_local_exn ~callback ~at ctx ~name:"index"
+  in
+  let* value =
+    Spec_calls.find_bit32_local_exn ~callback ~at ctx ~name:"value"
+  in
   Ok (add_to_counter counters ~index ~value, ctx, P4_values.return_empty)
 
 (* Extern calls *)
@@ -125,6 +124,13 @@ let eval_extern_method_call ~callback ~at ctx arch object_id name params =
           Packet_in.extract ~callback ~at ~ctx packet
         in
         Ok (PacketIn packet, ctx, call_result)
+    | PacketIn packet, "advance", [ "sizeInBits" ] ->
+        let* packet, ctx, call_result =
+          Packet_in.advance ~callback ~at ~ctx packet
+        in
+        Ok (PacketIn packet, ctx, call_result)
+    | PacketIn packet, "length", [] ->
+        Ok (PacketIn packet, ctx, Packet_in.length packet)
     | CounterArray counters, "increment", [ "index" ] ->
         let* counters, ctx, call_result =
           increment ~callback ~at ~ctx counters

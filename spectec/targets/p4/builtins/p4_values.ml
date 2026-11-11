@@ -20,10 +20,15 @@ let typ_bit = Typ.var "bit" [] $ Location.Unknown
 let value_of_bits (bits : bool list) : Value.t =
   Value.list typ_bit (List.map Value.bool bits)
 
+let typ_value = Typ.var "value" [] $ Location.Unknown
+
 let return_empty : Value.t =
-  let typ_value = Typ.var "value" [] $ Location.Unknown in
   Case.case_v ~var:"returnResult"
     [ Case.kw "RETURN"; Case.arg (Value.opt typ_value None) ]
+
+let return_value (value : Value.t) : Value.t =
+  Case.case_v ~var:"returnResult"
+    [ Case.kw "RETURN"; Case.arg (Value.opt typ_value (Some value)) ]
 
 let reject (error : Value.t) : Value.t =
   Case.case_v ~var:"rejectTransitionResult" [ Case.kw "REJECT"; Case.arg error ]
@@ -37,6 +42,14 @@ let is_reject (value : Value.t) : bool =
 let error_value (name : string) : Value.t =
   Case.case_v ~var:"errorValue"
     [ Case.kw "ERROR"; Case.op "."; Case.arg (Value.text name) ]
+
+let value_of_bit32 (n : int) : Value.t =
+  Case.case_v ~var:"integerLiteral"
+    [
+      Case.arg (Value.nat (Bigint.of_int 32));
+      Case.kw "W";
+      Case.arg (Value.int (Bigint.of_int n));
+    ]
 
 (* Readers of P4 values *)
 

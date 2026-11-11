@@ -85,9 +85,9 @@ module Typecheck = struct
   let collect = collect_with ~classify:typecheck_classify
 
   let parse_input ~spec:_ { filename; _ } =
-    Parse.parse_file filename
-    |> Result.map (fun v -> Spectec.Task.Relation ("Check_prog", [ v ]))
+    Parse.parse_file filename |> Result.map (fun v -> [ v ])
 
+  let run _ ~values ~eval_rel ~eval_func:_ = eval_rel "Check_prog" values
   let format_output _ = "Typecheck succeeded"
 end
 
@@ -98,8 +98,9 @@ module Eval = struct
   let collect = collect_with ~classify:eval_classify
 
   let parse_input ~spec:_ { filename; _ } =
-    Parse.parse_file filename
-    |> Result.map (fun v -> Spectec.Task.Relation ("Run_prog", [ v ]))
+    Parse.parse_file filename |> Result.map (fun v -> [ v ])
+
+  let run _ ~values ~eval_rel ~eval_func:_ = eval_rel "Run_prog" values
 
   let format_output = function
     | [] -> "Eval succeeded (no output)"

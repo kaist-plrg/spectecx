@@ -31833,6 +31833,557 @@ relation Program_init: |- p4program : evalContext store
       -- let localEvalLayer = {type $empty_theta, frames [$empty_frame]}
       -- let EC = {global globalEvalLayer, block blockEvalLayer, local localEvalLayer}
 
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:5:1-6:60:
+def $cast_control_plane(evalContext, typedExpressionIR, typeIR) : typedExpressionIR? =
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:8:1-9:75:
+   clause 0(EC, typedExpressionIR, typeIR_to) = ?(typedExpressionIR_cast)
+      -- let typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} = $cast_unary(typedExpressionIR, typeIR_to)
+      -- if typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} matches (_)
+      -- let ?(typedExpressionIR_cast) = typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?}
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:11:1-17:66:
+   clause 1(EC, typedExpressionIR, typeIR_to) = ?(typedExpressionIR_cast)
+      -- if (?() = $cast_unary(typedExpressionIR, typeIR_to))
+      -- if (bool as typeIR = typeIR_to)
+      -- if (int as typeIR = $type_of_typedExpressionIR(typedExpressionIR))
+      -- let ctk = $ctk_of_typedExpressionIR(typedExpressionIR)
+      -- let typedExpressionIR_cast = ( typeIR_to ) typedExpressionIR as expressionIR # ( typeIR_to ctk )
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:19:1-27:57:
+   clause 2(EC, typedExpressionIR, typeIR_to) = ?(typedExpressionIR_error)
+      -- if (?() = $cast_unary(typedExpressionIR, typeIR_to))
+      -- if (error as typeIR = typeIR_to)
+      -- let expressionIR # ( typeIR ctk ) = typedExpressionIR
+      -- if expressionIR <: integerLiteral
+      -- let integerLiteral = expressionIR as integerLiteral
+      -- if integerLiteral matches `D %`
+      -- let d int = integerLiteral
+      -- if int <: nat
+      -- let n = int as nat
+      -- if typeIR <: intTypeIR
+      -- let intTypeIR = typeIR as intTypeIR
+      -- if (intTypeIR = int)
+      -- let { value_frame*{value_frame <- value_frame*} } = $codom_map<id, value>(EC.global.frame)
+      -- let value_error*{value_error <- value_error*} = $filter_<value>(value_frame*{value_frame <- value_frame*}, value_frame <: errorValue*{value_frame <- value_frame*})
+      -- let value = value_error*{value_error <- value_error*}[n]
+      -- if value <: errorValue
+      -- let error . nameIR_error = value as errorValue
+      -- let typedExpressionIR_error = error . nameIR_error as expressionIR # ( typeIR_to ctk )
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:29:1-35:74:
+   clause 3(EC, typedExpressionIR, typeIR_to) = ?(typedExpressionIR_cast)
+      -- if (?() = $cast_unary(typedExpressionIR, typeIR_to))
+      -- let typeIR = typeIR_to
+      -- if typeIR <: typedefTypeIR
+      -- let typedef _typeId typeIR_base = typeIR as typedefTypeIR
+      -- let typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} = $cast_control_plane(EC, typedExpressionIR, typeIR_base)
+      -- if typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} matches (_)
+      -- let ?(typedExpressionIR_typedef) = typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?}
+      -- let ctk = $ctk_of_typedExpressionIR(typedExpressionIR_typedef)
+      -- let typedExpressionIR_cast = ( typeIR_to ) typedExpressionIR_typedef as expressionIR # ( typeIR_to ctk )
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:37:1-43:74:
+   clause 4(EC, typedExpressionIR, typeIR_to) = ?(typedExpressionIR_cast)
+      -- if (?() = $cast_unary(typedExpressionIR, typeIR_to))
+      -- let typeIR = typeIR_to
+      -- if typeIR <: newTypeIR
+      -- let type _typeId typeIR_base = typeIR as newTypeIR
+      -- let typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} = $cast_control_plane(EC, typedExpressionIR, typeIR_base)
+      -- if typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} matches (_)
+      -- let ?(typedExpressionIR_newtype) = typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?}
+      -- let ctk = $ctk_of_typedExpressionIR(typedExpressionIR_newtype)
+      -- let typedExpressionIR_cast = ( typeIR_to ) typedExpressionIR_newtype as expressionIR # ( typeIR_to ctk )
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:45:1-51:71:
+   clause 5(EC, typedExpressionIR, typeIR_to) = ?(typedExpressionIR_cast)
+      -- if (?() = $cast_unary(typedExpressionIR, typeIR_to))
+      -- let typeIR = typeIR_to
+      -- if typeIR <: serializableEnumTypeIR
+      -- let enum _typeId < typeIR_base > { _valueFieldIR*{_valueFieldIR <- _valueFieldIR*} } = typeIR as serializableEnumTypeIR
+      -- let typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} = $cast_control_plane(EC, typedExpressionIR, typeIR_base)
+      -- if typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} matches (_)
+      -- let ?(typedExpressionIR_enum) = typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?}
+      -- let ctk = $ctk_of_typedExpressionIR(typedExpressionIR_enum)
+      -- let typedExpressionIR_cast = ( typeIR_to ) typedExpressionIR_enum as expressionIR # ( typeIR_to ctk )
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:53:1-54:15:
+   clause 6(EC, typedExpressionIR, typeIR_to) = ?()
+      -- otherwise
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:60:1-60:39:
+def $reverse_bytes_of_hex(text) : text =
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:63:1-67:35:
+   clause 0(t) = "0x" ++ $reverse_bytes_of_hex'(t[2 : n_len_bytes])
+      -- if (t[0 : 2] = "0x")
+      -- let n_len = |t|
+      -- let n_len_bytes = (n_len - 2)
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:61:1-61:40:
+def $reverse_bytes_of_hex'(text) : text =
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:68:1-69:20:
+   clause 0(t) = t
+      -- if (|t| <= 2)
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:70:1-76:54:
+   clause 1(t) = t_bytes_rev ++ t_byte
+      -- let n_len = |t|
+      -- if (n_len > 2)
+      -- let t_byte = t[0 : 2]
+      -- let n_len_bytes = (n_len - 2)
+      -- let t_bytes = t[2 : n_len_bytes]
+      -- let t_bytes_rev = $reverse_bytes_of_hex'(t_bytes)
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:82:38-82:42:
+syntax tableEntryPriorityInterface = int?
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:85:1-88:20:
+syntax tableKeyValueInterface = 
+   | text (from tableKeyValueInterface)
+   | text (from tableKeyValueInterface)
+   | text (from tableKeyValueInterface)
+   | text nat (from tableKeyValueInterface)
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:89:28-89:60:
+syntax tableKeyInterface = (nameIR, tableKeyValueInterface)
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:90:31-90:49:
+syntax tableKeysetInterface = tableKeyInterface*
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:92:39-92:52:
+syntax tableActionArgumentInterface = (nameIR, int)
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:93:31-93:70:
+syntax tableActionInterface = (nameIR, tableActionArgumentInterface*)
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:95:1-95:75:
+def $text_of_number_tableKeyValueInterface(tableKeyValueInterface) : text? =
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:96:1-96:63:
+   clause 0(tableKeyValueInterface) = ?("0b" ++ t)
+      -- if tableKeyValueInterface matches `_BIN %`
+      -- let t = tableKeyValueInterface
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:97:1-97:63:
+   clause 1(tableKeyValueInterface) = ?("0x" ++ t)
+      -- if tableKeyValueInterface matches `_HEX %`
+      -- let t = tableKeyValueInterface
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:98:1-98:55:
+   clause 2(tableKeyValueInterface) = ?(t)
+      -- if tableKeyValueInterface matches `_DEC %`
+      -- let t = tableKeyValueInterface
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:99:1-99:61:
+   clause 3(tableKeyValueInterface) = ?()
+      -- if tableKeyValueInterface matches `% _SLASH %`
+      -- let _text _nat = tableKeyValueInterface
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:103:1-105:28:
+def $tableObject_create_entry_priority(tableEntryPriorityInterface) : tableEntryPriorityOptIR =
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:107:1-107:50:
+   clause 0(int?{int <- int?}) = ?()
+      -- if int?{int <- int?} matches ()
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:108:1-109:36:
+   clause 1(tableEntryPriorityInterface) = ?(priority = d n_priority as int :)
+      -- if tableEntryPriorityInterface matches (_)
+      -- let ?(int) = tableEntryPriorityInterface
+      -- if int <: nat
+      -- let n_priority = int as nat
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:113:1-113:68:
+def $needs_priority_tableKeysPropertyIR(tableKeysPropertyIR) : bool =
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:114:1-116:59:
+   clause 0(key = { tableKeyIR*{tableKeyIR <- tableKeyIR*} }) = $exists_((nameIR_matchKind = "ternary")*{nameIR_matchKind <- nameIR_matchKind*})
+      -- (let _typedExpressionIR # _nameIR : nameIR_matchKind _annotationList ; = tableKeyIR)*{_annotationList <- _annotationList*, _nameIR <- _nameIR*, _typedExpressionIR <- _typedExpressionIR*, nameIR_matchKind <- nameIR_matchKind*, tableKeyIR <- tableKeyIR*}
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:122:1-125:23:
+relation TableObject_create_entry_key: evalContext |- (nameIR, nameIR, typeIR) @ tableKeysetInterface : simpleKeysetExpressionIR
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:127:1-140:76:
+   rule exact: EC |- (nameIR_key, text, typeIR) @ tableKeyInterface*{tableKeyInterface <- tableKeyInterface*} : simpleKeysetExpressionIR
+      -- if (text = "exact")
+      -- let tableKeyValueInterface'?{tableKeyValueInterface' <- tableKeyValueInterface'?} = $assoc_<nameIR, tableKeyValueInterface>(nameIR_key, tableKeyInterface*{tableKeyInterface <- tableKeyInterface*})
+      -- if tableKeyValueInterface'?{tableKeyValueInterface' <- tableKeyValueInterface'?} matches (_)
+      -- let ?(tableKeyValueInterface) = tableKeyValueInterface'?{tableKeyValueInterface' <- tableKeyValueInterface'?}
+      -- let text'?{text' <- text'?} = $text_of_number_tableKeyValueInterface(tableKeyValueInterface)
+      -- if text'?{text' <- text'?} matches (_)
+      -- let ?(text_key_value) = text'?{text' <- text'?}
+      -- let i_key_value = $text_to_int(text_key_value)
+      -- let typedExpressionIR = d i_key_value as expressionIR # ( int as typeIR dyn )
+      -- let typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} = $cast_control_plane(EC, typedExpressionIR, typeIR)
+      -- if typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} matches (_)
+      -- let ?(typedExpressionIR_cast) = typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?}
+      -- let typeIR_set = set < typeIR > as typeIR
+      -- let simpleKeysetExpressionIR = ( typeIR_set ) typedExpressionIR_cast as expressionIR # ( typeIR_set dyn ) as simpleKeysetExpressionIR
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:142:1-163:70:
+   rule ternary-hex: EC |- (nameIR_key, text, typeIR) @ tableKeyInterface*{tableKeyInterface <- tableKeyInterface*} : simpleKeysetExpressionIR
+      -- if (text = "ternary")
+      -- let tableKeyValueInterface'?{tableKeyValueInterface' <- tableKeyValueInterface'?} = $assoc_<nameIR, tableKeyValueInterface>(nameIR_key, tableKeyInterface*{tableKeyInterface <- tableKeyInterface*})
+      -- if tableKeyValueInterface'?{tableKeyValueInterface' <- tableKeyValueInterface'?} matches (_)
+      -- let ?(tableKeyValueInterface) = tableKeyValueInterface'?{tableKeyValueInterface' <- tableKeyValueInterface'?}
+      -- if tableKeyValueInterface matches `_HEX %`
+      -- let text_key_value = tableKeyValueInterface
+      -- let text_key_base_value = $replace_text(text_key_value, "*", "0")
+      -- let i_key_base_value = $text_to_int("0x" ++ text_key_base_value)
+      -- let typedExpressionIR_base = d i_key_base_value as expressionIR # ( int as typeIR dyn )
+      -- let typedExpressionIR?{typedExpressionIR <- typedExpressionIR?} = $cast_control_plane(EC, typedExpressionIR_base, typeIR)
+      -- if typedExpressionIR?{typedExpressionIR <- typedExpressionIR?} matches (_)
+      -- let ?(typedExpressionIR_base_cast) = typedExpressionIR?{typedExpressionIR <- typedExpressionIR?}
+      -- let text_key_mask_value = $replace_text_except(text_key_value, "*", "F")
+      -- let text_key_mask_value' = $replace_text(text_key_mask_value, "*", "0")
+      -- let i_key_mask_value = $text_to_int("0x" ++ text_key_mask_value')
+      -- let typedExpressionIR_mask = d i_key_mask_value as expressionIR # ( int as typeIR dyn )
+      -- let typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} = $cast_control_plane(EC, typedExpressionIR_mask, typeIR)
+      -- if typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} matches (_)
+      -- let ?(typedExpressionIR_mask_cast) = typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?}
+      -- let simpleKeysetExpressionIR = typedExpressionIR_base_cast &&& typedExpressionIR_mask_cast
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:165:1-186:70:
+   rule ternary-bin: EC |- (nameIR_key, text, typeIR) @ tableKeyInterface*{tableKeyInterface <- tableKeyInterface*} : simpleKeysetExpressionIR
+      -- if (text = "ternary")
+      -- let tableKeyValueInterface'?{tableKeyValueInterface' <- tableKeyValueInterface'?} = $assoc_<nameIR, tableKeyValueInterface>(nameIR_key, tableKeyInterface*{tableKeyInterface <- tableKeyInterface*})
+      -- if tableKeyValueInterface'?{tableKeyValueInterface' <- tableKeyValueInterface'?} matches (_)
+      -- let ?(tableKeyValueInterface) = tableKeyValueInterface'?{tableKeyValueInterface' <- tableKeyValueInterface'?}
+      -- if tableKeyValueInterface matches `_BIN %`
+      -- let text_key_value = tableKeyValueInterface
+      -- let text_key_base_value = $replace_text(text_key_value, "*", "0")
+      -- let i_key_base_value = $text_to_int("0b" ++ text_key_base_value)
+      -- let typedExpressionIR_base = d i_key_base_value as expressionIR # ( int as typeIR dyn )
+      -- let typedExpressionIR?{typedExpressionIR <- typedExpressionIR?} = $cast_control_plane(EC, typedExpressionIR_base, typeIR)
+      -- if typedExpressionIR?{typedExpressionIR <- typedExpressionIR?} matches (_)
+      -- let ?(typedExpressionIR_base_cast) = typedExpressionIR?{typedExpressionIR <- typedExpressionIR?}
+      -- let text_key_mask_value = $replace_text_except(text_key_value, "*", "1")
+      -- let text_key_mask_value' = $replace_text(text_key_mask_value, "*", "0")
+      -- let i_key_mask_value = $text_to_int("0b" ++ text_key_mask_value')
+      -- let typedExpressionIR_mask = d i_key_mask_value as expressionIR # ( int as typeIR dyn )
+      -- let typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} = $cast_control_plane(EC, typedExpressionIR_mask, typeIR)
+      -- if typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} matches (_)
+      -- let ?(typedExpressionIR_mask_cast) = typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?}
+      -- let simpleKeysetExpressionIR = typedExpressionIR_base_cast &&& typedExpressionIR_mask_cast
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:188:1-212:70:
+   rule lpm-hex: EC |- (nameIR_key, text, typeIR) @ tableKeyInterface*{tableKeyInterface <- tableKeyInterface*} : simpleKeysetExpressionIR
+      -- if (text = "lpm")
+      -- let tableKeyValueInterface'?{tableKeyValueInterface' <- tableKeyValueInterface'?} = $assoc_<nameIR, tableKeyValueInterface>(nameIR_key, tableKeyInterface*{tableKeyInterface <- tableKeyInterface*})
+      -- if tableKeyValueInterface'?{tableKeyValueInterface' <- tableKeyValueInterface'?} matches (_)
+      -- let ?(tableKeyValueInterface) = tableKeyValueInterface'?{tableKeyValueInterface' <- tableKeyValueInterface'?}
+      -- if tableKeyValueInterface matches `_HEX %`
+      -- let text_key_value = tableKeyValueInterface
+      -- let text_key_value_prefix = $strip_suffix_rec(text_key_value, "*")
+      -- if ~$contains(text_key_value_prefix, "*")
+      -- let text_key_base_value = $replace_text(text_key_value, "*", "0")
+      -- let i_key_base_value = $text_to_int("0x" ++ text_key_base_value)
+      -- let typedExpressionIR_base = d i_key_base_value as expressionIR # ( int as typeIR dyn )
+      -- let typedExpressionIR?{typedExpressionIR <- typedExpressionIR?} = $cast_control_plane(EC, typedExpressionIR_base, typeIR)
+      -- if typedExpressionIR?{typedExpressionIR <- typedExpressionIR?} matches (_)
+      -- let ?(typedExpressionIR_base_cast) = typedExpressionIR?{typedExpressionIR <- typedExpressionIR?}
+      -- let text_key_mask_value = $replace_text_except(text_key_value, "*", "F")
+      -- let text_key_mask_value' = $replace_text(text_key_mask_value, "*", "0")
+      -- let i_key_mask_value = $text_to_int("0x" ++ text_key_mask_value')
+      -- let typedExpressionIR_mask = d i_key_mask_value as expressionIR # ( int as typeIR dyn )
+      -- let typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} = $cast_control_plane(EC, typedExpressionIR_mask, typeIR)
+      -- if typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} matches (_)
+      -- let ?(typedExpressionIR_mask_cast) = typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?}
+      -- let simpleKeysetExpressionIR = typedExpressionIR_base_cast &&& typedExpressionIR_mask_cast
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:214:1-238:70:
+   rule lpm-bin: EC |- (nameIR_key, text, typeIR) @ tableKeyInterface*{tableKeyInterface <- tableKeyInterface*} : simpleKeysetExpressionIR
+      -- if (text = "lpm")
+      -- let tableKeyValueInterface'?{tableKeyValueInterface' <- tableKeyValueInterface'?} = $assoc_<nameIR, tableKeyValueInterface>(nameIR_key, tableKeyInterface*{tableKeyInterface <- tableKeyInterface*})
+      -- if tableKeyValueInterface'?{tableKeyValueInterface' <- tableKeyValueInterface'?} matches (_)
+      -- let ?(tableKeyValueInterface) = tableKeyValueInterface'?{tableKeyValueInterface' <- tableKeyValueInterface'?}
+      -- if tableKeyValueInterface matches `_BIN %`
+      -- let text_key_value = tableKeyValueInterface
+      -- let text_key_value_prefix = $strip_suffix_rec(text_key_value, "*")
+      -- if ~$contains(text_key_value_prefix, "*")
+      -- let text_key_base_value = $replace_text(text_key_value, "*", "0")
+      -- let i_key_base_value = $text_to_int("0b" ++ text_key_base_value)
+      -- let typedExpressionIR_base = d i_key_base_value as expressionIR # ( int as typeIR dyn )
+      -- let typedExpressionIR?{typedExpressionIR <- typedExpressionIR?} = $cast_control_plane(EC, typedExpressionIR_base, typeIR)
+      -- if typedExpressionIR?{typedExpressionIR <- typedExpressionIR?} matches (_)
+      -- let ?(typedExpressionIR_base_cast) = typedExpressionIR?{typedExpressionIR <- typedExpressionIR?}
+      -- let text_key_mask_value = $replace_text_except(text_key_value, "*", "1")
+      -- let text_key_mask_value' = $replace_text(text_key_mask_value, "*", "0")
+      -- let i_key_mask_value = $text_to_int("0b" ++ text_key_mask_value')
+      -- let typedExpressionIR_mask = d i_key_mask_value as expressionIR # ( int as typeIR dyn )
+      -- let typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} = $cast_control_plane(EC, typedExpressionIR_mask, typeIR)
+      -- if typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} matches (_)
+      -- let ?(typedExpressionIR_mask_cast) = typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?}
+      -- let simpleKeysetExpressionIR = typedExpressionIR_base_cast &&& typedExpressionIR_mask_cast
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:240:1-262:70:
+   rule lpm-prefix: EC |- (nameIR_key, text, typeIR) @ tableKeyInterface*{tableKeyInterface <- tableKeyInterface*} : simpleKeysetExpressionIR
+      -- if (text = "lpm")
+      -- let tableKeyValueInterface'?{tableKeyValueInterface' <- tableKeyValueInterface'?} = $assoc_<nameIR, tableKeyValueInterface>(nameIR_key, tableKeyInterface*{tableKeyInterface <- tableKeyInterface*})
+      -- if tableKeyValueInterface'?{tableKeyValueInterface' <- tableKeyValueInterface'?} matches (_)
+      -- let ?(tableKeyValueInterface) = tableKeyValueInterface'?{tableKeyValueInterface' <- tableKeyValueInterface'?}
+      -- if tableKeyValueInterface matches `% _SLASH %`
+      -- let text_key_prefix_value n_key_prefix_width = tableKeyValueInterface
+      -- let text_key_prefix_value_rev = $reverse_bytes_of_hex(text_key_prefix_value)
+      -- let i_key_prefix_value = $text_to_int(text_key_prefix_value_rev)
+      -- let n_key_type_width = $sizeof_maxSizeInBits'(typeIR)
+      -- if (n_key_prefix_width <= n_key_type_width)
+      -- let n_key_remaining_width = (n_key_type_width - n_key_prefix_width)
+      -- let i_key_base_value = $shl(i_key_prefix_value, n_key_remaining_width as int)
+      -- let typedExpressionIR_base = d i_key_base_value as expressionIR # ( int as typeIR dyn )
+      -- let typedExpressionIR?{typedExpressionIR <- typedExpressionIR?} = $cast_control_plane(EC, typedExpressionIR_base, typeIR)
+      -- if typedExpressionIR?{typedExpressionIR <- typedExpressionIR?} matches (_)
+      -- let ?(typedExpressionIR_base_cast) = typedExpressionIR?{typedExpressionIR <- typedExpressionIR?}
+      -- let i_key_mask_value = ($pow2(n_key_type_width) - $pow2(n_key_remaining_width))
+      -- let typedExpressionIR_mask = d i_key_mask_value as expressionIR # ( int as typeIR dyn )
+      -- let typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} = $cast_control_plane(EC, typedExpressionIR_mask, typeIR)
+      -- if typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} matches (_)
+      -- let ?(typedExpressionIR_mask_cast) = typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?}
+      -- let simpleKeysetExpressionIR = typedExpressionIR_base_cast &&& typedExpressionIR_mask_cast
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:264:1-287:70:
+   rule optional: EC |- (nameIR_key, text, typeIR) @ tableKeyInterface*{tableKeyInterface <- tableKeyInterface*} : simpleKeysetExpressionIR
+      -- if (text = "optional")
+      -- let tableKeyValueInterface'?{tableKeyValueInterface' <- tableKeyValueInterface'?} = $assoc_<nameIR, tableKeyValueInterface>(nameIR_key, tableKeyInterface*{tableKeyInterface <- tableKeyInterface*})
+      -- if tableKeyValueInterface'?{tableKeyValueInterface' <- tableKeyValueInterface'?} matches (_)
+      -- let ?(tableKeyValueInterface) = tableKeyValueInterface'?{tableKeyValueInterface' <- tableKeyValueInterface'?}
+      -- if tableKeyValueInterface matches `_BIN %`
+      -- let text_key_value = tableKeyValueInterface
+      -- if (~$contains(text_key_value, "*") \/ ($strip_suffix_rec(text_key_value, "*") = ""))
+      -- let text_key_base_value = $replace_text(text_key_value, "*", "0")
+      -- let i_key_base_value = $text_to_int("0b" ++ text_key_base_value)
+      -- let typedExpressionIR_base = d i_key_base_value as expressionIR # ( int as typeIR dyn )
+      -- let typedExpressionIR?{typedExpressionIR <- typedExpressionIR?} = $cast_control_plane(EC, typedExpressionIR_base, typeIR)
+      -- if typedExpressionIR?{typedExpressionIR <- typedExpressionIR?} matches (_)
+      -- let ?(typedExpressionIR_base_cast) = typedExpressionIR?{typedExpressionIR <- typedExpressionIR?}
+      -- let text_key_mask_value = $replace_text_except(text_key_value, "*", "1")
+      -- let text_key_mask_value' = $replace_text(text_key_mask_value, "*", "0")
+      -- let i_key_mask_value = $text_to_int("0b" ++ text_key_mask_value')
+      -- let typedExpressionIR_mask = d i_key_mask_value as expressionIR # ( int as typeIR dyn )
+      -- let typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} = $cast_control_plane(EC, typedExpressionIR_mask, typeIR)
+      -- if typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?} matches (_)
+      -- let ?(typedExpressionIR_mask_cast) = typedExpressionIR'?{typedExpressionIR' <- typedExpressionIR'?}
+      -- let simpleKeysetExpressionIR = typedExpressionIR_base_cast &&& typedExpressionIR_mask_cast
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:289:1-297:60:
+   rule selector: EC |- (nameIR_key, text, typeIR) @ tableKeyInterface*{tableKeyInterface <- tableKeyInterface*} : simpleKeysetExpressionIR
+      -- if (text = "selector")
+      -- let typedExpressionIR_zero = d 0 as int as expressionIR # ( int as typeIR dyn )
+      -- let typedExpressionIR?{typedExpressionIR <- typedExpressionIR?} = $cast_control_plane(EC, typedExpressionIR_zero, typeIR)
+      -- if typedExpressionIR?{typedExpressionIR <- typedExpressionIR?} matches (_)
+      -- let ?(typedExpressionIR_cast) = typedExpressionIR?{typedExpressionIR <- typedExpressionIR?}
+      -- let simpleKeysetExpressionIR = typedExpressionIR_cast &&& typedExpressionIR_cast
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:299:1-302:23:
+relation TableObject_create_entry_keys: evalContext |- (nameIR, nameIR, typeIR)* @ tableKeysetInterface : simpleKeysetExpressionIR*
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:304:1-305:23:
+   rule nil: _evalContext |- (nameIR, nameIR, typeIR)*{(nameIR, nameIR, typeIR) <- (nameIR, nameIR, typeIR)*} @ _tableKeysetInterface : []
+      -- if (nameIR, nameIR, typeIR)*{(nameIR, nameIR, typeIR) <- (nameIR, nameIR, typeIR)*} matches []
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:307:1-316:36:
+   rule cons: EC |- (nameIR, nameIR, typeIR)*{(nameIR, nameIR, typeIR) <- (nameIR, nameIR, typeIR)*} @ tableKeyInterface*{tableKeyInterface <- tableKeyInterface*} : simpleKeysetExpressionIR_h :: simpleKeysetExpressionIR_t*{simpleKeysetExpressionIR_t <- simpleKeysetExpressionIR_t*}
+      -- if (nameIR, nameIR, typeIR)*{(nameIR, nameIR, typeIR) <- (nameIR, nameIR, typeIR)*} matches _ :: _
+      -- let (nameIR_key_h, nameIR_matchKind_h, typeIR_h) :: (nameIR_key_t, nameIR_matchKind_t, typeIR_t)*{nameIR_key_t <- nameIR_key_t*, nameIR_matchKind_t <- nameIR_matchKind_t*, typeIR_t <- typeIR_t*} = (nameIR, nameIR, typeIR)*{(nameIR, nameIR, typeIR) <- (nameIR, nameIR, typeIR)*}
+      -- rel TableObject_create_entry_key: EC |- (nameIR_key_h, nameIR_matchKind_h, typeIR_h) @ tableKeyInterface*{tableKeyInterface <- tableKeyInterface*} : simpleKeysetExpressionIR_h
+      -- rel TableObject_create_entry_keys: EC |- (nameIR_key_t, nameIR_matchKind_t, typeIR_t)*{nameIR_key_t <- nameIR_key_t*, nameIR_matchKind_t <- nameIR_matchKind_t*, typeIR_t <- typeIR_t*} @ tableKeyInterface*{tableKeyInterface <- tableKeyInterface*} : simpleKeysetExpressionIR_t*{simpleKeysetExpressionIR_t <- simpleKeysetExpressionIR_t*}
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:320:1-320:68:
+def $interface_of_tableKeyIR(tableKeyIR) : (nameIR, nameIR, typeIR) =
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:322:1-325:63:
+   clause 0(typedExpressionIR # nameIR_key : nameIR_matchKind annotationList ;) = (nameIR_key, nameIR_matchKind, typeIR)
+      -- let typeIR = $type_of_typedExpressionIR(typedExpressionIR)
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:327:1-327:75:
+def $key_interface_of_tableObject(tableObject) : (nameIR, nameIR, typeIR)* =
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:329:1-333:47:
+   clause 0(table typeId { frame TBL }) = (nameIR_key, nameIR_matchKind, typeIR)*{nameIR_key <- nameIR_key*, nameIR_matchKind <- nameIR_matchKind*, typeIR <- typeIR*}
+      -- let key = { tableKeyIR*{tableKeyIR <- tableKeyIR*} } = TBL.keys
+      -- (let (nameIR_key, nameIR_matchKind, typeIR) = $interface_of_tableKeyIR(tableKeyIR))*{nameIR_key <- nameIR_key*, nameIR_matchKind <- nameIR_matchKind*, tableKeyIR <- tableKeyIR*, typeIR <- typeIR*}
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:335:1-338:23:
+relation TableObject_create_entry_keyset: evalContext |- tableKeysPropertyIR @ tableKeysetInterface : keysetExpressionIR
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:340:1-353:34:
+   rule : EC |- key = { tableKeyIR*{tableKeyIR <- tableKeyIR*} } @ tableKeyInterface*{tableKeyInterface <- tableKeyInterface*} : ( simpleKeysetExpressionIR*{simpleKeysetExpressionIR <- simpleKeysetExpressionIR*} ) as keysetExpressionIR
+      -- (let (nameIR_key, nameIR_matchKind, typeIR) = $interface_of_tableKeyIR(tableKeyIR))*{nameIR_key <- nameIR_key*, nameIR_matchKind <- nameIR_matchKind*, tableKeyIR <- tableKeyIR*, typeIR <- typeIR*}
+      -- (let (nameIR_key_update, tableKeyValueInterface_update) = tableKeyInterface)*{nameIR_key_update <- nameIR_key_update*, tableKeyInterface <- tableKeyInterface*, tableKeyValueInterface_update <- tableKeyValueInterface_update*}
+      -- let nameIR_key_non_selector*{nameIR_key_non_selector <- nameIR_key_non_selector*} = $filter_<nameIR>(nameIR_key*{nameIR_key <- nameIR_key*}, (nameIR_matchKind =/= "selector")*{nameIR_matchKind <- nameIR_matchKind*})
+      -- if $eq_set<nameIR>({ nameIR_key_non_selector*{nameIR_key_non_selector <- nameIR_key_non_selector*} }, { nameIR_key_update*{nameIR_key_update <- nameIR_key_update*} })
+      -- rel TableObject_create_entry_keys: EC |- (nameIR_key, nameIR_matchKind, typeIR)*{nameIR_key <- nameIR_key*, nameIR_matchKind <- nameIR_matchKind*, typeIR <- typeIR*} @ tableKeyInterface*{tableKeyInterface <- tableKeyInterface*} : simpleKeysetExpressionIR*{simpleKeysetExpressionIR <- simpleKeysetExpressionIR*}
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:355:1-355:70:
+def $alias_to_original_lookup_map(parameterIR*) : map<nameIR, nameIR> =
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:356:1-365:46:
+   clause 0(parameterIR*{parameterIR <- parameterIR*}) = $extend_map<nameIR, nameIR>({ nameIR_alias : nameIR_original*{nameIR_alias <- nameIR_alias*, nameIR_original <- nameIR_original*} }, { id : id*{id <- id*} })
+      -- (let annotationList _direction _typeIR id _parameterInitializerOptIR = parameterIR)*{_direction <- _direction*, _parameterInitializerOptIR <- _parameterInitializerOptIR*, _typeIR <- _typeIR*, annotationList <- annotationList*, id <- id*, parameterIR <- parameterIR*}
+      -- (let annotation*{annotation <- annotation*} = $flatten_annotationList(annotationList))*{annotation* <- annotation**, annotationList <- annotationList*}
+      -- (let nameIR_names_opt?{nameIR_names_opt <- nameIR_names_opt?} = $name_annotation_opt(annotation))*{annotation <- annotation*, nameIR_names_opt? <- nameIR_names_opt?*}*{annotation* <- annotation**, nameIR_names_opt?* <- nameIR_names_opt?**}
+      -- (let nameIR_names_seq*{nameIR_names_seq <- nameIR_names_seq*} = $opt_as_seq_<nameIR>(nameIR_names_opt?{nameIR_names_opt <- nameIR_names_opt?}))*{nameIR_names_opt? <- nameIR_names_opt?*, nameIR_names_seq* <- nameIR_names_seq**}*{nameIR_names_opt?* <- nameIR_names_opt?**, nameIR_names_seq** <- nameIR_names_seq***}
+      -- (let nameIR_names*{nameIR_names <- nameIR_names*} = $concat_<nameIR>(nameIR_names_seq*{nameIR_names_seq <- nameIR_names_seq*}*{nameIR_names_seq* <- nameIR_names_seq**}))*{nameIR_names* <- nameIR_names**, nameIR_names_seq** <- nameIR_names_seq***}
+      -- let (nameIR_original, nameIR_aliases*{nameIR_aliases <- nameIR_aliases*})*{nameIR_aliases* <- nameIR_aliases**, nameIR_original <- nameIR_original*} = $filter_<(nameIR, nameIR*)>((id, nameIR_names*{nameIR_names <- nameIR_names*})*{id <- id*, nameIR_names* <- nameIR_names**}, (|nameIR_names*{nameIR_names <- nameIR_names*}| > 0)*{nameIR_names* <- nameIR_names**})
+      -- let nameIR_alias*{nameIR_alias <- nameIR_alias*} = nameIR_aliases*{nameIR_aliases <- nameIR_aliases*}[0]*{nameIR_aliases* <- nameIR_aliases**}
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:369:1-371:9:
+def $align_tableActionArgumentInterfaces(parameterIR*, tableActionArgumentInterface*) : int* =
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:376:1-385:65:
+   clause 0(parameterIR*{parameterIR <- parameterIR*}, (nameIR_arg, i_arg)*{i_arg <- i_arg*, nameIR_arg <- nameIR_arg*}) = i_aligned*{i_aligned <- i_aligned*}
+      -- let { nameIR_alias : nameIR_original*{nameIR_alias <- nameIR_alias*, nameIR_original <- nameIR_original*} } = $alias_to_original_lookup_map(parameterIR*{parameterIR <- parameterIR*})
+      -- (let nameIR?{nameIR <- nameIR?} = $find_map<nameIR, nameIR>({ nameIR_alias : nameIR_original*{nameIR_alias <- nameIR_alias*, nameIR_original <- nameIR_original*} }, nameIR_arg))*{nameIR? <- nameIR?*, nameIR_arg <- nameIR_arg*}
+      -- (if nameIR?{nameIR <- nameIR?} matches (_))*{nameIR? <- nameIR?*}
+      -- (let ?(nameIR_arg_resolved) = nameIR?{nameIR <- nameIR?})*{nameIR? <- nameIR?*, nameIR_arg_resolved <- nameIR_arg_resolved*}
+      -- (let _annotationList _direction _typeIR nameIR_param _parameterInitializerOptIR = parameterIR)*{_annotationList <- _annotationList*, _direction <- _direction*, _parameterInitializerOptIR <- _parameterInitializerOptIR*, _typeIR <- _typeIR*, nameIR_param <- nameIR_param*, parameterIR <- parameterIR*}
+      -- if $sub_set<nameIR>({ nameIR_arg_resolved*{nameIR_arg_resolved <- nameIR_arg_resolved*} }, { nameIR_param*{nameIR_param <- nameIR_param*} })
+      -- (let i_aligned = $align_tableActionArgumentInterfaces'({ nameIR_arg_resolved : i_arg*{i_arg <- i_arg*, nameIR_arg_resolved <- nameIR_arg_resolved*} }, parameterIR))*{i_aligned <- i_aligned*, parameterIR <- parameterIR*}
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:372:1-374:8:
+def $align_tableActionArgumentInterfaces'(map<id, int>, parameterIR) : int =
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:387:1-390:72:
+   clause 0({ id_arg : i_arg*{i_arg <- i_arg*, id_arg <- id_arg*} }, _annotationList _direction _typeIR nameIR_param _parameterInitializerOptIR) = i
+      -- let int?{int <- int?} = $find_map<id, int>({ id_arg : i_arg*{i_arg <- i_arg*, id_arg <- id_arg*} }, nameIR_param)
+      -- if int?{int <- int?} matches (_)
+      -- let ?(i) = int?{int <- int?}
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:392:1-395:74:
+   clause 1({ id_arg : i_arg*{i_arg <- i_arg*, id_arg <- id_arg*} }, _annotationList _direction _typeIR nameIR_param _parameterInitializerOptIR) = 0 as int
+      -- if (?() = $find_map<id, int>({ id_arg : i_arg*{i_arg <- i_arg*, id_arg <- id_arg*} }, nameIR_param))
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:399:1-400:29:
+def $find_tableActionIR_qualified(tableActionIR*, nameIR) : (nameIR, tableActionIR)? =
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:402:1-402:53:
+   clause 0(tableActionIR*{tableActionIR <- tableActionIR*}, nameIR) = ?()
+      -- if tableActionIR*{tableActionIR <- tableActionIR*} matches []
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:403:1-411:38:
+   clause 1(tableActionIR*{tableActionIR <- tableActionIR*}, nameIR) = $find_tableActionIR_qualified(tableActionIR_t*{tableActionIR_t <- tableActionIR_t*}, nameIR)
+      -- if tableActionIR*{tableActionIR <- tableActionIR*} matches _ :: _
+      -- let tableActionIR_h :: tableActionIR_t*{tableActionIR_t <- tableActionIR_t*} = tableActionIR*{tableActionIR <- tableActionIR*}
+      -- let annotationList tableActionReferenceIR # ( _parameterListIR , parameterIR_control*{parameterIR_control <- parameterIR_control*} ) ; = tableActionIR_h
+      -- let prefixedNameIR controlPlaneNameIR ( argumentIR_data*{argumentIR_data <- argumentIR_data*} ) = tableActionReferenceIR
+      -- if (?(nameIR) =/= controlPlaneNameIR)
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:412:1-421:64:
+   clause 2(tableActionIR*{tableActionIR <- tableActionIR*}, nameIR) = ?((nameIR_action, tableActionIR_h))
+      -- if tableActionIR*{tableActionIR <- tableActionIR*} matches _ :: _
+      -- let tableActionIR_h :: tableActionIR_t*{tableActionIR_t <- tableActionIR_t*} = tableActionIR*{tableActionIR <- tableActionIR*}
+      -- let annotationList tableActionReferenceIR # ( _parameterListIR , parameterIR_control*{parameterIR_control <- parameterIR_control*} ) ; = tableActionIR_h
+      -- let prefixedNameIR controlPlaneNameIR ( argumentIR_data*{argumentIR_data <- argumentIR_data*} ) = tableActionReferenceIR
+      -- if (?(nameIR) = controlPlaneNameIR)
+      -- let nameIR_action = $flatten_prefixedNameIR(prefixedNameIR)
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:426:1-427:29:
+def $find_tableActionIR_unqualified(tableActionIR*, nameIR) : (nameIR, tableActionIR)? =
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:431:1-434:56:
+   clause 0(tableActionIR*{tableActionIR <- tableActionIR*}, nameIR) = $find_tableActionIR_unqualified'(tableActionIR*{tableActionIR <- tableActionIR*}, nameIR_action)
+      -- let nameIR_split*{nameIR_split <- nameIR_split*} = $split_text(nameIR, ".")
+      -- let nameIR_action = $rev_<nameIR>(nameIR_split*{nameIR_split <- nameIR_split*})[0]
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:428:1-429:29:
+def $find_tableActionIR_unqualified'(tableActionIR*, nameIR) : (nameIR, tableActionIR)? =
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:436:1-436:56:
+   clause 0(tableActionIR*{tableActionIR <- tableActionIR*}, nameIR) = ?()
+      -- if tableActionIR*{tableActionIR <- tableActionIR*} matches []
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:437:1-447:38:
+   clause 1(tableActionIR*{tableActionIR <- tableActionIR*}, nameIR) = $find_tableActionIR_unqualified'(tableActionIR_t*{tableActionIR_t <- tableActionIR_t*}, nameIR)
+      -- if tableActionIR*{tableActionIR <- tableActionIR*} matches _ :: _
+      -- let tableActionIR_h :: tableActionIR_t*{tableActionIR_t <- tableActionIR_t*} = tableActionIR*{tableActionIR <- tableActionIR*}
+      -- let annotationList tableActionReferenceIR # ( _parameterListIR , parameterIR_control*{parameterIR_control <- parameterIR_control*} ) ; = tableActionIR_h
+      -- let prefixedNameIR controlPlaneNameIR ( argumentIR_data*{argumentIR_data <- argumentIR_data*} ) = tableActionReferenceIR
+      -- if controlPlaneNameIR matches (_)
+      -- let ?(nameIR_controlPlane) = controlPlaneNameIR
+      -- let nameIR_split*{nameIR_split <- nameIR_split*} = $split_text(nameIR_controlPlane, ".")
+      -- let nameIR'*{nameIR' <- nameIR'*} = $rev_<nameIR>(nameIR_split*{nameIR_split <- nameIR_split*})
+      -- if nameIR'*{nameIR' <- nameIR'*} matches _ :: _
+      -- let nameIR_unqualified :: _nameIR*{_nameIR <- _nameIR*} = nameIR'*{nameIR' <- nameIR'*}
+      -- if (nameIR =/= nameIR_unqualified)
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:448:1-459:64:
+   clause 2(tableActionIR*{tableActionIR <- tableActionIR*}, nameIR) = ?((nameIR_action, tableActionIR_h))
+      -- if tableActionIR*{tableActionIR <- tableActionIR*} matches _ :: _
+      -- let tableActionIR_h :: tableActionIR_t*{tableActionIR_t <- tableActionIR_t*} = tableActionIR*{tableActionIR <- tableActionIR*}
+      -- let annotationList tableActionReferenceIR # ( _parameterListIR , parameterIR_control*{parameterIR_control <- parameterIR_control*} ) ; = tableActionIR_h
+      -- let prefixedNameIR controlPlaneNameIR ( argumentIR_data*{argumentIR_data <- argumentIR_data*} ) = tableActionReferenceIR
+      -- if controlPlaneNameIR matches (_)
+      -- let ?(nameIR_controlPlane) = controlPlaneNameIR
+      -- let nameIR_split*{nameIR_split <- nameIR_split*} = $split_text(nameIR_controlPlane, ".")
+      -- let nameIR'*{nameIR' <- nameIR'*} = $rev_<nameIR>(nameIR_split*{nameIR_split <- nameIR_split*})
+      -- if nameIR'*{nameIR' <- nameIR'*} matches _ :: _
+      -- let nameIR_unqualified :: _nameIR*{_nameIR <- _nameIR*} = nameIR'*{nameIR' <- nameIR'*}
+      -- if (nameIR = nameIR_unqualified)
+      -- let nameIR_action = $flatten_prefixedNameIR(prefixedNameIR)
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:463:1-466:23:
+relation TableObject_create_entry_action: evalContext |- tableActionsPropertyIR @ tableActionInterface : tableActionReferenceIR
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:468:1-487:70:
+   rule qualified: EC |- actions = { tableActionIR*{tableActionIR <- tableActionIR*} } @ (nameIR_action_update, tableActionArgumentInterface_update*{tableActionArgumentInterface_update <- tableActionArgumentInterface_update*}) : nameIR_found controlPlaneNameIR ( argumentIR*{argumentIR <- argumentIR*} )
+      -- let (nameIR, tableActionIR)?{(nameIR, tableActionIR) <- (nameIR, tableActionIR)?} = $find_tableActionIR_qualified(tableActionIR*{tableActionIR <- tableActionIR*}, nameIR_action_update)
+      -- if (nameIR, tableActionIR)?{(nameIR, tableActionIR) <- (nameIR, tableActionIR)?} matches (_)
+      -- let ?((nameIR_found, tableActionIR_found)) = (nameIR, tableActionIR)?{(nameIR, tableActionIR) <- (nameIR, tableActionIR)?}
+      -- let annotationList prefixedNameIR controlPlaneNameIR ( argumentIR_data*{argumentIR_data <- argumentIR_data*} ) # ( _parameterListIR , parameterIR_control*{parameterIR_control <- parameterIR_control*} ) ; = tableActionIR_found
+      -- let i_arg_aligned*{i_arg_aligned <- i_arg_aligned*} = $align_tableActionArgumentInterfaces(parameterIR_control*{parameterIR_control <- parameterIR_control*}, tableActionArgumentInterface_update*{tableActionArgumentInterface_update <- tableActionArgumentInterface_update*})
+      -- (let _annotationList _direction typeIR_param _id _parameterInitializerOptIR = parameterIR_control)*{_annotationList <- _annotationList*, _direction <- _direction*, _id <- _id*, _parameterInitializerOptIR <- _parameterInitializerOptIR*, parameterIR_control <- parameterIR_control*, typeIR_param <- typeIR_param*}
+      -- (let typedExpressionIR_arg = d i_arg_aligned as expressionIR # ( int as typeIR dyn ))*{i_arg_aligned <- i_arg_aligned*, typedExpressionIR_arg <- typedExpressionIR_arg*}
+      -- (let typedExpressionIR?{typedExpressionIR <- typedExpressionIR?} = $cast_control_plane(EC, typedExpressionIR_arg, typeIR_param))*{typeIR_param <- typeIR_param*, typedExpressionIR? <- typedExpressionIR?*, typedExpressionIR_arg <- typedExpressionIR_arg*}
+      -- (if typedExpressionIR?{typedExpressionIR <- typedExpressionIR?} matches (_))*{typedExpressionIR? <- typedExpressionIR?*}
+      -- (let ?(typedExpressionIR_arg_cast) = typedExpressionIR?{typedExpressionIR <- typedExpressionIR?})*{typedExpressionIR? <- typedExpressionIR?*, typedExpressionIR_arg_cast <- typedExpressionIR_arg_cast*}
+      -- let argumentIR*{argumentIR <- argumentIR*} = argumentIR_data*{argumentIR_data <- argumentIR_data*} ++ typedExpressionIR_arg_cast*{typedExpressionIR_arg_cast <- typedExpressionIR_arg_cast*} as argumentIR*
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:489:1-510:70:
+   rule unqualified: EC |- actions = { tableActionIR*{tableActionIR <- tableActionIR*} } @ (nameIR_action_update, tableActionArgumentInterface_update*{tableActionArgumentInterface_update <- tableActionArgumentInterface_update*}) : nameIR_found controlPlaneNameIR ( argumentIR*{argumentIR <- argumentIR*} )
+      -- if (?() = $find_tableActionIR_qualified(tableActionIR*{tableActionIR <- tableActionIR*}, nameIR_action_update))
+      -- let (nameIR, tableActionIR)?{(nameIR, tableActionIR) <- (nameIR, tableActionIR)?} = $find_tableActionIR_unqualified(tableActionIR*{tableActionIR <- tableActionIR*}, nameIR_action_update)
+      -- if (nameIR, tableActionIR)?{(nameIR, tableActionIR) <- (nameIR, tableActionIR)?} matches (_)
+      -- let ?((nameIR_found, tableActionIR_found)) = (nameIR, tableActionIR)?{(nameIR, tableActionIR) <- (nameIR, tableActionIR)?}
+      -- let annotationList prefixedNameIR controlPlaneNameIR ( argumentIR_data*{argumentIR_data <- argumentIR_data*} ) # ( _parameterListIR , parameterIR_control*{parameterIR_control <- parameterIR_control*} ) ; = tableActionIR_found
+      -- let i_arg_aligned*{i_arg_aligned <- i_arg_aligned*} = $align_tableActionArgumentInterfaces(parameterIR_control*{parameterIR_control <- parameterIR_control*}, tableActionArgumentInterface_update*{tableActionArgumentInterface_update <- tableActionArgumentInterface_update*})
+      -- (let _annotationList _direction typeIR_param _id _parameterInitializerOptIR = parameterIR_control)*{_annotationList <- _annotationList*, _direction <- _direction*, _id <- _id*, _parameterInitializerOptIR <- _parameterInitializerOptIR*, parameterIR_control <- parameterIR_control*, typeIR_param <- typeIR_param*}
+      -- (let typedExpressionIR_arg = d i_arg_aligned as expressionIR # ( int as typeIR dyn ))*{i_arg_aligned <- i_arg_aligned*, typedExpressionIR_arg <- typedExpressionIR_arg*}
+      -- (let typedExpressionIR?{typedExpressionIR <- typedExpressionIR?} = $cast_control_plane(EC, typedExpressionIR_arg, typeIR_param))*{typeIR_param <- typeIR_param*, typedExpressionIR? <- typedExpressionIR?*, typedExpressionIR_arg <- typedExpressionIR_arg*}
+      -- (if typedExpressionIR?{typedExpressionIR <- typedExpressionIR?} matches (_))*{typedExpressionIR? <- typedExpressionIR?*}
+      -- (let ?(typedExpressionIR_arg_cast) = typedExpressionIR?{typedExpressionIR <- typedExpressionIR?})*{typedExpressionIR? <- typedExpressionIR?*, typedExpressionIR_arg_cast <- typedExpressionIR_arg_cast*}
+      -- let argumentIR*{argumentIR <- argumentIR*} = argumentIR_data*{argumentIR_data <- argumentIR_data*} ++ typedExpressionIR_arg_cast*{typedExpressionIR_arg_cast <- typedExpressionIR_arg_cast*} as argumentIR*
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:514:1-518:29:
+relation TableObject_add_entry: evalContext |- tableObject @ tableEntryPriorityInterface , tableKeysetInterface , tableActionInterface : tableObject?
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:520:1-543:57:
+   rule ok: EC |- table typeId { frame TBL } @ tableEntryPriorityInterface , tableKeysetInterface , tableActionInterface : ?(table typeId { frame TBL_updated })
+      -- let tableEntryPriorityOptIR = $tableObject_create_entry_priority(tableEntryPriorityInterface)
+      -- if ($needs_priority_tableKeysPropertyIR(TBL.keys) => $is_some_<tableEntryPriorityIR>(tableEntryPriorityOptIR))
+      -- rel TableObject_create_entry_keyset: EC |- TBL.keys @ tableKeysetInterface : keysetExpressionIR
+      -- rel TableObject_create_entry_action: EC |- TBL.actions @ tableActionInterface : tableActionReferenceIR
+      -- let tableEntryIR_update = ?() tableEntryPriorityOptIR keysetExpressionIR : tableActionReferenceIR ;
+      -- let annotationList constOptIR entries = { tableEntryIR*{tableEntryIR <- tableEntryIR*} } = TBL.entries
+      -- let tableEntriesPropertyIR_updated = annotationList constOptIR entries = { tableEntryIR*{tableEntryIR <- tableEntryIR*} ++ [tableEntryIR_update] }
+      -- let TBL_updated = TBL[entries = tableEntriesPropertyIR_updated]
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:545:1-547:15:
+   rule fail: _evalContext |- table typeId { frame TBL } @ _tableEntryPriorityInterface , _tableKeysetInterface , _tableActionInterface : ?()
+      -- otherwise
+
+;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:551:1-553:23:
+relation TableObject_add_default_action: evalContext |- tableObject @ tableActionInterface : tableObject
+
+   ;; ../../../../../spectec/specs/p4/9-arch/9.1-table-interface.spectec:555:1-566:76:
+   rule : EC |- table typeId { frame TBL } @ tableActionInterface : table typeId { frame TBL_updated }
+      -- let _annotationList constIR?{constIR <- constIR?} default_action = _tableActionReferenceIR ; = TBL.default_action
+      -- if constIR?{constIR <- constIR?} matches ()
+      -- rel TableObject_create_entry_action: EC |- TBL.actions @ tableActionInterface : tableActionReferenceIR
+      -- let tableDefaultActionPropertyIR = ?() default_action = tableActionReferenceIR ;
+      -- let TBL_updated = TBL[default_action = tableDefaultActionPropertyIR]
+
 ;; ../../../../../spectec/specs/p4/9-arch/9.B-ebpf.spectec:5:1-10:72:
 relation EBPF_init: |- p4program : evalContext arch
 

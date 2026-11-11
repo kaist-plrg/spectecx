@@ -1,0 +1,3 @@
+p4c/testdata/p4_16_samples/table-entries-priority-bmv2.stf
+testdata/p4testgen/table-entries-priority-bmv2/table-entries-priority-bmv2_1.stf
+testdata/p4testgen/table-entries-priority-bmv2/table-entries-priority-bmv2_2.stf

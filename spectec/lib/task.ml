@@ -21,14 +21,6 @@ let compute_outcome expectation result =
   | Negative, Error e -> ExpectedFail e
   | Negative, Ok values -> UnexpectedPass values
 
-type run =
-  | Relation of string * Il.Value.t list
-  | Driver of
-      (eval_rel:(string -> Il.Value.t list -> Il.Value.t list result) ->
-      Il.Value.t list result)
-      (** Calls through [eval_rel] share one context and target state. Use
-          [eval_rel] only while the driver runs. *)
-
 (** A task specification for interpreter execution *)
 module type S = sig
   val name : string
@@ -47,7 +39,18 @@ module type S = sig
 
   (** May report decoded values through {!Instrumentation.Value_event.Decoded}.
   *)
-  val parse_input : spec:Al.spec -> input -> run result
+  val parse_input : spec:Al.spec -> input -> Il.Value.t list result
+
+  (** [values] must come from [parse_input] on the same input. Calls through
+      [eval_rel] and [eval_func] share one context, cache and target state. Both
+      callbacks are valid only while [run] runs. [eval_func] follows
+      {!Interp.eval_func}. *)
+  val run :
+    input ->
+    values:Il.Value.t list ->
+    eval_rel:(string -> Il.Value.t list -> Il.Value.t list result) ->
+    eval_func:(string -> Il.Value.t list -> Il.Value.t result) ->
+    Il.Value.t list result
 
   (** Get source identifier for tracing/errors (e.g., filename, test name) *)
   val source : input -> string

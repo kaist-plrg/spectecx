@@ -133,9 +133,9 @@ module Typecheck = struct
   let parse_string = Frontend.parse_string
 
   let parse_input ~spec:_ { includes; filename; _ } =
-    Frontend.parse_file includes filename
-    |> Result.map (fun v -> Spectec.Task.Relation ("Program_ok", [ v ]))
+    Frontend.parse_file includes filename |> Result.map (fun v -> [ v ])
 
+  let run _ ~values ~eval_rel ~eval_func:_ = eval_rel "Program_ok" values
   let source { filename; _ } = filename
   let expectation { expect; _ } = expect
   let format_output _values = "Typechecker succeeded"
@@ -146,17 +146,13 @@ module Instantiate = struct
   include Typecheck
 
   let name = "instantiator"
-
-  let parse_input ~spec:_ { includes; filename; _ } =
-    Frontend.parse_file includes filename
-    |> Result.map (fun v -> Spectec.Task.Relation ("Program_inst", [ v ]))
-
+  let run _ ~values ~eval_rel ~eval_func:_ = eval_rel "Program_inst" values
   let format_output _values = "Instantiation succeeded"
 end
 
-(* Runs a P4 program on the packets of an STF file with the eBPF architecture. *)
-module Sim = struct
-  let name = "simulator"
+(* Evaluates STF packets and table updates through [Ebpf_stf.run]. *)
+module Eval = struct
+  let name = "evaluator"
 
   module Target = Target
 
@@ -182,11 +178,18 @@ module Sim = struct
   let unparse = Frontend.unparse
   let parse_string = Frontend.parse_string
 
-  let parse_input ~spec:_ { includes; filename; stf; _ } =
+  let parse_input ~spec:_ { includes; filename; _ } =
+    Frontend.parse_file includes filename |> Result.map (fun v -> [ v ])
+
+  let run { stf; _ } ~values ~eval_rel ~eval_func =
     let ( let* ) = Result.bind in
-    let* program = Frontend.parse_file includes filename in
     let* statements = Stf.parse_file stf in
-    Ok (Spectec.Task.Driver (Ebpf_sim.drive program ~statements))
+    match values with
+    | [ program ] -> Ebpf_stf.run program ~statements ~eval_rel ~eval_func
+    | _ ->
+        Error
+          (Spectec.Error.TaskError
+             (Common.Location.Unknown, "expected one parsed P4 program"))
 
   let source { filename; _ } = filename
   let expectation _ = Spectec.Task.Positive
@@ -194,7 +197,7 @@ module Sim = struct
   let format_output = function
     | [] -> "No packets transmitted"
     | values ->
-        values |> List.map Ebpf_sim.string_of_transmitted |> String.concat "\n"
+        values |> List.map Ebpf_stf.string_of_transmitted |> String.concat "\n"
 
   let save_output _filename _values = ()
 end
@@ -223,8 +226,8 @@ module Instantiate_cli : Cli.Task_cli.S = struct
   let flags = cli_flags
 end
 
-module Sim_cli : Cli.Task_cli.S = struct
-  module Task = Sim
+module Eval_cli : Cli.Task_cli.S = struct
+  module Task = Eval
 
   let flags =
     let open Core.Command.Let_syntax in
@@ -234,7 +237,7 @@ module Sim_cli : Cli.Task_cli.S = struct
       flag "-stf" (required string)
         ~doc:"FILE STF file with input packets and expected output packets"
     in
-    { Sim.includes; filename; stf }
+    { Eval.includes; filename; stf }
 end
 
 let target = (module Target : Spectec.Target.S)
@@ -252,9 +255,9 @@ module Cli : Cli.Target_cli.S = struct
         Subcommand.make_task target ~name:"instantiate"
           ~summary:"Instantiate a P4 program with eBPF extern objects"
           (module Instantiate_cli);
-        Subcommand.make_task target ~name:"sim"
+        Subcommand.make_task target ~name:"eval"
           ~summary:"Run a P4 program on STF packets with the eBPF architecture"
-          (module Sim_cli);
+          (module Eval_cli);
         Subcommand.make_parse target ~name:"parse"
           ~summary:"parse a P4 program to an IL value"
           (module Typecheck_cli);

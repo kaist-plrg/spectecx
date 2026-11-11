@@ -5,7 +5,7 @@ let ( let* ) = Result.bind
 type t = { bits : bool array; cursor : int }
 
 let make (bits : bool array) : t = { bits = Array.copy bits; cursor = 0 }
-let length (packet : t) : int = Array.length packet.bits
+let bit_length (packet : t) : int = Array.length packet.bits
 
 (* [void extract<T>(out T hdr)] *)
 
@@ -20,7 +20,7 @@ let extract ~callback ~at ~ctx (packet : t) :
   let typ = Spec_calls.subst_type_local ~callback ~ctx typ in
   let* size = Spec_calls.max_size_in_bits ~callback typ |> Arg.nat at in
   let size = Bigint.to_int_exn size in
-  if packet.cursor + size > length packet then
+  if packet.cursor + size > bit_length packet then
     Ok (packet, ctx, P4_values.reject (P4_values.error_value "PacketTooShort"))
   else
     let bits = Array.sub packet.bits packet.cursor size |> Array.to_list in
@@ -31,3 +31,24 @@ let extract ~callback ~at ~ctx (packet : t) :
       Spec_calls.update_var_local ~callback ctx ~name:"hdr" ~value:hdr
     in
     Ok (packet, ctx, P4_values.return_empty)
+
+(* [void advance(in bit<32> sizeInBits)] *)
+
+let advance ~callback ~at ~ctx (packet : t) :
+    (t * Lang.Il.Value.t * Lang.Il.Value.t) result =
+  let* size =
+    Spec_calls.find_bit32_local_exn ~callback ~at ctx ~name:"sizeInBits"
+  in
+  if packet.cursor + size > bit_length packet then
+    Ok (packet, ctx, P4_values.reject (P4_values.error_value "PacketTooShort"))
+  else
+    Ok
+      ( { packet with cursor = packet.cursor + size },
+        ctx,
+        P4_values.return_empty )
+
+(* [bit<32> length()] *)
+
+let length (packet : t) : Lang.Il.Value.t =
+  let bytes = (bit_length packet + 7) / 8 in
+  P4_values.return_value (P4_values.value_of_bit32 bytes)

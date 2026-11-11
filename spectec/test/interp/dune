@@ -198,6 +198,98 @@
  (action
   (diff p4-pl-neg.expected p4-pl-neg.actual)))
 
+;; IL STF evaluation tests (eBPF programs with STF files)
+
+(rule
+ (target p4-il-eval.actual)
+ (deps
+  (source_tree ../../specs/p4)
+  (source_tree ../../testdata/interp/p4/p4c/includes)
+  (source_tree ../../testdata/interp/p4/excludes)
+  (source_tree ../../testdata/interp/p4/p4c/p4_16_samples))
+ (action
+  (with-stdout-to
+   %{target}
+   (with-stderr-to
+    p4-il-eval.err
+    (run
+     ./main.exe
+     --eval
+     -i
+     ../../../../../spectec/testdata/interp/p4/p4c/includes
+     -e
+     ../../../../../spectec/testdata/interp/p4/excludes
+     -d
+     ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples)))))
+
+(rule
+ (alias p4-il-eval)
+ (deps p4-il-eval.err p4-il-eval.actual)
+ (action
+  (diff p4-il-eval.expected p4-il-eval.actual)))
+
+;; SL STF evaluation tests
+
+(rule
+ (target p4-sl-eval.actual)
+ (deps
+  (source_tree ../../specs/p4)
+  (source_tree ../../testdata/interp/p4/p4c/includes)
+  (source_tree ../../testdata/interp/p4/excludes)
+  (source_tree ../../testdata/interp/p4/p4c/p4_16_samples))
+ (action
+  (with-stdout-to
+   %{target}
+   (with-stderr-to
+    p4-sl-eval.err
+    (run
+     ./main.exe
+     --sl
+     --eval
+     -i
+     ../../../../../spectec/testdata/interp/p4/p4c/includes
+     -e
+     ../../../../../spectec/testdata/interp/p4/excludes
+     -d
+     ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples)))))
+
+(rule
+ (alias p4-sl-eval)
+ (deps p4-sl-eval.err p4-sl-eval.actual)
+ (action
+  (diff p4-sl-eval.expected p4-sl-eval.actual)))
+
+;; PL STF evaluation tests
+
+(rule
+ (target p4-pl-eval.actual)
+ (deps
+  (source_tree ../../specs/p4)
+  (source_tree ../../testdata/interp/p4/p4c/includes)
+  (source_tree ../../testdata/interp/p4/excludes)
+  (source_tree ../../testdata/interp/p4/p4c/p4_16_samples))
+ (action
+  (with-stdout-to
+   %{target}
+   (with-stderr-to
+    p4-pl-eval.err
+    (run
+     ./main.exe
+     --pl
+     --eval
+     -i
+     ../../../../../spectec/testdata/interp/p4/p4c/includes
+     -e
+     ../../../../../spectec/testdata/interp/p4/excludes
+     -d
+     ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples)))))
+
+(rule
+ (alias p4-pl-eval)
+ (deps p4-pl-eval.err p4-pl-eval.actual)
+ (action
+  (diff p4-pl-eval.expected p4-pl-eval.actual)))
+
 ;; ============================================================
 ;; impty target tests (base variant)
 ;; ============================================================

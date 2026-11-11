@@ -83,16 +83,14 @@ let validate_config config ~(mode : Interp_mode.request) =
 let interp_error e = Error.InterpError e
 
 let eval_run ~check_determinism ~(mode : Interp_mode.t) ~spec_al target_state
-    (run : Task.run) =
-  let driver =
-    match run with
-    | Relation (relation, values) -> fun ~eval_rel -> eval_rel relation values
-    | Driver drive -> drive
-  in
+    run =
   let run_layer context =
     let* context = Result.map_error interp_error context in
-    driver ~eval_rel:(fun rel values ->
+    run
+      ~eval_rel:(fun rel values ->
         Interp.eval_rel context ~rel ~values |> Result.map_error interp_error)
+      ~eval_func:(fun func values ->
+        Interp.eval_func context ~func ~values |> Result.map_error interp_error)
   in
   match mode with
   | Il ->
@@ -111,8 +109,8 @@ let eval_run ~check_determinism ~(mode : Interp_mode.t) ~spec_al target_state
 let eval_task (type i) (module T : Task.S with type input = i)
     ?(check_determinism = false) ~(mode : Interp_mode.t) ~spec_al (input : i) =
   Interp.with_target_state (module T.Target) @@ fun target_state ->
-  let* run = T.parse_input ~spec:spec_al input in
-  eval_run ~check_determinism ~mode ~spec_al target_state run
+  let* values = T.parse_input ~spec:spec_al input in
+  eval_run ~check_determinism ~mode ~spec_al target_state (T.run input ~values)
 
 let eval_task_with_instrumentation (type i)
     (module T : Task.S with type input = i)

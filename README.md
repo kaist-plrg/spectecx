@@ -98,6 +98,9 @@ The target-specific examples require the corresponding target package.
 # instantiate a P4 program using eBPF extern constructors
 ./spectecx p4 instantiate -p target/file.p4 --sl
 
+# run an eBPF program on the packets and table lines of an STF file
+./spectecx p4 eval -i spectec/testdata/interp/p4/p4c/includes -p spectec/testdata/interp/p4/p4c/p4_16_samples/test_ebpf.p4 -stf spectec/testdata/interp/p4/p4c/p4_16_samples/test_ebpf.stf --sl
+
 ## ITPL commands
 
 ./spectecx ae eval -p spectec/testdata/interp/itpl/ae/arithmetic.ae
@@ -118,7 +121,17 @@ The target-specific examples require the corresponding target package.
 ./spectecx tifae typecheck -p spectec/testdata/interp/itpl/tifae/identity.tifae
 ```
 
-The `p4 instantiate` command typechecks a P4 program and creates its initial objects and state. It currently supports the eBPF `CounterArray` extern, an array of counters initialized to zero.
+The `p4 instantiate` command typechecks a P4 program and creates its initial objects and state. It supports `CounterArray`, whose counters start at zero, and the table implementations `array_table` and `hash_table`. It rejects other extern objects.
+
+`p4 eval` processes packets and applies table updates from an STF file in order. It keeps the eBPF P4 program's counters and table entries between packets. A `packet` line supplies an input port and packet bytes in hexadecimal. The P4 program's parser and filter control decide whether to transmit each packet unchanged on its input port. The command prints each transmitted packet with its port.
+
+`expect` lines list the packets the program must transmit on each port, in order. `*` matches any hexadecimal digit. A trailing `$` requires the whole packet to match. Without `$`, the expected bytes need only match the start of the packet. The run fails if the transmitted packets differ from these expectations.
+
+An `add` line installs a table entry, and a `setdefault` line replaces a table's default action. STF names beginning with `pipe_` refer to names inside the P4 program's `main.filt` control. Table key values may be decimal, hexadecimal (`0x`), binary (`0b`) or prefixes written as `0x<digits>/<length>`. A `*` in a hexadecimal or binary key matches any value at that digit position. The command rejects other STF statements, such as `wait`.
+
+`p4 eval` supports the one-argument `packet_in.extract` method, `packet_in.advance`, `packet_in.length`, `CounterArray.increment`, `CounterArray.add` and the extern function `verify`. A run fails on unsupported extern calls, including the C functions used by `ebpf_checksum_extern.p4`.
+
+With `--batch-dir DIR`, `p4 eval` runs each eBPF program under `DIR` that has an STF file of the same name, using `DIR/includes` as the include path. You must supply `-p` and `-stf` for batch runs, although the command ignores their values.
 
 The [ITPL specifications](spectec/specs/itpl/README.md) follow the languages in chapters 6 through 24 of *Introduction to Programming Languages* by Jaemin Hong and Sukyoung Ryu, the textbook for KAIST CS320.
 
@@ -140,6 +153,7 @@ make test
 
 - Checks parsing, elaboration, algo and structuring using the specs under `spectec/specs/p4` and `spectec/specs/p4-old`.
 - Checks interpreter results with the P4 parser using files under `spectec/testdata/interp/p4`.
+- Runs p4c's eBPF programs that have STF files with the `p4 eval` evaluator in IL, SL and PL, skipping files named in the [P4 exclusion lists](spectec/testdata/interp/p4/excludes/README.md). Use `make test-il-eval`, `make test-sl-eval` or `make test-pl-eval` to run one interpreter's evaluation suite.
 
 ### Adding a New Target
 

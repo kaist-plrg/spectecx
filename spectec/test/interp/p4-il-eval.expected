@@ -1,0 +1,60 @@
+Running evaluator test on 17 files
+
+>>> Running evaluator test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/action_call_ebpf.p4
+Evaluator success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/action_call_ebpf.p4
+
+>>> Running evaluator test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/action_call_table_ebpf.p4
+Evaluator success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/action_call_table_ebpf.p4
+
+>>> Running evaluator test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/advance_ebpf.p4
+Evaluator success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/advance_ebpf.p4
+
+>>> Running evaluator test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/count_ebpf.p4
+Evaluator success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/count_ebpf.p4
+
+>>> Running evaluator test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/ebpf_checksum_extern.p4
+Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/ebpf_checksum_extern.p4
+
+>>> Running evaluator test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/ebpf_conntrack_extern.p4
+Excluding file: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/ebpf_conntrack_extern.p4
+
+>>> Running evaluator test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/hit_ebpf.p4
+Evaluator success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/hit_ebpf.p4
+
+>>> Running evaluator test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue870_ebpf.p4
+Evaluator success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/issue870_ebpf.p4
+
+>>> Running evaluator test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/key-issue-1020_ebpf.p4
+Evaluator success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/key-issue-1020_ebpf.p4
+
+>>> Running evaluator test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/key_ebpf.p4
+Evaluator success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/key_ebpf.p4
+
+>>> Running evaluator test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/length_ebpf.p4
+Evaluator success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/length_ebpf.p4
+
+>>> Running evaluator test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/lpm_ebpf.p4
+Evaluator success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/lpm_ebpf.p4
+
+>>> Running evaluator test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/switch_ebpf.p4
+Evaluator success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/switch_ebpf.p4
+
+>>> Running evaluator test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/test_ebpf.p4
+Evaluator success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/test_ebpf.p4
+
+>>> Running evaluator test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/two_ebpf.p4
+Evaluator success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/two_ebpf.p4
+
+>>> Running evaluator test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/valid_ebpf.p4
+Evaluator success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/valid_ebpf.p4
+
+>>> Running evaluator test on ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/verify_ebpf.p4
+Evaluator success: ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples/verify_ebpf.p4
+
+Evaluator (il) summary
+  Ran:         15 / 17     (88.24%)
+  Passed:      15 (100.00% of ran)
+  Failed:       0 (0.00% of ran)
+  Skipped:      2 (11.76% of total)
+
+

@@ -1,0 +1,20 @@
+;; === iteration.spectec ===
+dec $positive(nat*) : bool*
+
+def $positive(nat_n*) = ($(nat_n > 0))*
+
+dec $first_succ(nat*) : nat
+
+def $first_succ(nat_n*) = $($(nat_n*)[0] + 1)
+
+dec $firsts(nat*) : nat*
+
+def $firsts(nat_n*) = nat_n*[0 : 1]
+
+dec $fields(rec*) : nat*
+
+def $fields(rec*) = rec*.A
+
+dec $updated(rec*) : rec*
+
+def $updated(rec*) = rec*[.A = 1]

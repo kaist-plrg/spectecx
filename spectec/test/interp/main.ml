@@ -5,7 +5,7 @@ open Test_lib
 
 (** Generic test runner - works with any TASK, in any interpreter mode *)
 let run_with_task (type i) (module T : Spectec.Task.S with type input = i)
-    ~(request : Spectec.Interp_mode.request) ~spec_files ~inputs ~exclude_dirs =
+    ~(request : Spectec.Interp_mode.request) ~spec_files ~inputs ~exclude_set =
   let mode_name = Spectec.Interp_mode.to_string request in
   let open Core.Result.Let_syntax in
   let suite_result =
@@ -18,7 +18,6 @@ let run_with_task (type i) (module T : Spectec.Task.S with type input = i)
       | `PL ->
           Pl (Spectec.henv_with_al_spec (Spectec.henv_of_el_spec spec) spec_al)
     in
-    let exclude_set = Exclude.load exclude_dirs in
     let mode_suffix = "(" ^ String.lowercase mode_name ^ ")" in
     let config : Suite.config =
       {
@@ -87,7 +86,29 @@ let run_p4_typecheck ~negative ~request ~includes ~exclude_dirs ~testdirs =
   in
   run_with_task
     (module Targets_p4.P4.Typecheck)
-    ~request ~spec_files ~inputs ~exclude_dirs
+    ~request ~spec_files ~inputs
+    ~exclude_set:(Exclude.load exclude_dirs)
+
+(** Run each eBPF program under [testdirs] with an STF file of the same name. *)
+let run_p4_eval ~request ~includes ~exclude_dirs ~testdirs =
+  let module Eval = Targets_p4.P4.Eval in
+  let spec_dir = resolve_spec_dir Targets_p4.P4.Target.spec_dir in
+  let spec_files = Files.collect ~suffix:".spectec" spec_dir in
+  let inputs =
+    List.concat_map testdirs ~f:(fun dir -> Eval.collect ~dir ())
+    |> List.map ~f:(fun (input : Eval.input) -> { input with includes })
+  in
+  (* Exclusion files name P4 programs or STF files. The suite names each run
+     by its program, so each match must use the program's name. *)
+  let excluded = Exclude.load exclude_dirs in
+  let exclude_set =
+    List.filter_map inputs ~f:(fun (input : Eval.input) ->
+        Option.some_if
+          (Exclude.mem excluded input.filename || Exclude.mem excluded input.stf)
+          (Eval.source input))
+    |> Exclude.Excludes.of_list
+  in
+  run_with_task (module Eval) ~request ~spec_files ~inputs ~exclude_set
 
 (** Impty Typecheck test - per-variant spec dispatch *)
 let run_impty_typecheck ~variant ~negative ~request ~testdirs =
@@ -110,7 +131,7 @@ let run_impty_typecheck ~variant ~negative ~request ~testdirs =
   in
   run_with_task
     (module Targets_impty.Impty.Typecheck)
-    ~request ~spec_files ~inputs ~exclude_dirs:[]
+    ~request ~spec_files ~inputs ~exclude_set:Exclude.empty
 
 let run_miniml_eval ~negative ~request ~testdirs =
   let expectation =
@@ -139,7 +160,7 @@ let run_miniml_eval ~negative ~request ~testdirs =
   in
   run_with_task
     (module Targets_miniml.Miniml.Eval)
-    ~request ~spec_files ~inputs ~exclude_dirs:[]
+    ~request ~spec_files ~inputs ~exclude_set:Exclude.empty
 
 let command =
   Command.basic ~summary:"run interpreter test (IL, SL, or PL)"
@@ -155,6 +176,9 @@ let command =
   and pl_mode = flag "--pl" no_arg ~doc:" use PL interpreter (default: IL)"
   and impty = flag "--impty" no_arg ~doc:" use impty target (default: p4)"
   and miniml = flag "--miniml" no_arg ~doc:" use Mini-ML target (default: p4)"
+  and eval =
+    flag "--eval" no_arg
+      ~doc:" run p4 programs on their STF packets (default: typecheck)"
   and variant =
     flag "--variant" (optional string)
       ~doc:
@@ -168,6 +192,8 @@ let command =
       | false, true -> `PL
       | true, true -> failwith "--sl and --pl are mutually exclusive"
     in
+    if eval && (negative || impty || miniml) then
+      failwith "--eval runs only positive p4 tests";
     match (impty, miniml) with
     | true, true -> failwith "--impty and --miniml are mutually exclusive"
     | true, false ->
@@ -178,6 +204,8 @@ let command =
         in
         run_impty_typecheck ~variant:v ~negative ~request ~testdirs
     | false, true -> run_miniml_eval ~negative ~request ~testdirs
+    | false, false when eval ->
+        run_p4_eval ~request ~includes ~exclude_dirs ~testdirs
     | false, false ->
         run_p4_typecheck ~negative ~request ~includes ~exclude_dirs ~testdirs
 
