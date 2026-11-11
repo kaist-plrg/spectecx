@@ -34,7 +34,7 @@ module type S = sig
   val parse_string : filename:string -> string -> Il.Value.t list result
 
   (** Unparse IL values back into a string for display. *)
-  val unparse : spec:Al.spec -> Il.Value.t list -> string
+  val unparse : spec:Il.spec -> Il.Value.t list -> string
 
   (** May report decoded values through {!Instrumentation.Value_event.Decoded}.
   *)

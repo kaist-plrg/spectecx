@@ -5,9 +5,9 @@ open Error_handling
 let load_spec source =
   let* filenames = Spec_source.files source in
   let* spec = Spectec.parse_spec_files filenames in
-  let* spec_al = Spectec.elaborate_and_algorithmize spec in
+  let* spec_il, spec_al = Spectec.elaborate_and_algorithmize spec in
   let henv = Spectec.henv_of_el_spec spec in
-  let henv = Spectec.henv_with_al_spec henv spec_al in
+  let henv = Spectec.henv_load_il_spec henv ~spec:spec_il in
   Ok (filenames, spec_al, henv)
 
 let make_task (module Tgt : Spectec.Target.S) ~name ~summary
@@ -85,12 +85,14 @@ let make_parse (module Tgt : Spectec.Target.S) ~name ~summary
           ~from_config_file:cfg.Config_file.spec_source
           ~default_dir:Tgt.spec_dir
       in
-      let* _files, spec_al, _henv = load_spec source in
+      let* filenames = Spec_source.files source in
+      let* spec = Spectec.parse_spec_files filenames in
+      let* spec_il, _spec_al = Spectec.elaborate_and_algorithmize spec in
       TC.Task.Target.with_state @@ fun () ->
       let* values = TC.Task.parse_input input in
       match output with
       | `Roundtrip ->
-          let unparsed = TC.Task.unparse ~spec:spec_al values in
+          let unparsed = TC.Task.unparse ~spec:spec_il values in
           let* values_rt =
             unparsed |> TC.Task.parse_string ~filename:(TC.Task.source input)
           in
@@ -117,7 +119,7 @@ let make_parse (module Tgt : Spectec.Target.S) ~name ~summary
             (values
             |> List.map (Lang.Il.Print.string_of_value_tree ~style)
             |> String.concat "\n")
-      | `Unparse -> Ok (TC.Task.unparse ~spec:spec_al values)
+      | `Unparse -> Ok (TC.Task.unparse ~spec:spec_il values)
   in
   (name, cmd)
 

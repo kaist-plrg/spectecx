@@ -39,9 +39,11 @@ let compile_source ~filename contents =
     Spectec.with_diagnostics (fun () ->
         let ( let* ) = Stdlib.Result.bind in
         let* spec_el = Spectec.parse_spec_source source in
-        let* spec_al = Spectec.elaborate_and_algorithmize spec_el in
+        let* spec_il, spec_al = Spectec.elaborate_and_algorithmize spec_el in
         let henv =
-          Spectec.henv_with_al_spec (Spectec.henv_of_el_spec spec_el) spec_al
+          Spectec.henv_load_il_spec
+            (Spectec.henv_of_el_spec spec_el)
+            ~spec:spec_il
         in
         let spec_sl = Spectec.structure spec_al in
         let spec_pl = spec_sl |> Spectec.annotate ~henv |> Spectec.shorten in

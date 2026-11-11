@@ -8,10 +8,10 @@ let run specdir =
   let spec_pl =
     let spec_files = Files.collect ~suffix:".spectec" specdir in
     let%bind spec = Spectec.parse_spec_files spec_files in
-    let%bind spec_al = Spectec.elaborate_and_algorithmize spec in
+    let%bind spec_il, spec_al = Spectec.elaborate_and_algorithmize spec in
     let spec_sl = Spectec.structure spec_al in
     let henv = Spectec.henv_of_el_spec spec in
-    let henv = Spectec.henv_with_al_spec henv spec_al in
+    let henv = Spectec.henv_load_il_spec henv ~spec:spec_il in
     let spec_pl = Spectec.annotate ~henv spec_sl |> Spectec.shorten in
     Ok spec_pl
   in

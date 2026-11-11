@@ -69,7 +69,7 @@ let structure =
         spec_sl
 
 let henv_of_el_spec spec_el = Pass.henv_of_el_spec spec_el
-let henv_with_al_spec henv spec_al = Pass.henv_with_al_spec henv spec_al
+let henv_load_il_spec henv ~spec = Pass.henv_load_il_spec henv ~spec
 let annotate ~henv spec_sl = Pass.annotate ~henv spec_sl
 let shorten spec_pl = Pass.shorten spec_pl
 

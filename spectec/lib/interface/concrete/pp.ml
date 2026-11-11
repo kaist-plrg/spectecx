@@ -1,7 +1,6 @@
 open Common.Annotated
 open Lang
 open Il
-open Al
 open Il.Value
 open Xl
 open Hint
@@ -153,6 +152,6 @@ and pp_list_v (hmap : hmap) fmt (value : value) : unit =
 
 (* P4 program *)
 
-let pp_program (spec : spec) fmt (value : value) : unit =
+let pp_program ~(spec : Il.spec) fmt (value : value) : unit =
   let hmap = hints_of_spec spec in
   pp_value hmap fmt value

@@ -77,11 +77,12 @@ val elaborate : Lang.El.spec -> Lang.Il.spec result
 (** Runs algo on the rules and clauses accepted by elaboration, including when
     elaboration reports errors elsewhere. Returns errors from elaboration and
     algo. *)
-val elaborate_and_algorithmize : Lang.El.spec -> Lang.Al.spec result
+val elaborate_and_algorithmize :
+  Lang.El.spec -> (Lang.Il.spec * Lang.Al.spec) result
 
 val structure : Lang.Al.spec -> Lang.Sl.spec
 val henv_of_el_spec : Lang.El.spec -> Hints.Henv.t
-val henv_with_al_spec : Hints.Henv.t -> Lang.Al.spec -> Hints.Henv.t
+val henv_load_il_spec : Hints.Henv.t -> spec:Lang.Il.spec -> Hints.Henv.t
 val annotate : henv:Hints.Henv.t -> Lang.Sl.spec -> Pl.spec
 val shorten : Pl.spec -> Pl.spec
 
