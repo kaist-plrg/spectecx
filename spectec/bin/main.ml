@@ -87,8 +87,7 @@ let grammar_command =
           (Grammar.string_of_t (Grammar.extract ~start spec_il)))
     @@ fun () ->
     let* spec = parse_spec_files filenames in
-    let* spec_il, _spec_al = elaborate_and_algorithmize spec in
-    Ok spec_il
+    elaborate spec
 
 let structure_command =
   Core.Command.basic ~summary:"structure a spec"

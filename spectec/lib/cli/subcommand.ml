@@ -2,13 +2,18 @@ let ( let* ) = Result.bind
 
 open Error_handling
 
-let load_spec source =
+let load_al_spec source =
   let* filenames = Spec_source.files source in
   let* spec = Spectec.parse_spec_files filenames in
   let* spec_il, spec_al = Spectec.elaborate_and_algorithmize spec in
   let henv = Spectec.henv_of_el_spec spec in
   let henv = Spectec.henv_load_il_spec henv ~spec:spec_il in
   Ok (filenames, spec_al, henv)
+
+let load_il_spec source =
+  let* filenames = Spec_source.files source in
+  let* spec = Spectec.parse_spec_files filenames in
+  Spectec.elaborate spec
 
 let make_task (module Tgt : Spectec.Target.S) ~name ~summary
     (module TC : Task_cli.S) =
@@ -39,7 +44,7 @@ let make_task (module Tgt : Spectec.Target.S) ~name ~summary
           ~from_config_file:cfg.Config_file.spec_source
           ~default_dir:Tgt.spec_dir
       in
-      let* _files, spec_al, henv = load_spec source in
+      let* _files, spec_al, henv = load_al_spec source in
       let mode = Interp_mode.resolve ~henv mode in
       match (batch_mode, batch_dir) with
       | false, None ->
@@ -85,9 +90,7 @@ let make_parse (module Tgt : Spectec.Target.S) ~name ~summary
           ~from_config_file:cfg.Config_file.spec_source
           ~default_dir:Tgt.spec_dir
       in
-      let* filenames = Spec_source.files source in
-      let* spec = Spectec.parse_spec_files filenames in
-      let* spec_il, _spec_al = Spectec.elaborate_and_algorithmize spec in
+      let* spec_il = load_il_spec source in
       TC.Task.Target.with_state @@ fun () ->
       let* values = TC.Task.parse_input input in
       match output with
@@ -155,7 +158,7 @@ let make_batch (module Tgt : Spectec.Target.S) ~name
           ~from_config_file:cfg.Config_file.spec_source
           ~default_dir:Tgt.spec_dir
       in
-      let* spec_files, spec_al, henv = load_spec source in
+      let* spec_files, spec_al, henv = load_al_spec source in
       let mode = Interp_mode.resolve ~henv mode in
       let batch_dir =
         match batch_dir with None -> cfg.Config_file.batch_dir | some -> some
@@ -216,7 +219,7 @@ let make_checkpoint (module Tgt : Spectec.Target.S) ~name =
           ~from_config_file:cfg.Config_file.spec_source
           ~default_dir:Tgt.spec_dir
       in
-      let* spec_files, spec_al, _henv = load_spec source in
+      let* spec_files, spec_al, _henv = load_al_spec source in
       let* checkpoint =
         Batch.Checkpoint.verify_and_load ~file:checkpoint_file ~spec_files
           ~verbose:true
