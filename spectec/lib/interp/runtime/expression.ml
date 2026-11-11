@@ -18,7 +18,7 @@ module type Context = sig
 
   val find_value_exn : t -> var:Envs.Interp.Var.t -> Lang.Il.value
   val opaque_types : t -> Opaque_types.t
-  val find_typdef_exn : t -> id:Common.Domain.TId.t -> Envs.Il.Typdef.t
+  val find_syntax_exn : t -> id:Common.Domain.TId.t -> Envs.Il.Syntax.t
   val find_func_exn : t -> id:Common.Domain.FId.t -> Func.t
   val add_func_exn : t -> id:Common.Domain.FId.t -> func:Func.t -> t
   val set_value : t -> var:Envs.Interp.Var.t -> value:Lang.Il.value -> t
@@ -172,7 +172,7 @@ module Make (Ctx : Context) = struct
         | NumV (`Int _) -> value
         | _ -> assert false)
     | VarT { synid = tid; targs } -> (
-        let tparams, deftyp = Ctx.find_typdef_exn ctx ~id:tid in
+        let tparams, deftyp = Ctx.find_syntax_exn ctx ~id:tid in
         let theta = List.combine tparams targs |> TIdMap.of_list in
         match deftyp.it with
         | PlainT typ ->
@@ -218,7 +218,7 @@ module Make (Ctx : Context) = struct
             Value.nat i |> Emit_value.derived ~source:value
         | _ -> assert false)
     | VarT { synid = tid; targs } -> (
-        let tparams, deftyp = Ctx.find_typdef_exn ctx ~id:tid in
+        let tparams, deftyp = Ctx.find_syntax_exn ctx ~id:tid in
         let theta = List.combine tparams targs |> TIdMap.of_list in
         match deftyp.it with
         | PlainT typ ->
@@ -268,7 +268,7 @@ module Make (Ctx : Context) = struct
     | NumT `IntT -> ( match value.it with NumV _ -> true | _ -> false)
     | TextT -> ( match value.it with TextV _ -> true | _ -> false)
     | VarT { synid = tid; targs } -> (
-        let tparams, deftyp = Ctx.find_typdef_exn ctx ~id:tid in
+        let tparams, deftyp = Ctx.find_syntax_exn ctx ~id:tid in
         let theta = List.combine tparams targs |> TIdMap.of_list in
         match (deftyp.it, value.it) with
         | OpaqueT, OpaqueV value ->

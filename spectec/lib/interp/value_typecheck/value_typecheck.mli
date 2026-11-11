@@ -5,7 +5,7 @@ open Lang.Il
     name in [opaque_types]. Record fields must appear in declaration order. *)
 val check :
   opaque_types:Opaque_types.t ->
-  find_typdef_opt:(id -> (tparam list * deftyp) option) ->
+  find_syntax_opt:(id -> (tparam list * deftyp) option) ->
   typ:typ ->
   value ->
   (unit, string) result
@@ -14,7 +14,7 @@ val check :
     unequal lengths. *)
 val check_values :
   opaque_types:Opaque_types.t ->
-  find_typdef_opt:(id -> (tparam list * deftyp) option) ->
+  find_syntax_opt:(id -> (tparam list * deftyp) option) ->
   typs:typ list ->
   value list ->
   (unit, string) result

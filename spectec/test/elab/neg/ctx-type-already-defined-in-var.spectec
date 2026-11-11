@@ -1,5 +1,5 @@
-;; Triggers elaborate.ml:1494 — `var` declaration whose name collides with an
-;; existing typdef.
+;; A var declaration names a meta-variable whose name already identifies
+;; a syntax definition.
 
 syntax foo = nat
 

@@ -6,7 +6,7 @@ open Lang.Il.Expression
 open Lang.Il
 open Lang.Al
 module RTEnv = Envs.RTEnv
-module TDEnv = Envs.Il.TDEnv
+module SEnv = Envs.Il.SEnv
 
 (* Structuring premises *)
 
@@ -135,33 +135,32 @@ let args_input_of_params (params : param list) : arg list =
     ([], IdSet.empty) params
   |> fst
 
-let rec struct_def (rtenv : RTEnv.t) (tdenv : TDEnv.t) (def : def) : Sl.def =
+let rec struct_def (rtenv : RTEnv.t) (senv : SEnv.t) (def : def) : Sl.def =
   let at = def.at in
   match def.it with
   | TypD { synid = id; tparams; deftyp } -> Sl.TypD (id, tparams, deftyp) $ at
   | RelD { relid = id; reltyp; rules } ->
-      struct_rel_def rtenv tdenv at id reltyp rules
+      struct_rel_def rtenv senv at id reltyp rules
   | BuiltinDecD { defid = id; tparams; params; typ; _ } ->
       struct_builtin_dec_def at id tparams params typ
   | DecD { defid = id; tparams; params; clauses; _ } ->
-      struct_dec_def rtenv tdenv at id tparams params clauses
+      struct_dec_def rtenv senv at id tparams params clauses
 
 (* Structuring relation definitions *)
 
-and struct_rel_def (rtenv : RTEnv.t) (tdenv : TDEnv.t) (at : Location.t)
+and struct_rel_def (rtenv : RTEnv.t) (senv : SEnv.t) (at : Location.t)
     (id_rel : id) (reltyp : reltyp) (rules : rule list) : Sl.def =
   let exps_input, paths = Antiunify.antiunify_rules reltyp.it rules in
   let block_paths, else_path_opt = partition_else_paths paths in
   let block =
-    List.concat_map struct_rule_path block_paths
-    |> Optimize.optimize rtenv tdenv
+    List.concat_map struct_rule_path block_paths |> Optimize.optimize rtenv senv
   in
   let elseblock_opt =
     Option.map
-      (fun path -> struct_rule_path path |> Optimize.optimize rtenv tdenv)
+      (fun path -> struct_rule_path path |> Optimize.optimize rtenv senv)
       else_path_opt
   in
-  let block, elseblock_opt = Instrument.instrument tdenv block elseblock_opt in
+  let block, elseblock_opt = Instrument.instrument senv block elseblock_opt in
   let in_typs = Il.Mode.inputs reltyp.it in
   let exps_input =
     match rules with
@@ -191,7 +190,7 @@ and struct_builtin_dec_def (at : Location.t) (id_dec : id)
 
 (* Structuring declaration definitions *)
 
-and struct_dec_def (rtenv : RTEnv.t) (tdenv : TDEnv.t) (at : Location.t)
+and struct_dec_def (rtenv : RTEnv.t) (senv : SEnv.t) (at : Location.t)
     (id_dec : id) (tparams : tparam list) (params : param list)
     (clauses : clause list) : Sl.def =
   let args_input, paths =
@@ -202,38 +201,35 @@ and struct_dec_def (rtenv : RTEnv.t) (tdenv : TDEnv.t) (at : Location.t)
   let block_paths, else_path_opt = partition_else_paths paths in
   let block =
     List.concat_map struct_clause_path block_paths
-    |> Optimize.optimize rtenv tdenv
+    |> Optimize.optimize rtenv senv
   in
   let elseblock_opt =
     Option.map
-      (fun path -> struct_clause_path path |> Optimize.optimize rtenv tdenv)
+      (fun path -> struct_clause_path path |> Optimize.optimize rtenv senv)
       else_path_opt
   in
-  let block, elseblock_opt = Instrument.instrument tdenv block elseblock_opt in
+  let block, elseblock_opt = Instrument.instrument senv block elseblock_opt in
   Sl.DecD (id_dec, tparams, args_input, block, elseblock_opt) $ at
 
-(* Load type definitions *)
-
-let load_def (rtenv : RTEnv.t) (tdenv : TDEnv.t) (def : def) : RTEnv.t * TDEnv.t
-    =
+let load_def (rtenv : RTEnv.t) (senv : SEnv.t) (def : def) : RTEnv.t * SEnv.t =
   match def.it with
   | TypD { synid = id; tparams; deftyp } ->
-      let typdef = (tparams, deftyp) in
-      let tdenv = TDEnv.add id typdef tdenv in
-      (rtenv, tdenv)
+      let syntax = (tparams, deftyp) in
+      let senv = SEnv.add id syntax senv in
+      (rtenv, senv)
   | RelD { relid = id; reltyp; _ } ->
       let rtenv = RTEnv.add id reltyp rtenv in
-      (rtenv, tdenv)
-  | _ -> (rtenv, tdenv)
+      (rtenv, senv)
+  | _ -> (rtenv, senv)
 
-let load_spec (rtenv : RTEnv.t) (tdenv : TDEnv.t) (spec : spec) :
-    RTEnv.t * TDEnv.t =
+let load_spec (rtenv : RTEnv.t) (senv : SEnv.t) (spec : spec) : RTEnv.t * SEnv.t
+    =
   List.fold_left
-    (fun (rtenv, tdenv) def -> load_def rtenv tdenv def)
-    (rtenv, tdenv) spec
+    (fun (rtenv, senv) def -> load_def rtenv senv def)
+    (rtenv, senv) spec
 
 (* Structuring a spec *)
 
 let struct_spec (spec : spec) : Sl.spec =
-  let rtenv, tdenv = load_spec RTEnv.empty TDEnv.empty spec in
-  List.map (struct_def rtenv tdenv) spec
+  let rtenv, senv = load_spec RTEnv.empty SEnv.empty spec in
+  List.map (struct_def rtenv senv) spec

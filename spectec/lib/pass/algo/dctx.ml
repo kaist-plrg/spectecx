@@ -8,11 +8,11 @@ open Envs.Make
 (* Identifier type and dimension environment *)
 module VEnv = MakeIdMap (Typ)
 module RTEnv = Envs.RTEnv
-module TDEnv = Envs.Il.TDEnv
+module SEnv = Envs.Il.SEnv
 
-(* Relation types and type definitions of the whole spec *)
+(* Relation types and syntax definitions for the whole spec *)
 
-type env = { rtenv : RTEnv.t; tdenv : TDEnv.t }
+type env = { rtenv : RTEnv.t; senv : SEnv.t }
 
 (* Context of the algo pass for one rule or clause *)
 
@@ -31,13 +31,13 @@ let make_env (spec : Il.spec) : env =
     (fun env (def : Il.def) ->
       match def.it with
       | Il.TypD { synid; tparams; deftyp } ->
-          let tdenv = TDEnv.add synid (tparams, deftyp) env.tdenv in
-          { env with tdenv }
+          let senv = SEnv.add synid (tparams, deftyp) env.senv in
+          { env with senv }
       | Il.RelD { relid; reltyp; _ } ->
           let rtenv = RTEnv.add relid reltyp env.rtenv in
           { env with rtenv }
       | Il.DecD _ | Il.BuiltinDecD _ -> env)
-    { rtenv = RTEnv.empty; tdenv = TDEnv.empty }
+    { rtenv = RTEnv.empty; senv = SEnv.empty }
     spec
 
 let make (env : env) ~(frees : IdSet.t) : t =
@@ -58,7 +58,7 @@ let add_bounds (dctx : t) (venv : VEnv.t) : t =
 let find_reltyp (dctx : t) (id : Id.t) : Il.reltyp =
   RTEnv.find id dctx.env.rtenv
 
-let find_typdef_opt (dctx : t) (tid : TId.t) : Envs.Il.Typdef.t option =
-  TDEnv.find_opt tid dctx.env.tdenv
+let find_syntax_opt (dctx : t) (tid : TId.t) : Envs.Il.Syntax.t option =
+  SEnv.find_opt tid dctx.env.senv
 
 module Typ = Typ

@@ -42,12 +42,12 @@ let elab_iter (iter : iter) : Il.iter =
 (* Type expansion, equivalence, and subtyping *)
 
 module Types = struct
-  let rec expand_typ (tdenv : Ctx.TDEnv.t) (typ : Il.typ) : Il.typ =
+  let rec expand_typ (senv : Ctx.SEnv.t) (typ : Il.typ) : Il.typ =
     match typ.it with
     | Il.VarT { synid = tid; targs } -> (
-        let td_opt = TIdMap.find_opt tid tdenv in
-        match td_opt with
-        | Some (Typdef.Defined (tparams, deftyp)) -> (
+        let syntax_opt = TIdMap.find_opt tid senv in
+        match syntax_opt with
+        | Some (Syntax.Defined (tparams, deftyp)) -> (
             match deftyp.it with
             | Il.PlainT _ when List.length targs <> List.length tparams ->
                 Common.InternalError.disallowed typ.at
@@ -58,7 +58,7 @@ module Types = struct
             | Il.PlainT typ ->
                 let theta = List.combine tparams targs |> TIdMap.of_list in
                 let typ = Envs.Il.Typ.subst_typ theta typ in
-                expand_typ tdenv typ
+                expand_typ senv typ
             | _ -> typ)
         | Some _ -> typ
         | None ->
@@ -66,10 +66,10 @@ module Types = struct
               ("type variable " ^ tid.it ^ " is not defined"))
     | _ -> typ
 
-  let rec equiv_typ (tdenv : Ctx.TDEnv.t) (typ_a : Il.typ) (typ_b : Il.typ) :
-      bool =
-    let typ_a = expand_typ tdenv typ_a in
-    let typ_b = expand_typ tdenv typ_b in
+  let rec equiv_typ (senv : Ctx.SEnv.t) (typ_a : Il.typ) (typ_b : Il.typ) : bool
+      =
+    let typ_a = expand_typ senv typ_a in
+    let typ_b = expand_typ senv typ_b in
     match (typ_a.it, typ_b.it) with
     | Il.BoolT, Il.BoolT -> true
     | Il.NumT numtyp_a, Il.NumT numtyp_b -> Num.equiv numtyp_a numtyp_b
@@ -78,30 +78,30 @@ module Types = struct
         Il.VarT { synid = tid_b; targs = targs_b } ) ->
         tid_a.it = tid_b.it
         && List.length targs_a = List.length targs_b
-        && List.for_all2 (equiv_typ tdenv) targs_a targs_b
+        && List.for_all2 (equiv_typ senv) targs_a targs_b
     | Il.TupleT typs_a, Il.TupleT typs_b ->
         List.length typs_a = List.length typs_b
-        && List.for_all2 (equiv_typ tdenv) typs_a typs_b
+        && List.for_all2 (equiv_typ senv) typs_a typs_b
     | ( Il.IterT { typ = typ_a; iter = iter_a },
         Il.IterT { typ = typ_b; iter = iter_b } ) ->
-        equiv_typ tdenv typ_a typ_b && iter_a = iter_b
+        equiv_typ senv typ_a typ_b && iter_a = iter_b
     | _ -> false
 
-  and equiv_nottyp (tdenv : Ctx.TDEnv.t) (nottyp_a : Il.nottyp)
+  and equiv_nottyp (senv : Ctx.SEnv.t) (nottyp_a : Il.nottyp)
       (nottyp_b : Il.nottyp) : bool =
-    Il.Mixfix.eq ~eq_arg:(equiv_typ tdenv) nottyp_a.it nottyp_b.it
+    Il.Mixfix.eq ~eq_arg:(equiv_typ senv) nottyp_a.it nottyp_b.it
 
-  and equiv_param (tdenv : Ctx.TDEnv.t) (param_a : Il.param)
-      (param_b : Il.param) : bool =
+  and equiv_param (senv : Ctx.SEnv.t) (param_a : Il.param) (param_b : Il.param)
+      : bool =
     match (param_a.it, param_b.it) with
-    | Il.ExpP typ_a, Il.ExpP typ_b -> equiv_typ tdenv typ_a typ_b
+    | Il.ExpP typ_a, Il.ExpP typ_b -> equiv_typ senv typ_a typ_b
     | ( Il.DefP { tparams = tparams_a; params = params_a; typ = typ_a; _ },
         Il.DefP { tparams = tparams_b; params = params_b; typ = typ_b; _ } ) ->
-        equiv_functyp tdenv param_a.at tparams_a params_a typ_a tparams_b
+        equiv_functyp senv param_a.at tparams_a params_a typ_a tparams_b
           params_b typ_b
     | _ -> false
 
-  and equiv_functyp (tdenv : Ctx.TDEnv.t) (at : Location.t)
+  and equiv_functyp (senv : Ctx.SEnv.t) (at : Location.t)
       (tparams_a : Il.tparam list) (params_a : Il.param list) (typ_a : Il.typ)
       (tparams_b : Il.tparam list) (params_b : Il.param list) (typ_b : Il.typ) :
       bool =
@@ -109,20 +109,20 @@ module Types = struct
       (List.length tparams_a = List.length tparams_b)
       Location.Unknown "type parameters do not match"
       ~code:Functyp_tparam_arity_mismatch;
-    let tdenv, theta_a, theta_b =
+    let senv, theta_a, theta_b =
       List.fold_left2
-        (fun (tdenv, theta_a, theta_b) tparam_a tparam_b ->
+        (fun (senv, theta_a, theta_b) tparam_a tparam_b ->
           let tid_fresh =
             "__FRESH" ^ string_of_int (fresh ()) $ Location.Unknown
           in
           let typ_fresh =
             Il.VarT { synid = tid_fresh; targs = [] } $ Location.Unknown
           in
-          let tdenv = TDEnv.add tid_fresh Typdef.Param tdenv in
+          let senv = SEnv.add tid_fresh Syntax.Param senv in
           let theta_a = TIdMap.add tparam_a typ_fresh theta_a in
           let theta_b = TIdMap.add tparam_b typ_fresh theta_b in
-          (tdenv, theta_a, theta_b))
-        (tdenv, TIdMap.empty, TIdMap.empty)
+          (senv, theta_a, theta_b))
+        (senv, TIdMap.empty, TIdMap.empty)
         tparams_a tparams_b
     in
     check
@@ -132,25 +132,24 @@ module Types = struct
     let params_b = Envs.Il.Typ.subst_params theta_b params_b in
     let typ_a = Envs.Il.Typ.subst_typ theta_a typ_a in
     let typ_b = Envs.Il.Typ.subst_typ theta_b typ_b in
-    List.for_all2 (equiv_param tdenv) params_a params_b
-    && equiv_typ tdenv typ_a typ_b
+    List.for_all2 (equiv_param senv) params_a params_b
+    && equiv_typ senv typ_a typ_b
 
-  let rec sub_typ (tdenv : Ctx.TDEnv.t) (typ_a : Il.typ) (typ_b : Il.typ) : bool
-      =
-    equiv_typ tdenv typ_a typ_b || sub_typ' tdenv typ_a typ_b
+  let rec sub_typ (senv : Ctx.SEnv.t) (typ_a : Il.typ) (typ_b : Il.typ) : bool =
+    equiv_typ senv typ_a typ_b || sub_typ' senv typ_a typ_b
 
-  and sub_typ' (tdenv : Ctx.TDEnv.t) (typ_a : Il.typ) (typ_b : Il.typ) : bool =
-    let typ_a = expand_typ tdenv typ_a in
-    let typ_b = expand_typ tdenv typ_b in
+  and sub_typ' (senv : Ctx.SEnv.t) (typ_a : Il.typ) (typ_b : Il.typ) : bool =
+    let typ_a = expand_typ senv typ_a in
+    let typ_b = expand_typ senv typ_b in
     match (typ_a.it, typ_b.it) with
     | Il.NumT numtyp_a, Il.NumT numtyp_b -> Num.sub numtyp_a numtyp_b
     | ( Il.VarT { synid = tid_a; targs = targs_a },
         Il.VarT { synid = tid_b; targs = targs_b } ) -> (
-        let td_opt_a = TDEnv.find_opt tid_a tdenv in
-        let td_opt_b = TDEnv.find_opt tid_b tdenv in
-        match (td_opt_a, td_opt_b) with
-        | ( Some (Typdef.Defined (tparams_a, deftyp_a)),
-            Some (Typdef.Defined (tparams_b, deftyp_b)) ) -> (
+        let syntax_opt_a = SEnv.find_opt tid_a senv in
+        let syntax_opt_b = SEnv.find_opt tid_b senv in
+        match (syntax_opt_a, syntax_opt_b) with
+        | ( Some (Syntax.Defined (tparams_a, deftyp_a)),
+            Some (Syntax.Defined (tparams_b, deftyp_b)) ) -> (
             match (deftyp_a.it, deftyp_b.it) with
             | Il.VariantT typcases_a, Il.VariantT typcases_b ->
                 let theta_a =
@@ -171,22 +170,22 @@ module Types = struct
                 in
                 List.for_all
                   (fun nottyp_a ->
-                    List.exists (equiv_nottyp tdenv nottyp_a) nottyps_b)
+                    List.exists (equiv_nottyp senv nottyp_a) nottyps_b)
                   nottyps_a
             | _, _ -> false)
         | _ -> false)
     | Il.TupleT typs_a, Il.TupleT typs_b ->
         List.length typs_a = List.length typs_b
-        && List.for_all2 (sub_typ tdenv) typs_a typs_b
+        && List.for_all2 (sub_typ senv) typs_a typs_b
     | ( Il.IterT { typ = typ_a; iter = iter_a },
         Il.IterT { typ = typ_b; iter = iter_b } )
       when iter_a = iter_b ->
-        sub_typ tdenv typ_a typ_b
+        sub_typ senv typ_a typ_b
     | ( Il.IterT { typ = typ_a; iter = Il.Opt },
         Il.IterT { typ = typ_b; iter = Il.List } ) ->
-        sub_typ tdenv typ_a typ_b
-    | _, Il.IterT { typ = typ_b; iter = Il.Opt } -> sub_typ tdenv typ_a typ_b
-    | _, Il.IterT { typ = typ_b; iter = Il.List } -> sub_typ tdenv typ_a typ_b
+        sub_typ senv typ_a typ_b
+    | _, Il.IterT { typ = typ_b; iter = Il.Opt } -> sub_typ senv typ_a typ_b
+    | _, Il.IterT { typ = typ_b; iter = Il.List } -> sub_typ senv typ_a typ_b
     | _ -> false
 end
 
@@ -195,35 +194,35 @@ end
 (* Type destructuring *)
 
 let as_text_typ (ctx : Ctx.t) (typ_il : Il.typ) : unit attempt =
-  let typ_il = Types.expand_typ ctx.tdenv typ_il in
+  let typ_il = Types.expand_typ ctx.senv typ_il in
   match typ_il.it with
   | TextT -> Ok ()
   | _ -> fail typ_il.at "cannot destruct type as text"
 
 let as_iter_typ (ctx : Ctx.t) (typ_il : Il.typ) : (Il.typ * Il.iter) attempt =
-  let typ_il = Types.expand_typ ctx.tdenv typ_il in
+  let typ_il = Types.expand_typ ctx.senv typ_il in
   match typ_il.it with
   | IterT { typ = typ_il; iter } -> Ok (typ_il, iter)
   | _ -> fail typ_il.at "cannot destruct type as an iteration"
 
 let as_tuple_typ (ctx : Ctx.t) (typ_il : Il.typ) : Il.typ list attempt =
-  let typ_il = Types.expand_typ ctx.tdenv typ_il in
+  let typ_il = Types.expand_typ ctx.senv typ_il in
   match typ_il.it with
   | TupleT typs_il -> Ok typs_il
   | _ -> fail typ_il.at "cannot destruct type as a tuple"
 
 let as_list_typ (ctx : Ctx.t) (typ_il : Il.typ) : Il.typ attempt =
-  let typ_il = Types.expand_typ ctx.tdenv typ_il in
+  let typ_il = Types.expand_typ ctx.senv typ_il in
   match typ_il.it with
   | IterT { typ = typ_il; iter = List } -> Ok typ_il
   | _ -> fail typ_il.at "cannot destruct type as a list"
 
 let as_struct_typ (ctx : Ctx.t) (typ_il : Il.typ) : Il.typfield list attempt =
-  let typ_il = Types.expand_typ ctx.tdenv typ_il in
+  let typ_il = Types.expand_typ ctx.senv typ_il in
   match typ_il.it with
   | VarT { synid = tid; _ } -> (
-      let td_opt = Ctx.find_typdef_opt ctx tid in
-      match td_opt with
+      let syntax_opt = Ctx.find_syntax_opt ctx tid in
+      match syntax_opt with
       | Some (Defined (_, deftyp)) -> (
           match deftyp.it with
           | StructT typfields_il -> Ok typfields_il
@@ -243,8 +242,8 @@ and elab_plaintyp' (ctx : Ctx.t) (plaintyp : plaintyp') : Il.typ' =
   | NumT numtyp -> Il.NumT numtyp
   | TextT -> Il.TextT
   | VarT (tid, targs) ->
-      let td = Ctx.find_typdef ctx tid in
-      let tparams = Typdef.get_tparams td in
+      let syntax = Ctx.find_syntax ctx tid in
+      let tparams = Syntax.get_tparams syntax in
       check
         (List.length tparams = List.length targs)
         tid.at "type arguments do not match" ~code:Vart_targ_arity_mismatch;
@@ -299,11 +298,11 @@ and elab_nottyp (ctx : Ctx.t) (typ : typ) : Il.nottyp =
 (* Elaboration of definition types *)
 
 and elab_deftyp (ctx : Ctx.t) (id : id) (tparams : tparam list)
-    (deftyp : deftyp) : Typdef.t * Il.deftyp =
+    (deftyp : deftyp) : Syntax.t * Il.deftyp =
   match deftyp.it with
   | OpaqueTD ->
       let deftyp_il = Il.OpaqueT $ deftyp.at in
-      (Typdef.Defined ([], deftyp_il), deftyp_il)
+      (Syntax.Defined ([], deftyp_il), deftyp_il)
   | PlainTD plaintyp -> elab_deftyp_plain ctx tparams plaintyp
   | StructTD typfields -> elab_deftyp_struct ctx deftyp.at tparams typfields
   | VariantTD typcases -> elab_deftyp_variant ctx deftyp.at id tparams typcases
@@ -311,11 +310,11 @@ and elab_deftyp (ctx : Ctx.t) (id : id) (tparams : tparam list)
 (* Elaboration of plain type definitions *)
 
 and elab_deftyp_plain (ctx : Ctx.t) (tparams : tparam list)
-    (plaintyp : plaintyp) : Typdef.t * Il.deftyp =
+    (plaintyp : plaintyp) : Syntax.t * Il.deftyp =
   let typ_il = elab_plaintyp ctx plaintyp in
   let deftyp_il = Il.PlainT typ_il $ plaintyp.at in
-  let td = Typdef.Defined (tparams, deftyp_il) in
-  (td, deftyp_il)
+  let syntax = Syntax.Defined (tparams, deftyp_il) in
+  (syntax, deftyp_il)
 
 (* Elaboration of struct type definitions *)
 
@@ -325,20 +324,20 @@ and elab_typfield (ctx : Ctx.t) (typfield : typfield) : Il.typfield =
   (atom, typ_il)
 
 and elab_deftyp_struct (ctx : Ctx.t) (at : Location.t) (tparams : tparam list)
-    (typfields : typfield list) : Typdef.t * Il.deftyp =
+    (typfields : typfield list) : Syntax.t * Il.deftyp =
   let typfields_il = List.map (elab_typfield ctx) typfields in
   let deftyp_il = Il.StructT typfields_il $ at in
-  let td = Typdef.Defined (tparams, deftyp_il) in
-  (td, deftyp_il)
+  let syntax = Syntax.Defined (tparams, deftyp_il) in
+  (syntax, deftyp_il)
 
 (* Elaboration of variant type definitions *)
 
 and elab_typcase_plain (ctx : Ctx.t) (typ_il : Il.typ) : Il.typcase list =
-  let typ_il = Types.expand_typ ctx.tdenv typ_il in
+  let typ_il = Types.expand_typ ctx.senv typ_il in
   match typ_il.it with
   | Il.VarT { synid = tid; targs } -> (
-      match Ctx.find_typdef ctx tid with
-      | Typdef.Defined (tparams, deftyp) -> (
+      match Ctx.find_syntax ctx tid with
+      | Syntax.Defined (tparams, deftyp) -> (
           match deftyp.it with
           | Il.PlainT typ_il ->
               let theta = List.combine tparams targs |> TIdMap.of_list in
@@ -349,7 +348,7 @@ and elab_typcase_plain (ctx : Ctx.t) (typ_il : Il.typ) : Il.typcase list =
               List.map (Envs.Il.Typ.subst_typcase theta) typcases_il
           | _ ->
               let related =
-                match Ctx.typdef_prior_at ctx tid with
+                match Ctx.syntax_prior_at ctx tid with
                 | Some prior_at -> [ (prior_at, "originally defined here") ]
                 | None -> []
               in
@@ -361,7 +360,7 @@ and elab_typcase_plain (ctx : Ctx.t) (typ_il : Il.typ) : Il.typcase list =
                    variant, so it has no cases to contribute.")
       | _ ->
           let related =
-            match Ctx.typdef_prior_at ctx tid with
+            match Ctx.syntax_prior_at ctx tid with
             | Some prior_at -> [ (prior_at, "originally declared here") ]
             | None -> []
           in
@@ -392,7 +391,7 @@ and elab_typcase (ctx : Ctx.t) (typorigin_il : Il.typorigin) (typcase : typcase)
       [ { Il.notation = nottyp_il; origin = typorigin_il; hints = hints_il } ]
 
 and elab_deftyp_variant (ctx : Ctx.t) (at : Location.t) (id : id)
-    (tparams : tparam list) (typcases : typcase list) : Typdef.t * Il.deftyp =
+    (tparams : tparam list) (typcases : typcase list) : Syntax.t * Il.deftyp =
   let typorigin_il =
     let targs_il =
       List.map
@@ -439,8 +438,8 @@ and elab_deftyp_variant (ctx : Ctx.t) (at : Location.t) (id : id)
        shown here share the same sequence, so the elaborator cannot pick \
        between them.";
   let deftyp_il = Il.VariantT typcases_il $ at in
-  let td = Typdef.Defined (tparams, deftyp_il) in
-  (td, deftyp_il)
+  let syntax = Syntax.Defined (tparams, deftyp_il) in
+  (syntax, deftyp_il)
 
 (* Expressions *)
 
@@ -730,7 +729,7 @@ and infer_list_exp (ctx : Ctx.t) (at : Location.t) (exps : exp list) :
   | exp :: exps ->
       let* ctx, exp_il, typ_il = infer_exp ctx exp in
       let* ctx, exps_il, typs_il = infer_exps ctx exps in
-      if List.for_all (Types.equiv_typ ctx.tdenv typ_il) typs_il then
+      if List.for_all (Types.equiv_typ ctx.senv typ_il) typs_il then
         let exp_il = Il.Expression.ListE (exp_il :: exps_il) in
         Ok (ctx, exp_il, Il.IterT { typ = typ_il; iter = Il.List })
       else fail_infer at "list with heterogeneous elements"
@@ -919,8 +918,8 @@ and infer_sub_exp (ctx : Ctx.t) (exp : exp) (plaintyp : plaintyp) :
   let* ctx, exp_il, typ_il_exp = infer_exp ctx exp in
   let typ_il = elab_plaintyp ctx plaintyp in
   if
-    Types.sub_typ ctx.tdenv typ_il_exp typ_il
-    || Types.sub_typ ctx.tdenv typ_il typ_il_exp
+    Types.sub_typ ctx.senv typ_il_exp typ_il
+    || Types.sub_typ ctx.senv typ_il typ_il_exp
   then
     let exp_il = Il.Expression.SubE (exp_il, typ_il) in
     Ok (ctx, exp_il, Il.BoolT)
@@ -1012,8 +1011,8 @@ and fail_cast (at : Location.t) (typ_il_a : Il.typ) (typ_il_b : Il.typ) =
 
 and cast_exp (ctx : Ctx.t) (typ_il_expect : Il.typ) (typ_il_infer : Il.typ)
     (exp_il : Il.exp) : Il.exp attempt =
-  if Types.equiv_typ ctx.tdenv typ_il_expect typ_il_infer then Ok exp_il
-  else if Types.sub_typ ctx.tdenv typ_il_infer typ_il_expect then
+  if Types.equiv_typ ctx.senv typ_il_expect typ_il_infer then Ok exp_il
+  else if Types.sub_typ ctx.senv typ_il_infer typ_il_expect then
     let exp_il =
       Il.Expression.UpCastE (typ_il_expect, exp_il)
       $$ (exp_il.at, { Il.Expression.typ = typ_il_expect.it; annot = () })
@@ -1034,8 +1033,8 @@ and elab_exp_normal (ctx : Ctx.t) (typ_il_expect : Il.typ) (exp : exp) :
       | _ -> (
           match typ_il_expect.it with
           | VarT { synid = tid; targs = targs_il } -> (
-              let td = Ctx.find_typdef ctx tid in
-              match td with
+              let syntax = Ctx.find_syntax ctx tid in
+              match syntax with
               | Param | Defining _ -> elab_exp_plain ctx typ_il_expect exp
               | Defined (tparams, deftyp_il) -> (
                   let theta = List.combine tparams targs_il |> TIdMap.of_list in
@@ -1518,7 +1517,7 @@ and elab_arg ?(as_def = false) (ctx : Ctx.t) (param_il : Il.param) (arg : arg) :
         | None -> []
       in
       check
-        (Types.equiv_functyp ctx.tdenv arg.at tparams_il_p params_il_p typ_il_p
+        (Types.equiv_functyp ctx.senv arg.at tparams_il_p params_il_p typ_il_p
            tparams_il_a params_il_a typ_il_a)
         arg.at
         (Format.asprintf
@@ -1584,12 +1583,12 @@ and elab_var_prem (ctx : Ctx.t) (id : id) (plaintyp : plaintyp) : Ctx.t =
   check (valid_tid id) id.at "invalid meta-variable identifier"
     ~code:Var_prem_invalid_metavar;
   let related =
-    match Ctx.typdef_prior_at ctx id with
+    match Ctx.syntax_prior_at ctx id with
     | Some prior_at -> [ (prior_at, "originally defined here") ]
     | None -> []
   in
   check
-    (not (Ctx.bound_typdef ctx id))
+    (not (Ctx.bound_syntax ctx id))
     id.at "type already defined" ~code:Var_prem_type_redefined ~related;
   let typ_il = elab_plaintyp ctx plaintyp in
   Ctx.add_metavar ctx id typ_il
@@ -1701,8 +1700,8 @@ and elab_syn_def (ctx : Ctx.t) (syns : (id * tparam list) list) : Ctx.t =
       (* Invariant: EL parser only emits synid with empty tparams. *)
       assert (tparams = []);
       check (valid_tid id) id.at "invalid type identifier" ~code:Syn_invalid_id;
-      let td = Typdef.Defining tparams in
-      let ctx = Ctx.add_typdef ctx id td in
+      let syntax = Syntax.Defining tparams in
+      let ctx = Ctx.add_syntax ctx id syntax in
       if tparams = [] then
         let typ_il = Il.VarT { synid = id; targs = [] } $ id.at in
         Ctx.add_metavar ctx id typ_il
@@ -1713,12 +1712,12 @@ and elab_syn_def (ctx : Ctx.t) (syns : (id * tparam list) list) : Ctx.t =
 
 and elab_typ_def (ctx : Ctx.t) (id : id) (tparams : tparam list)
     (deftyp : deftyp) : Ctx.t * Il.def =
-  let td_opt = Ctx.find_typdef_opt ctx id in
+  let syntax_opt = Ctx.find_syntax_opt ctx id in
   let ctx =
-    match td_opt with
-    | Some (Typdef.Defining tparams_defining) ->
+    match syntax_opt with
+    | Some (Syntax.Defining tparams_defining) ->
         let related =
-          match Ctx.typdef_prior_at ctx id with
+          match Ctx.syntax_prior_at ctx id with
           | Some prior_at -> [ (prior_at, "forward-declared here") ]
           | None -> []
         in
@@ -1737,15 +1736,15 @@ and elab_typ_def (ctx : Ctx.t) (id : id) (tparams : tparam list)
     | None ->
         check (valid_tid id) id.at "invalid type identifier"
           ~code:Typ_invalid_id;
-        let td = Typdef.Defining tparams in
-        let ctx = Ctx.add_typdef ctx id td in
+        let syntax = Syntax.Defining tparams in
+        let ctx = Ctx.add_syntax ctx id syntax in
         if tparams = [] then
           let typ_il = Il.VarT { synid = id; targs = [] } $ id.at in
           Ctx.add_metavar ctx id typ_il
         else ctx
     | _ ->
         let related =
-          match Ctx.typdef_prior_at ctx id with
+          match Ctx.syntax_prior_at ctx id with
           | Some prior_at -> [ (prior_at, "originally defined here") ]
           | None -> []
         in
@@ -1756,18 +1755,18 @@ and elab_typ_def (ctx : Ctx.t) (id : id) (tparams : tparam list)
     (List.for_all valid_tid tparams)
     id.at "invalid type parameter" ~code:Typ_invalid_tparam;
   let ctx_local = Ctx.add_tparams ctx tparams in
-  let td, deftyp_il = elab_deftyp ctx_local id tparams deftyp in
+  let syntax, deftyp_il = elab_deftyp ctx_local id tparams deftyp in
   let def_il =
     Il.TypD { synid = id; tparams; deftyp = deftyp_il } $ deftyp.at
   in
-  let ctx = Ctx.update_typdef ctx id td in
+  let ctx = Ctx.update_syntax ctx id syntax in
   (ctx, def_il)
 
 (* Elaboration of variables *)
 
 and elab_var_def (ctx : Ctx.t) (id : id) (plaintyp : plaintyp) : Ctx.t =
   check (valid_tid id) id.at "invalid meta-variable identifier";
-  check (not (Ctx.bound_typdef ctx id)) id.at "type already defined";
+  check (not (Ctx.bound_syntax ctx id)) id.at "type already defined";
   let typ_il = elab_plaintyp ctx plaintyp in
   Ctx.add_metavar ctx id typ_il
 

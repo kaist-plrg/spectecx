@@ -1,7 +1,7 @@
 open Envs_make
 module Typ = Typ
-module Typdef = Typdef
+module Syntax = Syntax
 
-(* Type definition environment *)
+(* Syntax definition environment *)
 
-module TDEnv = MakeTIdMap (Typdef)
+module SEnv = MakeTIdMap (Syntax)

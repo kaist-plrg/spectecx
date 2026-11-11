@@ -1,7 +1,7 @@
 open Common.Domain
 module Var = Envs.Interp.Var
 module Value = Lang.Il.Value
-module Typdef = Envs.Il.Typdef
+module Syntax = Envs.Il.Syntax
 
 exception Error of Common.Location.t * string
 
@@ -22,7 +22,7 @@ end) : sig
     type t
 
     type definition =
-      | Syntax of TId.t * Typdef.t
+      | Syntax of TId.t * Syntax.t
       | Function of FId.t * Func.t
       | Relation of RId.t * Rel.t
 
@@ -41,10 +41,11 @@ end) : sig
   val find_value_opt : t -> var:Var.t -> Value.t option
   val find_value_exn : t -> var:Var.t -> Value.t
 
-  (** Type and function lookups prefer local bindings to global definitions. *)
-  val find_typdef_opt : t -> id:TId.t -> Typdef.t option
+  (** Syntax-definition and function lookups prefer local bindings to global
+      definitions. *)
+  val find_syntax_opt : t -> id:TId.t -> Syntax.t option
 
-  val find_typdef_exn : t -> id:TId.t -> Typdef.t
+  val find_syntax_exn : t -> id:TId.t -> Syntax.t
   val find_func_opt : t -> id:FId.t -> Func.t option
   val find_func_exn : t -> id:FId.t -> Func.t
   val find_rel_opt : t -> id:RId.t -> Rel.t option
@@ -53,12 +54,13 @@ end) : sig
   val has_local_func : t -> id:FId.t -> bool
 
   (** Checked insertion rejects existing bindings and repeated incoming keys.
-      Type and function checks also include visible global definitions. *)
+      Syntax-definition and function checks also include visible global
+      definitions. *)
   val add_value_exn : t -> var:Var.t -> value:Value.t -> t
 
   val add_values_exn : t -> bindings:(Var.t * Value.t) list -> t
-  val add_typdef_exn : t -> id:TId.t -> typdef:Typdef.t -> t
-  val add_typdefs_exn : t -> bindings:(TId.t * Typdef.t) list -> t
+  val add_syntax_exn : t -> id:TId.t -> syntax:Syntax.t -> t
+  val add_syntaxes_exn : t -> bindings:(TId.t * Syntax.t) list -> t
   val add_func_exn : t -> id:FId.t -> func:Func.t -> t
 
   (** Insert or replace a value binding. *)

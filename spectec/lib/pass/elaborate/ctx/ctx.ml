@@ -26,8 +26,8 @@ end
 
 module MEnv = MakeIdMap (MetaTyp)
 
-(* Type definition environment *)
-module TDEnv = MakeTIdMap (Typdef)
+(* Syntax definition environment *)
+module SEnv = MakeTIdMap (Syntax)
 
 (* Relation environment *)
 module REnv = MakeRIdMap (Rel)
@@ -50,8 +50,8 @@ let fresh () =
 type t = {
   (* Set of free ids, for unique id insertion *)
   frees : IdSet.t;
-  (* Map from syntax ids to type definitions *)
-  tdenv : TDEnv.t;
+  (* Map from syntax ids to syntax definitions *)
+  senv : SEnv.t;
   (* Map from meta-type ids to meta-types *)
   menv : MEnv.t;
   (* Map from relation ids to relations *)
@@ -65,7 +65,7 @@ type t = {
 let empty : t =
   {
     frees = IdSet.empty;
-    tdenv = TDEnv.empty;
+    senv = SEnv.empty;
     menv = MEnv.empty;
     renv = REnv.empty;
     fenv = FEnv.empty;
@@ -91,8 +91,8 @@ let metavar_prior_at (ctx : t) (tid : TId.t) : Location.t option =
   | Some (k, _) when Id.compare k tid = 0 -> Some k.at
   | _ -> None
 
-let typdef_prior_at (ctx : t) (tid : TId.t) : Location.t option =
-  match TDEnv.find_first_opt (fun k -> Id.compare k tid >= 0) ctx.tdenv with
+let syntax_prior_at (ctx : t) (tid : TId.t) : Location.t option =
+  match SEnv.find_first_opt (fun k -> Id.compare k tid >= 0) ctx.senv with
   | Some (k, _) when Id.compare k tid = 0 -> Some k.at
   | _ -> None
 
@@ -106,18 +106,18 @@ let dec_prior_at (ctx : t) (fid : FId.t) : Location.t option =
   | Some (k, _) when Id.compare k fid = 0 -> Some k.at
   | _ -> None
 
-(* Finders for type definitions *)
+(* Finders for syntax definitions *)
 
-let find_typdef_opt (ctx : t) (tid : TId.t) : Typdef.t option =
-  TDEnv.find_opt tid ctx.tdenv
+let find_syntax_opt (ctx : t) (tid : TId.t) : Syntax.t option =
+  SEnv.find_opt tid ctx.senv
 
-let find_typdef (ctx : t) (tid : TId.t) : Typdef.t =
-  match find_typdef_opt ctx tid with
-  | Some td -> td
+let find_syntax (ctx : t) (tid : TId.t) : Syntax.t =
+  match find_syntax_opt ctx tid with
+  | Some syntax -> syntax
   | None -> error_undef tid.at "type" tid.it ~code:Ctx_type_undefined
 
-let bound_typdef (ctx : t) (tid : TId.t) : bool =
-  find_typdef_opt ctx tid |> Option.is_some
+let bound_syntax (ctx : t) (tid : TId.t) : bool =
+  find_syntax_opt ctx tid |> Option.is_some
 
 (* Finders for meta-variables *)
 
@@ -208,19 +208,19 @@ let add_metavar (ctx : t) (tid : TId.t) (typ : Il.typ) : t =
       let menv = MEnv.add tid typ ctx.menv in
       { ctx with menv }
 
-(* Adders for type definitions *)
+(* Adders for syntax definitions *)
 
-let add_typdef (ctx : t) (tid : TId.t) (td : Typdef.t) : t =
-  match typdef_prior_at ctx tid with
+let add_syntax (ctx : t) (tid : TId.t) (syntax : Syntax.t) : t =
+  match syntax_prior_at ctx tid with
   | Some prior_at ->
       error_dup tid.at "type" tid.it ~code:Ctx_type_redefined
         ~related:[ (prior_at, "originally defined here") ]
   | None ->
-      let tdenv = TDEnv.add tid td ctx.tdenv in
-      { ctx with tdenv }
+      let senv = SEnv.add tid syntax ctx.senv in
+      { ctx with senv }
 
 let add_tparam (ctx : t) (tparam : tparam) : t =
-  let ctx = add_typdef ctx tparam Typdef.Param in
+  let ctx = add_syntax ctx tparam Syntax.Param in
   add_metavar ctx tparam (Il.VarT { synid = tparam; targs = [] } $ tparam.at)
 
 let add_tparams (ctx : t) (tparams : tparam list) : t =
@@ -282,14 +282,14 @@ let add_defined_clause (ctx : t) (fid : FId.t) (clause : Il.clause) : t =
 
 (* Updaters *)
 
-let update_typdef (ctx : t) (tid : TId.t) (td : Typdef.t) : t =
-  if not (bound_typdef ctx tid) then
-    (* unreachable: elab_typ_def binds the tid before reaching update_typdef. *)
+let update_syntax (ctx : t) (tid : TId.t) (syntax : Syntax.t) : t =
+  if not (bound_syntax ctx tid) then
+    (* elab_typ_def binds tid before calling update_syntax. *)
     assert false;
-  let tdenv = TDEnv.add tid td ctx.tdenv in
-  { ctx with tdenv }
+  let senv = SEnv.add tid syntax ctx.senv in
+  { ctx with senv }
 
-module Typdef = Typdef
+module Syntax = Syntax
 module Func = Func
 module Rel = Rel
 module Mixop = Mixop

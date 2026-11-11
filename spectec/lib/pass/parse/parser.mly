@@ -310,8 +310,8 @@ deftyp_ :
       | [ (PlainT plaintyp, hints) ] ->
           if hints <> [] then
             error ~code:Hint_on_plain_bar_single
-              ~detail:"A plain typdef aliases an existing type, like `syntax x = nat`. It inherits hints from the aliased type and cannot carry hints of its own."
-              (at $sloc) "hints not allowed in plain type definition";
+              ~detail:"A plain syntax definition aliases an existing type, like `syntax x = nat`. It inherits hints from the aliased type and cannot carry hints of its own."
+              (at $sloc) "hints not allowed in plain syntax definition";
           PlainTD plaintyp
       | _ ->
           List.iter
@@ -319,8 +319,8 @@ deftyp_ :
               match typ with
               | PlainT _ when hints <> [] ->
                   error ~code:Hint_on_plain_bar_multi
-                    ~detail:"A plain typdef aliases an existing type, like `syntax x = nat`. It inherits hints from the aliased type and cannot carry hints of its own."
-                    (at $sloc) "hints not allowed in plain type definition"
+                    ~detail:"A plain syntax definition aliases an existing type, like `syntax x = nat`. It inherits hints from the aliased type and cannot carry hints of its own."
+                    (at $sloc) "hints not allowed in plain syntax definition"
               | _ -> ())
             $2;
           VariantTD $2
@@ -332,8 +332,8 @@ deftyp_ :
       | [ (PlainT plaintyp, hints) ] ->
           if hints <> [] then
             error ~code:Hint_on_plain_no_bar_single
-              ~detail:"A plain typdef aliases an existing type, like `syntax x = nat`. It inherits hints from the aliased type and cannot carry hints of its own."
-              (at $sloc) "hints not allowed in plain type definition";
+              ~detail:"A plain syntax definition aliases an existing type, like `syntax x = nat`. It inherits hints from the aliased type and cannot carry hints of its own."
+              (at $sloc) "hints not allowed in plain syntax definition";
           PlainTD plaintyp
       | _ ->
           List.iter
@@ -341,8 +341,8 @@ deftyp_ :
               match typ with
               | PlainT _ when hints <> [] ->
                   error ~code:Hint_on_plain_no_bar_multi
-                    ~detail:"A plain typdef aliases an existing type, like `syntax x = nat`. It inherits hints from the aliased type and cannot carry hints of its own."
-                    (at $sloc) "hints not allowed in plain type definition"
+                    ~detail:"A plain syntax definition aliases an existing type, like `syntax x = nat`. It inherits hints from the aliased type and cannot carry hints of its own."
+                    (at $sloc) "hints not allowed in plain syntax definition"
               | _ -> ())
             $1;
           VariantTD $1

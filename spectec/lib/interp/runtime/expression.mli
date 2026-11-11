@@ -10,7 +10,7 @@ module type Context = sig
 
   val find_value_exn : t -> var:Envs.Interp.Var.t -> Lang.Il.value
   val opaque_types : t -> Opaque_types.t
-  val find_typdef_exn : t -> id:Common.Domain.TId.t -> Envs.Il.Typdef.t
+  val find_syntax_exn : t -> id:Common.Domain.TId.t -> Envs.Il.Syntax.t
   val find_func_exn : t -> id:Common.Domain.FId.t -> Func.t
   val add_func_exn : t -> id:Common.Domain.FId.t -> func:Func.t -> t
   val set_value : t -> var:Envs.Interp.Var.t -> value:Lang.Il.value -> t

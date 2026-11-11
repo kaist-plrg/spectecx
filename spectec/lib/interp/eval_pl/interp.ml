@@ -359,7 +359,7 @@ and invoke_func_values (ctx : Ctx.t) (id : id) (targs : targ list)
     in
     (match
        Builtins.check_result ~opaque_types:(Ctx.opaque_types ctx)
-         ~find_typdef_opt:(fun id -> Ctx.find_typdef_opt ctx ~id)
+         ~find_syntax_opt:(fun id -> Ctx.find_syntax_opt ctx ~id)
          ~signature ~targs value_output
      with
     | Ok () -> ()
@@ -375,8 +375,8 @@ and invoke_func_values (ctx : Ctx.t) (id : id) (targs : targ list)
     let ctx_local =
       List.fold_left2
         (fun ctx_local tparam targ ->
-          Ctx.add_typdef_exn ctx_local ~id:tparam
-            ~typdef:([], Il.PlainT targ $ targ.at))
+          Ctx.add_syntax_exn ctx_local ~id:tparam
+            ~syntax:([], Il.PlainT targ $ targ.at))
         ctx_local tparams targs
     in
     let attempt_clauses () =

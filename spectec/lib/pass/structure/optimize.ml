@@ -6,7 +6,7 @@ open Lang.Xl
 open Il.Expression
 open Ol.Ast
 module RTEnv = Envs.RTEnv
-module TDEnv = Envs.Il.TDEnv
+module SEnv = Envs.Il.SEnv
 
 (* [1] Remove redundant, trivial let aliases from the code,
 
@@ -528,12 +528,12 @@ let guard_as_exp (exp_target : exp) (guard : guard) : exp =
 
 (* Conversion from type to its variants *)
 
-let rec typ_as_variant (tdenv : TDEnv.t) (typ : typ) : mixop list option =
+let rec typ_as_variant (senv : SEnv.t) (typ : typ) : mixop list option =
   match typ.it with
   | VarT { synid = tid; _ } -> (
-      let _, deftyp = TDEnv.find tid tdenv in
+      let _, deftyp = SEnv.find tid senv in
       match deftyp.it with
-      | PlainT typ -> typ_as_variant tdenv typ
+      | PlainT typ -> typ_as_variant senv typ
       | VariantT typcases ->
           let mixops =
             typcases
@@ -568,11 +568,11 @@ let rec distinct_exp_literal (exp_a : exp) (exp_b : exp) : bool =
   | ListE _, ListE _ -> true
   | _ -> false
 
-let overlap_typ (tdenv : TDEnv.t) (exp : exp) (typ_a : typ) (typ_b : typ) :
+let overlap_typ (senv : SEnv.t) (exp : exp) (typ_a : typ) (typ_b : typ) :
     overlap =
   let guard_a = SubG typ_a in
   let guard_b = SubG typ_b in
-  match (typ_as_variant tdenv typ_a, typ_as_variant tdenv typ_b) with
+  match (typ_as_variant senv typ_a, typ_as_variant senv typ_b) with
   | Some mixops_a, Some mixops_b ->
       let module Set = Set.Make (struct
         type t = Il.Mixfix.mixop
@@ -587,7 +587,7 @@ let overlap_typ (tdenv : TDEnv.t) (exp : exp) (typ_a : typ) (typ_b : typ) :
       else Fuzzy
   | _ -> Fuzzy
 
-let rec overlap_exp (tdenv : TDEnv.t) (exp_a : exp) (exp_b : exp) : overlap =
+let rec overlap_exp (senv : SEnv.t) (exp_a : exp) (exp_b : exp) : overlap =
   let overlap_exp_unequal () : overlap =
     match (exp_a.it, exp_b.it) with
     (* Negation *)
@@ -635,7 +635,7 @@ let rec overlap_exp (tdenv : TDEnv.t) (exp_a : exp) (exp_b : exp) : overlap =
             CmpG (`NeOp, optyp_b, exp_b_l) )
     (* Subtyping *)
     | SubE (exp_a, typ_a), SubE (exp_b, typ_b) when Sl.Eq.eq_exp exp_a exp_b ->
-        overlap_typ tdenv exp_a typ_a typ_b
+        overlap_typ senv exp_a typ_a typ_b
     (* Match on patterns *)
     | MatchE (exp_a, pattern_a), MatchE (exp_b, pattern_b)
       when Sl.Eq.eq_exp exp_a exp_b ->
@@ -674,22 +674,22 @@ and overlap_pattern (exp : exp) (pattern_a : pattern) (pattern_b : pattern) :
   if Sl.Eq.eq_pattern pattern_a pattern_b then Identical
   else overlap_pattern_unequal ()
 
-let overlap_guard (tdenv : TDEnv.t) (exp : exp) (guard_a : guard)
+let overlap_guard (senv : SEnv.t) (exp : exp) (guard_a : guard)
     (guard_b : guard) : overlap =
   let exp_a = guard_as_exp exp guard_a in
   let exp_b = guard_as_exp exp guard_b in
-  overlap_exp tdenv exp_a exp_b
+  overlap_exp senv exp_a exp_b
 
 (* [4-1] Merge consecutive if statements with the same condition
 
    This handles if statements that are not categorized as case analysis,
    either because the condition itself is complex or because it is iterated *)
 
-let rec merge_identical_if (tdenv : TDEnv.t) (at : Location.t)
+let rec merge_identical_if (senv : SEnv.t) (at : Location.t)
     (exp_cond_target : exp) (iterexps_target : iterexp list)
     (instrs_then_target : instr list) (instrs : instr list) : instr list option
     =
-  merge_identical_if' tdenv exp_cond_target iterexps_target [] instrs
+  merge_identical_if' senv exp_cond_target iterexps_target [] instrs
   |> Option.map (fun (instrs_then, instrs_leftover) ->
          let instr =
            let instrs_then = merge_block instrs_then_target instrs_then in
@@ -697,69 +697,69 @@ let rec merge_identical_if (tdenv : TDEnv.t) (at : Location.t)
          in
          instr :: instrs_leftover)
 
-and merge_identical_if' (tdenv : TDEnv.t) (exp_cond_target : exp)
+and merge_identical_if' (senv : SEnv.t) (exp_cond_target : exp)
     (iterexps_target : iterexp list) (instrs_leftover : instr list)
     (instrs : instr list) : (instr list * instr list) option =
   match instrs with
   | ({ it = IfI (exp_cond, iterexps, instrs_then); _ } as instr_h) :: instrs_t
     -> (
       let eq_iterexps = Sl.Eq.eq_iterexps iterexps iterexps_target in
-      let overlap_exp_cond = overlap_exp tdenv exp_cond_target exp_cond in
+      let overlap_exp_cond = overlap_exp senv exp_cond_target exp_cond in
       match (eq_iterexps, overlap_exp_cond) with
       | true, Identical ->
           let instrs_leftover = instrs_leftover @ instrs_t in
           Some (instrs_then, instrs_leftover)
       | _ ->
           let instrs_leftover = instrs_leftover @ [ instr_h ] in
-          merge_identical_if' tdenv exp_cond_target iterexps_target
+          merge_identical_if' senv exp_cond_target iterexps_target
             instrs_leftover instrs_t)
   | _ -> None
 
-let rec merge_if (tdenv : TDEnv.t) (instrs : instr list) : instr list =
+let rec merge_if (senv : SEnv.t) (instrs : instr list) : instr list =
   match instrs with
   | [] -> []
   | { it = IfI (exp_cond, iterexps, instrs_then); at; _ } :: instrs_t -> (
       match
-        merge_identical_if tdenv at exp_cond iterexps instrs_then instrs_t
+        merge_identical_if senv at exp_cond iterexps instrs_then instrs_t
       with
-      | Some instrs -> merge_if tdenv instrs
+      | Some instrs -> merge_if senv instrs
       | None ->
           let instr_h =
-            let instrs_then = merge_if tdenv instrs_then in
+            let instrs_then = merge_if senv instrs_then in
             IfI (exp_cond, iterexps, instrs_then) $ at
           in
-          let instrs_t = merge_if tdenv instrs_t in
+          let instrs_t = merge_if senv instrs_t in
           instr_h :: instrs_t)
   | { it = RelAssertI { call; expect; iterexps; block = instrs_then }; at; _ }
     :: instrs_t ->
       let instr_h =
-        let instrs_then = merge_if tdenv instrs_then in
+        let instrs_then = merge_if senv instrs_then in
         RelAssertI { call; expect; iterexps; block = instrs_then } $ at
       in
-      let instrs_t = merge_if tdenv instrs_t in
+      let instrs_t = merge_if senv instrs_t in
       instr_h :: instrs_t
   | { it = CaseI (exp, cases, total); at; _ } :: instrs_t ->
       let instr_h =
         let guards, blocks = List.split cases in
-        let blocks = List.map (merge_if tdenv) blocks in
+        let blocks = List.map (merge_if senv) blocks in
         let cases = List.combine guards blocks in
         CaseI (exp, cases, total) $ at
       in
-      let instrs_t = merge_if tdenv instrs_t in
+      let instrs_t = merge_if senv instrs_t in
       instr_h :: instrs_t
   | ({ it = LetI (exp_l, exp_r, iterinstrs, block); _ } as instr_h) :: instrs_t
     ->
-      let block = merge_if tdenv block in
+      let block = merge_if senv block in
       let instr_h = LetI (exp_l, exp_r, iterinstrs, block) $ instr_h.at in
-      let instrs_t = merge_if tdenv instrs_t in
+      let instrs_t = merge_if senv instrs_t in
       instr_h :: instrs_t
   | ({ it = RelI { call; iterinstrs; block }; _ } as instr_h) :: instrs_t ->
-      let block = merge_if tdenv block in
+      let block = merge_if senv block in
       let instr_h = RelI { call; iterinstrs; block } $ instr_h.at in
-      let instrs_t = merge_if tdenv instrs_t in
+      let instrs_t = merge_if senv instrs_t in
       instr_h :: instrs_t
   | instr_h :: instrs_t ->
-      let instrs_t = merge_if tdenv instrs_t in
+      let instrs_t = merge_if senv instrs_t in
       instr_h :: instrs_t
 
 (* [4-2] Merge consecutive relation assertions with the same call *)
@@ -869,10 +869,10 @@ let rec merge_rel_assert (instrs : instr list) : instr list =
 
 (* [4-2-a] if-and-if to case analysis *)
 
-let casify_if_if (tdenv : TDEnv.t) (at : Location.t) (exp_cond_target : exp)
+let casify_if_if (senv : SEnv.t) (at : Location.t) (exp_cond_target : exp)
     (instrs_then_target : instr list) (exp_cond : exp)
     (instrs_then : instr list) : instr option =
-  let overlap_exp_cond = overlap_exp tdenv exp_cond_target exp_cond in
+  let overlap_exp_cond = overlap_exp senv exp_cond_target exp_cond in
   match overlap_exp_cond with
   | Disjoint (exp, guard_target, guard) ->
       let cases =
@@ -890,15 +890,15 @@ let casify_if_if (tdenv : TDEnv.t) (at : Location.t) (exp_cond_target : exp)
 
 (* [4-2-b] if-and-case to case analysis *)
 
-let rec merge_if_case (tdenv : TDEnv.t) (exp_cond_target : exp)
+let rec merge_if_case (senv : SEnv.t) (exp_cond_target : exp)
     (instrs_then_target : instr list) (exp : exp) (cases : case list)
     (total : bool) : case list option =
   match exp_as_guard exp exp_cond_target with
   | Some guard_target ->
-      merge_if_case' tdenv exp cases total [] guard_target instrs_then_target
+      merge_if_case' senv exp cases total [] guard_target instrs_then_target
   | None -> None
 
-and merge_if_case' (tdenv : TDEnv.t) (exp : exp) (cases : case list)
+and merge_if_case' (senv : SEnv.t) (exp : exp) (cases : case list)
     (total : bool) (cases_leftover : case list) (guard_target : guard)
     (instrs_then_target : instr list) : case list option =
   match cases with
@@ -908,7 +908,7 @@ and merge_if_case' (tdenv : TDEnv.t) (exp : exp) (cases : case list)
       Some cases
   | case_h :: cases_t -> (
       let guard_h, instrs_h = case_h in
-      let overlap_guard = overlap_guard tdenv exp guard_target guard_h in
+      let overlap_guard = overlap_guard senv exp guard_target guard_h in
       match overlap_guard with
       | Identical ->
           let instrs_h = merge_block instrs_then_target instrs_h in
@@ -916,15 +916,15 @@ and merge_if_case' (tdenv : TDEnv.t) (exp : exp) (cases : case list)
           Some (cases_leftover @ (case_h :: cases_t))
       | Disjoint _ | Partition _ ->
           let cases_leftover = cases_leftover @ [ case_h ] in
-          merge_if_case' tdenv exp cases_t total cases_leftover guard_target
+          merge_if_case' senv exp cases_t total cases_leftover guard_target
             instrs_then_target
       | _ -> None)
 
-let casify_if_case (tdenv : TDEnv.t) (at : Location.t) (exp_cond_target : exp)
+let casify_if_case (senv : SEnv.t) (at : Location.t) (exp_cond_target : exp)
     (instrs_then_target : instr list) (exp : exp) (cases : case list)
     (total : bool) : instr option =
   let cases_opt =
-    merge_if_case tdenv exp_cond_target instrs_then_target exp cases total
+    merge_if_case senv exp_cond_target instrs_then_target exp cases total
   in
   match cases_opt with
   | Some cases ->
@@ -934,18 +934,17 @@ let casify_if_case (tdenv : TDEnv.t) (at : Location.t) (exp_cond_target : exp)
 
 (* [4-2-c] case-and-if to case analysis *)
 
-let rec merge_case_if (tdenv : TDEnv.t) (exp_target : exp)
+let rec merge_case_if (senv : SEnv.t) (exp_target : exp)
     (cases_target : case list) (total_target : bool) (exp_cond : exp)
     (instrs : instr list) : case list option =
   match exp_as_guard exp_target exp_cond with
   | Some guard ->
-      merge_case_if' tdenv exp_target cases_target [] total_target guard instrs
+      merge_case_if' senv exp_target cases_target [] total_target guard instrs
   | None -> None
 
-and merge_case_if' (tdenv : TDEnv.t) (exp_target : exp)
-    (cases_target : case list) (cases_target_leftover : case list)
-    (total_target : bool) (guard : guard) (instrs : instr list) :
-    case list option =
+and merge_case_if' (senv : SEnv.t) (exp_target : exp) (cases_target : case list)
+    (cases_target_leftover : case list) (total_target : bool) (guard : guard)
+    (instrs : instr list) : case list option =
   match cases_target with
   | [] when total_target -> assert false
   | [] ->
@@ -953,7 +952,7 @@ and merge_case_if' (tdenv : TDEnv.t) (exp_target : exp)
       Some cases
   | case_target_h :: cases_target_t -> (
       let guard_target_h, instrs_target_h = case_target_h in
-      let overlap_guard = overlap_guard tdenv exp_target guard_target_h guard in
+      let overlap_guard = overlap_guard senv exp_target guard_target_h guard in
       match overlap_guard with
       | Identical ->
           let instrs_target_h = merge_block instrs_target_h instrs in
@@ -963,16 +962,15 @@ and merge_case_if' (tdenv : TDEnv.t) (exp_target : exp)
           let cases_target_leftover =
             cases_target_leftover @ [ case_target_h ]
           in
-          merge_case_if' tdenv exp_target cases_target_t cases_target_leftover
+          merge_case_if' senv exp_target cases_target_t cases_target_leftover
             total_target guard instrs
       | _ -> None)
 
-let casify_case_if (tdenv : TDEnv.t) (at : Location.t) (exp_target : exp)
+let casify_case_if (senv : SEnv.t) (at : Location.t) (exp_target : exp)
     (cases_target : case list) (total_target : bool) (exp_cond : exp)
     (instrs_then : instr list) : instr option =
   let cases_opt =
-    merge_case_if tdenv exp_target cases_target total_target exp_cond
-      instrs_then
+    merge_case_if senv exp_target cases_target total_target exp_cond instrs_then
   in
   match cases_opt with
   | Some cases ->
@@ -982,7 +980,7 @@ let casify_case_if (tdenv : TDEnv.t) (at : Location.t) (exp_target : exp)
 
 (* [4-2-d] case-and-case to case analysis *)
 
-let merge_case_case (tdenv : TDEnv.t) (exp_target : exp)
+let merge_case_case (senv : SEnv.t) (exp_target : exp)
     (cases_target : case list) (total_target : bool) (exp : exp)
     (cases : case list) : case list option =
   if Sl.Eq.eq_exp exp_target exp then
@@ -990,17 +988,17 @@ let merge_case_case (tdenv : TDEnv.t) (exp_target : exp)
       (fun cases_target_opt (guard, instrs) ->
         match cases_target_opt with
         | Some cases_target ->
-            merge_case_if' tdenv exp_target cases_target [] total_target guard
+            merge_case_if' senv exp_target cases_target [] total_target guard
               instrs
         | None -> None)
       (Some cases_target) cases
   else None
 
-let casify_case_case (tdenv : TDEnv.t) (at : Location.t) (exp_target : exp)
+let casify_case_case (senv : SEnv.t) (at : Location.t) (exp_target : exp)
     (cases_target : case list) (total_target : bool) (exp : exp)
     (cases : case list) : instr option =
   let cases_opt =
-    merge_case_case tdenv exp_target cases_target total_target exp cases
+    merge_case_case senv exp_target cases_target total_target exp cases
   in
   match cases_opt with
   | Some cases ->
@@ -1010,127 +1008,126 @@ let casify_case_case (tdenv : TDEnv.t) (at : Location.t) (exp_target : exp)
 
 (* [4-2-a/b] Casifying from an if statement *)
 
-let rec casify_from_if (tdenv : TDEnv.t) (at : Location.t)
-    (exp_cond_target : exp) (iterexps_target : iterexp list)
-    (instrs_then_target : instr list) (instrs : instr list) : instr list option
-    =
+let rec casify_from_if (senv : SEnv.t) (at : Location.t) (exp_cond_target : exp)
+    (iterexps_target : iterexp list) (instrs_then_target : instr list)
+    (instrs : instr list) : instr list option =
   match iterexps_target with
-  | [] -> casify_from_if' tdenv at exp_cond_target instrs_then_target [] instrs
+  | [] -> casify_from_if' senv at exp_cond_target instrs_then_target [] instrs
   | _ -> None
 
-and casify_from_if' (tdenv : TDEnv.t) (at : Location.t) (exp_cond_target : exp)
+and casify_from_if' (senv : SEnv.t) (at : Location.t) (exp_cond_target : exp)
     (instrs_then_target : instr list) (instrs_leftover : instr list)
     (instrs : instr list) : instr list option =
   match instrs with
   | ({ it = IfI (exp_cond, [], instrs_then); _ } as instr_h) :: instrs_t -> (
       let instr_h_opt =
-        casify_if_if tdenv at exp_cond_target instrs_then_target exp_cond
+        casify_if_if senv at exp_cond_target instrs_then_target exp_cond
           instrs_then
       in
       match instr_h_opt with
       | Some instr_h -> Some ([ instr_h ] @ instrs_leftover @ instrs_t)
       | None ->
           let instrs_leftover = instrs_leftover @ [ instr_h ] in
-          casify_from_if' tdenv at exp_cond_target instrs_then_target
+          casify_from_if' senv at exp_cond_target instrs_then_target
             instrs_leftover instrs_t)
   | ({ it = CaseI (exp, cases, total); _ } as instr_h) :: instrs_t -> (
       let instr_h_opt =
-        casify_if_case tdenv at exp_cond_target instrs_then_target exp cases
+        casify_if_case senv at exp_cond_target instrs_then_target exp cases
           total
       in
       match instr_h_opt with
       | Some instr_h -> Some ([ instr_h ] @ instrs_leftover @ instrs_t)
       | None ->
           let instrs_leftover = instrs_leftover @ [ instr_h ] in
-          casify_from_if' tdenv at exp_cond_target instrs_then_target
+          casify_from_if' senv at exp_cond_target instrs_then_target
             instrs_leftover instrs_t)
   | _ -> None
 
 (* [4-2-c] Casifying from a case statement *)
 
-let rec casify_from_case (tdenv : TDEnv.t) (at : Location.t) (exp_target : exp)
+let rec casify_from_case (senv : SEnv.t) (at : Location.t) (exp_target : exp)
     (cases_target : case list) (total_target : bool) (instrs : instr list) :
     instr list option =
-  casify_from_case' tdenv at exp_target cases_target total_target [] instrs
+  casify_from_case' senv at exp_target cases_target total_target [] instrs
 
-and casify_from_case' (tdenv : TDEnv.t) (at : Location.t) (exp_target : exp)
+and casify_from_case' (senv : SEnv.t) (at : Location.t) (exp_target : exp)
     (cases_target : case list) (total_target : bool)
     (instrs_leftover : instr list) (instrs : instr list) : instr list option =
   match instrs with
   | ({ it = IfI (exp_cond, [], instrs_then); _ } as instr_h) :: instrs_t -> (
       let instr_h_opt =
-        casify_case_if tdenv at exp_target cases_target total_target exp_cond
+        casify_case_if senv at exp_target cases_target total_target exp_cond
           instrs_then
       in
       match instr_h_opt with
       | Some instr_h -> Some ([ instr_h ] @ instrs_leftover @ instrs_t)
       | None ->
           let instrs_leftover = instrs_leftover @ [ instr_h ] in
-          casify_from_case' tdenv at exp_target cases_target total_target
+          casify_from_case' senv at exp_target cases_target total_target
             instrs_leftover instrs_t)
   | ({ it = CaseI (exp, cases, _total); _ } as instr_h) :: instrs_t -> (
       let instr_h_opt =
-        casify_case_case tdenv at exp_target cases_target total_target exp cases
+        casify_case_case senv at exp_target cases_target total_target exp cases
       in
       match instr_h_opt with
       | Some instr_h -> Some ([ instr_h ] @ instrs_leftover @ instrs_t)
       | None ->
           let instrs_leftover = instrs_leftover @ [ instr_h ] in
-          casify_from_case' tdenv at exp_target cases_target total_target
+          casify_from_case' senv at exp_target cases_target total_target
             instrs_leftover instrs_t)
   | _ -> None
 
-let rec casify (tdenv : TDEnv.t) (instrs : instr list) : instr list =
+let rec casify (senv : SEnv.t) (instrs : instr list) : instr list =
   match instrs with
   | [] -> []
   | { it = IfI (exp_cond, iterexps, instrs_then); at; _ } :: instrs_t -> (
-      match casify_from_if tdenv at exp_cond iterexps instrs_then instrs_t with
-      | Some instrs -> casify tdenv instrs
+      match casify_from_if senv at exp_cond iterexps instrs_then instrs_t with
+      | Some instrs -> casify senv instrs
       | None ->
           let instr_h =
-            let instrs_then = casify tdenv instrs_then in
+            let instrs_then = casify senv instrs_then in
             IfI (exp_cond, iterexps, instrs_then) $ at
           in
-          let instrs_t = casify tdenv instrs_t in
+          let instrs_t = casify senv instrs_t in
           instr_h :: instrs_t)
   | { it = RelAssertI { call; expect; iterexps; block = instrs_then }; at; _ }
     :: instrs_t ->
       let instr_h =
-        let instrs_then = casify tdenv instrs_then in
+        let instrs_then = casify senv instrs_then in
         RelAssertI { call; expect; iterexps; block = instrs_then } $ at
       in
-      let instrs_t = casify tdenv instrs_t in
+      let instrs_t = casify senv instrs_t in
       instr_h :: instrs_t
   | { it = CaseI (exp, cases, total); at; _ } :: instrs_t -> (
-      match casify_from_case tdenv at exp cases total instrs_t with
-      | Some instrs -> casify tdenv instrs
+      match casify_from_case senv at exp cases total instrs_t with
+      | Some instrs -> casify senv instrs
       | None ->
           let instr_h =
             let guards, blocks = List.split cases in
-            let blocks = List.map (casify tdenv) blocks in
+            let blocks = List.map (casify senv) blocks in
             let cases = List.combine guards blocks in
             CaseI (exp, cases, total) $ at
           in
-          let instrs_t = casify tdenv instrs_t in
+          let instrs_t = casify senv instrs_t in
           instr_h :: instrs_t)
   | ({ it = LetI (exp_l, exp_r, iterinstrs, block); _ } as instr_h) :: instrs_t
     ->
-      let block = casify tdenv block in
+      let block = casify senv block in
       let instr_h = LetI (exp_l, exp_r, iterinstrs, block) $ instr_h.at in
-      let instrs_t = casify tdenv instrs_t in
+      let instrs_t = casify senv instrs_t in
       instr_h :: instrs_t
   | ({ it = RelI { call; iterinstrs; block }; _ } as instr_h) :: instrs_t ->
-      let block = casify tdenv block in
+      let block = casify senv block in
       let instr_h = RelI { call; iterinstrs; block } $ instr_h.at in
-      let instrs_t = casify tdenv instrs_t in
+      let instrs_t = casify senv instrs_t in
       instr_h :: instrs_t
   | instr_h :: instrs_t ->
-      let instrs_t = casify tdenv instrs_t in
+      let instrs_t = casify senv instrs_t in
       instr_h :: instrs_t
 
 (* [4-3] Totalize case analysis of variant matches *)
 
-let find_variant_case_analysis (tdenv : TDEnv.t) (cases : case list) :
+let find_variant_case_analysis (senv : SEnv.t) (cases : case list) :
     mixop list option =
   List.fold_left
     (fun mixops_opt (guard, _) ->
@@ -1138,32 +1135,32 @@ let find_variant_case_analysis (tdenv : TDEnv.t) (cases : case list) :
       | Some mixops -> (
           match guard with
           | SubG typ ->
-              Some (mixops @ (typ |> typ_as_variant tdenv |> Option.get))
+              Some (mixops @ (typ |> typ_as_variant senv |> Option.get))
           | MatchG (CaseP mixop) -> Some (mixops @ [ mixop ])
           | _ -> None)
       | None -> None)
     (Some []) cases
 
-let rec totalize_case_analysis (tdenv : TDEnv.t) (instrs : instr list) :
+let rec totalize_case_analysis (senv : SEnv.t) (instrs : instr list) :
     instr list =
-  List.map (totalize_case_analysis' tdenv) instrs
+  List.map (totalize_case_analysis' senv) instrs
 
-and totalize_case_analysis' (tdenv : TDEnv.t) (instr : instr) : instr =
+and totalize_case_analysis' (senv : SEnv.t) (instr : instr) : instr =
   let at = instr.at in
   match instr.it with
   | IfI (exp_cond, iterexps, instrs_then) ->
-      let instrs_then = totalize_case_analysis tdenv instrs_then in
+      let instrs_then = totalize_case_analysis senv instrs_then in
       IfI (exp_cond, iterexps, instrs_then) $ at
   | RelAssertI { call; expect; iterexps; block = instrs_then } ->
-      let instrs_then = totalize_case_analysis tdenv instrs_then in
+      let instrs_then = totalize_case_analysis senv instrs_then in
       RelAssertI { call; expect; iterexps; block = instrs_then } $ at
   | CaseI (exp, cases, false) -> (
       let cases =
         let guards, blocks = List.split cases in
-        let blocks = List.map (totalize_case_analysis tdenv) blocks in
+        let blocks = List.map (totalize_case_analysis senv) blocks in
         List.combine guards blocks
       in
-      match find_variant_case_analysis tdenv cases with
+      match find_variant_case_analysis senv cases with
       | Some mixops_case ->
           let module Set = Set.Make (struct
             type t = Il.Mixfix.mixop
@@ -1172,7 +1169,7 @@ and totalize_case_analysis' (tdenv : TDEnv.t) (instr : instr) : instr =
           end) in
           let mixops_total =
             let typ = exp.note.typ $ exp.at in
-            typ |> typ_as_variant tdenv |> Option.get
+            typ |> typ_as_variant senv |> Option.get
           in
           let mixops_total = Set.of_list mixops_total in
           let mixops_case = Set.of_list mixops_case in
@@ -1182,15 +1179,15 @@ and totalize_case_analysis' (tdenv : TDEnv.t) (instr : instr) : instr =
   | CaseI (exp, cases, true) ->
       let cases =
         let guards, blocks = List.split cases in
-        let blocks = List.map (totalize_case_analysis tdenv) blocks in
+        let blocks = List.map (totalize_case_analysis senv) blocks in
         List.combine guards blocks
       in
       CaseI (exp, cases, true) $ at
   | LetI (exp_l, exp_r, iterinstrs, block) ->
-      let block = totalize_case_analysis tdenv block in
+      let block = totalize_case_analysis senv block in
       LetI (exp_l, exp_r, iterinstrs, block) $ at
   | RelI { call; iterinstrs; block } ->
-      let block = totalize_case_analysis tdenv block in
+      let block = totalize_case_analysis senv block in
       RelI { call; iterinstrs; block } $ at
   | _ -> instr
 
@@ -1199,18 +1196,18 @@ and totalize_case_analysis' (tdenv : TDEnv.t) (instr : instr) : instr =
 let optimize_pre (instrs : instr list) : instr list =
   instrs |> remove_let_alias |> matchify_if_eq_terminals
 
-let rec optimize_loop (rtenv : RTEnv.t) (tdenv : TDEnv.t) (instrs : instr list)
-    : instr list =
+let rec optimize_loop (rtenv : RTEnv.t) (senv : SEnv.t) (instrs : instr list) :
+    instr list =
   let instrs_optimized =
-    instrs |> merge_binding rtenv |> merge_if tdenv |> merge_rel_assert
-    |> casify tdenv
+    instrs |> merge_binding rtenv |> merge_if senv |> merge_rel_assert
+    |> casify senv
   in
   if Ol.Eq.eq_instrs instrs instrs_optimized then instrs
-  else optimize_loop rtenv tdenv instrs_optimized
+  else optimize_loop rtenv senv instrs_optimized
 
-let optimize_post (tdenv : TDEnv.t) (instrs : instr list) : instr list =
-  instrs |> totalize_case_analysis tdenv
+let optimize_post (senv : SEnv.t) (instrs : instr list) : instr list =
+  instrs |> totalize_case_analysis senv
 
-let optimize (rtenv : RTEnv.t) (tdenv : TDEnv.t) (instrs : instr list) :
+let optimize (rtenv : RTEnv.t) (senv : SEnv.t) (instrs : instr list) :
     instr list =
-  instrs |> optimize_pre |> optimize_loop rtenv tdenv |> optimize_post tdenv
+  instrs |> optimize_pre |> optimize_loop rtenv senv |> optimize_post senv

@@ -4,9 +4,9 @@ open Lang.Il
 
 let ( let* ) = Result.bind
 
-let rec check ~opaque_types ~find_typdef_opt ~typ value =
-  let check = check ~opaque_types ~find_typdef_opt in
-  let check_values = check_values ~opaque_types ~find_typdef_opt in
+let rec check ~opaque_types ~find_syntax_opt ~typ value =
+  let check = check ~opaque_types ~find_syntax_opt in
+  let check_values = check_values ~opaque_types ~find_syntax_opt in
   let mismatch () =
     Error
       (Printf.sprintf "expected %s, got %s" (Print.string_of_typ typ)
@@ -17,7 +17,7 @@ let rec check ~opaque_types ~find_typdef_opt ~typ value =
   | NumT `IntT, NumV _ -> Ok ()
   | NumT `NatT, NumV (`Nat n | `Int n) when Bigint.(n >= zero) -> Ok ()
   | VarT { synid; targs }, _ -> (
-      match find_typdef_opt synid with
+      match find_syntax_opt synid with
       | None -> Error (Printf.sprintf "type %s is undefined" synid.it)
       | Some (tparams, deftyp) -> (
           if List.length tparams <> List.length targs then mismatch ()
@@ -57,7 +57,7 @@ let rec check ~opaque_types ~find_typdef_opt ~typ value =
       check_values ~typs:(List.map (fun _ -> typ) values) values
   | _ -> mismatch ()
 
-and check_values ~opaque_types ~find_typdef_opt ~typs values =
+and check_values ~opaque_types ~find_syntax_opt ~typs values =
   let expected = List.length typs in
   let actual = List.length values in
   if expected <> actual then
@@ -66,5 +66,5 @@ and check_values ~opaque_types ~find_typdef_opt ~typs values =
     List.fold_left2
       (fun result typ value ->
         let* () = result in
-        check ~opaque_types ~find_typdef_opt ~typ value)
+        check ~opaque_types ~find_syntax_opt ~typ value)
       (Ok ()) typs values

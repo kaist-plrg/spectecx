@@ -12,7 +12,7 @@ module Mixop = Lang.Il.Mixfix
 let rec is_singleton_case (dctx : Dctx.t) (typ : typ) : bool =
   match typ.it with
   | VarT { synid; targs } -> (
-      match Dctx.find_typdef_opt dctx synid with
+      match Dctx.find_syntax_opt dctx synid with
       | Some (tparams, deftyp) -> (
           match deftyp.it with
           | PlainT typ ->

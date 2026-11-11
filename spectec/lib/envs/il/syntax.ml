@@ -1,6 +1,6 @@
 open Il
 
-(* Type definition *)
+(* Syntax definition *)
 
 type t = tparam list * deftyp
 
