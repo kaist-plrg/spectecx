@@ -61,24 +61,78 @@ jobs:
       matrix:
         os: [macos-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
+    env:
+      OCAML_COMPILER: "5.1.1"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # `opam install --locked` does not remove packages dropped from the lock
+      # file. The opam file hash keeps later runs from restoring them.
+      - name: Name the opam key prefix
+        id: opam-prefix
+        env:
+          OPAM_FILES_HASH: ${{ hashFiles('*.opam', '*.opam.locked') }}
+        run: echo "prefix=opam-$ImageOS-$RUNNER_ARCH-ocaml.$OCAML_COMPILER-$OPAM_FILES_HASH" >> "$GITHUB_OUTPUT"
+
+      # setup-ocaml reuses the opam binary from the tool cache. GitHub restores
+      # the newest installation matching the prefix, searching the same pull
+      # request before main.
+      - name: Restore the opam installation
+        id: restore-opam
+        uses: actions/cache/restore@v6
+        with:
+          path: &opam-installation |
+            ~/.opam
+            _opam
+            ${{ runner.tool_cache }}/opam
+          key: ${{ steps.opam-prefix.outputs.prefix }}
+          restore-keys: ${{ steps.opam-prefix.outputs.prefix }}-
+
       - name: Set up OCaml
         uses: ocaml/setup-ocaml@v3
         with:
-          ocaml-compiler: "5.1.1"
+          ocaml-compiler: ${{ env.OCAML_COMPILER }}
           opam-pin: false
+          # setup-ocaml saves its cache before dependencies are installed.
+          cache: false
 
       - name: Discover opam switch name
         run: echo "SWITCH=$(opam switch show -s)" >> $GITHUB_ENV
 
+      # A restored switch relies on the runner images for gmp and pkg-config,
+      # because opam does not reinstall system packages for restored conf-gmp
+      # and conf-pkg-config packages.
       - name: Install dependencies
         run: opam install . --deps-only --locked
 
       - name: Install dev tools
         run: opam install -y ocamlformat.0.27.0
+
+      # PACKAGES_HASH covers dependencies that opam rebuilds after changes to
+      # their opam-repository definitions, even with the same lock file.
+      # The key includes the opam version because setup-ocaml chooses the opam
+      # release at run time, independently of this repository.
+      - name: Name the opam installation
+        id: opam-key
+        env:
+          PREFIX: ${{ steps.opam-prefix.outputs.prefix }}
+          PACKAGES_HASH: ${{ hashFiles('_opam/.opam-switch/packages/**') }}
+        run: echo "key=$PREFIX-opam.$(opam --version)-$PACKAGES_HASH" >> "$GITHUB_OUTPUT"
+
+      - name: Remove opam files the next run does not need
+        if: steps.opam-key.outputs.key != steps.restore-opam.outputs.cache-matched-key
+        run: opam clean --all-switches --download-cache --logs --repo-cache --untracked --unused-repositories
+
+      # Save before Test package installation puts this project's packages in
+      # the switch. Saving before the checks also keeps the installation if
+      # a check fails.
+      - name: Save the opam installation
+        if: steps.opam-key.outputs.key != steps.restore-opam.outputs.cache-matched-key
+        uses: actions/cache/save@v6
+        with:
+          path: *opam-installation
+          key: ${{ steps.opam-key.outputs.key }}
 
       - name: Format check
         run: make fmt-check
