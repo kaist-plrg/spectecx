@@ -1,0 +1,17 @@
+#!/bin/sh
+
+if ! command -v python3 >/dev/null 2>&1; then
+    echo 'commit-msg: Python 3 is required to format commit messages.' >&2
+    exit 1
+fi
+
+hook_dir=$(CDPATH= cd "$(dirname "$0")" && pwd) || exit 1
+formatter="$hook_dir/commit-message-formatter.py"
+if [ ! -f "$formatter" ]; then
+    echo "commit-msg: formatter not found at $formatter" >&2
+    echo 'Run tools/commit-messages/install_commit_message_hook.py from a checkout containing the hook and formatter to restore the installed copy.' >&2
+    exit 1
+fi
+
+python3 "$formatter" --write "$1" || exit 1
+python3 "$formatter" --check "$1"
