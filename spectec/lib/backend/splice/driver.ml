@@ -8,39 +8,35 @@
     returns a {!Report.t} listing every key registered in a store but never
     referenced by any anchor. *)
 
-(* Tag wrapping each per-anchor store with the entry that produced it, so
-   render-time has the [frame] available without a second lookup. *)
-type stored =
-  | Source_store of Anchor.Source.entry * Store.t
-  | Prose_store of Anchor.Prose.entry * Store.t
+type anchor = { frame : Anchor.frame; store : Store.t }
 
 module StringMap = Map.Make (String)
 
-let build_stores ~spec_el ~spec_pl ~(source_entries : Anchor.Source.entry list)
-    ~(prose_entries : Anchor.Prose.entry list) : stored StringMap.t =
-  let stores = ref StringMap.empty in
+let build_anchors ~spec_el ~spec_pl ~(source_entries : Anchor.Source.entry list)
+    ~(prose_entries : Anchor.Prose.entry list) : anchor StringMap.t =
+  let anchors = ref StringMap.empty in
   List.iter
     (fun (entry : Anchor.Source.entry) ->
       let pairs = entry.extract spec_el in
-      let sto = Store.create pairs in
-      stores :=
-        StringMap.add entry.frame.name (Source_store (entry, sto)) !stores)
+      let store = Store.create pairs in
+      anchors :=
+        StringMap.add entry.frame.name { frame = entry.frame; store } !anchors)
     source_entries;
   List.iter
     (fun (entry : Anchor.Prose.entry) ->
       let pairs = entry.extract spec_pl in
-      let sto = Store.create pairs in
-      stores :=
-        StringMap.add entry.frame.name (Prose_store (entry, sto)) !stores)
+      let store = Store.create pairs in
+      anchors :=
+        StringMap.add entry.frame.name { frame = entry.frame; store } !anchors)
     prose_entries;
-  !stores
+  !anchors
 
-let render_anchor_body ~(frame : Anchor.frame) ~(sto : Store.t)
-    (keys : string list) ~(location : Common.Location.t) : string =
+let render_anchor ({ frame; store } : anchor) ~(keys : string list)
+    ~(location : Common.Location.t) : string =
   let resolved =
     List.filter_map
       (fun key ->
-        match Store.find_opt sto key with
+        match Store.find_opt store key with
         | Some text -> Some (key, text)
         | None ->
             Diag.warn location "splice"
@@ -53,25 +49,17 @@ let render_anchor_body ~(frame : Anchor.frame) ~(sto : Store.t)
       let unused_keys =
         List.filter_map
           (fun (key, _) ->
-            if Store.is_used sto key then None else Some ("[[" ^ key ^ "]]"))
+            if Store.is_used store key then None else Some ("[[" ^ key ^ "]]"))
           resolved
       in
       match unused_keys with [] -> "" | hs -> String.concat "\n" hs ^ "\n"
     else ""
   in
-  List.iter (fun (key, _) -> Store.mark_used sto key) resolved;
+  List.iter (fun (key, _) -> Store.mark_used store key) resolved;
   let body = resolved |> List.map snd |> String.concat "\n\n" in
   headers ^ frame.prefix ^ body ^ frame.suffix
 
-let render_anchor ~(stored : stored) (keys : string list)
-    ~(location : Common.Location.t) : string =
-  match stored with
-  | Source_store (entry, sto) ->
-      render_anchor_body ~frame:entry.frame ~sto keys ~location
-  | Prose_store (entry, sto) ->
-      render_anchor_body ~frame:entry.frame ~sto keys ~location
-
-let splice_string ~(stores : stored StringMap.t) ~file (content : string) :
+let splice_string ~(anchors : anchor StringMap.t) ~file (content : string) :
     string =
   let cur = Cursor.make ~file content in
   let buf = Buffer.create (String.length content) in
@@ -80,11 +68,11 @@ let splice_string ~(stores : stored StringMap.t) ~file (content : string) :
     else (
       (match Parser.parse_anchor_open cur with
       | Some (name, location) -> (
-          match StringMap.find_opt name stores with
-          | Some stored ->
+          match StringMap.find_opt name anchors with
+          | Some anchor ->
               Parser.parse_space cur;
               let keys = Parser.parse_ids cur in
-              Buffer.add_string buf (render_anchor ~stored keys ~location)
+              Buffer.add_string buf (render_anchor anchor ~keys ~location)
           | None ->
               Diag.warn location "splice"
                 (Printf.sprintf "unknown splice anchor: %s" name);
@@ -107,7 +95,7 @@ let gen_directory (filename : string) : unit =
   let dirname = Filename.dirname filename in
   if dirname <> "" && not (Sys.file_exists dirname) then gen dirname
 
-let splice_file ~(stores : stored StringMap.t) (filename_in : string)
+let splice_file ~(anchors : anchor StringMap.t) (filename_in : string)
     (filename_out : string) : unit =
   let ic = open_in filename_in in
   let content =
@@ -115,7 +103,7 @@ let splice_file ~(stores : stored StringMap.t) (filename_in : string)
       (fun () -> In_channel.input_all ic)
       ~finally:(fun () -> In_channel.close ic)
   in
-  let spliced = splice_string ~stores ~file:filename_in content in
+  let spliced = splice_string ~anchors ~file:filename_in content in
   gen_directory filename_out;
   let oc = open_out filename_out in
   Fun.protect
@@ -125,10 +113,10 @@ let splice_file ~(stores : stored StringMap.t) (filename_in : string)
 let run ~spec_el ~spec_pl ~(source_entries : Anchor.Source.entry list)
     ~(prose_entries : Anchor.Prose.entry list)
     ~(filenames : (string * string) list) : Report.t =
-  let stores = build_stores ~spec_el ~spec_pl ~source_entries ~prose_entries in
-  List.iter (fun (i, o) -> splice_file ~stores i o) filenames;
-  stores |> StringMap.bindings
-  |> List.map (fun (name, stored) ->
-         match stored with
-         | Source_store (_, sto) | Prose_store (_, sto) -> (name, sto))
+  let anchors =
+    build_anchors ~spec_el ~spec_pl ~source_entries ~prose_entries
+  in
+  List.iter (fun (i, o) -> splice_file ~anchors i o) filenames;
+  anchors |> StringMap.bindings
+  |> List.map (fun (name, anchor) -> (name, anchor.store))
   |> Report.of_stores

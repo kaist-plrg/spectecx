@@ -1,9 +1,7 @@
 (** Splice anchors.
 
-    An anchor binds an anchor name to a frame (text inserted around the rendered
-    content) and an [extract] function that produces [(key, rendered_text)]
-    pairs from a spec. Two flavours: [Source.entry] extracts from an [El.spec],
-    [Prose.entry] extracts from a [Pl.spec]. *)
+    Two flavours: [Source.entry] extracts from an [El.spec], [Prose.entry]
+    extracts from a [Pl.spec]. *)
 
 type frame = { name : string; prefix : string; suffix : string; header : bool }
 
