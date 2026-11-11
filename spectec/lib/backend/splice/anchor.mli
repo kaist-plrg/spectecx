@@ -1,7 +1,4 @@
-(** Splice anchors.
-
-    Two flavours: source-side extracts from {!Lang.El.spec}, prose-side extracts
-    from {!Lang.Pl.spec}. *)
+(** Splice anchors. *)
 
 type frame = {
   name : string;
@@ -21,18 +18,8 @@ val suffix_source : string
 val prefix_prose : string
 val suffix_prose : string
 
-module Source : sig
-  type entry = {
-    frame : frame;
-    extract : Lang.El.spec -> (string * string) list;
-        (** Returns [(key, rendered_text)] pairs. *)
-  }
-end
-
-module Prose : sig
-  type entry = {
-    frame : frame;
-    extract : Lang.Pl.spec -> (string * string) list;
-        (** Returns [(key, rendered_text)] pairs. *)
-  }
-end
+type 'spec entry = {
+  frame : frame;
+  extract : 'spec -> (string * string) list;
+      (** Returns [(key, rendered_text)] pairs. *)
+}

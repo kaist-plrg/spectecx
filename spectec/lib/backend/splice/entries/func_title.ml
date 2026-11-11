@@ -20,7 +20,7 @@ let source_extract (spec_el : El.spec) : (string * string) list =
   |> List.filter_map source_key_of_def
   |> List.map (fun (key, def) -> (key, El.Print.string_of_def def))
 
-let source : Anchor.Source.entry =
+let source : El.spec Anchor.entry =
   {
     frame =
       {
@@ -43,7 +43,7 @@ let prose_extract (spec_pl : Pl.spec) : (string * string) list =
       | _ -> None)
     spec_pl
 
-let prose : Anchor.Prose.entry =
+let prose : Pl.spec Anchor.entry =
   {
     frame =
       {

@@ -185,9 +185,8 @@ let splice_command =
         inputs
     in
     let report =
-      Splice.Driver.run ~spec_el:spec ~spec_pl
-        ~source_entries:Splice.Registry.source
-        ~prose_entries:Splice.Registry.prose ~filenames:pairs
+      Splice.Driver.run ~spec_el:spec ~spec_pl ~entries_el:Splice.Registry.el
+        ~entries_pl:Splice.Registry.pl ~filenames:pairs
     in
     Ok report
 

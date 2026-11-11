@@ -5,16 +5,16 @@
     Unrecognised anchor names emit a diagnostic with a file:line location
     instead of leaking through. *)
 
-(** Run the driver over [filenames] (input/output pairs), substituting
-    [${name: ids}] anchors using [source_entries] (extracted from the elaborated
-    [El.spec]) and [prose_entries] (extracted from the rendered [Pl.spec]).
+(** Each pair in [filenames] gives an input path and its output path. The driver
+    recognises anchor names from the [frame.name] fields of entries in
+    [entries_el] and [entries_pl].
 
     Returns a {!Report.t} listing every key registered in a store but never
     referenced by any anchor. *)
 val run :
   spec_el:Lang.El.spec ->
   spec_pl:Lang.Pl.spec ->
-  source_entries:Anchor.Source.entry list ->
-  prose_entries:Anchor.Prose.entry list ->
+  entries_el:Lang.El.spec Anchor.entry list ->
+  entries_pl:Lang.Pl.spec Anchor.entry list ->
   filenames:(string * string) list ->
   Report.t

@@ -12,24 +12,20 @@ type anchor = { frame : Anchor.frame; store : Store.t }
 
 module StringMap = Map.Make (String)
 
-let build_anchors ~spec_el ~spec_pl ~(source_entries : Anchor.Source.entry list)
-    ~(prose_entries : Anchor.Prose.entry list) : anchor StringMap.t =
-  let anchors = ref StringMap.empty in
-  List.iter
-    (fun (entry : Anchor.Source.entry) ->
-      let pairs = entry.extract spec_el in
-      let store = Store.create pairs in
-      anchors :=
-        StringMap.add entry.frame.name { frame = entry.frame; store } !anchors)
-    source_entries;
-  List.iter
-    (fun (entry : Anchor.Prose.entry) ->
-      let pairs = entry.extract spec_pl in
-      let store = Store.create pairs in
-      anchors :=
-        StringMap.add entry.frame.name { frame = entry.frame; store } !anchors)
-    prose_entries;
-  !anchors
+let add_anchors (anchors : anchor StringMap.t) ~(spec : 'spec)
+    ~(entries : 'spec Anchor.entry list) : anchor StringMap.t =
+  List.fold_left
+    (fun anchors (entry : 'spec Anchor.entry) ->
+      let store = Store.create (entry.extract spec) in
+      StringMap.add entry.frame.name { frame = entry.frame; store } anchors)
+    anchors entries
+
+let build_anchors ~spec_el ~spec_pl
+    ~(entries_el : Lang.El.spec Anchor.entry list)
+    ~(entries_pl : Lang.Pl.spec Anchor.entry list) : anchor StringMap.t =
+  StringMap.empty
+  |> add_anchors ~spec:spec_el ~entries:entries_el
+  |> add_anchors ~spec:spec_pl ~entries:entries_pl
 
 let render_anchor ({ frame; store } : anchor) ~(keys : string list)
     ~(location : Common.Location.t) : string =
@@ -110,12 +106,10 @@ let splice_file ~(anchors : anchor StringMap.t) (filename_in : string)
     (fun () -> Out_channel.output_string oc spliced)
     ~finally:(fun () -> Out_channel.close oc)
 
-let run ~spec_el ~spec_pl ~(source_entries : Anchor.Source.entry list)
-    ~(prose_entries : Anchor.Prose.entry list)
+let run ~spec_el ~spec_pl ~(entries_el : Lang.El.spec Anchor.entry list)
+    ~(entries_pl : Lang.Pl.spec Anchor.entry list)
     ~(filenames : (string * string) list) : Report.t =
-  let anchors =
-    build_anchors ~spec_el ~spec_pl ~source_entries ~prose_entries
-  in
+  let anchors = build_anchors ~spec_el ~spec_pl ~entries_el ~entries_pl in
   List.iter (fun (i, o) -> splice_file ~anchors i o) filenames;
   anchors |> StringMap.bindings
   |> List.map (fun (name, anchor) -> (name, anchor.store))
