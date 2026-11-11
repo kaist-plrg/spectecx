@@ -96,19 +96,21 @@ let run spec_al mode filename =
 
 let samples = "../../../testdata/interp/p4/p4c/p4_16_samples/"
 
-let simulate spec_al mode filename ~stf =
-  let input : P4.Sim.input =
+let evaluate spec_al mode filename ~stf =
+  let input : P4.Eval.input =
     { includes = [ "../../../testdata/interp/p4/p4c/includes" ]; filename; stf }
   in
-  Spectec.eval_task (module P4.Sim) ~check_determinism:true ~mode ~spec_al input
+  Spectec.eval_task
+    (module P4.Eval)
+    ~check_determinism:true ~mode ~spec_al input
 
-let check_simulation spec_al mode filename ~stf =
-  simulate spec_al mode filename ~stf |> unwrap |> ignore
+let check_evaluation spec_al mode filename ~stf =
+  evaluate spec_al mode filename ~stf |> unwrap |> ignore
 
 let check_malformed spec_al mode =
   match
-    simulate spec_al mode "sim-operations.p4"
-      ~stf:"sim-operations-malformed.stf"
+    evaluate spec_al mode "eval-operations.p4"
+      ~stf:"eval-operations-malformed.stf"
   with
   | Error (Spectec.Error.TaskParseError (_, message))
     when P4.contains_substring message "malformed expect statement" ->
@@ -118,7 +120,8 @@ let check_malformed spec_al mode =
 
 let check_mismatch spec_al mode =
   match
-    simulate spec_al mode "sim-operations.p4" ~stf:"sim-operations-mismatch.stf"
+    evaluate spec_al mode "eval-operations.p4"
+      ~stf:"eval-operations-mismatch.stf"
   with
   | Error (Spectec.Error.TaskError (_, message))
     when P4.contains_substring message "but expected" ->
@@ -194,11 +197,11 @@ let () =
       |> check_store name
            [ ("defaults", 2); ("named_defaults", 1); ("all_defaults", 2) ];
       run spec_al mode "counter-nested.p4" |> unwrap |> check_nested_store name;
-      check_simulation spec_al mode
+      check_evaluation spec_al mode
         (samples ^ "valid_ebpf.p4")
         ~stf:(samples ^ "valid_ebpf.stf");
-      check_simulation spec_al mode "sim-operations.p4"
-        ~stf:"sim-operations.stf";
+      check_evaluation spec_al mode "eval-operations.p4"
+        ~stf:"eval-operations.stf";
       match run spec_al mode "unsupported.p4" with
       | Ok _ -> failwith (name ^ ": unsupported object was instantiated")
       | Error error ->

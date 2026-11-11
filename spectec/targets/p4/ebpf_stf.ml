@@ -20,7 +20,7 @@ let bits_of_hex (hex : string) : bool array =
 
 (* Returns the context and state after the pipeline processes the packet, and
    whether the filter accepted the packet. *)
-let drive_packet ~eval_rel (ctx, arch) ~(hex : string) =
+let process_packet ~eval_rel (ctx, arch) ~(hex : string) =
   let packet_in = Ebpf.packet_in_state (bits_of_hex hex) in
   let* outputs = eval_rel "EBPF_init_packet_in" [ ctx; arch; packet_in ] in
   let* ctx, arch =
@@ -114,7 +114,7 @@ let string_of_transmitted (value : Value.t) : string =
    and state from one packet to the next, and returns the transmitted packets.
    The result is an error when the transmitted packets do not match the [Expect]
    statements. *)
-let drive (program : Value.t) ~(statements : Stf.statement list) ~eval_rel :
+let run (program : Value.t) ~(statements : Stf.statement list) ~eval_rel :
     Value.t list Spectec.Task.result =
   let* outputs = eval_rel "EBPF_init" [ program ] in
   let* state =
@@ -128,7 +128,7 @@ let drive (program : Value.t) ~(statements : Stf.statement list) ~eval_rel :
         let* state, transmitted, expected = result in
         match (statement : Stf.statement) with
         | Packet { port; hex } ->
-            let* state, accept = drive_packet ~eval_rel state ~hex in
+            let* state, accept = process_packet ~eval_rel state ~hex in
             let transmitted =
               if accept then (port, hex) :: transmitted else transmitted
             in
