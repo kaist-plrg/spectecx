@@ -75,7 +75,5 @@ type t =
   | Delimited of delimiter * t
   | Script of { base : t; sub : t option; sup : t option }
 
-(** Writes any formula as one line of LaTeX math for the caller to place in math
-    mode. LaTeX requires the [amsfonts] package. MathJax requires the
-    [textmacros] extension. *)
+(** Writes any formula as LaTeX math. *)
 val to_string : t -> string
