@@ -335,6 +335,8 @@ module Frontend = struct
   let stopped stop =
     describe_stop stop;
     prompt ~running:true
+
+  let after_run () = ()
 end
 
 module Handler = Engine.Make (Frontend)

@@ -86,6 +86,9 @@ module type FRONTEND = sig
   (** Called whenever the run pauses, with the reason. The run stays paused
       until this returns, and then continues as the returned [resume] says. *)
   val stopped : stop_reason -> resume
+
+  (** Called once the run has ended, whether it succeeded or failed. *)
+  val after_run : unit -> unit
 end
 
 (** The handler that runs a session, driven by a frontend. *)

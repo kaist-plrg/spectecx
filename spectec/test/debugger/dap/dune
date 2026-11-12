@@ -14,3 +14,18 @@
  (alias runtest)
  (action
   (diff transport.expected transport.actual)))
+
+; Scripted DAP sessions against the debug subcommand
+
+(executable
+ (name framing)
+ (modules framing))
+
+(cram
+ (deps
+  %{bin:spectec}
+  (package spectec)
+  (package spectec-target-miniml)
+  framing.exe
+  (source_tree ../../../specs/miniml)
+  (source_tree ../../../testdata/interp/miniml)))
