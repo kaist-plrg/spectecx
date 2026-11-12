@@ -9,4 +9,5 @@
   spectec.envs.interp
   instrumentation_api
   instrumentation_config
-  unix))
+  unix
+  yojson))
