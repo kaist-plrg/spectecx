@@ -1,8 +1,9 @@
 (** Debugger: drives an IL run from commands read on stdin.
 
     The prompt opens before the run starts, so breakpoints can be set and the
-    run started with [run]. Breakpoints name a relation ([Rel]) or one of its
-    rules ([Rel/rule]). Stepping stops at the premises written in the spec,
+    run started with [run]. Breakpoints name a relation ([Rel]), one of its
+    rules ([Rel/rule]), or a written premise of a rule or function clause by its
+    line ([FILE:LINE]). Stepping stops at the premises written in the spec,
     skipping those elaboration synthesized. Enabled by the [debug] subcommand,
     which also restricts it to single IL runs. *)
 
@@ -13,7 +14,14 @@ open Common.Annotated
 
 exception Bad_command of string
 
-type target = Rel of string | Rule of string * string
+(* A written premise of a rule or clause. [span] is the premise as written;
+   [hit] is where it is entered, which is inside [span] for an iterated
+   premise. *)
+type site = { owner : string; span : Location.t; hit : Location.t }
+
+(* A rule or function clause, with its written premises in order. *)
+type body = { owner : string; at : Location.t; sites : site list }
+type target = Rel of string | Rule of string * string | Prem of site
 type breakpoint = { number : int; target : target }
 
 type frame = {
@@ -36,15 +44,41 @@ type frame = {
    that depth returns. *)
 type step = Step | Next of int | Finish of int
 
+let string_of_line at =
+  match at with
+  | Location.Span { file; left; _ } -> Format.sprintf "%s:%d" file left.line
+  | Location.Unknown | Location.File _ -> Location.to_string at
+
 let string_of_target = function
   | Rel id -> id
   | Rule (id, rule_id) -> id ^ "/" ^ rule_id
+  | Prem { owner; span; _ } -> string_of_line span ^ " in " ^ owner
 
-let target_of_string name =
-  match String.split_on_char '/' (String.trim name) with
-  | [ id ] when id <> "" -> Some (Rel id)
-  | [ id; rule_id ] when id <> "" && rule_id <> "" -> Some (Rule (id, rule_id))
-  | _ -> None
+(* What a [break] argument names, before it is checked against the spec. *)
+type where = Def of target | Line of string option * int
+
+let where_of_string name =
+  let name = String.trim name in
+  let def () =
+    match String.split_on_char '/' name with
+    | [ id ] when id <> "" -> Some (Def (Rel id))
+    | [ id; rule_id ] when id <> "" && rule_id <> "" ->
+        Some (Def (Rule (id, rule_id)))
+    | _ -> None
+  in
+  match int_of_string_opt name with
+  | Some line when line > 0 -> Some (Line (None, line))
+  | Some _ -> None
+  | None -> (
+      match String.rindex_opt name ':' with
+      | None -> def ()
+      | Some idx -> (
+          let file = String.sub name 0 idx in
+          let line = String.sub name (idx + 1) (String.length name - idx - 1) in
+          match int_of_string_opt line with
+          | Some line when file <> "" && line > 0 ->
+              Some (Line (Some file, line))
+          | _ -> None))
 
 let defines (spec : Il.spec) target =
   List.exists
@@ -59,8 +93,114 @@ let defines (spec : Il.spec) target =
       | _ -> false)
     spec
 
+let is_written (prem : Il.prem) = prem.note <> Some Il.Synthesized
+
+(* Premise index *)
+
+(* An iterated premise is entered at the premise it iterates. *)
+let rec entered_at (prem : Il.prem) =
+  match prem.it with Il.IterPr (prem, _) -> entered_at prem | _ -> prem.at
+
+let body owner at prems =
+  let sites =
+    List.filter is_written prems
+    |> List.map (fun (prem : Il.prem) ->
+           { owner; span = prem.at; hit = entered_at prem })
+  in
+  { owner; at; sites }
+
+let bodies_of_spec (spec : Il.spec) =
+  List.concat_map
+    (fun (def : Il.def) ->
+      match def.it with
+      | Il.RelD { relid; rules; _ } ->
+          List.map
+            (fun (rule : Il.rule) ->
+              let owner =
+                if rule.it.ruleid.it = "" then relid.it
+                else relid.it ^ "/" ^ rule.it.ruleid.it
+              in
+              body owner rule.at rule.it.prems)
+            rules
+      | Il.DecD { defid; clauses; _ } ->
+          List.map
+            (fun (clause : Il.clause) ->
+              body ("$" ^ defid.it) clause.at clause.it.prems)
+            clauses
+      | _ -> [])
+    spec
+
+let lines_of = function
+  | Location.Span { left; right; _ } -> Some (left.line, right.line)
+  | Location.Unknown | Location.File _ -> None
+
+let covers line at =
+  match lines_of at with
+  | Some (first, last) -> first <= line && line <= last
+  | None -> false
+
+let starts_after line at =
+  match lines_of at with Some (first, _) -> first > line | None -> false
+
+(* The file of the spec that [name] names: the same path, or one ending in
+   it. *)
+let resolve_file bodies name =
+  let files =
+    List.filter_map (fun (body : body) -> Location.file body.at) bodies
+    |> List.sort_uniq String.compare
+  in
+  let suffix = "/" ^ name in
+  match
+    List.filter (fun file -> file = name || String.ends_with ~suffix file) files
+  with
+  | [ file ] -> file
+  | [] -> raise (Bad_command ("No rule or clause in `" ^ name ^ "`."))
+  | files ->
+      raise
+        (Bad_command
+           (Format.sprintf "`%s` matches several files: %s." name
+              (String.concat ", " files)))
+
+(* The written premise at [line] of [file], or else the next one in the same
+   rule or clause. *)
+let resolve_line bodies file line =
+  let bodies =
+    List.filter
+      (fun (body : body) ->
+        Location.file body.at = Some file && covers line body.at)
+      bodies
+  in
+  let at_line =
+    List.concat_map (fun (body : body) -> body.sites) bodies
+    |> List.filter (fun site -> covers line site.span)
+  in
+  let latest a b =
+    match (lines_of a.span, lines_of b.span) with
+    | Some (first_a, _), Some (first_b, _) when first_b > first_a -> b
+    | _ -> a
+  in
+  match (at_line, bodies) with
+  | site :: sites, _ ->
+      (* select the last premise covering the line *)
+      List.fold_left latest site sites
+  | [], [] ->
+      raise
+        (Bad_command (Format.sprintf "No rule or clause at %s:%d." file line))
+  | [], body :: _ -> (
+      (* no premise on the line, but it is inside a rule or clause *)
+      match
+        List.find_opt (fun site -> starts_after line site.span) body.sites
+      with
+      | Some site -> site
+      | None ->
+          raise
+            (Bad_command
+               (Format.sprintf "No premise at or after line %d in %s." line
+                  body.owner)))
+
 module State = struct
   let spec : Il.spec ref = ref []
+  let bodies : body list ref = ref []
   let breakpoints : breakpoint list ref = ref []
   let next_number = ref 1
   let frames : frame list ref = ref []
@@ -75,15 +215,23 @@ module State = struct
     step := None
 
   let add_breakpoint target =
-    if not (defines !spec target) then
+    let defined =
+      match target with
+      | Prem _ -> true
+      | Rel _ | Rule _ -> defines !spec target
+    in
+    if not defined then
       raise
         (Bad_command
            (Format.sprintf "No definition matches `%s`."
               (string_of_target target)));
-    let breakpoint = { number = !next_number; target } in
-    incr next_number;
-    breakpoints := !breakpoints @ [ breakpoint ];
-    breakpoint
+    match List.find_opt (fun b -> b.target = target) !breakpoints with
+    | Some breakpoint -> `Existing breakpoint
+    | None ->
+        let breakpoint = { number = !next_number; target } in
+        incr next_number;
+        breakpoints := !breakpoints @ [ breakpoint ];
+        `New breakpoint
 
   let delete_breakpoint number =
     if not (List.exists (fun b -> b.number = number) !breakpoints) then
@@ -92,6 +240,12 @@ module State = struct
 
   let breakpoint_for target =
     List.find_opt (fun b -> b.target = target) !breakpoints
+
+  (* The breakpoint on the written premise entered at [at]. *)
+  let breakpoint_at at =
+    List.find_opt
+      (fun b -> match b.target with Prem site -> site.hit = at | _ -> false)
+      !breakpoints
 end
 
 let stdout = Format.std_formatter
@@ -258,7 +412,8 @@ let help =
   locals             show the bindings in scope
   p, print NAME      show the binding of NAME
   show               show the source of the current rule or clause
-  b, break NAME      stop at NAME: Rel or Rel/rule
+  b, break WHERE     stop at WHERE: Rel, Rel/rule, or the premise at
+                     FILE:LINE (LINE alone: in the current file)
   d, delete N        remove breakpoint N
   info b             list breakpoints
   q, quit            abort the run
@@ -287,6 +442,30 @@ let resume_stepping step =
   if !State.frames = [] then raise (Bad_command "No call in progress.");
   State.step := Some (step (depth ()));
   true
+
+(* The file a bare line number refers to: that of the current call. *)
+let current_file () =
+  match !State.frames with
+  | frame :: _ -> (
+      match Location.file (location_of_frame frame) with
+      | Some file -> file
+      | None -> raise (Bad_command "The current call has no source file."))
+  | [] -> raise (Bad_command "No call in progress. Use FILE:LINE.")
+
+let resolve_where name =
+  match where_of_string name with
+  | None ->
+      raise
+        (Bad_command
+           ("Cannot read `" ^ name ^ "` as Rel, Rel/rule, FILE:LINE or LINE."))
+  | Some (Def target) -> target
+  | Some (Line (file, line)) ->
+      let file =
+        match file with
+        | Some name -> resolve_file !State.bodies name
+        | None -> current_file ()
+      in
+      Prem (resolve_line !State.bodies file line)
 
 (* Returns once the user starts or resumes the run. *)
 let rec prompt () =
@@ -325,15 +504,14 @@ let rec prompt () =
           require_running ();
           print_local name;
           false
-      | [ ("b" | "break"); name ] -> (
-          match target_of_string name with
-          | None ->
-              raise
-                (Bad_command ("Cannot read `" ^ name ^ "` as Rel or Rel/rule."))
-          | Some target ->
-              let { number; target } = State.add_breakpoint target in
-              say "Breakpoint %d at %s." number (string_of_target target);
-              false)
+      | [ ("b" | "break"); name ] ->
+          (match State.add_breakpoint (resolve_where name) with
+          | `New { number; target } ->
+              say "Breakpoint %d at %s." number (string_of_target target)
+          | `Existing { number; target } ->
+              say "Breakpoint %d is already at %s." number
+                (string_of_target target));
+          false
       | [ ("d" | "delete"); number ] -> (
           match int_of_string_opt number with
           | None -> raise (Bad_command ("Not a breakpoint number: " ^ number))
@@ -366,9 +544,31 @@ let pause () =
   State.step := None;
   prompt ()
 
-let stop_at { number; target } =
-  say "Breakpoint %d, %s%s" number (string_of_target target)
-    (current_call_site ());
+let say_source_line at =
+  match at with
+  | Location.Span { file; left; _ } -> (
+      match lines_of_file file with
+      | Some lines when left.line <= Array.length lines ->
+          say "%7d  %s" left.line lines.(left.line - 1)
+      | _ -> ())
+  | Location.Unknown | Location.File _ -> ()
+
+(* Stops once for the breakpoints [hits], all firing at the same event, which
+   is always inside a call: one breakpoint, or a rule's and one on its first
+   written premise. A premise among them also shows its line. *)
+let stop_at hits =
+  let name =
+    match !State.frames with frame :: _ -> string_of_frame frame | [] -> ""
+  in
+  let numbers = List.map (fun { number; _ } -> string_of_int number) hits in
+  say "Breakpoint%s %s, %s%s"
+    (if List.length hits > 1 then "s" else "")
+    (String.concat " and " numbers)
+    name (current_call_site ());
+  List.find_map
+    (function { target = Prem site; _ } -> Some site.span | _ -> None)
+    hits
+  |> Option.iter say_source_line;
   pause ()
 
 (* Stepping *)
@@ -376,12 +576,9 @@ let stop_at { number; target } =
 (* Prints the first line of [at], as gdb does when stepping. *)
 let say_line frame at =
   match at with
-  | Location.Span { file; left; _ } -> (
+  | Location.Span { file; left; _ } ->
       say "%s, %s:%d" (string_of_frame frame) file left.line;
-      match lines_of_file file with
-      | Some lines when left.line <= Array.length lines ->
-          say "%7d  %s" left.line lines.(left.line - 1)
-      | _ -> ())
+      say_source_line at
   | Location.Unknown | Location.File _ -> say "%s" (string_of_frame frame)
 
 (* Stops at a written premise when the step in progress lands on it. *)
@@ -425,7 +622,7 @@ let describe_func_exit output name =
   | Some value -> say_value (name ^ " returned ") value
 
 let stop_if_breakpoint target =
-  Option.iter stop_at (State.breakpoint_for target)
+  Option.iter (fun hit -> stop_at [ hit ]) (State.breakpoint_for target)
 
 (* Rule breakpoints. A rule is tried before it is known to apply: its
    conclusion's input patterns are checked by premises that elaboration puts
@@ -434,23 +631,23 @@ let stop_if_breakpoint target =
    first written premise, or when the rule succeeds if it has none. *)
 
 let arm_rule id rule_id =
-  match (State.breakpoint_for (Rule (id, rule_id)), !State.frames) with
-  | Some breakpoint, frame :: _ -> frame.armed <- Some breakpoint
-  | _ -> ()
-
-(* Stops at the armed breakpoint, if any, and says whether it stopped. *)
-let fire_armed () =
   match !State.frames with
-  | ({ armed = Some breakpoint; _ } as frame) :: _ ->
+  | frame :: _ -> frame.armed <- State.breakpoint_for (Rule (id, rule_id))
+  | [] -> ()
+
+(* Disarms and returns the armed breakpoint, if any. *)
+let take_armed () =
+  match !State.frames with
+  | frame :: _ ->
+      let armed = frame.armed in
       frame.armed <- None;
-      stop_at breakpoint;
-      true
-  | _ -> false
+      Option.to_list armed
+  | [] -> []
 
 (* A rule failing a guard never reached a written premise, so does not stop. *)
 let exit_rule success =
-  if success then ignore (fire_armed ());
-  match !State.frames with frame :: _ -> frame.armed <- None | [] -> ()
+  let hits = take_armed () in
+  if success && hits <> [] then stop_at hits
 
 let push_frame kind id at inputs =
   State.frames :=
@@ -489,15 +686,15 @@ let leave_scope () =
       frame.prem_at <- None
   | [] -> ()
 
-let is_written (prem : Il.prem) = prem.note <> Some Il.Synthesized
-
 module M : Instrumentation_api.Handler.S = struct
   let static_dependencies = []
 
   let init ~(spec : Instrumentation_api.Handler.spec) =
     State.reset ();
     (match spec with
-    | IlSpec il_spec -> State.spec := il_spec
+    | IlSpec il_spec ->
+        State.spec := il_spec;
+        State.bodies := bodies_of_spec il_spec
     | SlSpec _ -> invalid_arg "Debugger.init: the debug subcommand runs IL");
     say "Set breakpoints, then `run` to start. `help` lists commands.";
     prompt ()
@@ -523,8 +720,10 @@ module M : Instrumentation_api.Handler.S = struct
         set_env env;
         if is_written prem then (
           set_prem_at at;
-          (* One stop per event: a rule breakpoint firing here ends any step. *)
-          if not (fire_armed ()) then step_at at)
+          (* At most two breakpoints can be on the same premise. *)
+          match take_armed () @ Option.to_list (State.breakpoint_at at) with
+          | [] -> step_at at
+          | hits -> stop_at hits)
     | Prem_exit { env; _ } -> set_env env
     | Func_enter { id; at; inputs } -> push_frame `Func id at inputs
     | Clause_enter { clause_idx; env; _ } ->
