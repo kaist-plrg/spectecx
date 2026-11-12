@@ -90,7 +90,7 @@ let make_debug (module Tgt : Spectec.Target.S) ~name
             ~default_dir:Tgt.spec_dir
         in
         let* _files, spec_al, _henv = load_al_spec source in
-        let config = config @ [ Instrumentation.Debugger.config ] in
+        let config = config @ [ Spectec_debugger.Debugger.config ] in
         Batch.run_and_print_single
           (module TC.Task)
           ~config ~check_determinism ~mode:Interp_mode.Al ~spec_al input

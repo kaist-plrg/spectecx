@@ -13,7 +13,6 @@ module Branch_coverage = Instrumentation_handlers.Branch_coverage
 module Instruction_coverage = Instrumentation_handlers.Instruction_coverage
 module Profile = Instrumentation_handlers.Profile
 module Trace = Instrumentation_handlers.Trace
-module Debugger = Instrumentation_handlers.Debugger
 
 module Handler : sig
   include module type of Instrumentation_api.Handler

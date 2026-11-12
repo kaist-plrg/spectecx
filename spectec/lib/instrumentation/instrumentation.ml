@@ -11,7 +11,6 @@ module Instruction_coverage = Instrumentation_handlers.Instruction_coverage
 module Profile = Instrumentation_handlers.Profile
 module Trace = Instrumentation_handlers.Trace
 module Tree = Instrumentation_handlers.Tree
-module Debugger = Instrumentation_handlers.Debugger
 module Run_config = Instrumentation_config.Config
 module Exn = Instrumentation_common.Exn
 
