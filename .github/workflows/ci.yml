@@ -37,6 +37,24 @@ jobs:
       - name: Package extension
         run: npm run package
 
+  lean:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: spectec/proofs/itpl
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Lean
+        uses: leanprover/lean-action@v1
+        with:
+          auto-config: false
+          lake-package-directory: spectec/proofs/itpl
+
+      - name: Check proofs
+        run: ./check.sh
+
   ci:
     strategy:
       fail-fast: false

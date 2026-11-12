@@ -1,4 +1,4 @@
-; Mark the test corpus and example spec trees as data only.
+; Mark the test corpus, example spec trees and Lean proofs as data only.
 ; dune watches them but doesn't try to build them.
 
-(data_only_dirs examples testdata)
+(data_only_dirs examples proofs testdata)
