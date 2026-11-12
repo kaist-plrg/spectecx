@@ -38,6 +38,7 @@ type resume = Continue | Step | Next | Finish
 module type FRONTEND = sig
   val before_run : unit -> unit
   val stopped : stop_reason -> resume
+  val after_run : unit -> unit
 end
 
 (* A call in progress. *)
@@ -390,7 +391,7 @@ module Make (F : FRONTEND) : Instrumentation_api.Handler.S = struct
     | SlSpec _ -> invalid_arg "Debugger.init: the debug subcommand runs IL");
     F.before_run ()
 
-  let finish () = ()
+  let finish () = F.after_run ()
 
   let handle : Instrumentation_api.Event.t -> unit = function
     | Rel_enter { id; at; inputs } ->

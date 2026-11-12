@@ -71,11 +71,18 @@ let make_debug (module Tgt : Spectec.Target.S) ~name
       Core.Command.basic ~summary:("Run " ^ task_name ^ " under the debugger")
       @@
       let open Core.Command.Let_syntax in
+      let open Core.Command.Param in
       let%map cli_source = Cli_args.Spec.source_flag
       and check_determinism = Cli_args.Interpreter.det_flag
       and input = TC.flags
       and config = Cli_args.Interpreter.config_flags
-      and color = Cli_args.Output.color_flag in
+      and color = Cli_args.Output.color_flag
+      and dap =
+        flag "--dap" no_arg
+          ~doc:
+            " serve the Debug Adapter Protocol on stdin and stdout instead of \
+             a prompt; the run's output goes to stderr"
+      in
       fun () ->
         guard_unit ~color
           ~suppress_trace:
@@ -90,7 +97,11 @@ let make_debug (module Tgt : Spectec.Target.S) ~name
             ~default_dir:Tgt.spec_dir
         in
         let* _files, spec_il, _henv = load_spec source in
-        let config = config @ [ Spectec_debugger.Repl.config ] in
+        let debugger =
+          if dap then Spectec_debugger.Dap.Server.config
+          else Spectec_debugger.Repl.config
+        in
+        let config = config @ [ debugger ] in
         Batch.run_and_print_single
           (module TC.Task)
           ~config ~check_determinism ~mode:Interp_mode.Il ~spec_il input

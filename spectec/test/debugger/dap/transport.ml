@@ -1,7 +1,3 @@
-(* Feeds framed input to Transport and prints what it reads, and prints the
-   messages it writes, each as its header (with \r and \n spelled out) and
-   its body. *)
-
 module Transport = Spectec_debugger.Dap.Transport
 
 let frame content =
