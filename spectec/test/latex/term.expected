@@ -1,0 +1,233 @@
+[TC]
+\mathbb{N}
+[boolean]
+\mathbb{B}
+[tuple]
+(\mathbb{N}, \mathbb{Z}, \mathbb{T})
+[application]
+\mathsf{box}\langle\mathbb{B}, \mathbb{N}\rangle
+[iteration]
+{\mathsf{item}}^{\ast}
+[nested_iteration]
+{{\mathsf{item}}^{\ast}}^{\ast}
+[parenthesized]
+\mathsf{item}
+[Sequence_type]
+\mathsf{p}\,\mathsf{TC}\,\mathsf{x}
+[Bracket_type]
+\langle\mathsf{CASE}\,\mathsf{x\_t}\rangle
+[Arrow_sub_type]
+\mathsf{x} \to_{\mathsf{n}} \mathsf{y}\,\mathsf{z}
+[Arrow_sub_only_type]
+\mathsf{x}\to_{\mathsf{n}}
+[Double_arrow_sub_type]
+\mathsf{p}\Rightarrow_{\mathsf{k}}
+[Judgment_type]
+\mathsf{context} \vdash \mathsf{exp} : \mathsf{typ}
+[Leading_turnstile_type]
+\vdash\mathsf{exp} : \mathsf{typ}
+[Exp/literals]
+\mathsf{true}\,123456789012345678901234567890\,\mathtt{0x123456789ABCDEF0123456789ABCDEF}\,\texttt{"a\_\#\%\&}\{\}\backslash{}\backslash{}\hat{}\mathord{\sim}\texttt{"}\,\epsilon
+[Exp/sequence]
+\mathsf{p}\,\mathsf{TC}\,\mathsf{x}
+[Exp/variable-subscripts]
+\mathsf{plain}\,{\mathsf{TC}}_{\mathsf{0}}\,{\mathsf{typeId}}_{\mathsf{fresh\_local}}\,\mathsf{\_}
+[Exp/variable-trailing-underscores]
+\mathsf{x\_}\,\mathsf{x\_\_}
+[Exp/dollar]
+\texttt{"a\$b"}
+[Exp/string-bytes]
+\texttt{"λ\ }\backslash{}\texttt{FF"}
+[Exp/string-escapes]
+\texttt{"quote}\backslash{}\texttt{"\ newline}\backslash{}\texttt{n\ tab}\backslash{}\texttt{t\ backslash}\backslash{}\backslash{}\texttt{\ control}\backslash{}\texttt{1F\ braces}\{\}\texttt{\ three\ \ \ spaces"}
+[Exp/stronger-right]
+\mathsf{a} + \mathsf{b} \cdot \mathsf{c}
+[Exp/weaker-left]
+(\mathsf{a} + \mathsf{b}) \cdot \mathsf{c}
+[Exp/left-associative-right-child]
+\mathsf{a} - (\mathsf{b} - \mathsf{c})
+[Exp/left-associative-left-child]
+\mathsf{a} - \mathsf{b} - \mathsf{c}
+[Exp/right-associative-left-child]
+(\mathsf{a} \Rightarrow \mathsf{b}) \Rightarrow \mathsf{c}
+[Exp/right-associative-right-child]
+\mathsf{a} \Rightarrow \mathsf{b} \Rightarrow \mathsf{c}
+[Exp/comparison-chain]
+\mathsf{a} = (\mathsf{b} = \mathsf{c})
+[Exp/comparison]
+\mathsf{a} \le \mathsf{b}
+[Exp/author-parentheses]
+{\mathsf{x}}_{\mathsf{under}}
+[Exp/power-left]
+{({\mathsf{a}}^{\mathsf{b}})}^{\mathsf{c}}
+[Exp/power-right]
+{\mathsf{a}}^{{\mathsf{b}}^{\mathsf{c}}}
+[Exp/power-of-negation]
+{(-\mathsf{a})}^{2}
+[Exp/negation-of-power]
+-{\mathsf{a}}^{2}
+[Exp/negation-of-sum]
+-(\mathsf{a} + \mathsf{b})
+[Exp/not-conjunction]
+\neg(\mathsf{a} \wedge \mathsf{b})
+[Exp/conjunction-in-disjunction]
+\mathsf{a} \vee \mathsf{b} \wedge \mathsf{c}
+[Exp/disjunction-in-conjunction]
+(\mathsf{a} \vee \mathsf{b}) \wedge \mathsf{c}
+[Exp/cons-right]
+\mathsf{x} \mathbin{::} \mathsf{y} \mathbin{::} \mathsf{zs}
+[Exp/step-over-colon]
+\mathsf{a} \hookrightarrow \mathsf{b} : \mathsf{c}
+[Exp/colon-over-implication]
+\mathsf{a} : \mathsf{b} \Rightarrow \mathsf{c}
+[Exp/arrow-under-cons]
+(\mathsf{x} \to \mathsf{t}) \mathbin{::} \mathsf{tenv}
+[Exp/comparison-under-assignment]
+\mathsf{a} \mathrel{:=} (\mathsf{b} = \mathsf{c})
+[Exp/arrow-under-comparison]
+\mathsf{a} = (\mathsf{x} \to \mathsf{t})
+[Exp/arrow-under-conjunction]
+\mathsf{a} \wedge (\mathsf{x} \to \mathsf{t})
+[Exp/assignment-under-conjunction]
+\mathsf{a} \wedge (\mathsf{b} \mathrel{:=} \mathsf{c})
+[Exp/relations-under-disjunction]
+\mathsf{a} = \mathsf{b} \vee \mathsf{c} \mathrel{<:} \mathbb{N}
+[Exp/turnstile-over-tilesturn]
+\mathsf{C} \vdash \mathsf{s} \dashv \mathsf{D}
+[Exp/tilesturn-over-step]
+\mathsf{a} \dashv \mathsf{b} \hookrightarrow \mathsf{c}
+[Exp/range-over-concatenation]
+\mathsf{a} .. \mathsf{b} \mathbin{+\!\!+} \mathsf{c}
+[Exp/negation-in-product]
+-\mathsf{a} \cdot \mathsf{b}
+[Exp/negation-over-sequence]
+\neg\mathsf{a}\,\mathsf{b}
+[Exp/power-in-sequence]
+\mathsf{x}\,{\mathsf{a}}^{\mathsf{b}}
+[Exp/implication-over-disjunction]
+\mathsf{a} \Rightarrow \mathsf{b} \vee \mathsf{c}
+[Exp/conjunction-over-subtype]
+\mathsf{a} \wedge \mathsf{b} \mathrel{<:} \mathbb{N}
+[Exp/comparison-over-cons]
+\mathsf{a} = \mathsf{b} \mathbin{::} \mathsf{c}
+[Exp/arrow-over-semicolon]
+\mathsf{a} \to \mathsf{b} ; \mathsf{c}
+[Exp/negation-of-negation]
+-(-\mathsf{a})
+[Exp/sign-after-slash]
+\mathsf{a} / (-\mathsf{b})
+[Exp/sign-after-dot]
+\mathsf{a} . (-\mathsf{b})
+[Exp/sign-after-two-dots]
+\mathsf{a} .. (-\mathsf{b})
+[Exp/sign-after-ellipsis]
+\mathsf{a} \ldots (-\mathsf{b})
+[Exp/semicolon-over-range]
+\mathsf{a} ; \mathsf{b} .. \mathsf{c}
+[Exp/range-over-set-minus]
+\mathsf{a} .. \mathsf{b} \setminus \mathsf{c}
+[Exp/equivalence]
+\mathsf{a} \Leftrightarrow \mathsf{b}
+[Exp/arithmetic-symbols]
+\mathsf{a} / \mathsf{b} \bmod \mathsf{c}
+[Exp/comparison-symbols]
+\mathsf{a} \ne \mathsf{b} \wedge \mathsf{a} < \mathsf{b} \wedge \mathsf{a} > \mathsf{b} \wedge \mathsf{a} \ge \mathsf{b}
+[Exp/unary-plus]
++\mathsf{a}
+[Exp/list-operators]
+(\mathsf{x} \mathbin{::} \mathsf{xs}) \mathbin{+\!\!+} [\mathsf{y}]
+[Exp/nested-sequence]
+\mathsf{x}\,(\mathsf{a}\,\mathsf{b})\,\mathsf{y}
+[Exp/iterated-sequence]
+{(\mathsf{a}\,\mathsf{b})}^{\ast}
+[Exp/object-term]
+\mathsf{env} \vdash {\mathsf{e}}_{\mathsf{l}}\,\mathbin{\texttt{+}}\,{\mathsf{e}}_{\mathsf{r}} \Longrightarrow {}_{\mathsf{NUM}}\,\mathsf{i}
+[Exp/collections]
+[\mathsf{x}, \mathsf{y}]\,(\mathsf{x}, \mathsf{y})\,\{\mathsf{FIELD}\,\mathsf{x}, \mathsf{OTHER}\,\mathsf{y}\,\mathsf{z}\}
+[Exp/field-arithmetic]
+\{\mathsf{FIELD}\,(\mathsf{a} + \mathsf{b})\}
+[Exp/list-leading-silent-item]
+[{}_{\mathsf{META}}, \mathsf{x}, \mathsf{y}]
+[Exp/tuple-middle-silent-item]
+(\mathsf{x}, {}_{\mathsf{META}}, \mathsf{y})
+[Exp/call-trailing-silent-argument]
+\mathrm{call\_fn}(\mathsf{x}, \mathsf{y}, {}_{\mathsf{META}})
+[Exp/all-silent-list]
+[{}_{\mathsf{META}}, {}_{\mathsf{META}}]
+[Exp/access]
+\mathsf{record}.\mathsf{FIELD}[\mathsf{lo} : \mathsf{hi}][[\mathsf{i}].\mathsf{NEXT} = \mathopen{|}\mathsf{value}\mathclose{|}]
+[Exp/index]
+\mathsf{xs}[\mathsf{i}]
+[Exp/update-paths]
+\mathsf{r}[.\mathsf{F} = \mathsf{v}]\,\mathsf{r}[[\mathsf{l} : \mathsf{h}] = \mathsf{v}]
+[Exp/update-with-comparison]
+\mathsf{r}[.\mathsf{F} = (\mathsf{a} = \mathsf{b})]
+[Exp/length-of-negation]
+\mathopen{|}-\mathsf{a}\mathclose{|}
+[Exp/membership-and-subtype]
+(\mathsf{x} \in \mathsf{xs}) \mathrel{<:} \mathsf{element\_t}
+[Exp/call]
+\mathrm{lookup\_fn}\langle\mathsf{key\_t}\rangle({\mathsf{key}}_{\mathsf{v}}, \mathrm{fallback\_fn})
+[Exp/call-without-arguments]
+\mathrm{constant}
+[Exp/iteration]
+{\mathsf{entry}}^{?}
+[Exp/bracket-notation]
+\{\mathsf{payload}\}
+[Exp/paren-notation]
+(\mathsf{payload})
+[Exp/square-notation]
+[\mathsf{payload}]
+[Exp/subscripted-arrows]
+(\mathsf{x} \to_{\mathsf{n}} \mathsf{y}\,\mathsf{z})\,(\mathsf{p} \Rightarrow_{\mathsf{k}} \mathsf{q})
+[Exp/arrow-sub-only]
+\mathsf{x}\to_{\mathsf{n}}
+[Exp/double-arrow-sub-only]
+\mathsf{p}\Rightarrow_{\mathsf{k}}
+[Exp/silent-tag]
+\mathsf{left}\,{}_{\mathsf{META}}\,\mathsf{right}
+[Exp/object-operator]
+{}_{\mathsf{META}}\,\mathbin{\texttt{<+>}}\,\mathsf{rightvisible}
+[Exp/object-operator-symbols]
+\mathsf{a}\,\mathbin{\texttt{->}}\,\mathsf{b}
+[Exp/leading-turnstile]
+\vdash\mathsf{e}
+[Exp/leading-step]
+\hookrightarrow\mathsf{a} : \mathsf{b}
+[Exp/leading-arrow-under-semicolon]
+\to\mathsf{a} ; \mathsf{b}
+[Exp/leading-arrow-over-semicolon]
+\to(\mathsf{a} ; \mathsf{b})
+[Exp/arrow-sub-alone]
+\to_{\mathsf{n}}
+[Exp/leading-arrow-sub-under-semicolon]
+\to_{\mathsf{n}} ; \mathsf{b}
+[Exp/dot]
+\mathsf{a} . \mathsf{b}
+[Exp/step-arrows]
+\mathsf{s} \hookrightarrow \mathsf{t} \mathrel{\hookrightarrow^{\ast}} \mathsf{u}
+[Exp/similar]
+\mathsf{a} \sim \mathsf{b}
+[Exp/assignment-and-semicolon]
+\mathsf{a} \mathrel{:=} \mathsf{b} ; \mathsf{c}
+[Exp/dots]
+\mathsf{a} .. \mathsf{b} \ldots \mathsf{c}
+[Prem/forms]
+\mathsf{conclusion}
+-- \mathsf{x} : \mathbb{N}
+-- \mathsf{p} \vdash \mathsf{e}
+-- \neg(\mathsf{p} \vdash \mathsf{e})
+-- \mathsf{x} = \mathsf{y}
+-- {\mathsf{x}}^{\ast}
+-- {(\mathsf{x} = \mathsf{y})}^{\ast}
+-- {(\mathsf{x} : \mathbb{N})}^{\ast}
+-- \mathrm{debug}\,\mathsf{x}
+-- \mathrm{otherwise}
+[Error/hole]
+Latex: misplaced hole at term.spectec:140:18-140:19
+[Error/fuse]
+Latex: misplaced token concatenation at term.spectec:141:18-141:21
+[Error/unparen]
+Latex: misplaced unparenthesize at term.spectec:142:21-142:24
+[Error/latex]
+Latex: misplaced LaTeX literal at term.spectec:143:19-143:32
