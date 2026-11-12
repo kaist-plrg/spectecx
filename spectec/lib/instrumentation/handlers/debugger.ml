@@ -23,8 +23,8 @@ type frame = {
   inputs : Il.Value.t list;
   mutable rule_id : string option;
   mutable clause_idx : int option;
-  (* A rule breakpoint waiting for its rule's guards, listed here, to pass. *)
-  mutable pending : (breakpoint * Il.prem list) option;
+  (* A breakpoint on the current rule that has not fired in this attempt. *)
+  mutable armed : breakpoint option;
   (* The bindings in scope, as of the last event in this call. *)
   mutable env : VEnv.t;
   (* The written premise this call is at. *)
@@ -429,66 +429,28 @@ let stop_if_breakpoint target =
 
 (* Rule breakpoints. A rule is tried before it is known to apply: its
    conclusion's input patterns are checked by premises that elaboration puts
-   first and marks [Synthesized]. A rule breakpoint stops once those pass. *)
+   first and marks [Synthesized]. Every premise after them starts with a written
+   one, so a rule breakpoint is armed when the rule is entered and fires at its
+   first written premise, or when the rule succeeds if it has none. *)
 
-let find_rule id rule_id =
-  List.find_map
-    (fun (def : Il.def) ->
-      match def.it with
-      | Il.RelD { relid; rules; _ } when relid.it = id ->
-          List.find_opt
-            (fun (rule : Il.rule) -> rule.it.ruleid.it = rule_id)
-            rules
-      | _ -> None)
-    !State.spec
+let arm_rule id rule_id =
+  match (State.breakpoint_for (Rule (id, rule_id)), !State.frames) with
+  | Some breakpoint, frame :: _ -> frame.armed <- Some breakpoint
+  | _ -> ()
 
-(* The premises checking the rule's input patterns, with the premises iterated
-   inside them, which report their own events. *)
-let guard_prems (rule : Il.rule) =
-  let rec with_inner (prem : Il.prem) =
-    match prem.it with
-    | Il.IterPr (inner, _) -> prem :: with_inner inner
-    | _ -> [ prem ]
-  in
-  let rec leading = function
-    | (({ note = Some Il.Synthesized; _ } : Il.prem) as prem) :: prems ->
-        with_inner prem @ leading prems
-    | _ -> []
-  in
-  leading rule.it.prems
-
-let enter_rule id rule_id =
-  match State.breakpoint_for (Rule (id, rule_id)) with
-  | None -> ()
-  | Some breakpoint -> (
-      let guards =
-        match find_rule id rule_id with
-        | Some rule -> guard_prems rule
-        | None -> []
-      in
-      match (guards, !State.frames) with
-      | [], _ | _, [] -> stop_at breakpoint
-      | guards, frame :: _ -> frame.pending <- Some (breakpoint, guards))
-
-(* Stops a pending rule breakpoint, when [applied] given the guards, and says
-   whether it stopped. *)
-let resolve_pending applied =
+(* Stops at the armed breakpoint, if any, and says whether it stopped. *)
+let fire_armed () =
   match !State.frames with
-  | ({ pending = Some (breakpoint, guards); _ } as frame) :: _
-    when applied guards ->
-      frame.pending <- None;
+  | ({ armed = Some breakpoint; _ } as frame) :: _ ->
+      frame.armed <- None;
       stop_at breakpoint;
       true
   | _ -> false
 
-(* The rule applies once it reaches a premise past its guards. *)
-let enter_prem prem =
-  resolve_pending (fun guards -> not (List.memq prem guards))
-
-(* A rule whose premises are all guards applies when it succeeds. *)
+(* A rule failing a guard never reached a written premise, so does not stop. *)
 let exit_rule success =
-  ignore (resolve_pending (fun _ -> success));
-  match !State.frames with frame :: _ -> frame.pending <- None | [] -> ()
+  if success then ignore (fire_armed ());
+  match !State.frames with frame :: _ -> frame.armed <- None | [] -> ()
 
 let push_frame kind id at inputs =
   State.frames :=
@@ -499,7 +461,7 @@ let push_frame kind id at inputs =
       inputs;
       rule_id = None;
       clause_idx = None;
-      pending = None;
+      armed = None;
       env = VEnv.empty;
       prem_at = None;
     }
@@ -552,17 +514,17 @@ module M : Instrumentation_api.Handler.S = struct
     | Rule_enter { id; rule_id; at = _; env } ->
         set_rule_id (Some rule_id);
         set_env env;
-        enter_rule id rule_id
+        arm_rule id rule_id
     | Rule_exit { success; _ } ->
         exit_rule success;
         set_rule_id None;
         leave_scope ()
     | Prem_enter { prem; at; env } ->
         set_env env;
-        if is_written prem then set_prem_at at;
-        (* No rule breakpoint stopped on this written premise. *)
-        if (not (enter_prem prem)) && is_written prem then step_at at
-    | Iter_prem_enter { prem; _ } -> ignore (enter_prem prem)
+        if is_written prem then (
+          set_prem_at at;
+          (* One stop per event: a rule breakpoint firing here ends any step. *)
+          if not (fire_armed ()) then step_at at)
     | Prem_exit { env; _ } -> set_env env
     | Func_enter { id; at; inputs } -> push_frame `Func id at inputs
     | Clause_enter { clause_idx; env; _ } ->
@@ -571,7 +533,9 @@ module M : Instrumentation_api.Handler.S = struct
     | Clause_exit _ ->
         set_clause_idx None;
         leave_scope ()
-    | Test_start _ | Test_end _ | Iter_prem_exit _ | Instr _ -> ()
+    | Test_start _ | Test_end _ | Iter_prem_enter _ | Iter_prem_exit _ | Instr _
+      ->
+        ()
 end
 
 let config : Instrumentation_config.Handler_config.t =
