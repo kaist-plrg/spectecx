@@ -14,7 +14,6 @@ module Node_coverage_il = Instrumentation_handlers.Node_coverage_il
 module Node_coverage_sl = Instrumentation_handlers.Node_coverage_sl
 module Profile = Instrumentation_handlers.Profile
 module Trace = Instrumentation_handlers.Trace
-module Debugger = Instrumentation_handlers.Debugger
 
 module Handler : sig
   include module type of Instrumentation_api.Handler

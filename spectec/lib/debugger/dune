@@ -1,0 +1,12 @@
+(include_subdirs qualified)
+
+(library
+ (name spectec_debugger)
+ (public_name spectec.debugger)
+ (libraries
+  spectec.common
+  spectec.lang
+  spectec.envs.interp
+  instrumentation_api
+  instrumentation_config
+  unix))
