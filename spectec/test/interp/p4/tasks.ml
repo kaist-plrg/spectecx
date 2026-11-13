@@ -21,8 +21,10 @@ let compile () =
     Spectec.collect_spec_files "../../../specs/p4"
     |> Spectec.parse_spec_files |> unwrap
   in
-  let spec_al = Spectec.elaborate_and_algorithmize spec |> unwrap in
-  let henv = Spectec.henv_with_al_spec (Spectec.henv_of_el_spec spec) spec_al in
+  let spec_il, spec_al = Spectec.elaborate_and_algorithmize spec |> unwrap in
+  let henv =
+    Spectec.henv_load_il_spec (Spectec.henv_of_el_spec spec) ~spec:spec_il
+  in
   (spec_al, henv)
 
 let expected_state size =

@@ -132,7 +132,7 @@ module Typecheck = struct
   let unparse = Frontend.unparse
   let parse_string = Frontend.parse_string
 
-  let parse_input ~spec:_ { includes; filename; _ } =
+  let parse_input { includes; filename; _ } =
     Frontend.parse_file includes filename |> Result.map (fun v -> [ v ])
 
   let run _ ~values ~eval_rel ~eval_func:_ = eval_rel "Program_ok" values
@@ -178,7 +178,7 @@ module Eval = struct
   let unparse = Frontend.unparse
   let parse_string = Frontend.parse_string
 
-  let parse_input ~spec:_ { includes; filename; _ } =
+  let parse_input { includes; filename; _ } =
     Frontend.parse_file includes filename |> Result.map (fun v -> [ v ])
 
   let run { stf; _ } ~values ~eval_rel ~eval_func =

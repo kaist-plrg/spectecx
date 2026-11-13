@@ -19,13 +19,13 @@ type code =
   (* lexer: comments *)
   | Unclosed_block_comment
   | Invalid_utf8_in_comment
-  (* parser: typdef body shape *)
+  (* parser: syntax definition body shape *)
   | Notation_type_expected
   | Struct_no_fields
   | Variant_no_cases
   | Syntax_empty_body
   | Syntax_no_ids
-  (* parser: hints on plain typdef *)
+  (* parser: hints on plain syntax definition *)
   | Hint_on_plain_bar_single
   | Hint_on_plain_bar_multi
   | Hint_on_plain_no_bar_single

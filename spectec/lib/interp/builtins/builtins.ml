@@ -51,11 +51,11 @@ let make (builtins : (string * Define.t) list) : t =
 
   { invoke; is_builtin }
 
-let check_result ~opaque_types ~find_typdef_opt ~signature:(tparams, typ) ~targs
+let check_result ~opaque_types ~find_syntax_opt ~signature:(tparams, typ) ~targs
     value =
   let* theta =
     Envs_il.Typ.make_theta ~tparams ~targs
     |> Result.map_error (fun _ -> "arity mismatch in builtin type arguments")
   in
   let typ = Envs_il.Typ.subst_typ theta typ in
-  Value_typecheck.check ~opaque_types ~find_typdef_opt ~typ value
+  Value_typecheck.check ~opaque_types ~find_syntax_opt ~typ value

@@ -34,9 +34,9 @@ val find_fields : t -> mixop:unit Il.Mixfix.t -> Fields.t option
 
 (** Build an HEnv from the EL spec, harvesting Alter-kind hints on Rel and Func
     subjects and rel input positions. Typcase hints (which need an IL mixop key)
-    are added by {!load_al_spec}. *)
+    are added by {!load_il_spec}. *)
 val of_el_spec : El.spec -> t
 
-(** Extend an HEnv with Typcase-scoped hints (prose alter and fields) from the
-    AL spec. *)
-val load_al_spec : t -> Al.spec -> t
+(** Add [prose] and [hint(fields ...)] hints from the IL spec for Typcase
+    subjects. *)
+val load_il_spec : t -> spec:Il.spec -> t

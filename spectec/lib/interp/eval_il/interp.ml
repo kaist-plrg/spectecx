@@ -289,7 +289,7 @@ and invoke_func_values (ctx : Ctx.t) (id : id) (targs : targ list)
       in
       (match
          Builtins.check_result ~opaque_types:(Ctx.opaque_types ctx)
-           ~find_typdef_opt:(fun id -> Ctx.find_typdef_opt ctx ~id)
+           ~find_syntax_opt:(fun id -> Ctx.find_syntax_opt ctx ~id)
            ~signature ~targs value_output
        with
       | Ok () -> ()
@@ -321,13 +321,13 @@ and invoke_func_values (ctx : Ctx.t) (id : id) (targs : targ list)
         checkf
           (List.length targs = List.length tparams)
           id.at "arity mismatch in type arguments";
-        let typdef_bindings =
+        let syntax_bindings =
           List.map2
             (fun tparam targ -> (tparam, ([], PlainT targ $ targ.at)))
             tparams targs
         in
         let ctx_local =
-          Ctx.add_typdefs_exn ctx_local ~bindings:typdef_bindings
+          Ctx.add_syntaxes_exn ctx_local ~bindings:syntax_bindings
         in
         (* Try to match the clause *)
         let ctx_local, args_input, prems, exp_output =

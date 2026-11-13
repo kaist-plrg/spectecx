@@ -32,7 +32,7 @@ let algo_command =
         Format.printf "%s\n" (Lang.Al.Print.string_of_spec spec_al))
     @@ fun () ->
     let* spec = parse_spec_files filenames in
-    let* spec_al = elaborate_and_algorithmize spec in
+    let* _spec_il, spec_al = elaborate_and_algorithmize spec in
     Ok spec_al
 
 let unparse_roundtrip filenames =
@@ -82,13 +82,12 @@ let grammar_command =
       ~doc:"SYMBOL syntax to extract the reachable grammar from"
   and color = Cli.Cli_args.Output.color_flag in
   fun () ->
-    Cli.Error_handling.guard ~color ~on_ok:(fun spec_al ->
+    Cli.Error_handling.guard ~color ~on_ok:(fun spec_il ->
         Format.printf "%s\n"
-          (Grammar.string_of_t (Grammar.extract ~start spec_al)))
+          (Grammar.string_of_t (Grammar.extract ~start spec_il)))
     @@ fun () ->
     let* spec = parse_spec_files filenames in
-    let* spec_al = elaborate_and_algorithmize spec in
-    Ok spec_al
+    elaborate spec
 
 let structure_command =
   Core.Command.basic ~summary:"structure a spec"
@@ -102,7 +101,7 @@ let structure_command =
         Format.printf "%s\n" (Lang.Sl.Print.string_of_spec spec_sl))
     @@ fun () ->
     let* spec = parse_spec_files filenames in
-    let* spec_al = elaborate_and_algorithmize spec in
+    let* _spec_il, spec_al = elaborate_and_algorithmize spec in
     let spec_sl = structure spec_al in
     Ok spec_sl
 
@@ -118,10 +117,10 @@ let annotate_command =
         Format.printf "%s\n" (Pl.Print.string_of_spec spec_pl))
     @@ fun () ->
     let* spec = parse_spec_files filenames in
-    let* spec_al = elaborate_and_algorithmize spec in
+    let* spec_il, spec_al = elaborate_and_algorithmize spec in
     let spec_sl = structure spec_al in
     let henv = henv_of_el_spec spec in
-    let henv = henv_with_al_spec henv spec_al in
+    let henv = henv_load_il_spec henv ~spec:spec_il in
     let spec_pl = annotate ~henv spec_sl |> shorten in
     Ok spec_pl
 
@@ -172,10 +171,10 @@ let splice_command =
         | None -> ())
     @@ fun () ->
     let* spec = parse_spec_files filenames in
-    let* spec_al = elaborate_and_algorithmize spec in
+    let* spec_il, spec_al = elaborate_and_algorithmize spec in
     let spec_sl = structure spec_al in
     let henv = henv_of_el_spec spec in
-    let henv = henv_with_al_spec henv spec_al in
+    let henv = henv_load_il_spec henv ~spec:spec_il in
     let spec_pl = annotate ~henv spec_sl |> shorten in
     let inputs = collect_files ~exts:[ ".adoc" ] input_dir in
     let pairs =

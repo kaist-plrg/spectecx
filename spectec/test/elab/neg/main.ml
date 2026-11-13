@@ -10,7 +10,8 @@ let () =
     Spectec.with_diagnostics (fun () ->
         match Spectec.parse_spec_files [ file ] with
         | Error e -> Error e
-        | Ok spec_el -> Spectec.elaborate_and_algorithmize spec_el)
+        | Ok spec_el ->
+            Spectec.elaborate_and_algorithmize spec_el |> Result.map snd)
   in
   let rendered =
     Spectec.Diagnostic.Render.render_bag ~ansi:Spectec.Diagnostic.Ansi.plain bag

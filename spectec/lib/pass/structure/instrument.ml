@@ -1,6 +1,6 @@
 open Lang
 open Ol.Ast
-module TDEnv = Envs.Il.TDEnv
+module SEnv = Envs.Il.SEnv
 open Common.Annotated
 
 (* Insert phantom instructions at dangling else branches,
@@ -67,16 +67,16 @@ let rec negate_pathcond (pathcond : pathcond) : pathcond =
 
 (* Phantom insertion *)
 
-let rec insert_phantom (tdenv : TDEnv.t) (pathconds : pathcond list)
+let rec insert_phantom (senv : SEnv.t) (pathconds : pathcond list)
     (instrs : instr list) : Sl.instr list =
-  List.map (insert_phantom' tdenv pathconds) instrs
+  List.map (insert_phantom' senv pathconds) instrs
 
-and insert_phantom' (tdenv : TDEnv.t) (pathconds : pathcond list)
-    (instr : instr) : Sl.instr =
+and insert_phantom' (senv : SEnv.t) (pathconds : pathcond list) (instr : instr)
+    : Sl.instr =
   let at = instr.at in
   match instr.it with
   | RelI { call; iterinstrs; block } ->
-      let block = insert_phantom tdenv pathconds block in
+      let block = insert_phantom senv pathconds block in
       Sl.RelI { call; iterinstrs; block } $ at
   | RelAssertI { call; expect; iterexps; block } ->
       let pathcond =
@@ -85,7 +85,7 @@ and insert_phantom' (tdenv : TDEnv.t) (pathconds : pathcond list)
       in
       let block =
         let pathconds = pathconds @ [ pathcond ] in
-        insert_phantom tdenv pathconds block
+        insert_phantom senv pathconds block
       in
       let phantom =
         let pid = pid () in
@@ -101,7 +101,7 @@ and insert_phantom' (tdenv : TDEnv.t) (pathconds : pathcond list)
       in
       let instrs_then =
         let pathconds = pathconds @ [ pathcond ] in
-        insert_phantom tdenv pathconds instrs_then
+        insert_phantom senv pathconds instrs_then
       in
       let phantom =
         let pid = pid () in
@@ -133,7 +133,7 @@ and insert_phantom' (tdenv : TDEnv.t) (pathconds : pathcond list)
           List.map2
             (fun pathcond_case instrs ->
               let pathconds = pathconds @ [ pathcond_case ] in
-              insert_phantom tdenv pathconds instrs)
+              insert_phantom senv pathconds instrs)
             pathconds_cases blocks
         in
         List.combine guards blocks
@@ -147,15 +147,15 @@ and insert_phantom' (tdenv : TDEnv.t) (pathconds : pathcond list)
       in
       Sl.CaseI (exp, cases, phantom_opt) $ at
   | OtherwiseI instr ->
-      let instr = insert_phantom' tdenv pathconds instr in
+      let instr = insert_phantom' senv pathconds instr in
       Sl.OtherwiseI instr $ at
   | LetI (exp_l, exp_r, iterinstrs, block) ->
-      let block = insert_phantom tdenv pathconds block in
+      let block = insert_phantom senv pathconds block in
       Sl.LetI (exp_l, exp_r, iterinstrs, block) $ at
   | ResultI exps -> Sl.ResultI exps $ at
   | ReturnI exp -> Sl.ReturnI exp $ at
   | DebugI (exp, instr_body) ->
-      let instr_body = insert_phantom' tdenv pathconds instr_body in
+      let instr_body = insert_phantom' senv pathconds instr_body in
       Sl.DebugI (exp, instr_body) $ at
 
 (* Nop pass *)
@@ -206,7 +206,7 @@ and insert_nothing' (instr : instr) : Sl.instr =
 
 (* Instrumentation *)
 
-let instrument (tdenv : TDEnv.t) (block : instr list)
+let instrument (senv : SEnv.t) (block : instr list)
     (elseblock_opt : instr list option) : Sl.instr list * Sl.instr list option =
   match elseblock_opt with
   | Some elseblock ->
@@ -221,6 +221,6 @@ let instrument (tdenv : TDEnv.t) (block : instr list)
               match instr.it with OtherwiseI _ -> true | _ -> false)
             block
         then insert_nothing block
-        else insert_phantom tdenv [] block
+        else insert_phantom senv [] block
       in
       (block, None)

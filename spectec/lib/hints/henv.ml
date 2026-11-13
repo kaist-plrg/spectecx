@@ -125,10 +125,10 @@ let load_deftyp (henv : t) (deftyp : Il.deftyp) : t =
   | Il.VariantT typcases -> List.fold_left load_typcase henv typcases
   | _ -> henv
 
-let load_al_def (henv : t) (def : Al.def) : t =
+let load_il_def (henv : t) (def : Il.def) : t =
   match def.it with
-  | Al.TypD { deftyp; _ } -> load_deftyp henv deftyp
+  | Il.TypD { deftyp; _ } -> load_deftyp henv deftyp
   | _ -> henv
 
-let load_al_spec (henv : t) (spec : Al.spec) : t =
-  List.fold_left load_al_def henv spec
+let load_il_spec (henv : t) ~(spec : Il.spec) : t =
+  List.fold_left load_il_def henv spec

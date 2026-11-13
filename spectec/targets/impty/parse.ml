@@ -399,7 +399,7 @@ let parse_file filename =
   with Error.ImptyParseError (at, msg) ->
     Error (Spectec.Error.TaskParseError (at, msg))
 
-let parse_string ~spec:_ ~filename content =
+let parse_string ~filename content =
   try Ok [ parse_string_exn ~filename content ]
   with Error.ImptyParseError (at, msg) ->
     Error (Spectec.Error.TaskParseError (at, msg))

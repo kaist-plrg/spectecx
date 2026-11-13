@@ -17,7 +17,7 @@ let id name = name $ Location.Unknown
 let var name = (id name, [])
 let nat n = Value.nat (Bigint.of_int n)
 let typ_nat = Il.Typ.nat $ Location.Unknown
-let typdef = ([], Il.PlainT typ_nat $ Location.Unknown)
+let syntax = ([], Il.PlainT typ_nat $ Location.Unknown)
 let itervar name iters : Il.var = { varid = id name; typ = typ_nat; iters }
 let check name condition = if not condition then failwith name
 
@@ -51,12 +51,12 @@ let () =
   let definitions =
     Ctx.Global.
       [
-        Syntax (id "T", typdef); Function (id "f", 17); Relation (id "r", "body");
+        Syntax (id "T", syntax); Function (id "f", 17); Relation (id "r", "body");
       ]
   in
   let global = Ctx.Global.of_definitions_exn definitions in
   let ctx = make global in
-  check "global type" (Ctx.find_typdef_exn ctx ~id:(id "T") = typdef);
+  check "global type" (Ctx.find_syntax_exn ctx ~id:(id "T") = syntax);
   check "global function" (Ctx.find_func_exn ctx ~id:(id "f") = 17);
   check "global relation" (Ctx.find_rel_exn ctx ~id:(id "r") = "body");
   check "global function is not local"
@@ -80,20 +80,20 @@ let () =
   in
   check_value ctx_rebound (var "x") (nat 2);
   let ctx_local =
-    Ctx.add_typdef_exn ctx_bound ~id:(id "U") ~typdef |> fun ctx ->
+    Ctx.add_syntax_exn ctx_bound ~id:(id "U") ~syntax |> fun ctx ->
     Ctx.add_func_exn ctx ~id:(id "g") ~func:23
   in
   let ctx_empty_values = Ctx.without_values ctx_local in
   check "value scope" (not (Ctx.has_value ctx_empty_values ~var:(var "x")));
   check "value scope retains types"
-    (Ctx.find_typdef_exn ctx_empty_values ~id:(id "U") = typdef);
+    (Ctx.find_syntax_exn ctx_empty_values ~id:(id "U") = syntax);
   check "value scope retains functions"
     (Ctx.find_func_exn ctx_empty_values ~id:(id "g") = 23);
   let ctx_callee = Ctx.for_call ctx_local in
   check "call scope has no values"
     (not (Ctx.has_value ctx_callee ~var:(var "x")));
   check "call scope has no local types"
-    (Ctx.find_typdef_opt ctx_callee ~id:(id "U") = None);
+    (Ctx.find_syntax_opt ctx_callee ~id:(id "U") = None);
   check "call scope has no local functions"
     (Ctx.find_func_opt ctx_callee ~id:(id "g") = None);
   check "call scope retains globals"

@@ -6,8 +6,8 @@ module Il = Lang.Il
 module Al = Lang.Al
 module Var = Envs.Interp.Var
 module Value = Il.Value
-module Typdef = Envs.Il.Typdef
-module TDEnv = Envs.Il.TDEnv
+module Syntax = Envs.Il.Syntax
+module SEnv = Envs.Il.SEnv
 module VEnv = Envs.Interp.VEnv
 module IdHashtbl = Envs.Make.IdHashtbl
 module FIdMap = Envs.Make.FIdMap
@@ -57,13 +57,13 @@ end) =
 struct
   module Global = struct
     type t = {
-      syntaxes : Typdef.t IdHashtbl.t;
+      syntaxes : Syntax.t IdHashtbl.t;
       functions : Func.t IdHashtbl.t;
       relations : Rel.t IdHashtbl.t;
     }
 
     type definition =
-      | Syntax of TId.t * Typdef.t
+      | Syntax of TId.t * Syntax.t
       | Function of FId.t * Func.t
       | Relation of RId.t * Rel.t
 
@@ -81,7 +81,7 @@ struct
       in
       List.iter
         (function
-          | Syntax (id, typdef) -> add global.syntaxes id typdef "type"
+          | Syntax (id, syntax) -> add global.syntaxes id syntax "type"
           | Function (id, func) -> add global.functions id func "function"
           | Relation (id, rel) -> add global.relations id rel "relation")
         definitions;
@@ -89,7 +89,7 @@ struct
   end
 
   type local = {
-    syntaxes : TDEnv.t;
+    syntaxes : SEnv.t;
     functions : Func.t FIdMap.t;
     values : VEnv.t;
   }
@@ -104,7 +104,7 @@ struct
   }
 
   let empty_local =
-    { syntaxes = TDEnv.empty; functions = FIdMap.empty; values = VEnv.empty }
+    { syntaxes = SEnv.empty; functions = FIdMap.empty; values = VEnv.empty }
 
   let make global ~builtins ~cache ~opaque_types ~check_determinism =
     {
@@ -125,14 +125,14 @@ struct
         let id, _ = var in
         error_undef id.at "value" (Var.to_string var)
 
-  let find_typdef_opt ctx ~id =
-    match TDEnv.find_opt id ctx.local.syntaxes with
-    | Some typdef -> Some typdef
+  let find_syntax_opt ctx ~id =
+    match SEnv.find_opt id ctx.local.syntaxes with
+    | Some syntax -> Some syntax
     | None -> IdHashtbl.find_opt ctx.global.syntaxes id
 
-  let find_typdef_exn ctx ~id =
-    match find_typdef_opt ctx ~id with
-    | Some typdef -> typdef
+  let find_syntax_exn ctx ~id =
+    match find_syntax_opt ctx ~id with
+    | Some syntax -> syntax
     | None -> error_undef id.at "type" id.it
 
   let find_func_opt ctx ~id =
@@ -187,19 +187,19 @@ struct
     in
     replace_values ctx values
 
-  let add_typdef_exn ctx ~id ~typdef =
-    if Option.is_some (find_typdef_opt ctx ~id) then
+  let add_syntax_exn ctx ~id ~syntax =
+    if Option.is_some (find_syntax_opt ctx ~id) then
       error_dup id.at "type" id.it;
-    let syntaxes = TDEnv.add id typdef ctx.local.syntaxes in
+    let syntaxes = SEnv.add id syntax ctx.local.syntaxes in
     { ctx with local = { ctx.local with syntaxes } }
 
-  let add_typdefs_exn ctx ~bindings =
+  let add_syntaxes_exn ctx ~bindings =
     let syntaxes =
       List.fold_left
-        (fun syntaxes (id, typdef) ->
-          if TDEnv.mem id syntaxes || IdHashtbl.mem ctx.global.syntaxes id then
+        (fun syntaxes (id, syntax) ->
+          if SEnv.mem id syntaxes || IdHashtbl.mem ctx.global.syntaxes id then
             error_dup id.at "type" id.it;
-          TDEnv.add id typdef syntaxes)
+          SEnv.add id syntax syntaxes)
         ctx.local.syntaxes bindings
     in
     { ctx with local = { ctx.local with syntaxes } }
@@ -218,7 +218,7 @@ struct
     | [] -> []
     | targs ->
         let theta =
-          TDEnv.fold
+          SEnv.fold
             (fun tid (tparams, deftyp) theta ->
               match (tparams, deftyp.it) with
               | [], Il.PlainT typ -> TIdMap.add tid typ theta
@@ -357,7 +357,7 @@ struct
       Result.bind (Envs.Il.Typ.make_theta ~tparams ~targs) (fun theta ->
           let typs = Envs.Il.Typ.subst_typs theta typs in
           Value_typecheck.check_values ~opaque_types:ctx.opaque_types
-            ~find_typdef_opt:(fun id -> find_typdef_opt ctx ~id)
+            ~find_syntax_opt:(fun id -> find_syntax_opt ctx ~id)
             ~typs values)
     in
     match result with

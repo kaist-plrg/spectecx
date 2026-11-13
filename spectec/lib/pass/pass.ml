@@ -19,12 +19,12 @@ let elaborate_and_algorithmize spec_el =
   let spec_il, errors_elab = Elaborate.elab_spec spec_el in
   let spec_al, errors_algo = Algo.algo_spec spec_il in
   match errors_algo @ errors_elab with
-  | [] -> Ok spec_al
+  | [] -> Ok (spec_il, spec_al)
   | errors -> Error (SemanticError errors)
 
 let structure spec = Structure.struct_spec spec
 let henv_of_el_spec spec = Hints.Henv.of_el_spec spec
-let henv_with_al_spec henv spec_al = Hints.Henv.load_al_spec henv spec_al
+let henv_load_il_spec henv ~spec = Hints.Henv.load_il_spec henv ~spec
 
 let annotate ~henv spec_sl =
   spec_sl |> Annotate.Expand.expand_spec |> Annotate.Linearize.linearize_spec

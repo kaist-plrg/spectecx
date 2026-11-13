@@ -99,7 +99,7 @@ let run specdir =
     let open Result.Let_syntax in
     let spec_files = Files.collect ~suffix:".spectec" specdir in
     let%bind spec = Spectec.parse_spec_files spec_files in
-    let%bind spec_al = Spectec.elaborate_and_algorithmize spec in
+    let%bind _spec_il, spec_al = Spectec.elaborate_and_algorithmize spec in
     return (spec, spec_al)
   in
   match result with

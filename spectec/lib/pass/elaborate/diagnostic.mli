@@ -19,12 +19,13 @@ exception ElabError of Diag.t
     One constructor per live elaborator diagnostic call site. Rendered as
     ["elab/<dashed-name>"] inside the diagnostic's [code] field.
 
-    Constructor-name prefixes name the surface construct: [Typ_] for the
-    [syntax T = ...] typdef body, [Syn_] for the [syntax T;] forward
-    declaration, [Funparam_] for a function-shape parameter declaration,
-    [Funarg_] for the corresponding argument-passing site, and so on. Group
-    comments below classify by the kind of mistake; the prefix carries the
-    site-shape information orthogonally. *)
+    Constructor prefixes identify the surface construct at each site. For
+    example, [Typ_] marks the body of a [syntax T = ...] definition, and [Syn_]
+    marks a [syntax T;] forward declaration. [Funparam_] marks the declaration
+    of a parameter that accepts a function, and [Funarg_] marks the
+    corresponding argument site.
+
+    Group comments below classify the kind of mistake. *)
 
 type code =
   (* arity / parameter shape mismatches *)
