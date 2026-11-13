@@ -29,10 +29,21 @@ type breakpoint = { number : int; target : target }
 (** [Rel], [Rel/rule], or [file:line in owner]. *)
 val string_of_target : target -> string
 
-(** The written premise at [line] of the spec file [file], or else the next one
-    in the same rule or clause. [file] may be any suffix of the file's path.
-    Raises {!Error} when there is none. *)
+(** The spec file that [file] names, as its locations record it. A relative
+    [file] may be any suffix of the recorded path; an absolute one names the
+    file wherever it is reached from. Raises {!Error} when no file, or more than
+    one, matches. *)
+val spec_file : string -> string
+
+(** The written premise at [line] of the spec file named by [file] (as in
+    {!spec_file}), or else the next one in the same rule or clause. Raises
+    {!Error} when there is none. *)
 val premise_at : file:string -> line:int -> site
+
+(** The absolute path of [file] with [.], [..] and symbolic links resolved, so
+    that two paths to one file are equal. A file that cannot be found is only
+    made absolute. *)
+val canonical : string -> string
 
 (** Adds a breakpoint at [target], or returns the one already there. Raises
     {!Error} when no relation or rule matches. *)

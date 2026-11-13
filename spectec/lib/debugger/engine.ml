@@ -139,17 +139,29 @@ let covers line at =
 let starts_after line at =
   match lines_of at with Some (first, _) -> first > line | None -> false
 
-(* The file of the spec that [name] names: the same path, or one ending in
-   it. *)
+let canonical file =
+  match Unix.realpath file with
+  | path -> path
+  | exception Unix.Unix_error _ ->
+      if Filename.is_relative file then Filename.concat (Sys.getcwd ()) file
+      else file
+
+(* The file of the spec that [name] names. A relative [name] is the same path
+   or a suffix of it; an absolute one is the same file. *)
 let resolve_file bodies name =
   let files =
     List.filter_map (fun (body : body) -> Location.file body.at) bodies
     |> List.sort_uniq String.compare
   in
-  let suffix = "/" ^ name in
-  match
-    List.filter (fun file -> file = name || String.ends_with ~suffix file) files
-  with
+  let names =
+    if Filename.is_relative name then
+      let suffix = "/" ^ name in
+      fun file -> file = name || String.ends_with ~suffix file
+    else
+      let name = canonical name in
+      fun file -> canonical file = name
+  in
+  match List.filter names files with
   | [ file ] -> file
   | [] -> error "No rule or clause in `%s`." name
   | files ->
@@ -214,9 +226,8 @@ end
 
 (* Breakpoints *)
 
-let premise_at ~file ~line =
-  let file = resolve_file !State.bodies file in
-  resolve_line !State.bodies file line
+let spec_file file = resolve_file !State.bodies file
+let premise_at ~file ~line = resolve_line !State.bodies (spec_file file) line
 
 let add_breakpoint target =
   let defined =

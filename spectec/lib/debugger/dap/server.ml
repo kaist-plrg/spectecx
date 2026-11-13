@@ -7,7 +7,8 @@
     stdout carries the protocol.
 
     Function breakpoints name a relation ([Rel]) or one of its rules
-    ([Rel/rule]). Line breakpoints are not supported yet. *)
+    ([Rel/rule]). Line breakpoints are on written premises, set per source file;
+    paths are compared and reported in canonical form ({!Engine.canonical}). *)
 
 module Location = Common.Location
 module Json = Yojson.Safe
@@ -115,40 +116,79 @@ let set_function_breakpoints request =
   in
   `Assoc [ ("breakpoints", `List (List.map answer names)) ]
 
-let set_breakpoints request =
-  let lines =
-    match member "breakpoints" request with `List lines -> lines | _ -> []
+(* Lines and columns as the client counts them. The engine counts lines from 1
+   and columns from 0. *)
+let client_line session (pos : Location.pos) =
+  `Int (pos.line - 1 + session.line_base)
+
+let client_column session (pos : Location.pos) =
+  `Int (pos.column + session.column_base)
+
+(* Replaces the premise breakpoints in one source with those on the given
+   lines, answering for each line in order. A line between premises moves to
+   the next one, and the answer says where it landed. *)
+let set_breakpoints session request =
+  let path =
+    match member "source" request with
+    | `Assoc fields -> (
+        match List.assoc_opt "path" fields with
+        | Some (`String path) -> path
+        | _ -> bad_request "Only sources with a `path` are supported.")
+    | _ -> bad_request "`source` is not an object."
   in
-  `Assoc
-    [
-      ( "breakpoints",
-        `List
-          (List.map
-             (fun _ -> unverified "Line breakpoints are not supported yet.")
-             lines) );
-    ]
+  let lines =
+    match member "breakpoints" request with
+    | `Null -> []
+    | `List breakpoints ->
+        List.map
+          (fun breakpoint -> Util.member "line" breakpoint |> Util.to_int)
+          breakpoints
+    | _ -> bad_request "`breakpoints` is not a list."
+  in
+  (* No spec file matching [path] means no breakpoints to replace; each line
+     is then answered with why. *)
+  let source =
+    match Engine.spec_file path with
+    | file -> Some file
+    | exception Engine.Error _ -> None
+  in
+  let in_source (site : Engine.site) =
+    Option.is_some source && Location.file site.span = source
+  in
+  Engine.breakpoints ()
+  |> List.iter (fun ({ number; target } : Engine.breakpoint) ->
+         match target with
+         | Prem site when in_source site -> Engine.delete_breakpoint number
+         | Rel _ | Rule _ | Prem _ -> ());
+  let answer line =
+    match Engine.premise_at ~file:path ~line:(line - session.line_base + 1) with
+    | exception Engine.Error message -> unverified message
+    | site -> (
+        let landed =
+          match site.span with
+          | Location.Span { left; _ } -> [ ("line", client_line session left) ]
+          | Location.Unknown | Location.File _ -> []
+        in
+        match Engine.add_breakpoint (Prem site) with
+        | `New { number; _ } | `Existing { number; _ } ->
+            `Assoc (("id", `Int number) :: ("verified", `Bool true) :: landed))
+  in
+  `Assoc [ ("breakpoints", `List (List.map answer lines)) ]
 
 (* Stack frames *)
-
-let absolute file =
-  if Filename.is_relative file then Filename.concat (Sys.getcwd ()) file
-  else file
 
 (* Where a frame is shown: its current premise, or else its rule, clause or
    definition. *)
 let position session (frame : Engine.frame) =
   match Option.value frame.premise ~default:frame.location with
   | Location.Span { file; left; right } ->
-      let line (pos : Location.pos) = `Int (pos.line - 1 + session.line_base) in
-      let column (pos : Location.pos) =
-        `Int (pos.column + session.column_base)
-      in
+      let line = client_line session and column = client_column session in
       [
         ( "source",
           `Assoc
             [
               ("name", `String (Filename.basename file));
-              ("path", `String (absolute file));
+              ("path", `String (Engine.canonical file));
             ] );
         ("line", line left);
         ("column", column left);
@@ -211,7 +251,7 @@ let handle session ~running (request : Transport.request) : Engine.resume option
       respond ~body:(set_function_breakpoints request) ();
       None
   | "setBreakpoints" ->
-      respond ~body:(set_breakpoints request) ();
+      respond ~body:(set_breakpoints session request) ();
       None
   | "setExceptionBreakpoints" ->
       respond ();
