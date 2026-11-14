@@ -55,31 +55,139 @@ jobs:
       - name: Check proofs
         run: ./check.sh
 
+  success-record:
+    runs-on: ubuntu-latest
+    outputs:
+      key: ${{ steps.record.outputs.key }}
+      tests: ${{ steps.record.outputs.tests }}
+      found: ${{ steps.lookup.outputs.cache-matched-key != '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # The ci job must not execute or compare the excluded Markdown,
+      # documentation/ and editors/ files, or .github/ files other than ci.yml.
+      # A dune mdx stanza runs code in Markdown. dune-project enables mdx,
+      # so adding such a stanza requires including its Markdown files here.
+      #
+      # Commit messages are outside the hash, so rewording commits can reuse
+      # a success. This step hashes the pull request merged into its base,
+      # so changes to files covered by the hash on the base also change it.
+      #
+      # Quick tests accept a full test success because full tests include
+      # the quick tests.
+      - name: Name the success record
+        id: record
+        run: |
+          hash=$({
+            git ls-files -s -- . ':(exclude).github' ':(exclude)documentation' ':(exclude)editors' ':(exclude,glob)**/*.md'
+            git ls-files -s -- .github/workflows/ci.yml
+          } | git hash-object --stdin)
+          if [ "$GITHUB_EVENT_NAME" = push ] && [ "$GITHUB_REF" = refs/heads/main ]; then
+            tests=full
+          else
+            tests=quick
+            echo "full-key=ci-success-$hash-full" >> "$GITHUB_OUTPUT"
+          fi
+          echo "tests=$tests" >> "$GITHUB_OUTPUT"
+          echo "key=ci-success-$hash-$tests" >> "$GITHUB_OUTPUT"
+
+      # Reruns skip this lookup to check the same files after changes to
+      # runner images, opam-repository or action versions behind major tags.
+      # GitHub limits this lookup to successes from the same pull request and main.
+      - name: Look up a previous success
+        id: lookup
+        if: github.run_attempt == 1
+        uses: actions/cache/restore@v6
+        with:
+          path: ci-success
+          key: ${{ steps.record.outputs.key }}
+          restore-keys: ${{ steps.record.outputs.full-key }}
+
+      - name: Report the earlier success
+        if: steps.lookup.outputs.cache-matched-key != ''
+        run: echo "The ci job passed for matching file contents in $(cat ci-success)" >> "$GITHUB_STEP_SUMMARY"
+
   ci:
+    needs: success-record
+    if: needs.success-record.outputs.found != 'true'
     strategy:
       fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
+    env:
+      OCAML_COMPILER: "5.1.1"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # `opam install --locked` does not remove packages dropped from the lock
+      # file. The opam file hash keeps later runs from restoring them.
+      - name: Name the opam key prefix
+        id: opam-prefix
+        env:
+          OPAM_FILES_HASH: ${{ hashFiles('*.opam', '*.opam.locked') }}
+        run: echo "prefix=opam-$ImageOS-$RUNNER_ARCH-ocaml.$OCAML_COMPILER-$OPAM_FILES_HASH" >> "$GITHUB_OUTPUT"
+
+      # setup-ocaml reuses the opam binary from the tool cache. GitHub restores
+      # the newest installation matching the prefix, searching the same pull
+      # request before main.
+      - name: Restore the opam installation
+        id: restore-opam
+        uses: actions/cache/restore@v6
+        with:
+          path: &opam-installation |
+            ~/.opam
+            _opam
+            ${{ runner.tool_cache }}/opam
+          key: ${{ steps.opam-prefix.outputs.prefix }}
+          restore-keys: ${{ steps.opam-prefix.outputs.prefix }}-
+
       - name: Set up OCaml
         uses: ocaml/setup-ocaml@v3
         with:
-          ocaml-compiler: "5.1.1"
+          ocaml-compiler: ${{ env.OCAML_COMPILER }}
           opam-pin: false
-          opam-local-packages: "*.opam"
+          # setup-ocaml saves its cache before dependencies are installed.
+          cache: false
 
       - name: Discover opam switch name
         run: echo "SWITCH=$(opam switch show -s)" >> $GITHUB_ENV
 
+      # A restored switch relies on the runner images for gmp and pkg-config,
+      # because opam does not reinstall system packages for restored conf-gmp
+      # and conf-pkg-config packages.
       - name: Install dependencies
         run: opam install . --deps-only --locked
 
       - name: Install dev tools
         run: opam install -y ocamlformat.0.27.0
+
+      # PACKAGES_HASH covers dependencies that opam rebuilds after changes to
+      # their opam-repository definitions, even with the same lock file.
+      # The key includes the opam version because setup-ocaml chooses the opam
+      # release at run time, independently of this repository.
+      - name: Name the opam installation
+        id: opam-key
+        env:
+          PREFIX: ${{ steps.opam-prefix.outputs.prefix }}
+          PACKAGES_HASH: ${{ hashFiles('_opam/.opam-switch/packages/**') }}
+        run: echo "key=$PREFIX-opam.$(opam --version)-$PACKAGES_HASH" >> "$GITHUB_OUTPUT"
+
+      - name: Remove opam files the next run does not need
+        if: steps.opam-key.outputs.key != steps.restore-opam.outputs.cache-matched-key
+        run: opam clean --all-switches --download-cache --logs --repo-cache --untracked --unused-repositories
+
+      # Save before Test package installation puts this project's packages in
+      # the switch. Saving before the checks also keeps the installation if
+      # a check fails.
+      - name: Save the opam installation
+        if: steps.opam-key.outputs.key != steps.restore-opam.outputs.cache-matched-key
+        uses: actions/cache/save@v6
+        with:
+          path: *opam-installation
+          key: ${{ steps.opam-key.outputs.key }}
 
       - name: Format check
         run: make fmt-check
@@ -98,5 +206,18 @@ jobs:
         run: bash spectec/test/package/install.sh
 
       - name: Full tests
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: needs.success-record.outputs.tests == 'full'
         run: make test
+
+  save-success-record:
+    needs: [success-record, ci]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write the success record
+        run: echo "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" > ci-success
+
+      - name: Save the success record
+        uses: actions/cache/save@v6
+        with:
+          path: ci-success
+          key: ${{ needs.success-record.outputs.key }}
