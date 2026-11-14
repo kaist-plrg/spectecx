@@ -15,6 +15,6 @@ val analyze : t -> string -> t * analysis
 (** Recheck open specs containing the file, including overlapping spec roots. *)
 val affected : t -> string -> t * analysis list
 
-(** Remove the buffer and return its spec's scope if no open documents remain in
-    that spec. *)
-val close : t -> string -> t * Sources.scope option
+(** Remove the file's buffer. If no open documents remain in its spec, discard
+    the cached analysis and return the spec directory. *)
+val close : t -> string -> t * Sources.spec_directory option

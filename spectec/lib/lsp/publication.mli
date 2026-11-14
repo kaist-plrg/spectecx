@@ -7,7 +7,7 @@ val empty : t
     whose diagnostics must be cleared. *)
 val update :
   encoding:Convert.encoding ->
-  ?closed:Sources.scope ->
+  ?closed:Sources.spec_directory ->
   t ->
   Workspace.analysis list ->
   t * (string * Linol_eio.Diagnostic.t list) list
