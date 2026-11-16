@@ -3,13 +3,15 @@
 
 type t = Al | Sl | Pl of Hints.Henv.t
 
-(** What a caller asked for, before the spec PL needs has been loaded. *)
+(** Mode selection before the caller has the hint environment required by PL. *)
 type request = [ `AL | `SL | `PL ]
 
 let resolve ~henv : request -> t = function
   | `AL -> Al
   | `SL -> Sl
   | `PL -> Pl henv
+
+let to_request : t -> request = function Al -> `AL | Sl -> `SL | Pl _ -> `PL
 
 let to_string : request -> string = function
   | `AL -> "AL"
