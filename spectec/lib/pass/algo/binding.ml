@@ -51,7 +51,7 @@ let update_venv_partial (venv : VEnv.t) (renv_partial : Partialbind.REnv.t) :
 
 (* Expression binding analysis *)
 
-let analyze_exps_as_bind (dctx : Dctx.t) ~(origin : origin) (exps : exp list) :
+let analyze_exps_as_bind (exps : exp list) ~(dctx : Dctx.t) ~(origin : origin) :
     Dctx.t * VEnv.t * exp list * instr list =
   let binds = Collectbind.collect_exps dctx exps in
   let venv = BEnv.flatten binds in
@@ -61,14 +61,14 @@ let analyze_exps_as_bind (dctx : Dctx.t) ~(origin : origin) (exps : exp list) :
   in
   let venv = update_venv_multi venv renv_multi in
   let sideconditions_multi =
-    Multibind.gen_sideconditions binds renv_multi ~origin
+    Multibind.gen_sideconditions renv_multi ~binds ~origin
   in
   let dctx, renv_partial, exps =
     Partialbind.rename_exps dctx (VEnv.dom venv) Partialbind.REnv.empty exps
   in
   let venv = update_venv_partial venv renv_partial in
   let sideconditions_partial =
-    Partialbind.gen_sideconditions dctx renv_partial ~origin
+    Partialbind.gen_sideconditions renv_partial ~dctx ~origin
   in
   let sideconditions = sideconditions_partial @ sideconditions_multi in
   (dctx, venv, exps, sideconditions)
@@ -89,7 +89,7 @@ let analyze_exps_as_bound (dctx : Dctx.t) (exps : exp list) : unit =
 
 (* Argument binding analysis *)
 
-let analyze_args_as_bind (dctx : Dctx.t) ~(origin : origin) (args : arg list) :
+let analyze_args_as_bind (args : arg list) ~(dctx : Dctx.t) ~(origin : origin) :
     Dctx.t * VEnv.t * arg list * instr list =
   let binds = Collectbind.collect_args dctx args in
   let venv = BEnv.flatten binds in
@@ -99,47 +99,48 @@ let analyze_args_as_bind (dctx : Dctx.t) ~(origin : origin) (args : arg list) :
   in
   let venv = update_venv_multi venv renv_multi in
   let sideconditions_multi =
-    Multibind.gen_sideconditions binds renv_multi ~origin
+    Multibind.gen_sideconditions renv_multi ~binds ~origin
   in
   let dctx, renv_partial, args =
     Partialbind.rename_args dctx (VEnv.dom venv) Partialbind.REnv.empty args
   in
   let venv = update_venv_partial venv renv_partial in
   let sideconditions_partial =
-    Partialbind.gen_sideconditions dctx renv_partial ~origin
+    Partialbind.gen_sideconditions renv_partial ~dctx ~origin
   in
   let sideconditions = sideconditions_partial @ sideconditions_multi in
   (dctx, venv, args, sideconditions)
 
 (* Premise binding analysis *)
 
-let rec analyze_prem (dctx : Dctx.t) (prem : Il.prem) :
+let rec analyze_prem (prem : Il.prem) ~(dctx : Dctx.t) :
     Dctx.t * VEnv.t * Al.instr * Al.instr list =
   match prem.it with
-  | Il.RelPr { relid; notexp } -> analyze_rule_prem dctx prem relid notexp
+  | Il.RelPr { relid; notexp } -> analyze_rule_prem prem ~dctx ~relid ~notexp
   | Il.RelAssertPr { call; expect } ->
-      analyze_rel_assert_prem dctx prem call expect
-  | Il.IfPr cond -> analyze_if_prem dctx prem cond
+      analyze_rel_assert_prem prem ~dctx ~call ~expect
+  | Il.IfPr cond -> analyze_if_prem prem ~dctx ~cond
   | Il.ElsePr -> (dctx, VEnv.empty, OtherwiseI $$ (prem.at, Premise prem), [])
-  | Il.IterPr (prem_inner, iter) -> analyze_iter_prem dctx prem prem_inner iter
-  | Il.DebugPr exp -> analyze_debug_prem dctx prem exp
+  | Il.IterPr (prem_inner, iter) ->
+      analyze_iter_prem prem ~dctx ~prem_inner ~iter
+  | Il.DebugPr exp -> analyze_debug_prem prem ~dctx ~exp
 
-and analyze_rule_prem (dctx : Dctx.t) (prem : Il.prem) (id : id)
-    (notexp : notexp) : Dctx.t * VEnv.t * Al.instr * Al.instr list =
+and analyze_rule_prem (prem : Il.prem) ~(dctx : Dctx.t) ~(relid : id)
+    ~(notexp : notexp) : Dctx.t * VEnv.t * Al.instr * Al.instr list =
   let mixop, exps = Mixop.split notexp in
-  let reltyp = Dctx.find_reltyp dctx id in
+  let reltyp = Dctx.find_reltyp dctx relid in
   let exps_input, exps_output = Mode.partition reltyp.it exps in
   analyze_exps_as_bound dctx exps_input;
   let dctx, venv, exps_output, sideconditions =
-    analyze_exps_as_bind dctx ~origin:(Sidecondition prem) exps_output
+    analyze_exps_as_bind exps_output ~dctx ~origin:(Sidecondition prem)
   in
   let exps = Mode.interleave reltyp.it ~ins:exps_input ~outs:exps_output in
   let notexp = Mixop.fill mixop exps in
-  let instr = RelI { relid = id; notexp } $$ (prem.at, Premise prem) in
+  let instr = RelI { relid; notexp } $$ (prem.at, Premise prem) in
   (dctx, venv, instr, sideconditions)
 
-and analyze_if_eq_prem (dctx : Dctx.t) ~(origin : origin) (at : Location.t)
-    (note : typ') (optyp : optyp) (exp_l : exp) (exp_r : exp) :
+and analyze_if_eq_prem ~(dctx : Dctx.t) ~(origin : origin) ~(at : Location.t)
+    ~(typ : typ') ~(optyp : optyp) ~(exp_l : exp) ~(exp_r : exp) :
     Dctx.t * VEnv.t * instr' * instr list =
   let binds_l = Collectbind.collect_exp dctx exp_l in
   let binds_r = Collectbind.collect_exp dctx exp_r in
@@ -148,15 +149,17 @@ and analyze_if_eq_prem (dctx : Dctx.t) ~(origin : origin) (at : Location.t)
       let instr =
         IfI
           {
-            cond =
-              CmpE (`EqOp, optyp, exp_l, exp_r)
-              $$ (at, { typ = note; annot = () });
+            cond = CmpE (`EqOp, optyp, exp_l, exp_r) $$ (at, { typ; annot = () });
             role = Condition;
           }
       in
       (dctx, VEnv.empty, instr, [])
-  | false, true -> analyze_let_prem dctx ~origin exp_l binds_l exp_r
-  | true, false -> analyze_let_prem dctx ~origin exp_r binds_r exp_l
+  | false, true ->
+      analyze_let_prem ~dctx ~origin ~exp_bind:exp_l ~binds:binds_l
+        ~exp_bound:exp_r
+  | true, false ->
+      analyze_let_prem ~dctx ~origin ~exp_bind:exp_r ~binds:binds_r
+        ~exp_bound:exp_l
   | false, false ->
       error at
         (Format.asprintf
@@ -168,53 +171,52 @@ and analyze_if_eq_prem (dctx : Dctx.t) ~(origin : origin) (at : Location.t)
            bound, or as a binder when one side is. With new variables on both \
            sides it fits neither."
 
-and analyze_if_prem (dctx : Dctx.t) (prem : Il.prem) (exp : exp) :
+and analyze_if_prem (prem : Il.prem) ~(dctx : Dctx.t) ~(cond : exp) :
     Dctx.t * VEnv.t * Al.instr * Al.instr list =
-  match exp.it with
+  match cond.it with
   | CmpE (`EqOp, optyp, exp_l, exp_r) ->
       let dctx, venv, instr, sideconditions =
-        analyze_if_eq_prem dctx ~origin:(Sidecondition prem) exp.at exp.note.typ
-          optyp exp_l exp_r
+        analyze_if_eq_prem ~dctx ~origin:(Sidecondition prem) ~at:cond.at
+          ~typ:cond.note.typ ~optyp ~exp_l ~exp_r
       in
       (dctx, venv, instr $$ (prem.at, Premise prem), sideconditions)
   | _ ->
-      analyze_exp_as_bound dctx exp;
-      let instr =
-        IfI { cond = exp; role = Condition } $$ (prem.at, Premise prem)
-      in
+      analyze_exp_as_bound dctx cond;
+      let instr = IfI { cond; role = Condition } $$ (prem.at, Premise prem) in
       (dctx, VEnv.empty, instr, [])
 
-and analyze_rel_assert_prem (dctx : Dctx.t) (prem : Il.prem) (call : relcall)
-    (expect : bool) : Dctx.t * VEnv.t * Al.instr * Al.instr list =
+and analyze_rel_assert_prem (prem : Il.prem) ~(dctx : Dctx.t) ~(call : relcall)
+    ~(expect : bool) : Dctx.t * VEnv.t * Al.instr * Al.instr list =
   analyze_exps_as_bound dctx (Mixop.args call.notexp);
   let instr = RelAssertI { call; expect } $$ (prem.at, Premise prem) in
   (dctx, VEnv.empty, instr, [])
 
-and analyze_let_prem (dctx : Dctx.t) ~(origin : origin) (exp_l : exp)
-    (binds_l : BEnv.t) (exp_r : exp) : Dctx.t * VEnv.t * instr' * instr list =
-  let venv = BEnv.flatten binds_l in
-  let dctx, renv_multi, exp_l =
-    let renv_multi = Multibind.REnv.init binds_l in
-    Multibind.rename_exp dctx renv_multi exp_l
+and analyze_let_prem ~(dctx : Dctx.t) ~(origin : origin) ~(exp_bind : exp)
+    ~(binds : BEnv.t) ~(exp_bound : exp) : Dctx.t * VEnv.t * instr' * instr list
+    =
+  let venv = BEnv.flatten binds in
+  let dctx, renv_multi, exp_bind =
+    let renv_multi = Multibind.REnv.init binds in
+    Multibind.rename_exp dctx renv_multi exp_bind
   in
   let venv = update_venv_multi venv renv_multi in
   let sideconditions_multi =
-    Multibind.gen_sideconditions binds_l renv_multi ~origin
+    Multibind.gen_sideconditions renv_multi ~binds ~origin
   in
-  let dctx, renv_partial, exp_l =
-    Partialbind.rename_exp dctx (VEnv.dom venv) Partialbind.REnv.empty exp_l
+  let dctx, renv_partial, exp_bind =
+    Partialbind.rename_exp dctx (VEnv.dom venv) Partialbind.REnv.empty exp_bind
   in
   let venv = update_venv_partial venv renv_partial in
   let sideconditions_partial =
-    Partialbind.gen_sideconditions dctx renv_partial ~origin
+    Partialbind.gen_sideconditions renv_partial ~dctx ~origin
   in
   let sideconditions = sideconditions_partial @ sideconditions_multi in
-  (dctx, venv, LetI (exp_l, exp_r), sideconditions)
+  (dctx, venv, LetI (exp_bind, exp_bound), sideconditions)
 
-and analyze_iter_prem (dctx : Dctx.t) (prem : Il.prem) (prem_inner : Il.prem)
-    (iter : iter) : Dctx.t * VEnv.t * Al.instr * Al.instr list =
+and analyze_iter_prem (prem : Il.prem) ~(dctx : Dctx.t) ~(prem_inner : Il.prem)
+    ~(iter : iter) : Dctx.t * VEnv.t * Al.instr * Al.instr list =
   let at = prem_inner.at in
-  let dctx, venv, instr_inner, sideconditions = analyze_prem dctx prem_inner in
+  let dctx, venv, instr_inner, sideconditions = analyze_prem prem_inner ~dctx in
   let venv = VEnv.map (Typ.add_iter iter) venv in
   let sideconditions =
     List.map
@@ -229,7 +231,7 @@ and analyze_iter_prem (dctx : Dctx.t) (prem : Il.prem) (prem_inner : Il.prem)
   in
   (dctx, venv, instr, sideconditions)
 
-and analyze_debug_prem (dctx : Dctx.t) (prem : Il.prem) (exp : exp) :
+and analyze_debug_prem (prem : Il.prem) ~(dctx : Dctx.t) ~(exp : exp) :
     Dctx.t * VEnv.t * Al.instr * Al.instr list =
   analyze_exp_as_bound dctx exp;
   let instr = DebugI exp $$ (prem.at, Premise prem) in

@@ -74,8 +74,8 @@ end
 
 (* Generate instructions *)
 
-let gen_sidecondition_bound (dctx : Dctx.t) ~(origin : origin) (to_ : To.t)
-    (exp_from : exp) (iters : iter list) : instr =
+let gen_sidecondition_bound (to_ : To.t) ~(dctx : Dctx.t) ~(origin : origin)
+    ~(exp_from : exp) ~(iters : iter list) : instr =
   let exp_cond =
     let exp_l = To.as_exp to_ in
     match exp_from.it with
@@ -102,8 +102,8 @@ let gen_sidecondition_bound (dctx : Dctx.t) ~(origin : origin) (to_ : To.t)
       $$ (exp_from.at, origin))
     sidecondition iters
 
-let gen_sidecondition_bind_match ~(origin : origin) (to_ : To.t)
-    (pattern : pattern) (exp_from : exp) (iters : iter list) : instr list =
+let gen_sidecondition_bind_match (to_ : To.t) ~(origin : origin)
+    ~(pattern : pattern) ~(exp_from : exp) ~(iters : iter list) : instr list =
   let exp_to = To.as_exp to_ in
   let instrs =
     let exp_guard_match =
@@ -124,8 +124,8 @@ let gen_sidecondition_bind_match ~(origin : origin) (to_ : To.t)
         instr iters)
     instrs
 
-let gen_sidecondition_bind_sub ~(origin : origin) (to_ : To.t) (typ_sub : typ)
-    (exp_sub : exp) (exp_from : exp) (iters : iter list) : instr list =
+let gen_sidecondition_bind_sub (to_ : To.t) ~(origin : origin) ~(typ_sub : typ)
+    ~(exp_sub : exp) ~(exp_from : exp) ~(iters : iter list) : instr list =
   let exp_to = To.as_exp to_ in
   let instrs =
     let exp_guard_sub =
@@ -150,20 +150,21 @@ let gen_sidecondition_bind_sub ~(origin : origin) (to_ : To.t) (typ_sub : typ)
         instr iters)
     instrs
 
-let gen_sidecondition (dctx : Dctx.t) ~(origin : origin) (to_ : To.t)
-    (from : From.t) (iters : iter list) : instr list =
+let gen_sidecondition (to_ : To.t) ~(dctx : Dctx.t) ~(origin : origin)
+    ~(from : From.t) ~(iters : iter list) : instr list =
   match from with
   | Bound { exp_from } ->
-      [ gen_sidecondition_bound dctx ~origin to_ exp_from iters ]
+      [ gen_sidecondition_bound to_ ~dctx ~origin ~exp_from ~iters ]
   | Bindmatch { pattern; exp_from } ->
-      gen_sidecondition_bind_match ~origin to_ pattern exp_from iters
+      gen_sidecondition_bind_match to_ ~origin ~pattern ~exp_from ~iters
   | Bindsub { typ_sub; exp_sub; exp_from } ->
-      gen_sidecondition_bind_sub ~origin to_ typ_sub exp_sub exp_from iters
+      gen_sidecondition_bind_sub to_ ~origin ~typ_sub ~exp_sub ~exp_from ~iters
 
-let gen_sideconditions (dctx : Dctx.t) ~(origin : origin) (renv : REnv.t) :
+let gen_sideconditions (renv : REnv.t) ~(dctx : Dctx.t) ~(origin : origin) :
     instr list =
   List.concat_map
-    (fun (to_, from_, iters) -> gen_sidecondition dctx ~origin to_ from_ iters)
+    (fun (to_, from_, iters) ->
+      gen_sidecondition to_ ~dctx ~origin ~from:from_ ~iters)
     renv
 
 (* Desugar partial bindings, occuring as either:
