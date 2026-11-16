@@ -20,6 +20,7 @@ module Checkpoint : sig
     coverage : coverage;
     timestamp : float;
     check_determinism : bool;
+    mode : Spectec.Interp_mode.request;
   }
 
   val load_from_file : file:string -> (t, Spectec.Error.t) result
@@ -37,6 +38,11 @@ module Checkpoint : sig
   val verify_determinism :
     t -> check_determinism:bool -> (unit, Spectec.Error.t) result
 
+  (** Rejects a mode mismatch because resuming could skip inputs that ran only
+      in the saved mode. *)
+  val verify_mode :
+    t -> mode:Spectec.Interp_mode.request -> (unit, Spectec.Error.t) result
+
   val filter_remaining : t -> 'a list -> get_id:('a -> string) -> 'a list
   val restore_coverage : t -> unit
 
@@ -44,12 +50,15 @@ module Checkpoint : sig
     spec_files:string list ->
     completed_inputs:string list ->
     check_determinism:bool ->
+    mode:Spectec.Interp_mode.request ->
     output_file:string option ->
     unit
 
   val display_report :
     spec:Lang.Al.spec -> config:Instrumentation.Config.t -> t -> unit
 
+  (** Both checkpoints must agree on interpreter mode and [check_determinism].
+  *)
   val merge : t -> t -> (t, Spectec.Error.t) result
 end
 
@@ -148,10 +157,8 @@ type task_result = {
   failures : failure list;
 }
 
-(** The empty-input check runs before checkpoint filtering, so resuming a
-    completed run is not mistaken for an empty collection. Resuming from a
-    checkpoint whose [check_determinism] setting does not match the one
-    requested here is rejected. See {!Checkpoint.verify_determinism}. *)
+(** A completed checkpoint is valid even when no inputs remain. Resume with the
+    checkpoint's interpreter mode and [check_determinism] setting. *)
 val run_target :
   ?config:Instrumentation.Config.t ->
   ?check_determinism:bool ->
