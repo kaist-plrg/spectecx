@@ -37,7 +37,7 @@ type outcome =
 
 (* The failed step may be an input side condition, which has no IL premise.
    The step's exit event supplies [bindings]. *)
-type unmet_prem = { prem_al : Al.instr; bindings : (Il.id * Il.Value.t) list }
+type failed_instr = { instr : Al.instr; bindings : (Il.id * Il.Value.t) list }
 
 type node = {
   kind : kind;
@@ -61,17 +61,15 @@ and prem_entry = {
   mutable subderiv : node option;
 }
 
-(* One rule's attempt at a goal; [unmet_prem] is the premise that defeated it, or
-   [None] if the rule fired. *)
 and derivation = {
   mutable rule : string option;
   mutable prems_rev : prem_entry list;
   mutable children_rev : node list;
-  mutable unmet_prem : unmet_prem option;
+  mutable failed_instr : failed_instr option;
 }
 
 let empty_derivation () =
-  { rule = None; prems_rev = []; children_rev = []; unmet_prem = None }
+  { rule = None; prems_rev = []; children_rev = []; failed_instr = None }
 
 let new_node kind id inputs =
   {
@@ -91,7 +89,7 @@ let is_failed node =
   | _ -> false
 
 let is_applied = function
-  | Some { prem_al = { it = Al.IfI { role = Al.Guard; _ }; _ }; _ } -> false
+  | Some { instr = { it = Al.IfI { role = Al.Guard; _ }; _ }; _ } -> false
   | _ -> true
 
 (* === Mutable state ================================================= *)
@@ -130,7 +128,7 @@ module State = struct
     with_current (fun current ->
         let derivation = current.derivation in
         derivation.rule <- Some rule_id;
-        if (not success) && is_applied derivation.unmet_prem then
+        if (not success) && is_applied derivation.failed_instr then
           current.failures_rev <- derivation :: current.failures_rev)
 
   let enter_premise ~prem_il =
@@ -151,13 +149,13 @@ module State = struct
     with_current (fun current ->
         current.binding_env <- bindings @ current.binding_env)
 
-  let record_unmet_prem prem_al ~bindings =
+  let record_failed_instr instr ~bindings =
     with_current (fun current ->
-        current.derivation.unmet_prem <- Some { prem_al; bindings })
+        current.derivation.failed_instr <- Some { instr; bindings })
 end
 
-let as_premise_opt prem =
-  match prem.note with
+let as_premise_opt instr =
+  match instr.note with
   | Al.Premise prem_il -> Some prem_il
   | Al.Sidecondition _ | Al.Input_sidecondition -> None
 
@@ -236,12 +234,12 @@ let render_prem ~binding_env entry =
 
 (* Side conditions run after all repetitions of the premise, so a failed
    check may belong to an earlier repetition. *)
-let marked_index entries ~unmet =
+let marked_index entries ~failed =
   let last = List.length entries - 1 in
-  match unmet with
+  match failed with
   | None -> None
-  | Some { prem_al; bindings } -> (
-      match prem_al.note with
+  | Some { instr; bindings } -> (
+      match instr.note with
       | Al.Sidecondition prem_il ->
           (* The algo pass shares this [Il.prem] with the side conditions. *)
           let agrees entry =
@@ -305,17 +303,17 @@ and print_derivation_body ~rest_prefix node derivation out =
     let text = render_prem ~binding_env:node.binding_env entry in
     Format.fprintf out "%s%s\n" (rest_prefix ^ connector marked) text
   in
-  let unmet_is_sidecondition =
-    match derivation.unmet_prem with
-    | Some { prem_al; _ } -> Option.is_none (as_premise_opt prem_al)
+  let failed_in_sidecondition =
+    match derivation.failed_instr with
+    | Some { instr; _ } -> Option.is_none (as_premise_opt instr)
     | None -> false
   in
   let entries = List.rev derivation.prems_rev in
-  let marked = marked_index entries ~unmet:derivation.unmet_prem in
+  let marked = marked_index entries ~failed:derivation.failed_instr in
   List.iteri
     (fun i entry ->
       let is_marked = marked = Some i in
-      let show_as_text = is_marked && unmet_is_sidecondition in
+      let show_as_text = is_marked && failed_in_sidecondition in
       match (entry.prem_il.it, entry.subderiv) with
       | (Il.RelPr _ | Il.RelAssertPr { expect = true; _ }), Some subderiv
         when not show_as_text ->
@@ -360,19 +358,22 @@ module M : Instrumentation_api.Handler.S = struct
     (* Function clauses are tried like rules, but functions never invoke
        relations, so a failed clause leaves no sub-derivation to roll back. *)
     | Clause_enter _ | Clause_exit _ -> ()
-    | Iter_prem_enter _ | Iter_prem_exit _ -> ()
-    | Prem_enter { prem; at = _ } ->
+    | Repetition_enter _ | Repetition_exit _ -> ()
+    | Instr_enter { instr = AlInstr instr; at = _ } ->
         if !config.level = Premise then
           Option.iter
             (fun prem_il -> State.enter_premise ~prem_il)
-            (as_premise_opt prem)
-    | Prem_exit { prem; at = _; success; bindings } ->
-        if not success then State.record_unmet_prem prem ~bindings;
+            (as_premise_opt instr)
+    | Instr_exit { instr = AlInstr instr; at = _; success; bindings } ->
+        if not success then State.record_failed_instr instr ~bindings;
         if !config.level = Premise then (
           State.record_bindings ~bindings;
-          if Option.is_some (as_premise_opt prem) then
+          if Option.is_some (as_premise_opt instr) then
             State.record_premise ~bindings)
-    | Instr _ -> ()
+    | Instr_enter { instr = SlInstr _ | PlInstr _; at = _ }
+    | Instr_exit
+        { instr = SlInstr _ | PlInstr _; at = _; success = _; bindings = _ } ->
+        ()
 end
 
 let resolve_ansi : Instrumentation_api.Output.t -> Ansi.t = function

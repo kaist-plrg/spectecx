@@ -127,12 +127,12 @@ module M : Instrumentation_api.Handler.S = struct
   let handle : Instrumentation_api.Event.t -> unit = function
     | Test_start { test_case_id } -> State.set_test_case_id test_case_id
     | Test_end _ -> State.clear_test_case_id ()
-    | Prem_enter { prem; at = _ } ->
-        let key = prem_key prem in
+    | Instr_enter { instr = AlInstr instr; at = _ } ->
+        let key = prem_key instr in
         State.incr_count State.prems_attempted key;
         State.record_premise_coverage key
-    | Prem_exit { prem; at = _; success; bindings = _ } ->
-        let key = prem_key prem in
+    | Instr_exit { instr = AlInstr instr; at = _; success; bindings = _ } ->
+        let key = prem_key instr in
         if success then (
           State.incr_count State.prems_succeeded key;
           State.record_premise_coverage key)
@@ -145,7 +145,7 @@ module M : Instrumentation_api.Handler.S = struct
                 let key = prem_key prem in
                 State.incr_count State.prems_failed key
           in
-          incr_failures prem
+          incr_failures instr
     | _ -> ()
 
   (* --- Output: Summary mode (stats + uncovered only) --- *)

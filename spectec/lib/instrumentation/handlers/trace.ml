@@ -82,15 +82,14 @@ module M : Instrumentation_api.Handler.S = struct
         printf_at_least Full "%s→ $%s/%d\n%!" (State.indent ()) id clause_idx
     | Clause_exit { id; clause_idx = _; at = _; success = _ } ->
         printf_at_least Full "%s← $%s\n%!" (State.indent ()) id
-    | Iter_prem_enter _ ->
+    | Repetition_enter _ ->
         printf_at_least Full "%s  → [iteration]\n%!" (State.indent ())
-    | Iter_prem_exit _ ->
+    | Repetition_exit _ ->
         printf_at_least Full "%s  ← [iteration]\n%!" (State.indent ())
-    | Prem_enter { prem; at = _ } ->
+    | Instr_enter { instr = AlInstr instr; at = _ } ->
         printf_at_least Full "%s  | -- %s\n%!" (State.indent ())
-          (Al.Print.string_of_instr prem |> normalize_whitespace)
-    | Prem_exit _ -> ()
-    | Instr _ -> ()
+          (Al.Print.string_of_instr instr |> normalize_whitespace)
+    | Instr_enter { instr = SlInstr _ | PlInstr _; at = _ } | Instr_exit _ -> ()
 end
 
 let make cfg =

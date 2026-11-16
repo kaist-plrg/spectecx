@@ -23,6 +23,15 @@ module Expressions = Interp_runtime.Expression.Make (struct
   let error = Error.error
 end)
 
+let with_instr_events (ctx : Ctx.t) (instr : instr) ~success_and_ctx ~f =
+  Ctx.with_instr_events ctx ~instr:(Events.PlInstr instr) ~at:instr.node.at
+    ~ids:(lazy (Free.free_instr_without_block instr))
+    ~success_and_ctx ~f
+
+let success_and_ctx_of_opt ~(ctx : Ctx.t) (ctx_opt : Ctx.t option) :
+    bool * Ctx.t =
+  match ctx_opt with Some ctx_out -> (true, ctx_out) | None -> (false, ctx)
+
 let rec eval_exp ctx exp = Expressions.eval_exp exp ~ctx ~call_func:invoke_func
 and eval_exps ctx exps = Expressions.eval_exps exps ~ctx ~call_func:invoke_func
 and eval_args ctx args = Expressions.eval_args args ~ctx ~call_func:invoke_func
@@ -48,25 +57,38 @@ and eval_instr (ctx : Ctx.t) (instr : instr) : Ctx.t * Sign.t =
     print_endline @@ Il.Print.string_of_value value;
     (ctx, Sign.Cont)
   in
+  let always_succeeds _ = (true, ctx) in
+  let with_own_events ~f =
+    with_instr_events ctx instr ~success_and_ctx:always_succeeds ~f
+  in
   match instr.node.it with
   | RelI { call; iterinstrs } ->
-      eval_rel_instr ctx call.relid call.notexp iterinstrs
+      eval_rel_instr ctx instr ~id:call.relid ~notexp:call.notexp ~iterinstrs
   | RelAssertI { call; expect; iterexps; block; phantom = _ } ->
-      eval_rel_assert_instr ctx call.relid call.notexp expect iterexps block
+      eval_rel_assert_instr ctx instr ~id:call.relid ~notexp:call.notexp ~expect
+        ~iterexps ~block
   | IfI (exp_cond, iterexps, instrs_then, _phantom_opt) ->
-      eval_if_instr ctx exp_cond iterexps instrs_then
-  | CaseI (exp, cases, _phantom_opt) -> eval_case_instr ctx exp cases
-  | OtherwiseI instr -> eval_instr ctx instr
-  | LetI (exp_l, exp_r, iterinstrs) -> eval_let_instr ctx exp_l exp_r iterinstrs
-  | ResultI exps -> eval_result_instr ctx exps
-  | ReturnI exp -> eval_return_instr ctx exp
-  | DebugI exp -> eval_debug_instr ctx exp
-  | TryI arms -> eval_try_instr ctx arms
-  | DestructI (fields, exp_source) -> eval_destruct_instr ctx fields exp_source
+      eval_if_instr ctx instr ~exp_cond ~iterexps ~instrs_then
+  | CaseI (exp, cases, _phantom_opt) -> eval_case_instr ctx instr ~exp ~cases
+  | OtherwiseI instr_inner ->
+      with_own_events ~f:Fun.id;
+      eval_instr ctx instr_inner
+  | LetI (exp_l, exp_r, iterinstrs) ->
+      eval_let_instr ctx instr ~exp_l ~exp_r ~iterinstrs
+  | ResultI exps -> with_own_events ~f:(fun () -> eval_result_instr ctx exps)
+  | ReturnI exp -> with_own_events ~f:(fun () -> eval_return_instr ctx exp)
+  | DebugI exp -> with_own_events ~f:(fun () -> eval_debug_instr ctx exp)
+  | TryI arms ->
+      with_own_events ~f:Fun.id;
+      eval_try_instr ctx arms
+  | DestructI (fields, exp_source) ->
+      with_instr_events ctx instr
+        ~success_and_ctx:(fun (ctx_out, _) -> (true, ctx_out))
+        ~f:(fun () -> eval_destruct_instr ctx fields exp_source)
   | CheckLetI { check; exp_l; exp_r; block } ->
-      eval_check_let_instr ctx check exp_l exp_r block
+      eval_check_let_instr ctx instr ~check ~exp_l ~exp_r ~block
   | OptionGetI (exp_l, exp_r, block) ->
-      eval_option_get_instr ctx exp_l exp_r block
+      eval_option_get_instr ctx instr ~exp_l ~exp_r ~block
 
 and eval_instrs (ctx : Ctx.t) (sign : Sign.t) (instrs : instr list) :
     Ctx.t * Sign.t =
@@ -109,35 +131,47 @@ and eval_try_instr_unique (ctx : Ctx.t) (arms : instr list list) :
 
 (* Check-let instruction evaluation *)
 
-and eval_check_let_instr (ctx : Ctx.t)
-    (check : [ `Match of pattern | `Subtype of typ ]) (exp_l : exp)
-    (exp_r : exp) (block : instr list) : Ctx.t * Sign.t =
-  let value = eval_exp ctx exp_r in
-  let value_opt =
-    match check with
-    | `Match pattern ->
-        if Expressions.matches_pattern value ~pattern then Some value else None
-    | `Subtype typ ->
-        if Expressions.matches_type value ~typ ~ctx then
-          Some (Expressions.downcast value ~to_typ:typ ~ctx)
-        else None
+and eval_check_let_instr (ctx : Ctx.t) (instr : instr)
+    ~(check : [ `Match of pattern | `Subtype of typ ]) ~(exp_l : exp)
+    ~(exp_r : exp) ~(block : instr list) : Ctx.t * Sign.t =
+  let ctx_opt =
+    with_instr_events ctx instr ~success_and_ctx:(success_and_ctx_of_opt ~ctx)
+      ~f:(fun () ->
+        let value = eval_exp ctx exp_r in
+        let value_opt =
+          match check with
+          | `Match pattern ->
+              if Expressions.matches_pattern value ~pattern then Some value
+              else None
+          | `Subtype typ ->
+              if Expressions.matches_type value ~typ ~ctx then
+                Some (Expressions.downcast value ~to_typ:typ ~ctx)
+              else None
+        in
+        Option.map
+          (fun value -> Expressions.assign_exp ctx ~exp:exp_l ~value)
+          value_opt)
   in
-  match value_opt with
-  | Some value ->
-      let ctx = Expressions.assign_exp ctx ~exp:exp_l ~value in
-      eval_instrs ctx Sign.Cont block
+  match ctx_opt with
+  | Some ctx -> eval_instrs ctx Sign.Cont block
   | None -> (ctx, Sign.Cont)
 
 (* Option-get instruction evaluation *)
 
-and eval_option_get_instr (ctx : Ctx.t) (exp_l : exp) (exp_r : exp)
-    (block : instr list) : Ctx.t * Sign.t =
-  let value = eval_exp ctx exp_r in
-  match value.it with
-  | OptV (Some value_inner) ->
-      let ctx = Expressions.assign_exp ctx ~exp:exp_l ~value:value_inner in
-      eval_instrs ctx Sign.Cont block
-  | _ -> (ctx, Sign.Cont)
+and eval_option_get_instr (ctx : Ctx.t) (instr : instr) ~(exp_l : exp)
+    ~(exp_r : exp) ~(block : instr list) : Ctx.t * Sign.t =
+  let ctx_opt =
+    with_instr_events ctx instr ~success_and_ctx:(success_and_ctx_of_opt ~ctx)
+      ~f:(fun () ->
+        let value = eval_exp ctx exp_r in
+        match value.it with
+        | OptV (Some value_inner) ->
+            Some (Expressions.assign_exp ctx ~exp:exp_l ~value:value_inner)
+        | _ -> None)
+  in
+  match ctx_opt with
+  | Some ctx -> eval_instrs ctx Sign.Cont block
+  | None -> (ctx, Sign.Cont)
 
 (* Destructure instruction evaluation *)
 
@@ -161,28 +195,35 @@ and eval_destruct_instr (ctx : Ctx.t) (fields : (string option * exp) list)
 
 (* If instruction evaluation *)
 
-and eval_if_instr (ctx : Ctx.t) (exp_cond : exp) (iterexps : iterexp list)
-    (instrs_then : instr list) : Ctx.t * Sign.t =
-  let eval_cond ctx = eval_exp ctx exp_cond |> Value.get_bool in
+and eval_if_instr (ctx : Ctx.t) (instr : instr) ~(exp_cond : exp)
+    ~(iterexps : iterexp list) ~(instrs_then : instr list) : Ctx.t * Sign.t =
+  let eval_cond ctx =
+    with_instr_events ctx instr
+      ~success_and_ctx:(fun holds -> (holds, ctx))
+      ~f:(fun () -> eval_exp ctx exp_cond |> Value.get_bool)
+  in
   let cond =
-    Ctx.for_all_body_contexts ctx ~iterexps ~f:eval_cond
+    Ctx.for_all_body_contexts ctx ~at:instr.node.at ~iterexps ~f:eval_cond
     |> Interp_runtime.Context.get_exn
   in
   if cond then eval_instrs ctx Cont instrs_then else (ctx, Cont)
 
 (* Relation-assertion instruction evaluation *)
 
-and eval_rel_assert_instr (ctx : Ctx.t) (id : id) (notexp : notexp)
-    (expect : bool) (iterexps : iterexp list) (block : instr list) :
-    Ctx.t * Sign.t =
+and eval_rel_assert_instr (ctx : Ctx.t) (instr : instr) ~(id : id)
+    ~(notexp : notexp) ~(expect : bool) ~(iterexps : iterexp list)
+    ~(block : instr list) : Ctx.t * Sign.t =
   let eval_cond ctx =
-    let values_input = eval_exps ctx (Mixop.args notexp) in
-    match invoke_rel ctx id values_input with
-    | Some _ -> expect
-    | None -> not expect
+    with_instr_events ctx instr
+      ~success_and_ctx:(fun holds -> (holds, ctx))
+      ~f:(fun () ->
+        let values_input = eval_exps ctx (Mixop.args notexp) in
+        match invoke_rel ctx id values_input with
+        | Some _ -> expect
+        | None -> not expect)
   in
   let cond =
-    Ctx.for_all_body_contexts ctx ~iterexps ~f:eval_cond
+    Ctx.for_all_body_contexts ctx ~at:instr.node.at ~iterexps ~f:eval_cond
     |> Interp_runtime.Context.get_exn
   in
   if cond then eval_instrs ctx Cont block else (ctx, Cont)
@@ -200,8 +241,8 @@ and bind_guard_target (ctx : Ctx.t) (exp : exp) (guard : guard) : Ctx.t =
       Expressions.assign_exp ctx ~exp:exp_target ~value
   | _ -> ctx
 
-and eval_case_instr (ctx : Ctx.t) (exp : exp) (cases : case list) :
-    Ctx.t * Sign.t =
+and eval_case_instr (ctx : Ctx.t) (instr : instr) ~(exp : exp)
+    ~(cases : case list) : Ctx.t * Sign.t =
   let eval_cases ctx exp cases =
     cases
     |> List.fold_left
@@ -237,44 +278,59 @@ and eval_case_instr (ctx : Ctx.t) (exp : exp) (cases : case list) :
     in
     (ctx, block_match, value_cond)
   in
-  let ctx, instrs_opt, _value_cond = eval_cases ctx exp cases in
+  let ctx, instrs_opt =
+    with_instr_events ctx instr
+      ~success_and_ctx:(fun (ctx_out, instrs_opt) ->
+        (Option.is_some instrs_opt, ctx_out))
+      ~f:(fun () ->
+        let ctx, block_match, _value_cond = eval_cases ctx exp cases in
+        (ctx, block_match))
+  in
   match instrs_opt with
   | Some instrs -> eval_instrs ctx Cont instrs
   | None -> (ctx, Cont)
 
 (* Let instruction evaluation *)
 
-and eval_let_instr (ctx : Ctx.t) (exp_l : exp) (exp_r : exp)
-    (iterinstrs : iterinstr list) : Ctx.t * Sign.t =
+and eval_let_instr (ctx : Ctx.t) (instr : instr) ~(exp_l : exp) ~(exp_r : exp)
+    ~(iterinstrs : iterinstr list) : Ctx.t * Sign.t =
   let eval_let ctx =
-    let value = eval_exp ctx exp_r in
-    Ok (Expressions.assign_exp ctx ~exp:exp_l ~value)
+    with_instr_events ctx instr
+      ~success_and_ctx:(fun ctx_out -> (true, ctx_out))
+      ~f:(fun () ->
+        let value = eval_exp ctx exp_r in
+        Expressions.assign_exp ctx ~exp:exp_l ~value)
+    |> Result.ok
   in
   let ctx =
-    Ctx.eval_iterations ctx ~iterinstrs ~f:eval_let
+    Ctx.eval_iterations ctx ~at:instr.node.at ~iterinstrs ~f:eval_let
     |> Interp_runtime.Context.get_exn
   in
   (ctx, Sign.Cont)
 
 (* Relation instruction evaluation *)
 
-and eval_rel_instr (ctx : Ctx.t) (id : id) (notexp : notexp)
-    (iterinstrs : iterinstr list) : Ctx.t * Sign.t =
+and eval_rel_instr (ctx : Ctx.t) (instr : instr) ~(id : id) ~(notexp : notexp)
+    ~(iterinstrs : iterinstr list) : Ctx.t * Sign.t =
   let eval_rel ctx =
-    let mode, _, _ = Ctx.find_rel_exn ctx ~id in
-    let exps_input, exps_output =
-      Lang.Il.Mode.partition mode (Mixop.args notexp)
-    in
-    let values_input = eval_exps ctx exps_input in
-    let values_output =
-      match invoke_rel ctx id values_input with
-      | Some values_output -> values_output
-      | None -> error id.at "relation was not matched"
-    in
-    Ok (Expressions.assign_exps ctx ~exps:exps_output ~values:values_output)
+    with_instr_events ctx instr
+      ~success_and_ctx:(fun ctx_out -> (true, ctx_out))
+      ~f:(fun () ->
+        let mode, _, _ = Ctx.find_rel_exn ctx ~id in
+        let exps_input, exps_output =
+          Lang.Il.Mode.partition mode (Mixop.args notexp)
+        in
+        let values_input = eval_exps ctx exps_input in
+        let values_output =
+          match invoke_rel ctx id values_input with
+          | Some values_output -> values_output
+          | None -> error id.at "relation was not matched"
+        in
+        Expressions.assign_exps ctx ~exps:exps_output ~values:values_output)
+    |> Result.ok
   in
   let ctx =
-    Ctx.eval_iterations ctx ~iterinstrs ~f:eval_rel
+    Ctx.eval_iterations ctx ~at:instr.node.at ~iterinstrs ~f:eval_rel
     |> Interp_runtime.Context.get_exn
   in
   (ctx, Sign.Cont)
@@ -453,7 +509,8 @@ and invoke_func_values (ctx : Ctx.t) (id : id) (targs : targ list)
     value_output
   in
   Instrumentation.Dispatcher.with_enter_exit
-    ~enter:(fun () -> Events.Func_enter { id = id.it; at = id.at; inputs = [] })
+    ~enter:(fun () ->
+      Events.Func_enter { id = id.it; at = id.at; inputs = values_input })
     ~exit:(fun output -> Events.Func_exit { id = id.it; at = id.at; output })
     ~f:invoke_func'
 

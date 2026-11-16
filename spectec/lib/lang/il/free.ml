@@ -15,7 +15,7 @@ let ( + ) = IdSet.union
 
 (* Expressions *)
 
-let rec free_exp (exp : exp) : t =
+let rec free_exp (exp : 'note Expression.t) : t =
   match exp.it with
   | BoolE _ | NumE _ | TextE _ -> empty
   | VarE id -> singleton id
@@ -45,12 +45,12 @@ let rec free_exp (exp : exp) : t =
   | CallE (_, _, args) -> free_args args
   | IterE (exp, _) -> free_exp exp
 
-and free_exps (exps : exp list) : t =
+and free_exps (exps : 'note Expression.t list) : t =
   exps |> List.map free_exp |> List.fold_left ( + ) empty
 
 (* Paths *)
 
-and free_path (path : path) : t =
+and free_path (path : 'note Expression.path) : t =
   match path.it with
   | RootP -> empty
   | IdxP (path, exp) -> free_path path + free_exp exp
@@ -60,10 +60,10 @@ and free_path (path : path) : t =
 
 (* Arguments *)
 
-and free_arg (arg : arg) : t =
+and free_arg (arg : 'note Expression.arg) : t =
   match arg.it with ExpA exp -> free_exp exp | DefA _ -> empty
 
-and free_args (args : arg list) : t =
+and free_args (args : 'note Expression.arg list) : t =
   args |> List.map free_arg |> List.fold_left ( + ) empty
 
 (* Premises *)

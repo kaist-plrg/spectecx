@@ -98,12 +98,7 @@ and eval_instr (ctx : Ctx.t) (instr : instr) : Ctx.t attempt =
     print_endline @@ Il.Print.string_of_value value;
     Ok ctx
   in
-  (match instr.it with
-  | IterI _ -> ()
-  | _ ->
-      Instrumentation.Dispatcher.emit
-        (Events.Prem_enter { prem = instr; at = instr.at }));
-  let result =
+  let eval_by_kind () =
     match instr.it with
     | RelI { relid; notexp } -> eval_rel_instr ctx relid notexp
     | RelAssertI { call; expect } -> eval_rel_assert_instr ctx call expect
@@ -114,23 +109,18 @@ and eval_instr (ctx : Ctx.t) (instr : instr) : Ctx.t attempt =
         eval_if_instr fail_with ctx cond
     | OtherwiseI -> Ok ctx
     | LetI (exp_l, exp_r) -> eval_let_instr ctx exp_l exp_r
-    | IterI (instr, iterinstr) -> eval_iter_instr ctx instr iterinstr
+    | IterI (instr_iterated, iterinstr) ->
+        eval_iter_instr ctx instr_iterated ~iterinstr ~at:instr.at
     | DebugI exp -> eval_debug_instr ctx exp
   in
-  (match instr.it with
-  | IterI _ -> ()
-  | _ ->
-      Instrumentation.Dispatcher.emit_on_demand @@ fun () ->
-      let ctx_out = Result.value ~default:ctx result in
-      let bindings =
-        Free.free_instr instr |> Common.Domain.IdSet.elements
-        |> List.filter_map (fun id ->
-               Ctx.find_value_opt ctx_out ~var:(id, [])
-               |> Option.map (fun value -> (id, value)))
-      in
-      Events.Prem_exit
-        { prem = instr; at = instr.at; success = Result.is_ok result; bindings });
-  result
+  match instr.it with
+  | IterI _ -> eval_by_kind ()
+  | RelI _ | RelAssertI _ | IfI _ | OtherwiseI | LetI _ | DebugI _ ->
+      Ctx.with_instr_events ctx ~instr:(Events.AlInstr instr) ~at:instr.at
+        ~ids:(lazy (Free.free_instr instr))
+        ~success_and_ctx:(function
+          | Ok ctx_out -> (true, ctx_out) | Error _ -> (false, ctx))
+        ~f:eval_by_kind
 
 and eval_instrs (ctx : Ctx.t) (instrs : instr list) : Ctx.t attempt =
   List.fold_left
@@ -141,16 +131,10 @@ and eval_instrs (ctx : Ctx.t) (instrs : instr list) : Ctx.t attempt =
 
 (* Iterated instruction evaluation *)
 
-and eval_iter_instr (ctx : Ctx.t) (instr : instr) (iterinstr : iterinstr) :
-    Ctx.t attempt =
-  let eval_iteration ctx_sub =
-    Instrumentation.Dispatcher.emit
-      (Events.Iter_prem_enter { prem = instr; at = instr.at });
-    let* ctx_sub = eval_instr ctx_sub instr in
-    Instrumentation.Dispatcher.emit (Events.Iter_prem_exit { at = instr.at });
-    Ok ctx_sub
-  in
-  Ctx.eval_iterations ctx ~iterinstrs:[ iterinstr ] ~f:eval_iteration
+and eval_iter_instr (ctx : Ctx.t) (instr : instr) ~(iterinstr : iterinstr)
+    ~(at : Location.t) : Ctx.t attempt =
+  Ctx.eval_iterations ctx ~at ~iterinstrs:[ iterinstr ] ~f:(fun ctx_sub ->
+      eval_instr ctx_sub instr)
 
 (* Invoke a relation *)
 
@@ -285,32 +269,19 @@ and invoke_func_values (ctx : Ctx.t) (id : id) (targs : targ list)
   in
   (* Builtin function invocation *)
   let invoke_func_builtin signature =
-    Instrumentation.Dispatcher.with_enter_exit
-      ~enter:(fun () ->
-        Events.Clause_enter { id = id.it; clause_idx = 0; at = id.at })
-      ~exit:(fun outcome ->
-        Events.Clause_exit
-          {
-            id = id.it;
-            clause_idx = 0;
-            at = id.at;
-            success = succeeded outcome;
-          })
-      ~f:(fun () ->
-        let value_output =
-          Ctx.call_builtin ctx ~callback:(callback ctx) ~id ~targs
-            ~values:values_input
-          |> unwrap_builtin
-        in
-        (match
-           Builtins.check_result ~opaque_types:(Ctx.opaque_types ctx)
-             ~find_syntax_opt:(fun id -> Ctx.find_syntax_opt ctx ~id)
-             ~signature ~targs value_output
-         with
-        | Ok () -> ()
-        | Error message ->
-            error id.at ("builtin $" ^ id.it ^ " result: " ^ message));
-        Ok value_output)
+    let value_output =
+      Ctx.call_builtin ctx ~callback:(callback ctx) ~id ~targs
+        ~values:values_input
+      |> unwrap_builtin
+    in
+    (match
+       Builtins.check_result ~opaque_types:(Ctx.opaque_types ctx)
+         ~find_syntax_opt:(fun id -> Ctx.find_syntax_opt ctx ~id)
+         ~signature ~targs value_output
+     with
+    | Ok () -> ()
+    | Error message -> error id.at ("builtin $" ^ id.it ^ " result: " ^ message));
+    Ok value_output
   in
   (* User-defined function invocation *)
   let invoke_func_def tparams clauses =

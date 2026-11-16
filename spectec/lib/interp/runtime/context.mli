@@ -109,19 +109,35 @@ end) : sig
     vars:Lang.Il.var list ->
     (Var.t * Value.t) list
 
-  (** For each record in [iterinstrs], expand its [vars_input] and collect its
-      [vars_output], replacing existing output bindings. Stop at the first
-      [Error]. Apply [f] directly when [iterinstrs] is empty. *)
+  (** Emits instruction events around [f]. On return, [success_and_ctx] supplies
+      the outcome and context. If [f] raises, the exit reports failure and uses
+      the input context. The exit reads the variables named by [ids], which is
+      forced only when handlers are active. *)
+  val with_instr_events :
+    t ->
+    instr:Instrumentation_api.Event.instr ->
+    at:Common.Location.t ->
+    ids:IdSet.t Lazy.t ->
+    success_and_ctx:('a -> bool * t) ->
+    f:(unit -> 'a) ->
+    'a
+
+  (** Expands [vars_input] and replaces [vars_output] for each iteration. Emits
+      repetition events at [at] and stops at the first [Error]. Calls [f]
+      directly when [iterinstrs] is empty. *)
   val eval_iterations :
     t ->
+    at:Common.Location.t ->
     iterinstrs:Lang.Al.iterinstr list ->
     f:(t -> t Common.Attempt.attempt) ->
     t Common.Attempt.attempt
 
-  (** Test [f] in every body context, stopping at [false] or an input mismatch.
-      No body contexts yields [Ok true]. Empty [iterexps] tests [f] directly. *)
+  (** Tests [f] in each body context, emitting repetition events at [at]. Stops
+      at [false] or an input mismatch. No body contexts yields [Ok true]. Calls
+      [f] directly when [iterexps] is empty. *)
   val for_all_body_contexts :
     t ->
+    at:Common.Location.t ->
     iterexps:Lang.Il.iterexp list ->
     f:(t -> bool) ->
     bool Common.Attempt.attempt

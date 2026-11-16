@@ -176,7 +176,8 @@ let () =
           }
       in
       let ctx_result =
-        Ctx.eval_iterations ctx ~iterinstrs:[ iterinstr ] ~f:(fun ctx ->
+        Ctx.eval_iterations ctx ~at:Common.Location.Unknown
+          ~iterinstrs:[ iterinstr ] ~f:(fun ctx ->
             let value = Ctx.find_value_exn ctx ~var:(var "x") in
             Ok (Ctx.set_value ctx ~var:(var "y") ~value))
         |> Result.get_ok
