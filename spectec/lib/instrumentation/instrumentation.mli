@@ -8,10 +8,15 @@ module Origin = Instrumentation_api.Origin
 module Output = Instrumentation_api.Output
 module Util = Instrumentation_handlers.Util
 module Static = Instrumentation_static.Static
-module Premise_uid = Instrumentation_static.Premise_uid
+module Instr_uid = Instrumentation_static.Instr_uid
 module Branch_coverage = Instrumentation_handlers.Branch_coverage
-module Node_coverage_il = Instrumentation_handlers.Node_coverage_il
-module Node_coverage_sl = Instrumentation_handlers.Node_coverage_sl
+
+module Instruction_coverage_al =
+  Instrumentation_handlers.Instruction_coverage_al
+
+module Instruction_coverage_sl =
+  Instrumentation_handlers.Instruction_coverage_sl
+
 module Profile = Instrumentation_handlers.Profile
 module Trace = Instrumentation_handlers.Trace
 

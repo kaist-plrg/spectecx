@@ -1,8 +1,4 @@
-(* Premise UID static analysis.
- *
- * Assigns stable unique identifiers to premises during static initialization.
- * The UID mapping is shared across all handlers that need to reference premises.
- *)
+(* Assigns the instruction numbers shown in the full AL coverage report. *)
 
 open Common.Annotated
 module Location = Common.Location
@@ -28,47 +24,38 @@ let normalize_whitespace s =
 let truncate max_len s =
   if String.length s > max_len then String.sub s 0 (max_len - 3) ^ "..." else s
 
-(* Create a unique key for a premise using location + content prefix *)
-let prem_key prem =
-  let content = Al.Print.string_of_instr prem |> normalize_whitespace in
-  (prem.at, truncate 30 content)
+let instr_key instr =
+  let content = Al.Print.string_of_instr instr |> normalize_whitespace in
+  (instr.at, truncate 30 content)
 
-(* Shared state for premise UID mapping *)
 module State = struct
-  let prem_to_uid : (Location.t * string, int) Hashtbl.t = Hashtbl.create 256
-  let uid_to_prem : (int, Location.t * string) Hashtbl.t = Hashtbl.create 256
+  let instr_to_uid : (Location.t * string, int) Hashtbl.t = Hashtbl.create 256
+  let uid_to_instr : (int, Location.t * string) Hashtbl.t = Hashtbl.create 256
   let next_uid = ref 0
 
   let reset () =
-    Hashtbl.clear prem_to_uid;
-    Hashtbl.clear uid_to_prem;
+    Hashtbl.clear instr_to_uid;
+    Hashtbl.clear uid_to_instr;
     next_uid := 0
 end
 
-(* Assign a stable UID to a premise key, or return existing UID *)
 let assign_uid key =
-  match Hashtbl.find_opt State.prem_to_uid key with
+  match Hashtbl.find_opt State.instr_to_uid key with
   | Some uid -> uid
   | None ->
       let uid = !State.next_uid in
       State.next_uid := !State.next_uid + 1;
-      Hashtbl.replace State.prem_to_uid key uid;
-      Hashtbl.replace State.uid_to_prem uid key;
+      Hashtbl.replace State.instr_to_uid key uid;
+      Hashtbl.replace State.uid_to_instr uid key;
       uid
 
-(* Get UID for a premise key (returns None if not assigned) *)
-let get_uid key = Hashtbl.find_opt State.prem_to_uid key
+let get_uid key = Hashtbl.find_opt State.instr_to_uid key
 
-(* Get premise key for a UID (returns None if not found) *)
-let get_premise uid = Hashtbl.find_opt State.uid_to_prem uid
-
-(* Recursively assign UIDs to all premises in a premise *)
-let assign_premise_uid prem =
-  let key = prem_key prem in
+let assign_instr_uid instr =
+  let key = instr_key instr in
   let _ = assign_uid key in
   ()
 
-(* Initialize: walk spec and assign UIDs to all premises *)
 let init spec =
   State.reset ();
   match spec with
@@ -80,17 +67,17 @@ let init spec =
               List.iter
                 (fun rule ->
                   let ({ Al.instrs; _ } : Al.rule') = rule.it in
-                  List.iter (fun prem -> assign_premise_uid prem) instrs)
+                  List.iter (fun instr -> assign_instr_uid instr) instrs)
                 rules
           | Al.DecD { clauses; _ } ->
               List.iter
                 (fun clause ->
                   let ({ Al.instrs; _ } : Al.clause') = clause.it in
-                  List.iter (fun prem -> assign_premise_uid prem) instrs)
+                  List.iter (fun instr -> assign_instr_uid instr) instrs)
                 clauses
           | _ -> ())
         al_spec
-  | SlSpec _ -> () (* SL specs don't have premises in the same way *)
+  | SlSpec _ -> ()
 
 (* Reset state *)
 let reset () = State.reset ()
@@ -98,28 +85,28 @@ let reset () = State.reset ()
 (* Export UID mapping for checkpointing *)
 let export () =
   Some
-    ( State.prem_to_uid |> Hashtbl.to_seq |> List.of_seq,
-      State.uid_to_prem |> Hashtbl.to_seq |> List.of_seq )
+    ( State.instr_to_uid |> Hashtbl.to_seq |> List.of_seq,
+      State.uid_to_instr |> Hashtbl.to_seq |> List.of_seq )
 
 (* Restore UID mapping from checkpoint *)
-let restore (prem_to_uid_list, uid_to_prem_list) =
+let restore (instr_to_uid_list, uid_to_instr_list) =
   State.reset ();
   List.iter
     (fun (key, uid) ->
-      Hashtbl.replace State.prem_to_uid key uid;
-      Hashtbl.replace State.uid_to_prem uid key)
-    prem_to_uid_list;
+      Hashtbl.replace State.instr_to_uid key uid;
+      Hashtbl.replace State.uid_to_instr uid key)
+    instr_to_uid_list;
   (* Update next_uid to be higher than any existing UID *)
   State.next_uid :=
-    List.fold_left (fun max_uid (uid, _) -> max max_uid uid) 0 uid_to_prem_list
+    List.fold_left (fun max_uid (uid, _) -> max max_uid uid) 0 uid_to_instr_list
     + 1
 
 (* Implement Static.S signature *)
-module Premise_uid : Static.S = struct
+module Instr_uid : Static.S = struct
   type export_data =
     ((Location.t * string) * int) list * (int * (Location.t * string)) list
 
-  let name = "premise_uid"
+  let name = "instr_uid"
   let init = init
   let reset = reset
   let export () = export ()

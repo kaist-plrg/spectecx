@@ -1,13 +1,13 @@
-(** IL node coverage: records premises at session init, tracks execution counts,
-    reports at finish. [Summary] lists only uncovered premises; [Full] emits a
-    GCOV-style annotated spec with per-premise counts. *)
+(** [Summary] lists instructions that never succeeded. [Full] annotates the spec
+    with attempts and successes and counts failures for [if] and relation
+    instructions. *)
 
 open Common.Annotated
 module Location = Common.Location
 open Lang.Al
 module Il = Lang.Il
 open Util
-open Instrumentation_static.Premise_uid
+open Instrumentation_static.Instr_uid
 
 type level = Summary | Full
 type config = { level : level; output : Instrumentation_api.Output.t }
@@ -22,48 +22,47 @@ let fmt = ref Format.std_formatter
 module State = struct
   let al_spec : spec ref = ref []
 
-  let prems_attempted : (Location.t * string, int) Hashtbl.t =
+  let instrs_attempted : (Location.t * string, int) Hashtbl.t =
     Hashtbl.create 256
 
-  let prems_succeeded : (Location.t * string, int) Hashtbl.t =
+  let instrs_succeeded : (Location.t * string, int) Hashtbl.t =
     Hashtbl.create 256
 
-  let prems_failed : (Location.t * string, int) Hashtbl.t = Hashtbl.create 256
+  let instrs_failed : (Location.t * string, int) Hashtbl.t = Hashtbl.create 256
 
-  let prem_to_test : (Location.t * string, string list) Hashtbl.t =
+  let instr_to_test : (Location.t * string, string list) Hashtbl.t =
     Hashtbl.create 256
 
   let current_test_case_id : string option ref = ref None
-  let total_prems = ref 0
-  let total_fallible_prems = ref 0
-  let total_rel_prems = ref 0
-  let total_if_prems = ref 0
+  let total_instrs = ref 0
+  let total_fallible_instrs = ref 0
+  let total_rel_instrs = ref 0
+  let total_if_instrs = ref 0
 
   let reset () =
     al_spec := [];
-    Hashtbl.clear prems_attempted;
-    Hashtbl.clear prems_succeeded;
-    Hashtbl.clear prems_failed;
-    Hashtbl.clear prem_to_test;
+    Hashtbl.clear instrs_attempted;
+    Hashtbl.clear instrs_succeeded;
+    Hashtbl.clear instrs_failed;
+    Hashtbl.clear instr_to_test;
     current_test_case_id := None;
-    total_prems := 0;
-    total_fallible_prems := 0;
-    total_rel_prems := 0;
-    total_if_prems := 0
+    total_instrs := 0;
+    total_fallible_instrs := 0;
+    total_rel_instrs := 0;
+    total_if_instrs := 0
 
   (* Set current test case ID (called by runner before each test) *)
   let set_test_case_id id = current_test_case_id := Some id
   let clear_test_case_id () = current_test_case_id := None
 
-  (* Record that a premise was covered by the current test case *)
-  let record_premise_coverage key =
+  let record_instr_coverage key =
     match !current_test_case_id with
     | Some test_id ->
         let existing =
-          Hashtbl.find_opt prem_to_test key |> Option.value ~default:[]
+          Hashtbl.find_opt instr_to_test key |> Option.value ~default:[]
         in
         if not (List.mem test_id existing) then
-          Hashtbl.replace prem_to_test key (test_id :: existing)
+          Hashtbl.replace instr_to_test key (test_id :: existing)
     | None -> ()
 
   let incr_count tbl key =
@@ -71,8 +70,8 @@ module State = struct
     Hashtbl.replace tbl key (count + 1)
 end
 
-let rec is_fallible prem =
-  match prem.it with
+let rec is_fallible instr =
+  match instr.it with
   | LetI _ | OtherwiseI | DebugI _ | RelAssertI _ -> false
   | IterI (inner, _) -> is_fallible inner
   | IfI _ | RelI _ -> true
@@ -80,23 +79,23 @@ let rec is_fallible prem =
 module M : Instrumentation_api.Handler.S = struct
   let static_dependencies =
     [
-      (module Instrumentation_static.Premise_uid.Premise_uid
+      (module Instrumentation_static.Instr_uid.Instr_uid
       : Instrumentation_static.Static.S);
     ]
 
-  let rec count_prem prem =
-    match prem.it with
+  let rec count_instr instr =
+    match instr.it with
     | LetI _ | OtherwiseI | DebugI _ | RelAssertI _ ->
-        State.total_prems := !State.total_prems + 1
-    | IterI (inner, _) -> count_prem inner
+        State.total_instrs := !State.total_instrs + 1
+    | IterI (inner, _) -> count_instr inner
     | IfI _ ->
-        State.total_prems := !State.total_prems + 1;
-        State.total_fallible_prems := !State.total_fallible_prems + 1;
-        State.total_if_prems := !State.total_if_prems + 1
+        State.total_instrs := !State.total_instrs + 1;
+        State.total_fallible_instrs := !State.total_fallible_instrs + 1;
+        State.total_if_instrs := !State.total_if_instrs + 1
     | RelI _ ->
-        State.total_prems := !State.total_prems + 1;
-        State.total_fallible_prems := !State.total_fallible_prems + 1;
-        State.total_rel_prems := !State.total_rel_prems + 1
+        State.total_instrs := !State.total_instrs + 1;
+        State.total_fallible_instrs := !State.total_fallible_instrs + 1;
+        State.total_rel_instrs := !State.total_rel_instrs + 1
 
   let init ~spec =
     State.reset ();
@@ -110,13 +109,13 @@ module M : Instrumentation_api.Handler.S = struct
                 List.iter
                   (fun rule ->
                     let ({ instrs; _ } : rule') = rule.it in
-                    List.iter (fun prem -> count_prem prem) instrs)
+                    List.iter (fun instr -> count_instr instr) instrs)
                   rules
             | DecD { clauses; _ } ->
                 List.iter
                   (fun clause ->
                     let { instrs; _ } = clause.it in
-                    List.iter (fun prem -> count_prem prem) instrs)
+                    List.iter (fun instr -> count_instr instr) instrs)
                   clauses
             | _ -> ())
           al_spec
@@ -128,35 +127,35 @@ module M : Instrumentation_api.Handler.S = struct
     | Test_start { test_case_id } -> State.set_test_case_id test_case_id
     | Test_end _ -> State.clear_test_case_id ()
     | Instr_enter { instr = AlInstr instr; at = _ } ->
-        let key = prem_key instr in
-        State.incr_count State.prems_attempted key;
-        State.record_premise_coverage key
+        let key = instr_key instr in
+        State.incr_count State.instrs_attempted key;
+        State.record_instr_coverage key
     | Instr_exit { instr = AlInstr instr; at = _; success; bindings = _ } ->
-        let key = prem_key instr in
+        let key = instr_key instr in
         if success then (
-          State.incr_count State.prems_succeeded key;
-          State.record_premise_coverage key)
+          State.incr_count State.instrs_succeeded key;
+          State.record_instr_coverage key)
         else
-          let rec incr_failures prem =
-            match prem.it with
+          let rec incr_failures instr =
+            match instr.it with
             | LetI _ | OtherwiseI | DebugI _ | RelAssertI _ -> ()
             | IterI (inner, _) -> incr_failures inner
             | IfI _ | RelI _ ->
-                let key = prem_key prem in
-                State.incr_count State.prems_failed key
+                let key = instr_key instr in
+                State.incr_count State.instrs_failed key
           in
           incr_failures instr
     | _ -> ()
 
   (* --- Output: Summary mode (stats + uncovered only) --- *)
 
-  let is_if_prem_key ((_, content) : Location.t * string) : bool =
+  let is_if_instr_key ((_, content) : Location.t * string) : bool =
     String.length content >= 3 && String.sub content 0 3 = "if "
 
   let print_stats () =
-    let succeeded = Hashtbl.length State.prems_succeeded in
-    let attempted = Hashtbl.length State.prems_attempted in
-    let total = !State.total_prems in
+    let succeeded = Hashtbl.length State.instrs_succeeded in
+    let attempted = Hashtbl.length State.instrs_attempted in
+    let total = !State.total_instrs in
 
     if total > 0 then (
       Format.fprintf !fmt
@@ -166,31 +165,30 @@ module M : Instrumentation_api.Handler.S = struct
         succeeded total
         (percentage succeeded total);
 
-      (* Breakdown for if-premises *)
-      let total_if = !State.total_if_prems in
+      let total_if = !State.total_if_instrs in
       let succeeded_if =
         Hashtbl.fold
-          (fun k _ acc -> if is_if_prem_key k then acc + 1 else acc)
-          State.prems_succeeded 0
+          (fun k _ acc -> if is_if_instr_key k then acc + 1 else acc)
+          State.instrs_succeeded 0
       in
       let failed_if =
         Hashtbl.fold
-          (fun k _ acc -> if is_if_prem_key k then acc + 1 else acc)
-          State.prems_failed 0
+          (fun k _ acc -> if is_if_instr_key k then acc + 1 else acc)
+          State.instrs_failed 0
       in
       let both_if =
         Hashtbl.fold
           (fun k _ acc ->
-            if is_if_prem_key k && Hashtbl.mem State.prems_succeeded k then
+            if is_if_instr_key k && Hashtbl.mem State.instrs_succeeded k then
               acc + 1
             else acc)
-          State.prems_failed 0
+          State.instrs_failed 0
       in
       let neither_if = total_if - (succeeded_if + failed_if - both_if) in
       let total_score = succeeded_if + failed_if in
       let twice_total_if = 2 * total_if in
 
-      Format.fprintf !fmt "%d rel premises\n" !State.total_rel_prems;
+      Format.fprintf !fmt "%d rel premises\n" !State.total_rel_instrs;
       Format.fprintf !fmt
         "%d if-premises: succeeded %d/%d (%.2f%%), failed %d/%d (%.2f%%), \
          neither %d/%d (%.2f%%), total %d/%d (%.2f%%)\n"
@@ -204,9 +202,8 @@ module M : Instrumentation_api.Handler.S = struct
         (percentage total_score twice_total_if))
 
   let print_uncovered () =
-    let total = !State.total_prems in
+    let total = !State.total_instrs in
     if total > 0 then (
-      (* Collect uncovered - premises never successfully executed *)
       let uncovered = ref [] in
       List.iter
         (fun def ->
@@ -216,11 +213,13 @@ module M : Instrumentation_api.Handler.S = struct
                 (fun rule ->
                   let ({ ruleid = rule_id; instrs; _ } : rule') = rule.it in
                   List.iter
-                    (fun prem ->
-                      if not (Hashtbl.mem State.prems_succeeded (prem_key prem))
+                    (fun instr ->
+                      if
+                        not
+                          (Hashtbl.mem State.instrs_succeeded (instr_key instr))
                       then
                         uncovered :=
-                          (id.it, rule_id.it, Print.string_of_instr prem)
+                          (id.it, rule_id.it, Print.string_of_instr instr)
                           :: !uncovered)
                     instrs)
                 rules
@@ -229,13 +228,15 @@ module M : Instrumentation_api.Handler.S = struct
                 (fun idx clause ->
                   let { instrs; _ } = clause.it in
                   List.iter
-                    (fun prem ->
-                      if not (Hashtbl.mem State.prems_succeeded (prem_key prem))
+                    (fun instr ->
+                      if
+                        not
+                          (Hashtbl.mem State.instrs_succeeded (instr_key instr))
                       then
                         uncovered :=
                           ( id.it,
                             Format.sprintf "clause/%d" idx,
-                            Print.string_of_instr prem )
+                            Print.string_of_instr instr )
                           :: !uncovered)
                     instrs)
                 clauses
@@ -251,45 +252,43 @@ module M : Instrumentation_api.Handler.S = struct
 
   (* --- Output: Full mode (GCOV-style annotated spec) --- *)
 
-  (* Format as succ/fail - omit fail for let premises *)
-  let fmt_succ_fail prem =
-    let key = prem_key prem in
+  let fmt_succ_fail instr =
+    let key = instr_key instr in
     let succ =
-      Hashtbl.find_opt State.prems_succeeded key |> Option.value ~default:0
+      Hashtbl.find_opt State.instrs_succeeded key |> Option.value ~default:0
     in
     let succ_str = format_count succ in
-    match prem.it with
+    match instr.it with
     | LetI _ -> Format.sprintf "%s     " succ_str
     | _ ->
         let fail =
-          Hashtbl.find_opt State.prems_failed key |> Option.value ~default:0
+          Hashtbl.find_opt State.instrs_failed key |> Option.value ~default:0
         in
         let fail_str = format_count fail in
         Format.sprintf "%s/%s" succ_str fail_str
 
-  let get_prem_succeeded key =
-    Hashtbl.find_opt State.prems_succeeded key |> Option.value ~default:0
+  let get_instr_succeeded key =
+    Hashtbl.find_opt State.instrs_succeeded key |> Option.value ~default:0
 
-  let print_prem indent prem =
-    let content = Print.string_of_instr prem |> normalize_whitespace in
+  let print_instr indent instr =
+    let content = Print.string_of_instr instr |> normalize_whitespace in
     let uid =
-      match get_uid (prem_key prem) with Some uid -> uid | None -> -1
+      match get_uid (instr_key instr) with Some uid -> uid | None -> -1
     in
-    if is_fallible prem then
-      let succ_fail = fmt_succ_fail prem in
+    if is_fallible instr then
+      let succ_fail = fmt_succ_fail instr in
       Format.fprintf !fmt "%4d: %s %s-- %s\n" uid succ_fail indent content
     else
-      let succ = get_prem_succeeded (prem_key prem) in
+      let succ = get_instr_succeeded (instr_key instr) in
       Format.fprintf !fmt "%4d: %s     %s-- %s\n" uid (format_count succ) indent
         content
 
-  let print_prems indent result_str prems =
-    List.iter (print_prem indent) prems;
-    (* Print success count for final premise *)
-    match List.rev prems with
+  let print_instrs indent result_str instrs =
+    List.iter (print_instr indent) instrs;
+    match List.rev instrs with
     | last :: _ ->
-        let key = prem_key last in
-        let succ = get_prem_succeeded key in
+        let key = instr_key last in
+        let succ = get_instr_succeeded key in
         Format.fprintf !fmt "      %s      %s%s\n" (format_count succ) indent
           result_str
     | [] -> ()
@@ -309,7 +308,7 @@ module M : Instrumentation_api.Handler.S = struct
                   Il.Print.string_of_notexp concl |> normalize_whitespace
                 in
                 Format.fprintf !fmt "      rule %s:\n" rule_id.it;
-                print_prems "    " result_str instrs)
+                print_instrs "    " result_str instrs)
               rules
         | DecD { defid = id; clauses; _ } ->
             Format.fprintf !fmt "\ndef $%s:\n" id.it;
@@ -320,7 +319,7 @@ module M : Instrumentation_api.Handler.S = struct
                   Il.Print.string_of_exp body |> normalize_whitespace
                 in
                 Format.fprintf !fmt "      clause %d:\n" idx;
-                print_prems "    " result_str instrs)
+                print_instrs "    " result_str instrs)
               clauses
         | _ -> ())
       !State.al_spec
@@ -328,7 +327,7 @@ module M : Instrumentation_api.Handler.S = struct
   (* --- Finish: print report --- *)
 
   let finish () =
-    if !State.total_prems > 0 then (
+    if !State.total_instrs > 0 then (
       Format.fprintf !fmt "\n=== IL Node Coverage ===\n\n";
       match !config.level with
       | Summary ->
@@ -341,59 +340,59 @@ end
 
 (* Result type for programmatic access *)
 type result = {
-  prems_attempted : ((Location.t * string) * int) list; (* key * count *)
-  prems_succeeded : ((Location.t * string) * int) list; (* key * count *)
-  prem_to_uid : ((Location.t * string) * int) list; (* key * uid *)
-  uid_to_prem : (int * (Location.t * string)) list; (* uid * key *)
-  prem_to_test : ((Location.t * string) * string list) list;
+  instrs_attempted : ((Location.t * string) * int) list; (* key * count *)
+  instrs_succeeded : ((Location.t * string) * int) list; (* key * count *)
+  instr_to_uid : ((Location.t * string) * int) list; (* key * uid *)
+  uid_to_instr : (int * (Location.t * string)) list; (* uid * key *)
+  instr_to_test : ((Location.t * string) * string list) list;
       (* key * test_case_ids *)
-  total_prems : int;
+  total_instrs : int;
 }
 
 let get_result () =
-  let prem_to_uid_list, uid_to_prem_list =
-    match Instrumentation_static.Premise_uid.export () with
-    | Some (prem_to_uid, uid_to_prem) -> (prem_to_uid, uid_to_prem)
+  let instr_to_uid_list, uid_to_instr_list =
+    match Instrumentation_static.Instr_uid.export () with
+    | Some (instr_to_uid, uid_to_instr) -> (instr_to_uid, uid_to_instr)
     | None -> ([], [])
   in
   {
-    prems_attempted = State.prems_attempted |> Hashtbl.to_seq |> List.of_seq;
-    prems_succeeded = State.prems_succeeded |> Hashtbl.to_seq |> List.of_seq;
-    prem_to_uid = prem_to_uid_list;
-    uid_to_prem = uid_to_prem_list;
-    prem_to_test = State.prem_to_test |> Hashtbl.to_seq |> List.of_seq;
-    total_prems = !State.total_prems;
+    instrs_attempted = State.instrs_attempted |> Hashtbl.to_seq |> List.of_seq;
+    instrs_succeeded = State.instrs_succeeded |> Hashtbl.to_seq |> List.of_seq;
+    instr_to_uid = instr_to_uid_list;
+    uid_to_instr = uid_to_instr_list;
+    instr_to_test = State.instr_to_test |> Hashtbl.to_seq |> List.of_seq;
+    total_instrs = !State.total_instrs;
   }
 
 (* Restore state from a previous result (for checkpoint resume) *)
 let restore result =
-  Hashtbl.clear State.prems_attempted;
-  Hashtbl.clear State.prems_succeeded;
-  Hashtbl.clear State.prems_failed;
-  Hashtbl.clear State.prem_to_test;
+  Hashtbl.clear State.instrs_attempted;
+  Hashtbl.clear State.instrs_succeeded;
+  Hashtbl.clear State.instrs_failed;
+  Hashtbl.clear State.instr_to_test;
   List.iter
-    (fun (key, count) -> Hashtbl.replace State.prems_attempted key count)
-    result.prems_attempted;
+    (fun (key, count) -> Hashtbl.replace State.instrs_attempted key count)
+    result.instrs_attempted;
   List.iter
-    (fun (key, count) -> Hashtbl.replace State.prems_succeeded key count)
-    result.prems_succeeded;
+    (fun (key, count) -> Hashtbl.replace State.instrs_succeeded key count)
+    result.instrs_succeeded;
   (* Restore UID mapping through static service *)
-  Instrumentation_static.Premise_uid.restore
-    (result.prem_to_uid, result.uid_to_prem);
-  (* Reconstruct prems_failed from attempted - succeeded *)
+  Instrumentation_static.Instr_uid.restore
+    (result.instr_to_uid, result.uid_to_instr);
   List.iter
     (fun (key, attempted_count) ->
       let succeeded_count =
-        Hashtbl.find_opt State.prems_succeeded key |> Option.value ~default:0
+        Hashtbl.find_opt State.instrs_succeeded key |> Option.value ~default:0
       in
       let failed_count = attempted_count - succeeded_count in
       if failed_count > 0 then
-        Hashtbl.replace State.prems_failed key failed_count)
-    result.prems_attempted;
+        Hashtbl.replace State.instrs_failed key failed_count)
+    result.instrs_attempted;
   List.iter
-    (fun (key, test_cases) -> Hashtbl.replace State.prem_to_test key test_cases)
-    result.prem_to_test;
-  State.total_prems := result.total_prems
+    (fun (key, test_cases) ->
+      Hashtbl.replace State.instr_to_test key test_cases)
+    result.instr_to_test;
+  State.total_instrs := result.total_instrs
 
 (* Merge two results — used for checkpoint merging *)
 let merge_results r1 r2 =
@@ -424,12 +423,12 @@ let merge_results r1 r2 =
     Hashtbl.to_seq tbl |> List.of_seq
   in
   {
-    prem_to_uid = r1.prem_to_uid;
-    uid_to_prem = r1.uid_to_prem;
-    total_prems = r1.total_prems;
-    prems_attempted = merge_counts r1.prems_attempted r2.prems_attempted;
-    prems_succeeded = merge_counts r1.prems_succeeded r2.prems_succeeded;
-    prem_to_test = merge_test_lists r1.prem_to_test r2.prem_to_test;
+    instr_to_uid = r1.instr_to_uid;
+    uid_to_instr = r1.uid_to_instr;
+    total_instrs = r1.total_instrs;
+    instrs_attempted = merge_counts r1.instrs_attempted r2.instrs_attempted;
+    instrs_succeeded = merge_counts r1.instrs_succeeded r2.instrs_succeeded;
+    instr_to_test = merge_test_lists r1.instr_to_test r2.instr_to_test;
   }
 
 (* Expose test case ID setter for use by runner *)
@@ -454,7 +453,7 @@ let make cfg =
 
 (* Create handler with data getter for programmatic access.
    Usage:
-     let handler, get_coverage = Node_coverage.make_with_data cfg in
+     let handler, get_coverage = Instruction_coverage_al.make_with_data cfg in
      Hooks.set_handlers [handler];
      (* ... run interpreter ... *)
      let data = get_coverage () in

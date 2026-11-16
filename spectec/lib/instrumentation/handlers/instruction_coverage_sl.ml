@@ -1,20 +1,18 @@
-(** SL node coverage: same shape as {!Node_coverage_il} but over SL
-    instructions. [level] and [config] are type-aliased to the IL handler's so
-    the two share a parser and CLI surface. *)
+(** Counts runs of each SL instruction. *)
 
 open Common.Annotated
 module Location = Common.Location
 module Sl = Lang.Sl
 open Util
 
-type level = Node_coverage_il.level = Summary | Full
+type level = Instruction_coverage_al.level = Summary | Full
 
-type config = Node_coverage_il.config = {
+type config = Instruction_coverage_al.config = {
   level : level;
   output : Instrumentation_api.Output.t;
 }
 
-let default_config = Node_coverage_il.default_config
+let default_config = Instruction_coverage_al.default_config
 let config = ref default_config
 let fmt = ref Format.std_formatter
 

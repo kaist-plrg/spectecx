@@ -2,4 +2,4 @@
  (public_name spectec.instrumentation_static)
  (name instrumentation_static)
  (libraries lang common)
- (modules static premise_uid))
+ (modules static instr_uid))
