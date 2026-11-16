@@ -28,7 +28,7 @@ module Config : sig
   val register_static_dependencies : t -> unit
   val handlers : t -> (module Handler.S) list
   val has_handler : t -> name:string -> bool
-  val validate_mode : t -> mode:[ `IL | `SL | `PL ] -> (unit, string) result
+  val validate_mode : t -> mode:[ `AL | `SL | `PL ] -> (unit, string) result
   val close_outputs : t -> unit
 end
 

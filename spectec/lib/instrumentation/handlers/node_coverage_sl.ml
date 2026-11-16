@@ -88,7 +88,7 @@ module M : Instrumentation_api.Handler.S = struct
   let init ~spec =
     State.reset ();
     match spec with
-    | Instrumentation_api.Handler.IlSpec _ -> ()
+    | Instrumentation_api.Handler.AlSpec _ -> ()
     | Instrumentation_api.Handler.SlSpec sl_spec ->
         State.sl_spec := sl_spec;
         List.iter

@@ -240,7 +240,7 @@ module Checkpoint = struct
         Instrumentation.builtin_handler_specs
     in
     Instrumentation.with_instrumentation active
-      (Instrumentation_static.Static.IlSpec spec) (fun () ->
+      (Instrumentation_static.Static.AlSpec spec) (fun () ->
         restore_coverage checkpoint)
 end
 
@@ -386,7 +386,7 @@ let run_batch_with_outcomes (type i) (module T : Task.S with type input = i)
     ~ansi ~mode ~spec_al ?(verbose = false) (inputs : i list) =
   let total = List.length inputs in
   Instrumentation.with_instrumentation config
-    (Instrumentation.Static.IlSpec spec_al)
+    (Instrumentation.Static.AlSpec spec_al)
   @@ fun () ->
   List.mapi
     (fun idx input ->
@@ -451,7 +451,7 @@ let run_target ?(config = Instrumentation.Config.default)
     ~(checkpoint_config : Checkpoint.config) ~verbose ~mode ~spec_files spec_al
     tasks =
   Instrumentation.with_instrumentation config
-    (Instrumentation.Static.IlSpec spec_al)
+    (Instrumentation.Static.AlSpec spec_al)
   @@ fun () ->
   let ( let* ) = Result.bind in
   let* loaded_checkpoint =

@@ -20,7 +20,7 @@ let fmt = ref Format.std_formatter
 
 (* Runtime state - changes during execution *)
 module State = struct
-  let il_spec : spec ref = ref []
+  let al_spec : spec ref = ref []
 
   let prems_attempted : (Location.t * string, int) Hashtbl.t =
     Hashtbl.create 256
@@ -40,7 +40,7 @@ module State = struct
   let total_if_prems = ref 0
 
   let reset () =
-    il_spec := [];
+    al_spec := [];
     Hashtbl.clear prems_attempted;
     Hashtbl.clear prems_succeeded;
     Hashtbl.clear prems_failed;
@@ -101,8 +101,8 @@ module M : Instrumentation_api.Handler.S = struct
   let init ~spec =
     State.reset ();
     match spec with
-    | Instrumentation_api.Handler.IlSpec il_spec ->
-        State.il_spec := il_spec;
+    | Instrumentation_api.Handler.AlSpec al_spec ->
+        State.al_spec := al_spec;
         List.iter
           (fun def ->
             match def.it with
@@ -119,7 +119,7 @@ module M : Instrumentation_api.Handler.S = struct
                     List.iter (fun prem -> count_prem prem) instrs)
                   clauses
             | _ -> ())
-          il_spec
+          al_spec
     | Instrumentation_api.Handler.SlSpec _ -> ()
 
   let handle_value = None
@@ -240,7 +240,7 @@ module M : Instrumentation_api.Handler.S = struct
                     instrs)
                 clauses
           | _ -> ())
-        !State.il_spec;
+        !State.al_spec;
       if !uncovered <> [] then (
         Format.fprintf !fmt "\nNever succeeded:\n";
         List.iter
@@ -323,7 +323,7 @@ module M : Instrumentation_api.Handler.S = struct
                 print_prems "    " result_str instrs)
               clauses
         | _ -> ())
-      !State.il_spec
+      !State.al_spec
 
   (* --- Finish: print report --- *)
 
@@ -468,7 +468,7 @@ let make_with_data cfg =
 
 module Spec : Instrumentation_spec.Spec.S = struct
   let name = "premise-coverage"
-  let modes = [ `IL ]
+  let modes = [ `AL ]
 
   let params =
     [

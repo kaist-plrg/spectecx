@@ -254,7 +254,9 @@ def $lookup_env(env, id) = $lookup_<id, value>(env, id)
 
 We declare a generic `$lookup_` that takes a map from `K` to `V` and optionally returns a `V`. Next, we provide the definitions. Like relations and rules, each function definition is also a single control flow from input to output. Therefore, multiple definition are needed to define the function completely.
 
-The IL interpreter tries each of the definition *in the order they are written*. A rule of thumb here is that functions on inductive types (recursively defined syntax or iterators) follow this general pattern: start from the base case and inductively build to general ones. That is exactly what happens here - we start with the easiest case of all: the empty list. `eps` stands for the greek letter epsilon (ε) which is often used to denote empty syntax. In SpecTec, `eps` can be used for empty iterators; i.e. empty lists and empty option types. So any lookup on an empty list would return None.
+The AL interpreter tries function definitions in source order.
+
+A rule of thumb here is that functions on inductive types (recursively defined syntax or iterators) follow this general pattern: start from the base case and inductively build to general ones. That is exactly what happens here - we start with the easiest case of all: the empty list. `eps` stands for the greek letter epsilon (ε) which is often used to denote empty syntax. In SpecTec, `eps` can be used for empty iterators; i.e. empty lists and empty option types. So any lookup on an empty list would return None.
 
 We then define another base case. Lists are either empty (`eps`), or can be deconstructed into the *head* element and *tail* list with the *cons*(`::`) operator: (`x_h::x_t*`). Since we already handled the empty case, we can now deconstruct the map into head and tail, each denoted by the pair syntax. Case 2 here is where the key we're searching for (`K`) is at the head(`K_h`), for which we return the value (`V_h`).
 

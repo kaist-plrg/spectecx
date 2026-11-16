@@ -28,7 +28,11 @@ The `spectec-target-itpl` package provides independently registered targets for 
 ./spectecx vae parse -r -p spectec/testdata/interp/itpl/vae/shadowing.vae
 ```
 
-All targets provide `eval`, `parse`, and `batch`. Evaluation supports IL (the default), `--sl`, and `--pl`. `parse -r` checks printing and reparsing after desugaring. Typed targets also provide `typecheck`, which returns the program type. Their `eval` command checks before evaluating, and `batch` runs both tasks. Input extensions match target names. Batch filenames containing `_error` indicate expected failures.
+All targets provide `eval`, `parse`, and `batch`.
+
+The `eval` command uses AL by default. Select SL with `--sl` or PL with `--pl`.
+
+`parse -r` checks printing and reparsing after desugaring. Typed targets also provide `typecheck`, which returns the program type. Their `eval` command checks before evaluating, and `batch` runs both tasks. Input extensions match target names. Batch filenames containing `_error` indicate expected failures.
 
 Concrete inputs accept signed decimal integers, parentheses, and left-associative `+` and `-` at equal precedence. General unary negation is absent. Identifiers start with a letter or underscore and may contain letters, digits, underscores, or apostrophes. Binding and function bodies extend as far right as possible, so use parentheses when placing them inside other expressions.
 
@@ -63,4 +67,8 @@ In BFAE, `box` and `!` bind tighter than application. Assignment binds below ari
 
 ## Limits
 
-These big-step relations describe terminating evaluation. Absence of a derivation does not distinguish stuckness from divergence. The tests check selected program results across IL, SL, and PL. They do not prove textbook equivalence or type soundness. BFAE and MFAE evaluation judgments return a final store, but the CLI prints only the result value. Each input starts with an empty store, and box addresses print as their natural-number labels.
+These big-step relations describe terminating evaluation. Absence of a derivation does not distinguish stuckness from divergence.
+
+Across AL, SL and PL, the tests compare the result of each selected program.
+
+They do not prove textbook equivalence or type soundness. BFAE and MFAE evaluation judgments return a final store, but the CLI prints only the result value. Each input starts with an empty store, and box addresses print as their natural-number labels.

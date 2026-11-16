@@ -1,4 +1,5 @@
-Typed targets infer the same types and produce the same values in IL, SL, and PL. Successful inputs round-trip with their annotations intact.
+Tests cover typechecking and evaluation of typed examples in AL, SL and PL mode.
+Successful inputs round-trip with their annotations intact.
 
   $ check() {
   >   target=$1
@@ -99,7 +100,7 @@ Ill-typed expressions parse successfully but fail both typecheck and eval, inclu
   >         printf 'unexpected %s success: %s\n' "$command" "$expression"
   >         return 1
   >       fi
-  >       grep -Eq 'source: (il|sl|pl)-interp' error || { cat error; return 1; }
+  >       grep -Eq 'source: (al|sl|pl)-interp' error || { cat error; return 1; }
   >     done
   >   done
   > }

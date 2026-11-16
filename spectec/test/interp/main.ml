@@ -1,5 +1,3 @@
-(** Interpreter test - Generic test runner for IL/SL/PL using TASK *)
-
 open Core
 open Test_lib
 
@@ -13,7 +11,7 @@ let run_with_task (type i) (module T : Spectec.Task.S with type input = i)
     let%bind spec_il, spec_al = Spectec.elaborate_and_algorithmize spec in
     let mode : Spectec.Interp_mode.t =
       match request with
-      | `IL -> Il
+      | `AL -> Al
       | `SL -> Sl
       | `PL ->
           Pl
@@ -231,7 +229,7 @@ let miniml_eval_command =
   run_miniml_eval ~negative ~testdirs
 
 let command =
-  Command.group ~summary:"run interpreter test (IL, SL, or PL)"
+  Command.group ~summary:"run interpreter test (AL, SL, or PL)"
     [
       ( "p4",
         Command.group ~summary:"P4 tests"

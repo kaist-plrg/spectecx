@@ -89,5 +89,5 @@ With the tree shown, the diagnostic keeps only its headline:
   256 |   -- Check_prog: |- command
       |      ^^^^^^^^^^
       |
-      | source: il-interp
+      | source: al-interp
   [1]

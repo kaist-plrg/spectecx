@@ -16,6 +16,6 @@ val handlers : t -> (module Instrumentation_api.Handler.S) list
 val has_handler : t -> name:string -> bool
 
 (** [Error msg] names every configured handler that does not support [mode]. *)
-val validate_mode : t -> mode:[ `IL | `SL | `PL ] -> (unit, string) result
+val validate_mode : t -> mode:[ `AL | `SL | `PL ] -> (unit, string) result
 
 val close_outputs : t -> unit

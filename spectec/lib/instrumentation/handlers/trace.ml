@@ -132,7 +132,7 @@ let make cfg =
 
 module Spec : Instrumentation_spec.Spec.S = struct
   let name = "trace"
-  let modes = [ `IL; `SL; `PL ]
+  let modes = [ `AL; `SL; `PL ]
 
   let params =
     [

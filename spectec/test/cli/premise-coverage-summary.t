@@ -3,7 +3,8 @@ impty CLI: premise-coverage summary against hello.imp.
   $ SPEC=../../specs/impty/base/spec.spectec
   $ HELLO=../../testdata/interp/impty/base/hello.imp
 
-Premise coverage is IL-only; run it on the typechecker. Summary lists only the
+Premise coverage requires AL mode.
+Run it on the typechecker. Summary lists only the
 premises that never succeeded:
 
   $ spectec impty typecheck --spec $SPEC -p $HELLO --color never --premise-coverage.level summary

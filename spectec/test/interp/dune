@@ -1,4 +1,4 @@
-; Interpreter test executable (unified IL/SL with --sl flag)
+; Interpreter test executable (unified AL/SL with --sl flag)
 
 (executable
  (name main)
@@ -18,10 +18,10 @@
 ;; p4 target tests
 ;; ============================================================
 
-;; IL Positive tests (expect success, default IL mode)
+;; AL Positive tests (expect success, default AL mode)
 
 (rule
- (target p4-il-pos.actual)
+ (target p4-al-pos.actual)
  (deps
   (source_tree ../../specs/p4)
   (source_tree ../../testdata/interp/p4/p4c/includes)
@@ -31,7 +31,7 @@
   (with-stdout-to
    %{target}
    (with-stderr-to
-    p4-il-pos.err
+    p4-al-pos.err
     (run
      ./main.exe
      p4
@@ -44,15 +44,15 @@
      ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples)))))
 
 (rule
- (alias p4-il-pos)
- (deps p4-il-pos.err p4-il-pos.actual)
+ (alias p4-al-pos)
+ (deps p4-al-pos.err p4-al-pos.actual)
  (action
-  (diff p4-il-pos.expected p4-il-pos.actual)))
+  (diff p4-al-pos.expected p4-al-pos.actual)))
 
-;; IL Negative tests (expect failure, default IL mode)
+;; AL Negative tests (expect failure, default AL mode)
 
 (rule
- (target p4-il-neg.actual)
+ (target p4-al-neg.actual)
  (deps
   (source_tree ../../specs/p4)
   (source_tree ../../testdata/interp/p4/p4c/includes)
@@ -62,7 +62,7 @@
   (with-stdout-to
    %{target}
    (with-stderr-to
-    p4-il-neg.err
+    p4-al-neg.err
     (run
      ./main.exe
      p4
@@ -76,10 +76,10 @@
      ../../../../../spectec/testdata/interp/p4/p4c/p4_16_errors)))))
 
 (rule
- (alias p4-il-neg)
- (deps p4-il-neg.err p4-il-neg.actual)
+ (alias p4-al-neg)
+ (deps p4-al-neg.err p4-al-neg.actual)
  (action
-  (diff p4-il-neg.expected p4-il-neg.actual)))
+  (diff p4-al-neg.expected p4-al-neg.actual)))
 
 ;; SL Positive tests (expect success, with --sl flag)
 
@@ -211,10 +211,10 @@
  (action
   (diff p4-pl-neg.expected p4-pl-neg.actual)))
 
-;; IL STF evaluation tests (eBPF programs with STF files)
+;; AL STF evaluation tests (eBPF programs with STF files)
 
 (rule
- (target p4-il-eval.actual)
+ (target p4-al-eval.actual)
  (deps
   (source_tree ../../specs/p4)
   (source_tree ../../testdata/interp/p4/p4c/includes)
@@ -224,7 +224,7 @@
   (with-stdout-to
    %{target}
    (with-stderr-to
-    p4-il-eval.err
+    p4-al-eval.err
     (run
      ./main.exe
      p4
@@ -237,10 +237,10 @@
      ../../../../../spectec/testdata/interp/p4/p4c/p4_16_samples)))))
 
 (rule
- (alias p4-il-eval)
- (deps p4-il-eval.err p4-il-eval.actual)
+ (alias p4-al-eval)
+ (deps p4-al-eval.err p4-al-eval.actual)
  (action
-  (diff p4-il-eval.expected p4-il-eval.actual)))
+  (diff p4-al-eval.expected p4-al-eval.actual)))
 
 ;; SL STF evaluation tests
 
@@ -310,10 +310,10 @@
 ;; impty target tests (base variant)
 ;; ============================================================
 
-;; IL Positive
+;; AL Positive
 
 (rule
- (target impty-base-il-pos.actual)
+ (target impty-base-al-pos.actual)
  (deps
   (source_tree ../../specs/impty/base)
   (source_tree ../../testdata/interp/impty/base))
@@ -321,7 +321,7 @@
   (with-stdout-to
    %{target}
    (with-stderr-to
-    impty-base-il-pos.err
+    impty-base-al-pos.err
     (run
      ./main.exe
      impty
@@ -332,15 +332,15 @@
      ../../../../../spectec/testdata/interp/impty/base)))))
 
 (rule
- (alias impty-base-il-pos)
- (deps impty-base-il-pos.err impty-base-il-pos.actual)
+ (alias impty-base-al-pos)
+ (deps impty-base-al-pos.err impty-base-al-pos.actual)
  (action
-  (diff impty-base-il-pos.expected impty-base-il-pos.actual)))
+  (diff impty-base-al-pos.expected impty-base-al-pos.actual)))
 
-;; IL Negative
+;; AL Negative
 
 (rule
- (target impty-base-il-neg.actual)
+ (target impty-base-al-neg.actual)
  (deps
   (source_tree ../../specs/impty/base)
   (source_tree ../../testdata/interp/impty/base))
@@ -348,7 +348,7 @@
   (with-stdout-to
    %{target}
    (with-stderr-to
-    impty-base-il-neg.err
+    impty-base-al-neg.err
     (run
      ./main.exe
      impty
@@ -360,10 +360,10 @@
      ../../../../../spectec/testdata/interp/impty/base)))))
 
 (rule
- (alias impty-base-il-neg)
- (deps impty-base-il-neg.err impty-base-il-neg.actual)
+ (alias impty-base-al-neg)
+ (deps impty-base-al-neg.err impty-base-al-neg.actual)
  (action
-  (diff impty-base-il-neg.expected impty-base-il-neg.actual)))
+  (diff impty-base-al-neg.expected impty-base-al-neg.actual)))
 
 ;; SL Positive
 
@@ -483,10 +483,10 @@
 ;; impty target tests (closure variant)
 ;; ============================================================
 
-;; IL Positive
+;; AL Positive
 
 (rule
- (target impty-closure-il-pos.actual)
+ (target impty-closure-al-pos.actual)
  (deps
   (source_tree ../../specs/impty/closure)
   (source_tree ../../testdata/interp/impty/base)
@@ -495,7 +495,7 @@
   (with-stdout-to
    %{target}
    (with-stderr-to
-    impty-closure-il-pos.err
+    impty-closure-al-pos.err
     (run
      ./main.exe
      impty
@@ -508,15 +508,15 @@
      ../../../../../spectec/testdata/interp/impty/closure)))))
 
 (rule
- (alias impty-closure-il-pos)
- (deps impty-closure-il-pos.err impty-closure-il-pos.actual)
+ (alias impty-closure-al-pos)
+ (deps impty-closure-al-pos.err impty-closure-al-pos.actual)
  (action
-  (diff impty-closure-il-pos.expected impty-closure-il-pos.actual)))
+  (diff impty-closure-al-pos.expected impty-closure-al-pos.actual)))
 
-;; IL Negative
+;; AL Negative
 
 (rule
- (target impty-closure-il-neg.actual)
+ (target impty-closure-al-neg.actual)
  (deps
   (source_tree ../../specs/impty/closure)
   (source_tree ../../testdata/interp/impty/base)
@@ -525,7 +525,7 @@
   (with-stdout-to
    %{target}
    (with-stderr-to
-    impty-closure-il-neg.err
+    impty-closure-al-neg.err
     (run
      ./main.exe
      impty
@@ -539,10 +539,10 @@
      ../../../../../spectec/testdata/interp/impty/closure)))))
 
 (rule
- (alias impty-closure-il-neg)
- (deps impty-closure-il-neg.err impty-closure-il-neg.actual)
+ (alias impty-closure-al-neg)
+ (deps impty-closure-al-neg.err impty-closure-al-neg.actual)
  (action
-  (diff impty-closure-il-neg.expected impty-closure-il-neg.actual)))
+  (diff impty-closure-al-neg.expected impty-closure-al-neg.actual)))
 
 ;; SL Positive
 
@@ -674,10 +674,10 @@
 ;; impty target tests (recursion variant)
 ;; ============================================================
 
-;; IL Positive
+;; AL Positive
 
 (rule
- (target impty-recursion-il-pos.actual)
+ (target impty-recursion-al-pos.actual)
  (deps
   (source_tree ../../specs/impty/recursion)
   (source_tree ../../testdata/interp/impty/base)
@@ -687,7 +687,7 @@
   (with-stdout-to
    %{target}
    (with-stderr-to
-    impty-recursion-il-pos.err
+    impty-recursion-al-pos.err
     (run
      ./main.exe
      impty
@@ -702,15 +702,15 @@
      ../../../../../spectec/testdata/interp/impty/recursion)))))
 
 (rule
- (alias impty-recursion-il-pos)
- (deps impty-recursion-il-pos.err impty-recursion-il-pos.actual)
+ (alias impty-recursion-al-pos)
+ (deps impty-recursion-al-pos.err impty-recursion-al-pos.actual)
  (action
-  (diff impty-recursion-il-pos.expected impty-recursion-il-pos.actual)))
+  (diff impty-recursion-al-pos.expected impty-recursion-al-pos.actual)))
 
-;; IL Negative
+;; AL Negative
 
 (rule
- (target impty-recursion-il-neg.actual)
+ (target impty-recursion-al-neg.actual)
  (deps
   (source_tree ../../specs/impty/recursion)
   (source_tree ../../testdata/interp/impty/base)
@@ -720,7 +720,7 @@
   (with-stdout-to
    %{target}
    (with-stderr-to
-    impty-recursion-il-neg.err
+    impty-recursion-al-neg.err
     (run
      ./main.exe
      impty
@@ -736,10 +736,10 @@
      ../../../../../spectec/testdata/interp/impty/recursion)))))
 
 (rule
- (alias impty-recursion-il-neg)
- (deps impty-recursion-il-neg.err impty-recursion-il-neg.actual)
+ (alias impty-recursion-al-neg)
+ (deps impty-recursion-al-neg.err impty-recursion-al-neg.actual)
  (action
-  (diff impty-recursion-il-neg.expected impty-recursion-il-neg.actual)))
+  (diff impty-recursion-al-neg.expected impty-recursion-al-neg.actual)))
 
 ;; SL Positive
 
@@ -883,10 +883,10 @@
 ;; Mini-ML target tests
 ;; ============================================================
 
-;; IL Positive
+;; AL Positive
 
 (rule
- (target miniml-il-pos.actual)
+ (target miniml-al-pos.actual)
  (deps
   (source_tree ../../specs/miniml)
   (source_tree ../../testdata/interp/miniml))
@@ -894,7 +894,7 @@
   (with-stdout-to
    %{target}
    (with-stderr-to
-    miniml-il-pos.err
+    miniml-al-pos.err
     (run
      ./main.exe
      miniml
@@ -903,15 +903,15 @@
      ../../../../../spectec/testdata/interp/miniml)))))
 
 (rule
- (alias miniml-il-pos)
- (deps miniml-il-pos.err miniml-il-pos.actual)
+ (alias miniml-al-pos)
+ (deps miniml-al-pos.err miniml-al-pos.actual)
  (action
-  (diff miniml-il-pos.expected miniml-il-pos.actual)))
+  (diff miniml-al-pos.expected miniml-al-pos.actual)))
 
-;; IL Negative
+;; AL Negative
 
 (rule
- (target miniml-il-neg.actual)
+ (target miniml-al-neg.actual)
  (deps
   (source_tree ../../specs/miniml)
   (source_tree ../../testdata/interp/miniml))
@@ -919,7 +919,7 @@
   (with-stdout-to
    %{target}
    (with-stderr-to
-    miniml-il-neg.err
+    miniml-al-neg.err
     (run
      ./main.exe
      miniml
@@ -929,10 +929,10 @@
      ../../../../../spectec/testdata/interp/miniml)))))
 
 (rule
- (alias miniml-il-neg)
- (deps miniml-il-neg.err miniml-il-neg.actual)
+ (alias miniml-al-neg)
+ (deps miniml-al-neg.err miniml-al-neg.actual)
  (action
-  (diff miniml-il-neg.expected miniml-il-neg.actual)))
+  (diff miniml-al-neg.expected miniml-al-neg.actual)))
 
 ;; SL Positive
 
@@ -1045,10 +1045,10 @@
 ;; ============================================================
 
 (alias
- (name p4-il)
+ (name p4-al)
  (deps
-  (alias p4-il-pos)
-  (alias p4-il-neg)))
+  (alias p4-al-pos)
+  (alias p4-al-neg)))
 
 (alias
  (name p4-sl)
@@ -1063,10 +1063,10 @@
   (alias p4-pl-neg)))
 
 (alias
- (name impty-base-il)
+ (name impty-base-al)
  (deps
-  (alias impty-base-il-pos)
-  (alias impty-base-il-neg)))
+  (alias impty-base-al-pos)
+  (alias impty-base-al-neg)))
 
 (alias
  (name impty-base-sl)
@@ -1081,10 +1081,10 @@
   (alias impty-base-pl-neg)))
 
 (alias
- (name impty-closure-il)
+ (name impty-closure-al)
  (deps
-  (alias impty-closure-il-pos)
-  (alias impty-closure-il-neg)))
+  (alias impty-closure-al-pos)
+  (alias impty-closure-al-neg)))
 
 (alias
  (name impty-closure-sl)
@@ -1099,10 +1099,10 @@
   (alias impty-closure-pl-neg)))
 
 (alias
- (name impty-recursion-il)
+ (name impty-recursion-al)
  (deps
-  (alias impty-recursion-il-pos)
-  (alias impty-recursion-il-neg)))
+  (alias impty-recursion-al-pos)
+  (alias impty-recursion-al-neg)))
 
 (alias
  (name impty-recursion-sl)
@@ -1117,10 +1117,10 @@
   (alias impty-recursion-pl-neg)))
 
 (alias
- (name miniml-il)
+ (name miniml-al)
  (deps
-  (alias miniml-il-pos)
-  (alias miniml-il-neg)))
+  (alias miniml-al-pos)
+  (alias miniml-al-neg)))
 
 (alias
  (name miniml-sl)
@@ -1137,21 +1137,21 @@
 (alias
  (name impty-base)
  (deps
-  (alias impty-base-il)
+  (alias impty-base-al)
   (alias impty-base-sl)
   (alias impty-base-pl)))
 
 (alias
  (name impty-closure)
  (deps
-  (alias impty-closure-il)
+  (alias impty-closure-al)
   (alias impty-closure-sl)
   (alias impty-closure-pl)))
 
 (alias
  (name impty-recursion)
  (deps
-  (alias impty-recursion-il)
+  (alias impty-recursion-al)
   (alias impty-recursion-sl)
   (alias impty-recursion-pl)))
 
@@ -1165,14 +1165,14 @@
 (alias
  (name miniml)
  (deps
-  (alias miniml-il)
+  (alias miniml-al)
   (alias miniml-sl)
   (alias miniml-pl)))
 
 (alias
  (name runtest)
  (deps
-  (alias p4-il)
+  (alias p4-al)
   (alias p4-sl)
   (alias p4-pl)
   (alias impty)

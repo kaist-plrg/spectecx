@@ -55,7 +55,7 @@ The compiler processes a specification through EL -> IL -> AL -> SL.
 * SpecTec AL (algorithmic language) holds executable rules and clauses. The algo pass turns IL into AL by deciding variable bindings, adding checks and annotating iterations.
 * SpecTec SL (structured language) groups related AL execution paths into explicit branches to reduce backtracking.
 
-The default interpreter executes AL, and `--sl` selects the SL interpreter. The default mode is named IL in command-line help and test targets. Targets provide parsers that turn programs into IL values.
+The default interpreter executes AL, and `--sl` selects the SL interpreter. Targets provide parsers that turn programs into IL values.
 
 Repository layout:
 
@@ -135,7 +135,11 @@ With `--batch-dir DIR`, `p4 eval` runs each eBPF program under `DIR` that has an
 
 The [ITPL specifications](spectec/specs/itpl/README.md) follow the languages in chapters 6 through 24 of *Introduction to Programming Languages* by Jaemin Hong and Sukyoung Ryu, the textbook for KAIST CS320.
 
-`--det` is opt-in and works with IL, SL, and PL alike. It rejects an input as soon as more than one alternative succeeds for it, even when the alternatives agree on their output, and it only checks inputs actually supplied to a run, not every input the spec could ever see. Evaluating the extra alternatives can invoke host operations (e.g. a builtin with a side effect) that are not rolled back. A resumed checkpoint must have been saved with the same `--det` setting as the run resuming it.
+`--det` is opt-in.
+
+The `--det` check works in AL, SL and PL mode.
+
+It rejects an input as soon as more than one alternative succeeds for it, even when the alternatives agree on their output, and it only checks inputs actually supplied to a run, not every input the spec could ever see. Evaluating the extra alternatives can invoke host operations (e.g. a builtin with a side effect) that are not rolled back. A resumed checkpoint must have been saved with the same `--det` setting as the run resuming it.
 
 ### Editor support
 
@@ -153,7 +157,9 @@ make test
 
 - Checks parsing, elaboration, algo and structuring using the specs under `spectec/specs/p4` and `spectec/specs/p4-old`.
 - Checks interpreter results with the P4 parser using files under `spectec/testdata/interp/p4`.
-- Runs p4c's eBPF programs that have STF files with the `p4 eval` evaluator in IL, SL and PL, skipping files named in the [P4 exclusion lists](spectec/testdata/interp/p4/excludes/README.md). Use `make test-il-eval`, `make test-sl-eval` or `make test-pl-eval` to run one interpreter's evaluation suite.
+- Runs `p4 eval` in AL, SL and PL on p4c's eBPF programs with STF files, subject to the [P4 exclusion lists](spectec/testdata/interp/p4/excludes/README.md).
+
+Use `make test-al-eval`, `make test-sl-eval` or `make test-pl-eval` to run one interpreter's evaluation suite.
 
 ### Adding a New Target
 

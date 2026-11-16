@@ -1,4 +1,5 @@
-STFAE subtyping and TIFAE inference produce the expected types and values in IL, SL, and PL. Each input also round-trips.
+Tests cover STFAE subtyping and TIFAE inference in AL, SL and PL mode.
+Each input also round-trips.
 
   $ check() {
   >   target=$1
@@ -109,7 +110,7 @@ Invalid operations, duplicate labels, and incompatible or infinite types fail bo
   >         printf 'unexpected %s success: %s\n' "$command" "$expression"
   >         return 1
   >       fi
-  >       grep -Eq 'source: (il|sl|pl)-interp' error || { cat error; return 1; }
+  >       grep -Eq 'source: (al|sl|pl)-interp' error || { cat error; return 1; }
   >     done
   >   done
   > }
@@ -180,7 +181,7 @@ Checking against an explicit supertype accepts subsumption, rejects narrowing an
   >       printf 'unexpected success: %s\n' "$name"
   >       exit 1
   >     fi
-  >     grep -Eq 'source: (il|sl|pl)-interp' error || { cat error; exit 1; }
+  >     grep -Eq 'source: (al|sl|pl)-interp' error || { cat error; exit 1; }
   >   done
   > done
 

@@ -9,7 +9,7 @@ type compiled_spec = {
   henv : Hints.Henv.t;
 }
 
-type mode = Il | Sl | Pl
+type mode = Al | Sl | Pl
 
 type expectation =
   | Returns of (unit -> Value.t list)
@@ -59,7 +59,7 @@ let compile_file filename =
 let returns expected = Returns expected
 let fails = Fails
 let fails_with message = Fails_with message
-let string_of_mode = function Il -> "IL" | Sl -> "SL" | Pl -> "PL"
+let string_of_mode = function Al -> "AL" | Sl -> "SL" | Pl -> "PL"
 
 let string_of_values values =
   values
@@ -73,8 +73,8 @@ let render_error error =
 let eval ~check_determinism target_state spec mode relation args =
   let context =
     match mode with
-    | Il ->
-        Interp.context_of_il_spec ~check_determinism target_state spec.spec_al
+    | Al ->
+        Interp.context_of_al_spec ~check_determinism target_state spec.spec_al
     | Sl ->
         Interp.context_of_sl_spec ~check_determinism target_state spec.spec_sl
     | Pl ->
@@ -116,7 +116,7 @@ let check_result ~name ~mode ~check_determinism expectation result =
            (string_of_values actual))
 
 let check spec ?(target = (module Pure_target : Interp.Target.S))
-    ?(modes = [ Il; Sl; Pl ]) ?(check_determinism = false) ~name ~relation ~args
+    ?(modes = [ Al; Sl; Pl ]) ?(check_determinism = false) ~name ~relation ~args
     expectation =
   List.iter modes ~f:(fun mode ->
       Interp.with_target_state target (fun target_state ->

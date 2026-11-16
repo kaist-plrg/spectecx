@@ -60,7 +60,7 @@ let input relation values = { relation; decode = (fun () -> Ok (values ())) }
 
 let modes =
   [
-    ("IL", Spectec.Interp_mode.Il);
+    ("AL", Spectec.Interp_mode.Al);
     ("SL", Spectec.Interp_mode.Sl);
     ("PL", Spectec.Interp_mode.Pl spec.henv);
   ]
@@ -93,7 +93,7 @@ let handler_config ~name ?handle_value ?(finish = fun () -> ()) () :
   end in
   {
     name;
-    modes = [ `IL; `SL; `PL ];
+    modes = [ `AL; `SL; `PL ];
     handler = (module Handler);
     output = Instrumentation.Output.stdout;
   }
@@ -662,8 +662,8 @@ let tree_renders_iterated_premises_as_authored () =
   let path = Filename.temp_file "tree" ".txt" in
   let input = input "Offset_pair" (fun () -> [ nats [ 1; 2 ]; nat 3 ]) in
   ignore
-    (evaluate ~config:[ tree_handler ~path ] Spectec.Interp_mode.Il input
-    |> values_exn ~name ~mode_name:"IL");
+    (evaluate ~config:[ tree_handler ~path ] Spectec.Interp_mode.Al input
+    |> values_exn ~name ~mode_name:"AL");
   let premises = tree_premise_lines ~path in
   let expected =
     [
@@ -672,7 +672,7 @@ let tree_renders_iterated_premises_as_authored () =
     ]
   in
   if not (List.equal String.equal premises expected) then
-    fail_check ~name ~mode_name:"IL"
+    fail_check ~name ~mode_name:"AL"
       ("premise lines were:\n" ^ String.concat "\n" premises)
 
 let tree_marks_the_failed_repetition () =
@@ -682,14 +682,14 @@ let tree_marks_the_failed_repetition () =
     input "Pair_mismatch" (fun () -> [ nats [ 1; 2 ]; nats [ 5; 2 ] ])
   in
   (match
-     evaluate ~config:[ tree_handler ~path ] Spectec.Interp_mode.Il input
+     evaluate ~config:[ tree_handler ~path ] Spectec.Interp_mode.Al input
    with
-  | Ok _ -> fail_check ~name ~mode_name:"IL" "the relation held"
+  | Ok _ -> fail_check ~name ~mode_name:"AL" "the relation held"
   | Error _ -> ());
   let premises = tree_premise_lines ~path in
   let expected = [ "✗  if (1, 1) = (1, 5)"; "-- if (2, 2) = (2, 2)" ] in
   if not (List.equal String.equal premises expected) then
-    fail_check ~name ~mode_name:"IL"
+    fail_check ~name ~mode_name:"AL"
       ("premise lines were:\n" ^ String.concat "\n" premises)
 
 let run () =

@@ -3,8 +3,7 @@ impty CLI: branch-coverage summary against hello.imp.
   $ SPEC=../../specs/impty/base/spec.spectec
   $ HELLO=../../testdata/interp/impty/base/hello.imp
 
-Summary branch coverage reports only the uncovered rules and clauses, under the
-IL interpreter:
+Summary branch coverage lists the uncovered rules and clauses. This run uses AL mode.
 
   $ spectec impty eval --spec $SPEC -p $HELLO --color never --branch-coverage.level summary
   

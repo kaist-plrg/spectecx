@@ -1,4 +1,4 @@
-Function evaluation has the same results in IL, SL, and PL.
+Tests cover function evaluation in AL, SL and PL mode.
 
   $ check() {
   >   target=$1
@@ -56,7 +56,7 @@ Expected failures must come from evaluation after parsing succeeds.
   >       printf 'unexpected success: %s\n' "$expression"
   >       return 1
   >     fi
-  >     grep -Eq 'source: (il|sl|pl)-interp' error || { cat error; return 1; }
+  >     grep -Eq 'source: (al|sl|pl)-interp' error || { cat error; return 1; }
   >   done
   > }
 

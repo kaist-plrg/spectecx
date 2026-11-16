@@ -1,7 +1,5 @@
-(** EL -> IL -> EL premise roundtrip: for each IL rule/clause, recover its EL
-    premises and assert they match what the author wrote, catching a dropped,
-    reordered, or mistagged premise. EL and IL pair positionally within an id,
-    since rule ids and clause defids both repeat and cannot key the pairing. *)
+(** Checks that AL retains the authored premises in order. Rule and clause ids
+    can repeat, so the test pairs definitions with the same id in order. *)
 
 open Core
 open Test_lib

@@ -72,7 +72,7 @@ let assign_premise_uid prem =
 let init spec =
   State.reset ();
   match spec with
-  | IlSpec il_spec ->
+  | AlSpec al_spec ->
       List.iter
         (fun def ->
           match def.it with
@@ -89,7 +89,7 @@ let init spec =
                   List.iter (fun prem -> assign_premise_uid prem) instrs)
                 clauses
           | _ -> ())
-        il_spec
+        al_spec
   | SlSpec _ -> () (* SL specs don't have premises in the same way *)
 
 (* Reset state *)

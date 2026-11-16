@@ -49,7 +49,7 @@ module M : Instrumentation_api.Handler.S = struct
   let init ~spec =
     State.reset ();
     match spec with
-    | Instrumentation_api.Handler.IlSpec il_spec ->
+    | Instrumentation_api.Handler.AlSpec al_spec ->
         List.iter
           (fun def ->
             match def.it with
@@ -65,7 +65,7 @@ module M : Instrumentation_api.Handler.S = struct
                     State.all_clauses := (id.it, idx) :: !State.all_clauses)
                   clauses
             | _ -> ())
-          il_spec
+          al_spec
     | Instrumentation_api.Handler.SlSpec sl_spec ->
         List.iter
           (fun def ->
@@ -291,7 +291,7 @@ let make_with_data cfg =
 
 module Spec : Instrumentation_spec.Spec.S = struct
   let name = "branch-coverage"
-  let modes = [ `IL; `SL ]
+  let modes = [ `AL; `SL ]
 
   let params =
     [

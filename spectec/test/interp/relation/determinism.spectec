@@ -145,7 +145,7 @@ rule Unnamed:
 rule Unnamed:
   x |- 2
 
-;; IL retains both ordinary and fallback failure traces.
+;; The AL interpreter retains the failure traces of ordinary and fallback rules.
 relation Fallback_fails:
   nat |- nat
   hint(input %0)

@@ -3,7 +3,7 @@
  (public_name spectec.interp)
  (libraries
   builtins
-  eval_il
+  eval_al
   eval_sl
   eval_pl
   opaque_types

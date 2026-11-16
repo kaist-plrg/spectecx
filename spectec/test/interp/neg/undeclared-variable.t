@@ -7,7 +7,7 @@ Assigning to a variable that was never declared fails the typechecker.
   142 |   -- Check_command: eps |- command -| tenv
       |      ^^^^^^^^^^^^^
       |
-      | source: il-interp
+      | source: al-interp
       |
       | trace:
       | application of rule Check_prog/ failed

@@ -20,7 +20,7 @@ val with_target_state : (module Target.S) -> (target_state -> 'a) -> 'a
     alternatives, even when outputs agree. *)
 type context
 
-val context_of_il_spec :
+val context_of_al_spec :
   ?check_determinism:bool ->
   target_state ->
   Lang.Al.spec ->

@@ -7,7 +7,7 @@ An initializer that reads a never-declared variable fails the typechecker.
   142 |   -- Check_command: eps |- command -| tenv
       |      ^^^^^^^^^^^^^
       |
-      | source: il-interp
+      | source: al-interp
       |
       | trace:
       | application of rule Check_prog/ failed

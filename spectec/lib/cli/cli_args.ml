@@ -85,10 +85,10 @@ end
 module Interpreter = struct
   let mode_flag : Spectec.Interp_mode.request Core.Command.Param.t =
     let open Core.Command.Param in
-    choose_one ~if_nothing_chosen:(Default_to `IL)
+    choose_one ~if_nothing_chosen:(Default_to `AL)
       [
-        flag "--sl" (no_arg_some `SL) ~doc:" use SL interpreter (default: IL)";
-        flag "--pl" (no_arg_some `PL) ~doc:" use PL interpreter (default: IL)";
+        flag "--sl" (no_arg_some `SL) ~doc:" use SL interpreter (default: AL)";
+        flag "--pl" (no_arg_some `PL) ~doc:" use PL interpreter (default: AL)";
       ]
 
   let det_flag : bool Core.Command.Param.t =

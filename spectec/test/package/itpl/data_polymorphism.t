@@ -1,4 +1,5 @@
-The TVFAE and PTFAE evaluators produce the same results in IL, SL, and PL. The expected type and value are checked independently, and every input round-trips.
+Tests cover TVFAE and PTFAE evaluation in AL, SL and PL mode.
+The expected type and value are checked independently, and every input round-trips.
 
   $ check() {
   >   target=$1
@@ -106,7 +107,7 @@ Ill-formed annotations and invalid constructors or applications must fail after 
   >         printf 'unexpected %s success: %s\n' "$command" "$expression"
   >         return 1
   >       fi
-  >       grep -Eq 'source: (il|sl|pl)-interp' error || { cat error; return 1; }
+  >       grep -Eq 'source: (al|sl|pl)-interp' error || { cat error; return 1; }
   >     done
   >   done
   > }
@@ -157,7 +158,7 @@ The book's named type rules admit these counterexamples. Type checking succeeds,
   >       printf 'unexpected evaluation success: %s\n' "$expression"
   >       return 1
   >     fi
-  >     grep -Eq 'source: (il|sl|pl)-interp' error || { cat error; return 1; }
+  >     grep -Eq 'source: (al|sl|pl)-interp' error || { cat error; return 1; }
   >   done
   > }
   $ tvfae_bad='type T = A@num + B@num in (fun (f : T -> num) -> type T = C@num + D@num in f (C 1)) (fun (v : T) -> v match { A(x) -> x; B(y) -> y })'

@@ -11497,7 +11497,7 @@ application of rule Program_ok/ failed
                                     └── application of rule Expr_ok/castExpression failed
                                         └── condition castResult matches `OK %` was not met
 
-Typechecker (il) summary
+Typechecker (al) summary
   Ran:        263 / 310    (84.84%)
   Passed:     263 (100.00% of ran)
   Failed:       0 (0.00% of ran)

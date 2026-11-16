@@ -12,7 +12,7 @@ let handlers (config : t) = List.map Handler_config.to_handler config
 let has_handler (config : t) ~name =
   List.exists (fun (hc : Handler_config.t) -> hc.name = name) config
 
-let mode_name = function `IL -> "IL" | `SL -> "SL" | `PL -> "PL"
+let mode_name = function `AL -> "AL" | `SL -> "SL" | `PL -> "PL"
 
 let validate_mode (config : t) ~mode =
   let incompatible =

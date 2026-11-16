@@ -138,7 +138,7 @@ application of rule Eval_expr/beta failed
 Expected evaluator failure: ../../../../../spectec/testdata/interp/miniml/_error_var.ml
 error: invocation of relation Eval_expr failed
 
-Evaluator (il) summary
+Evaluator (al) summary
   Ran:          3 / 3      (100.00%)
   Passed:       3 (100.00% of ran)
   Failed:       0 (0.00% of ran)

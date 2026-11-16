@@ -4,7 +4,7 @@
     - [Rule] labels each relation with its rule.
     - [Conclusion] adds the conclusion judgment.
     - [Premise] adds source premises with runtime values, once per repetition
-      for iterated premises. This level requires IL mode. *)
+      for iterated premises. This level requires AL mode. *)
 
 module Il = Lang.Il
 module Al = Lang.Al
@@ -388,7 +388,7 @@ let make cfg =
 
 module Spec : Instrumentation_spec.Spec.S = struct
   let name = "tree"
-  let modes = [ `IL; `SL ]
+  let modes = [ `AL; `SL ]
 
   let params =
     [
@@ -404,10 +404,10 @@ module Spec : Instrumentation_spec.Spec.S = struct
         failwith
           ("Invalid tree level: " ^ s ^ " (expected: rule|conclusion|premise)")
 
-  (* Premises are IL-only. *)
+  (* The premise level needs the IL origins carried by AL instructions. *)
   let modes_of_level = function
-    | Premise -> [ `IL ]
-    | Rule | Conclusion -> [ `IL; `SL ]
+    | Premise -> [ `AL ]
+    | Rule | Conclusion -> [ `AL; `SL ]
 
   let parse alist =
     match Instrumentation_spec.Param_utils.get alist "level" with
