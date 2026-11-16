@@ -431,36 +431,7 @@ let merge_results r1 r2 =
     instr_to_test = merge_test_lists r1.instr_to_test r2.instr_to_test;
   }
 
-(* Expose test case ID setter for use by runner *)
-let set_test_case_id = State.set_test_case_id
-let clear_test_case_id = State.clear_test_case_id
-
-(* Handler with data access - implements HANDLER_WITH_DATA signature *)
-module HandlerWithData :
-  Instrumentation_api.Handler.S_with_data with type result = result = struct
-  include M
-
-  type nonrec result = result
-
-  let get_result = get_result
-  let restore = restore
-end
-
 let make cfg =
   config := cfg;
   fmt := Instrumentation_api.Output.formatter cfg.output;
   (module M : Instrumentation_api.Handler.S)
-
-(* Create handler with data getter for programmatic access.
-   Usage:
-     let handler, get_coverage = Instruction_coverage_al.make_with_data cfg in
-     Hooks.set_handlers [handler];
-     (* ... run interpreter ... *)
-     let data = get_coverage () in
-*)
-let make_with_data cfg =
-  config := cfg;
-  fmt := Instrumentation_api.Output.formatter cfg.output;
-  ( (module HandlerWithData : Instrumentation_api.Handler.S_with_data
-      with type result = result),
-    get_result )

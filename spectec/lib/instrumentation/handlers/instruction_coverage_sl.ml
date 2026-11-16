@@ -251,17 +251,6 @@ let merge_results r1 r2 =
     total_instrs = r1.total_instrs;
   }
 
-(* Handler with data access - implements HANDLER_WITH_DATA signature *)
-module HandlerWithData :
-  Instrumentation_api.Handler.S_with_data with type result = result = struct
-  include M
-
-  type nonrec result = result
-
-  let get_result = get_result
-  let restore = restore
-end
-
 let make cfg =
   config := cfg;
   fmt := Instrumentation_api.Output.formatter cfg.output;
