@@ -16,6 +16,15 @@ val emit : Instrumentation_api.Event.t -> unit
     whose payload is expensive to construct and read only by handlers. *)
 val emit_on_demand : (unit -> Instrumentation_api.Event.t) -> unit
 
+(** Emits [enter ()] before calling [f] and [exit (Some result)] on return. If
+    [f] raises, emits [exit None] and re-raises with the backtrace. With no
+    active handlers, calls [f] directly. *)
+val with_enter_exit :
+  enter:(unit -> Instrumentation_api.Event.t) ->
+  exit:('a option -> Instrumentation_api.Event.t) ->
+  f:(unit -> 'a) ->
+  'a
+
 (** Whether any active handler has [Some f] for [handle_value]. Returns [false]
     when no session is active. *)
 val has_value_handlers : unit -> bool

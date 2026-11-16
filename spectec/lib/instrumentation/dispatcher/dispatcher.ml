@@ -55,6 +55,20 @@ let emit_on_demand (make : unit -> Instrumentation_api.Event.t) : unit =
   | Active { handlers; _ } -> dispatch handlers (make ())
   | Idle -> ()
 
+let with_enter_exit ~enter ~exit ~f =
+  match !session with
+  | Idle | Active { handlers = []; _ } -> f ()
+  | Active { handlers; _ } -> (
+      dispatch handlers (enter ());
+      match f () with
+      | result ->
+          emit (exit (Some result));
+          result
+      | exception exn ->
+          let backtrace = Printexc.get_raw_backtrace () in
+          emit (exit None);
+          Printexc.raise_with_backtrace exn backtrace)
+
 let has_value_handlers () =
   match !session with
   | Active { value_handlers = _ :: _; _ } -> true

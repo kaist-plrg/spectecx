@@ -3,6 +3,8 @@ module Il = Lang.Il
 module Al = Lang.Al
 module Sl = Lang.Sl
 
+(* If evaluation raises, the interpreter emits failed exits for open calls,
+   rules and clauses, innermost first. *)
 type t =
   | Test_start of { test_case_id : string }
   | Test_end of { test_case_id : string }

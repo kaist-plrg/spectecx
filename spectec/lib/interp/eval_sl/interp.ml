@@ -196,40 +196,38 @@ and eval_rel_instr (ctx : Ctx.t) (id : id) (notexp : notexp)
 
 and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
     value list option =
-  Instrumentation.Dispatcher.emit
-    (Events.Rel_enter { id = id.it; at = id.at; inputs = values_input });
   let mode, block, elseblock_opt = Ctx.find_rel_exn ctx ~id in
   let exps_input = Lang.Il.Mode.inputs mode in
-  checkf
-    (block <> [] || Option.is_some elseblock_opt)
-    id.at "relation has no instructions";
   let attempt_rules () =
-    Instrumentation.Dispatcher.emit
-      (Events.Rule_enter { id = id.it; rule_id = "0"; at = id.at });
-    let ctx_local = Ctx.for_call ctx in
-    let ctx_local =
-      Expressions.assign_exps ctx_local ~exps:exps_input ~values:values_input
-    in
-    let sign = eval_instrs ctx_local block in
-    let sign =
-      match (sign, elseblock_opt) with
-      | Cont, Some elseblock -> eval_instrs ctx_local elseblock
-      | _ -> sign
-    in
-    let result =
-      match sign with Res values_output -> Some values_output | _ -> None
-    in
-    Instrumentation.Dispatcher.emit
-      (Events.Rule_exit
-         {
-           id = id.it;
-           rule_id = "0";
-           at = id.at;
-           success = Option.is_some result;
-         });
-    result
+    Instrumentation.Dispatcher.with_enter_exit
+      ~enter:(fun () ->
+        Events.Rule_enter { id = id.it; rule_id = "0"; at = id.at })
+      ~exit:(fun outcome ->
+        Events.Rule_exit
+          {
+            id = id.it;
+            rule_id = "0";
+            at = id.at;
+            success = Option.is_some (Option.join outcome);
+          })
+      ~f:(fun () ->
+        let ctx_local = Ctx.for_call ctx in
+        let ctx_local =
+          Expressions.assign_exps ctx_local ~exps:exps_input
+            ~values:values_input
+        in
+        let sign = eval_instrs ctx_local block in
+        let sign =
+          match (sign, elseblock_opt) with
+          | Cont, Some elseblock -> eval_instrs ctx_local elseblock
+          | _ -> sign
+        in
+        match sign with Res values_output -> Some values_output | _ -> None)
   in
-  let result =
+  let invoke_and_report () =
+    checkf
+      (block <> [] || Option.is_some elseblock_opt)
+      id.at "relation has no instructions";
     let invoke () =
       match attempt_rules () with
       | Some values_output -> Ok values_output
@@ -242,7 +240,11 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
         Some values_output
     | Error _, _ -> None
   in
-  Instrumentation.Dispatcher.emit_on_demand (fun () ->
+  Instrumentation.Dispatcher.with_enter_exit
+    ~enter:(fun () ->
+      Events.Rel_enter { id = id.it; at = id.at; inputs = values_input })
+    ~exit:(fun outcome ->
+      let result = Option.join outcome in
       let outs =
         match result with
         | Some values_output -> List.map Option.some values_output
@@ -250,8 +252,8 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
       in
       let conclusion = Lang.Il.Mode.fill mode ~ins:values_input ~outs in
       Events.Rel_exit
-        { id = id.it; at = id.at; success = Option.is_some result; conclusion });
-  result
+        { id = id.it; at = id.at; success = Option.is_some result; conclusion })
+    ~f:invoke_and_report
 
 (* Invoke a function *)
 
@@ -293,8 +295,6 @@ and invoke_func_values (ctx : Ctx.t) (id : id) (targs : targ list)
         ctx_local tparams targs
     in
     let attempt_clauses () =
-      Instrumentation.Dispatcher.emit
-        (Events.Clause_enter { id = id.it; clause_idx = 0; at = id.at });
       let ctx_local =
         Expressions.assign_args ctx_local ~caller:ctx ~args:args_input
           ~values:values_input
@@ -306,22 +306,23 @@ and invoke_func_values (ctx : Ctx.t) (id : id) (targs : targ list)
         | _ -> sign
       in
       match sign with
-      | Ret value_output ->
-          Instrumentation.Dispatcher.emit
-            (Events.Clause_exit
-               { id = id.it; clause_idx = 0; at = id.at; success = true });
-          value_output
-      | _ ->
-          Instrumentation.Dispatcher.emit
-            (Events.Clause_exit
-               { id = id.it; clause_idx = 0; at = id.at; success = false });
-          error id.at "function was not matched"
+      | Ret value_output -> value_output
+      | _ -> error id.at "function was not matched"
     in
-    attempt_clauses ()
+    Instrumentation.Dispatcher.with_enter_exit
+      ~enter:(fun () ->
+        Events.Clause_enter { id = id.it; clause_idx = 0; at = id.at })
+      ~exit:(fun outcome ->
+        Events.Clause_exit
+          {
+            id = id.it;
+            clause_idx = 0;
+            at = id.at;
+            success = Option.is_some outcome;
+          })
+      ~f:attempt_clauses
   in
   (* Main dispatch *)
-  Instrumentation.Dispatcher.emit
-    (Events.Func_enter { id = id.it; at = id.at; inputs = values_input });
   let invoke_func' () =
     let invoke () =
       let v =
@@ -363,10 +364,11 @@ and invoke_func_values (ctx : Ctx.t) (id : id) (targs : targ list)
       ~outputs:[ value_output ] ~cached;
     value_output
   in
-  let result = invoke_func' () in
-  Instrumentation.Dispatcher.emit
-    (Events.Func_exit { id = id.it; at = id.at; output = Some result });
-  result
+  Instrumentation.Dispatcher.with_enter_exit
+    ~enter:(fun () ->
+      Events.Func_enter { id = id.it; at = id.at; inputs = values_input })
+    ~exit:(fun output -> Events.Func_exit { id = id.it; at = id.at; output })
+    ~f:invoke_func'
 
 and callback (ctx : Ctx.t) : Builtins.Callback.t =
  fun id targs values ->
