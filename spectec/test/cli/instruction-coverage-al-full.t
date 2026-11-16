@@ -1,17 +1,17 @@
-impty CLI: premise-coverage full against hello.imp.
+impty CLI: instruction-coverage full in AL mode against hello.imp.
 
   $ SPEC=../../specs/impty/base/spec.spectec
   $ HELLO=../../testdata/interp/impty/base/hello.imp
 
-Full premise coverage emits a GCOV-style annotated spec with per-premise counts:
+The full AL report annotates the spec with a count for each instruction.
 
-  $ spectec impty typecheck --spec $SPEC -p $HELLO --color never --premise-coverage.level full
+  $ spectec impty typecheck --spec $SPEC -p $HELLO --color never --instruction-coverage.level full
   
-  === IL Node Coverage ===
+  === AL Instruction Coverage ===
   
-  IL Premises: 35/147 attempted (23.81%), 27/147 succeeded (18.37%)
-  38 rel premises
-  60 if-premises: succeeded 12/60 (20.00%), failed 11/60 (18.33%), neither 40/60 (66.67%), total 23/120 (19.17%)
+  AL Instructions: 35/147 attempted (23.81%), 27/147 succeeded (18.37%)
+  38 rel instructions
+  60 if instructions: succeeded 12/60 (20.00%), failed 11/60 (18.33%), neither 40/60 (66.67%), total 23/120 (19.17%)
   
   def $lookup:
         clause 0:

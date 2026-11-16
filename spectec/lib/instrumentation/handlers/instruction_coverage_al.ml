@@ -159,7 +159,7 @@ module M : Instrumentation_api.Handler.S = struct
 
     if total > 0 then (
       Format.fprintf !fmt
-        "IL Premises: %d/%d attempted (%.2f%%), %d/%d succeeded (%.2f%%)\n"
+        "AL Instructions: %d/%d attempted (%.2f%%), %d/%d succeeded (%.2f%%)\n"
         attempted total
         (percentage attempted total)
         succeeded total
@@ -188,9 +188,9 @@ module M : Instrumentation_api.Handler.S = struct
       let total_score = succeeded_if + failed_if in
       let twice_total_if = 2 * total_if in
 
-      Format.fprintf !fmt "%d rel premises\n" !State.total_rel_instrs;
+      Format.fprintf !fmt "%d rel instructions\n" !State.total_rel_instrs;
       Format.fprintf !fmt
-        "%d if-premises: succeeded %d/%d (%.2f%%), failed %d/%d (%.2f%%), \
+        "%d if instructions: succeeded %d/%d (%.2f%%), failed %d/%d (%.2f%%), \
          neither %d/%d (%.2f%%), total %d/%d (%.2f%%)\n"
         total_if succeeded_if total_if
         (percentage succeeded_if total_if)
@@ -328,7 +328,7 @@ module M : Instrumentation_api.Handler.S = struct
 
   let finish () =
     if !State.total_instrs > 0 then (
-      Format.fprintf !fmt "\n=== IL Node Coverage ===\n\n";
+      Format.fprintf !fmt "\n=== AL Instruction Coverage ===\n\n";
       match !config.level with
       | Summary ->
           print_stats ();
@@ -464,54 +464,3 @@ let make_with_data cfg =
   ( (module HandlerWithData : Instrumentation_api.Handler.S_with_data
       with type result = result),
     get_result )
-
-module Spec : Instrumentation_spec.Spec.S = struct
-  let name = "premise-coverage"
-  let modes = [ `AL ]
-
-  let params =
-    [
-      Instrumentation_spec.Param_utils.level_param;
-      Instrumentation_spec.Param_utils.output_param;
-    ]
-
-  let parse alist =
-    match Instrumentation_spec.Param_utils.get alist "level" with
-    | None -> None
-    | Some s ->
-        let output =
-          Instrumentation_spec.Param_utils.output_of
-            (Instrumentation_spec.Param_utils.get alist "output")
-        in
-        let cfg =
-          {
-            level =
-              Instrumentation_spec.Param_utils.parse_level ~summary:Summary
-                ~full:Full s;
-            output;
-          }
-        in
-        Some
-          {
-            Instrumentation_config.Handler_config.name;
-            modes;
-            handler = make cfg;
-            output;
-          }
-
-  let checkpoint =
-    Some
-      Instrumentation_spec.Spec.
-        {
-          snapshot = (fun () -> Marshal.to_bytes (get_result ()) []);
-          restore = (fun b -> restore (Marshal.from_bytes b 0));
-          merge =
-            (fun b1 b2 ->
-              Marshal.to_bytes
-                (merge_results (Marshal.from_bytes b1 0)
-                   (Marshal.from_bytes b2 0))
-                []);
-        }
-end
-
-let spec : Instrumentation_spec.Spec.t = (module Spec)

@@ -1,4 +1,4 @@
-impty CLI: instruction-coverage full against hello.imp.
+impty CLI: instruction-coverage full in SL mode against hello.imp.
 
   $ SPEC=../../specs/impty/base/spec.spectec
   $ HELLO=../../testdata/interp/impty/base/hello.imp
@@ -8,7 +8,7 @@ instructions:
 
   $ spectec impty eval --spec $SPEC -p $HELLO --color never --sl --instruction-coverage.level full
   
-  === SL Node Coverage ===
+  === SL Instruction Coverage ===
   
   SL Instructions: 65/149 (43.62%)
   

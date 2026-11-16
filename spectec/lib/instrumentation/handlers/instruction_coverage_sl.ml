@@ -204,7 +204,7 @@ module M : Instrumentation_api.Handler.S = struct
 
   let finish () =
     if !State.total_instrs > 0 then (
-      Format.fprintf !fmt "\n=== SL Node Coverage ===\n\n";
+      Format.fprintf !fmt "\n=== SL Instruction Coverage ===\n\n";
       match !config.level with
       | Summary ->
           print_stats ();
@@ -266,54 +266,3 @@ let make cfg =
   config := cfg;
   fmt := Instrumentation_api.Output.formatter cfg.output;
   (module M : Instrumentation_api.Handler.S)
-
-module Spec : Instrumentation_spec.Spec.S = struct
-  let name = "instruction-coverage"
-  let modes = [ `SL ]
-
-  let params =
-    [
-      Instrumentation_spec.Param_utils.level_param;
-      Instrumentation_spec.Param_utils.output_param;
-    ]
-
-  let parse alist =
-    match Instrumentation_spec.Param_utils.get alist "level" with
-    | None -> None
-    | Some s ->
-        let output =
-          Instrumentation_spec.Param_utils.output_of
-            (Instrumentation_spec.Param_utils.get alist "output")
-        in
-        let cfg =
-          {
-            level =
-              Instrumentation_spec.Param_utils.parse_level ~summary:Summary
-                ~full:Full s;
-            output;
-          }
-        in
-        Some
-          {
-            Instrumentation_config.Handler_config.name;
-            modes;
-            handler = make cfg;
-            output;
-          }
-
-  let checkpoint =
-    Some
-      Instrumentation_spec.Spec.
-        {
-          snapshot = (fun () -> Marshal.to_bytes (get_result ()) []);
-          restore = (fun b -> restore (Marshal.from_bytes b 0));
-          merge =
-            (fun b1 b2 ->
-              Marshal.to_bytes
-                (merge_results (Marshal.from_bytes b1 0)
-                   (Marshal.from_bytes b2 0))
-                []);
-        }
-end
-
-let spec : Instrumentation_spec.Spec.t = (module Spec)

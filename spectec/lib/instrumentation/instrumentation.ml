@@ -7,13 +7,7 @@ module Util = Instrumentation_handlers.Util
 module Static = Instrumentation_static.Static
 module Instr_uid = Instrumentation_static.Instr_uid
 module Branch_coverage = Instrumentation_handlers.Branch_coverage
-
-module Instruction_coverage_al =
-  Instrumentation_handlers.Instruction_coverage_al
-
-module Instruction_coverage_sl =
-  Instrumentation_handlers.Instruction_coverage_sl
-
+module Instruction_coverage = Instrumentation_handlers.Instruction_coverage
 module Profile = Instrumentation_handlers.Profile
 module Trace = Instrumentation_handlers.Trace
 module Tree = Instrumentation_handlers.Tree
@@ -44,8 +38,7 @@ let builtin_handler_specs : Handler.Spec.t list =
     Tree.spec;
     Profile.spec;
     Branch_coverage.spec;
-    Instruction_coverage_al.spec;
-    Instruction_coverage_sl.spec;
+    Instruction_coverage.spec;
   ]
 
 let with_instrumentation (config : Config.t) (spec : Static.spec)

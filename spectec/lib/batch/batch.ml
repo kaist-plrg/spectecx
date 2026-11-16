@@ -30,7 +30,9 @@ module Checkpoint = struct
     mode : Spectec.Interp_mode.request;
   }
 
-  let current_version = 4
+  (* Bump [current_version] when [t] or a handler's saved result changes layout.
+     Older layouts cannot be safely unmarshalled. *)
+  let current_version = 5
 
   let compute_spec_hash spec_files =
     let contents =

@@ -44,10 +44,6 @@ eval shares this exact set:
     [--instruction-coverage.output FILE]
                                . output destination file
     [--pl]                     . use PL interpreter (default: AL)
-    [--premise-coverage.level LEVEL]
-                               . verbosity level (e.g., summary|full)
-    [--premise-coverage.output FILE]
-                               . output destination file
     [--profile.output FILE]    . output destination file
     [--sl]                     . use SL interpreter (default: AL)
     [--spec FILES] ...         . spec files; mutually exclusive with --spec-dir
@@ -105,10 +101,6 @@ batch drops -p and adds the checkpoint-persistence flags:
     [--instruction-coverage.output FILE]
                                . output destination file
     [--pl]                     . use PL interpreter (default: AL)
-    [--premise-coverage.level LEVEL]
-                               . verbosity level (e.g., summary|full)
-    [--premise-coverage.output FILE]
-                               . output destination file
     [--profile.output FILE]    . output destination file
     [--resume FILE]            . resume from checkpoint file
     [--save-interval N]        . save checkpoint every N tests (default: 100)
