@@ -116,7 +116,7 @@ let analyze_args_as_bind (args : arg list) ~(dctx : Dctx.t) ~(origin : origin) :
 let rec analyze_prem (prem : Il.prem) ~(dctx : Dctx.t) :
     Dctx.t * VEnv.t * Al.instr * Al.instr list =
   match prem.it with
-  | Il.RelPr { relid; notexp } -> analyze_rule_prem prem ~dctx ~relid ~notexp
+  | Il.RelPr { relid; notexp } -> analyze_rel_prem prem ~dctx ~relid ~notexp
   | Il.RelAssertPr { call; expect } ->
       analyze_rel_assert_prem prem ~dctx ~call ~expect
   | Il.IfPr cond -> analyze_if_prem prem ~dctx ~cond
@@ -125,7 +125,7 @@ let rec analyze_prem (prem : Il.prem) ~(dctx : Dctx.t) :
       analyze_iter_prem prem ~dctx ~prem_inner ~iter
   | Il.DebugPr exp -> analyze_debug_prem prem ~dctx ~exp
 
-and analyze_rule_prem (prem : Il.prem) ~(dctx : Dctx.t) ~(relid : id)
+and analyze_rel_prem (prem : Il.prem) ~(dctx : Dctx.t) ~(relid : id)
     ~(notexp : notexp) : Dctx.t * VEnv.t * Al.instr * Al.instr list =
   let mixop, exps = Mixop.split notexp in
   let reltyp = Dctx.find_reltyp dctx relid in
