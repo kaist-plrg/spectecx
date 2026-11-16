@@ -10,9 +10,7 @@ A checkpoint records the interpreter mode of the batch that saved it.
   $ cp ../../testdata/interp/impty/base/skip.imp corpus/skip.imp
 
   $ spectec impty batch --batch-dir corpus --sl --instruction-coverage.level summary --checkpoint sl.ckpt --color never > /dev/null
-  $ spectec impty batch --batch-dir corpus --checkpoint al.ckpt --color never
-  typechecker: 2/2 passed, 0 failed
-  evaluator: 2/2 passed, 0 failed
+  $ spectec impty batch --batch-dir corpus --premise-coverage.level summary --checkpoint al.ckpt --color never > /dev/null
 
 Reporting a checkpoint uses its saved mode to display coverage.
 
@@ -24,6 +22,11 @@ Reporting a checkpoint uses its saved mode to display coverage.
   Uncovered SL instructions:
     lookup:
       If ((pair<K, V>* matches pattern _ :: _))
+
+  $ spectec impty checkpoint report al.ckpt --premise-coverage.level summary --color never | grep -A2 'Node Coverage'
+  === IL Node Coverage ===
+  
+  IL Premises: 72/147 attempted (48.98%), 57/147 succeeded (38.78%)
 
 
 Resuming in another mode would skip inputs that ran only in the original mode, so the command rejects it.
@@ -43,3 +46,23 @@ Both checkpoints must come from the same interpreter mode.
     source: config
   [1]
 
+Merging two checkpoints from the same mode adds their coverage counts.
+
+  $ mkdir corpus-hello corpus-skip
+  $ cp corpus/hello.imp corpus-hello/hello.imp
+  $ cp corpus/skip.imp corpus-skip/skip.imp
+  $ spectec impty batch --batch-dir corpus-hello --premise-coverage.level summary --checkpoint al-hello.ckpt --color never > /dev/null
+  $ spectec impty batch --batch-dir corpus-skip --premise-coverage.level summary --checkpoint al-skip.ckpt --color never > /dev/null
+  $ spectec impty checkpoint merge al-hello.ckpt al-skip.ckpt --output al-merged.ckpt --color never > /dev/null
+  $ spectec impty checkpoint report al-merged.ckpt --premise-coverage.level summary --color never | grep -A2 'IL Node Coverage'
+  === IL Node Coverage ===
+  
+  IL Premises: 72/147 attempted (48.98%), 57/147 succeeded (38.78%)
+
+  $ spectec impty batch --batch-dir corpus-hello --sl --instruction-coverage.level summary --checkpoint sl-hello.ckpt --color never > /dev/null
+  $ spectec impty batch --batch-dir corpus-skip --sl --instruction-coverage.level summary --checkpoint sl-skip.ckpt --color never > /dev/null
+  $ spectec impty checkpoint merge sl-hello.ckpt sl-skip.ckpt --output sl-merged.ckpt --color never > /dev/null
+  $ spectec impty checkpoint report sl-merged.ckpt --instruction-coverage.level summary --color never | grep -A2 'SL Node Coverage'
+  === SL Node Coverage ===
+  
+  SL Instructions: 67/149 (44.97%)
