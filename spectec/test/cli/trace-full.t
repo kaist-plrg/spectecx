@@ -1,10 +1,10 @@
-impty CLI: trace full against hello.imp.
+impty CLI: trace full against hello.imp and skip.imp.
 
   $ SPEC=../../specs/impty/base/spec.spectec
   $ HELLO=../../testdata/interp/impty/base/hello.imp
+  $ SKIP=../../testdata/interp/impty/base/skip.imp
 
-The full level adds premises and clauses (the inner-loop detail). Iteration
-markers are unreachable here: the base spec has no executed iterated premise.
+The full trace includes instructions and function clauses. Repetition lines are tested with the P4 spec in `trace-full-p4.t`.
 
   $ spectec impty eval --spec $SPEC -p $HELLO --color never --trace.level full
   [ 0] → Run_prog
@@ -309,3 +309,94 @@ markers are unreachable here: the base spec has no executed iterated premise.
     y -> true,
     x -> 5
   ]
+
+The full trace prints the instruction headers for `skip.imp` under SL and PL.
+
+  $ spectec impty eval --spec $SPEC -p $SKIP --color never --sl --trace.level full
+  [ 0] → Run_prog
+  [ 0]     skip
+  [ 1]   → Run_prog/0
+  [ 1]     | If (Check_prog: |- command holds), then
+  [ 1]   → Check_prog
+  [ 1]       skip
+  [ 2]     → Check_prog/0
+  [ 2]       | (Check_command: [] |- command -| tenv)
+  [ 2]     → Check_command
+  [ 2]         []
+  [ 2]         skip
+  [ 3]       → Check_command/0
+  [ 3]         | Case analysis on command
+  [ 3]         | Result in tenv
+  [ 3]       ← Check_command/0 [ok]
+  [ 2]     ← Check_command [ok]
+  [ 2]         []
+  [ 2]       | The relation holds
+  [ 2]     ← Check_prog/0 [ok]
+  [ 1]   ← Check_prog [ok]
+  [ 1]     | (Eval_prog: |- command -| env)
+  [ 1]   → Eval_prog
+  [ 1]       skip
+  [ 2]     → Eval_prog/0
+  [ 2]       | (Eval_command: [] |- command -| env)
+  [ 2]     → Eval_command
+  [ 2]         []
+  [ 2]         skip
+  [ 3]       → Eval_command/0
+  [ 3]         | Case analysis on command
+  [ 3]         | Result in env
+  [ 3]       ← Eval_command/0 [ok]
+  [ 2]     ← Eval_command [ok]
+  [ 2]         []
+  [ 2]       | Result in env
+  [ 2]     ← Eval_prog/0 [ok]
+  [ 1]   ← Eval_prog [ok]
+  [ 1]       []
+  [ 1]     | Result in env
+  [ 1]   ← Run_prog/0 [ok]
+  [ 0] ← Run_prog [ok]
+  [ 0]     []
+  []
+  $ spectec impty eval --spec $SPEC -p $SKIP --color never --pl --trace.level full
+  [ 0] → Run_prog
+  [ 0]     skip
+  [ 1]   → Run_prog/0
+  [ 1]     | If (Check_prog: |- command holds), then
+  [ 1]   → Check_prog
+  [ 1]       skip
+  [ 2]     → Check_prog/0
+  [ 2]       | (Check_command: [] |- command -| tenv)
+  [ 2]     → Check_command
+  [ 2]         []
+  [ 2]         skip
+  [ 3]       → Check_command/0
+  [ 3]         | Case analysis on command
+  [ 3]         | Result in tenv
+  [ 3]       ← Check_command/0 [ok]
+  [ 2]     ← Check_command [ok]
+  [ 2]         []
+  [ 2]       | The relation holds
+  [ 2]     ← Check_prog/0 [ok]
+  [ 1]   ← Check_prog [ok]
+  [ 1]     | (Eval_prog: |- command -| env)
+  [ 1]   → Eval_prog
+  [ 1]       skip
+  [ 2]     → Eval_prog/0
+  [ 2]       | (Eval_command: [] |- command -| env)
+  [ 2]     → Eval_command
+  [ 2]         []
+  [ 2]         skip
+  [ 3]       → Eval_command/0
+  [ 3]         | Case analysis on command
+  [ 3]         | Result in env
+  [ 3]       ← Eval_command/0 [ok]
+  [ 2]     ← Eval_command [ok]
+  [ 2]         []
+  [ 2]       | Result in env
+  [ 2]     ← Eval_prog/0 [ok]
+  [ 1]   ← Eval_prog [ok]
+  [ 1]       []
+  [ 1]     | Result in env
+  [ 1]   ← Run_prog/0 [ok]
+  [ 0] ← Run_prog [ok]
+  [ 0]     []
+  []

@@ -144,7 +144,7 @@ tried and failed before the one that fired:
     x -> 5
   ]
 
-When an error ends the run, the trace prints a failed exit line for every open relation and rule.
+When an error ends the run, the trace prints a failed exit line for every open relation and rule in all three modes.
 
 In AL mode a relation can fail to match without raising. This test uses overlapping rules and `--det` to raise an error.
 
@@ -183,4 +183,29 @@ In AL mode a relation can fail to match without raising. This test uses overlapp
       |      ^^^^^^^^^^
       |
       | source: sl-interp
+  [1]
+  $ spectec impty typecheck --spec $SPEC -p $ERR --color never --pl --trace.level rules
+  [ 0] → Check_prog
+  [ 1]   → Check_prog/0
+  [ 1]   → Check_command
+  [ 2]     → Check_command/0
+  [ 2]     → Check_expr
+  [ 3]       → Check_expr/0
+  [ 3]       → Check_expr
+  [ 4]         → Check_expr/0
+  [ 4]         ← Check_expr/0 [ok]
+  [ 3]       ← Check_expr [ok]
+  [ 3]       ← Check_expr/0 [fail]
+  [ 2]     ← Check_expr [fail]
+  [ 2]     ← Check_command/0 [fail]
+  [ 1]   ← Check_command [fail]
+  [ 1]   ← Check_prog/0 [fail]
+  [ 0] ← Check_prog [fail]
+  error: relation was not matched
+    --> ../../specs/impty/base/spec.spectec:110:6
+      |
+  110 |   -- Check_expr: tenv |- e : t
+      |      ^^^^^^^^^^
+      |
+      | source: pl-interp
   [1]
