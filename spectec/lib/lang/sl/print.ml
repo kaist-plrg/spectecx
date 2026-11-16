@@ -284,9 +284,6 @@ and string_of_instr ?(level = 0) ?(index = 0) instr =
         (string_of_cases ~level:(level + 1) cases)
         order
         (string_of_phantom phantom)
-  | OtherwiseI instr ->
-      Format.asprintf "%sOtherwise\n\n%s" order
-        (string_of_instr ~level:(level + 1) ~index:1 instr)
   | LetI (exp_l, exp_r, iterinstrs, block) ->
       Format.asprintf "%s(Let %s be %s)%s\n\n%s" order (string_of_exp exp_l)
         (string_of_exp exp_r)

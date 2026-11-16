@@ -41,7 +41,6 @@ let rec free_instr (instr : instr) : t =
           (List.map
              (fun (guard, block) -> free_guard guard + free_block block)
              cases)
-  | OtherwiseI instr -> free_instr instr
   | LetI (exp_l, exp_r, iterinstrs, block) ->
       free_exp exp_l + free_exp exp_r + free_iterinstrs iterinstrs
       + free_block block

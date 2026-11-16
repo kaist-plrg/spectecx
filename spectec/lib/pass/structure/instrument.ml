@@ -1,6 +1,5 @@
 open Lang
 open Ol.Ast
-module SEnv = Envs.Il.SEnv
 open Common.Annotated
 
 (* Insert phantom instructions at dangling else branches,
@@ -65,18 +64,21 @@ let rec negate_pathcond (pathcond : pathcond) : pathcond =
   | PlainC exp_cond -> PlainC (negate_exp exp_cond)
   | RelAssertC { call; expect } -> RelAssertC { call; expect = not expect }
 
-(* Phantom insertion *)
+(* Conversion to SL *)
 
-let rec insert_phantom (senv : SEnv.t) (pathconds : pathcond list)
-    (instrs : instr list) : Sl.instr list =
-  List.map (insert_phantom' senv pathconds) instrs
+let rec sl_of_instrs (instrs : instr list) ~(insert_phantoms : bool)
+    ~(pathconds : pathcond list) : Sl.instr list =
+  List.map (sl_of_instr ~insert_phantoms ~pathconds) instrs
 
-and insert_phantom' (senv : SEnv.t) (pathconds : pathcond list) (instr : instr)
-    : Sl.instr =
+and sl_of_instr (instr : instr) ~(insert_phantoms : bool)
+    ~(pathconds : pathcond list) : Sl.instr =
   let at = instr.at in
+  let make_phantom pathconds_else =
+    if insert_phantoms then Some (pid (), pathconds_else) else None
+  in
   match instr.it with
   | RelI { call; iterinstrs; block } ->
-      let block = insert_phantom senv pathconds block in
+      let block = sl_of_instrs block ~insert_phantoms ~pathconds in
       Sl.RelI { call; iterinstrs; block } $ at
   | RelAssertI { call; expect; iterexps; block } ->
       let pathcond =
@@ -84,143 +86,60 @@ and insert_phantom' (senv : SEnv.t) (pathconds : pathcond list) (instr : instr)
         else ForallC (RelAssertC { call; expect }, iterexps)
       in
       let block =
-        let pathconds = pathconds @ [ pathcond ] in
-        insert_phantom senv pathconds block
+        sl_of_instrs block ~insert_phantoms ~pathconds:(pathconds @ [ pathcond ])
       in
-      let phantom =
-        let pid = pid () in
-        let pathconds = pathconds @ [ negate_pathcond pathcond ] in
-        (pid, pathconds)
-      in
-      Sl.RelAssertI { call; expect; iterexps; block; phantom = Some phantom }
-      $ at
+      let phantom = make_phantom (pathconds @ [ negate_pathcond pathcond ]) in
+      Sl.RelAssertI { call; expect; iterexps; block; phantom } $ at
   | IfI (exp_cond, iterexps, instrs_then) ->
       let pathcond =
         if iterexps = [] then PlainC exp_cond
         else ForallC (PlainC exp_cond, iterexps)
       in
       let instrs_then =
-        let pathconds = pathconds @ [ pathcond ] in
-        insert_phantom senv pathconds instrs_then
+        sl_of_instrs instrs_then ~insert_phantoms
+          ~pathconds:(pathconds @ [ pathcond ])
       in
-      let phantom =
-        let pid = pid () in
-        let pathconds = pathconds @ [ negate_pathcond pathcond ] in
-        (pid, pathconds)
-      in
-      Sl.IfI (exp_cond, iterexps, instrs_then, Some phantom) $ at
+      let phantom = make_phantom (pathconds @ [ negate_pathcond pathcond ]) in
+      Sl.IfI (exp_cond, iterexps, instrs_then, phantom) $ at
   | CaseI (exp, cases, total) ->
       let pathconds_cases =
         List.map
-          (fun (guard, _) ->
-            let exp_cond = Optimize.guard_as_exp exp guard in
-            PlainC exp_cond)
+          (fun (guard, _) -> PlainC (Optimize.guard_as_exp exp guard))
           cases
       in
       let cases =
-        let guards, blocks = List.split cases in
-        let guards =
-          List.map
-            (function
-              | BoolG b -> Sl.BoolG b
-              | CmpG (cmpop, optyp, exp) -> Sl.CmpG (cmpop, optyp, exp)
-              | SubG typ -> Sl.SubG typ
-              | MatchG pattern -> Sl.MatchG pattern
-              | MemG exp -> Sl.MemG exp)
-            guards
-        in
-        let blocks =
-          List.map2
-            (fun pathcond_case instrs ->
-              let pathconds = pathconds @ [ pathcond_case ] in
-              insert_phantom senv pathconds instrs)
-            pathconds_cases blocks
-        in
-        List.combine guards blocks
+        List.map2
+          (fun pathcond_case (guard, instrs) ->
+            ( guard,
+              sl_of_instrs instrs ~insert_phantoms
+                ~pathconds:(pathconds @ [ pathcond_case ]) ))
+          pathconds_cases cases
       in
-      let phantom_opt =
+      let phantom =
         if total then None
-        else
-          let pid = pid () in
-          let pathcond = pathconds @ List.map negate_pathcond pathconds_cases in
-          Some (pid, pathcond)
+        else make_phantom (pathconds @ List.map negate_pathcond pathconds_cases)
       in
-      Sl.CaseI (exp, cases, phantom_opt) $ at
-  | OtherwiseI instr ->
-      let instr = insert_phantom' senv pathconds instr in
-      Sl.OtherwiseI instr $ at
+      Sl.CaseI (exp, cases, phantom) $ at
   | LetI (exp_l, exp_r, iterinstrs, block) ->
-      let block = insert_phantom senv pathconds block in
+      let block = sl_of_instrs block ~insert_phantoms ~pathconds in
       Sl.LetI (exp_l, exp_r, iterinstrs, block) $ at
   | ResultI exps -> Sl.ResultI exps $ at
   | ReturnI exp -> Sl.ReturnI exp $ at
   | DebugI (exp, instr_body) ->
-      let instr_body = insert_phantom' senv pathconds instr_body in
-      Sl.DebugI (exp, instr_body) $ at
-
-(* Nop pass *)
-
-let rec insert_nothing (instrs : instr list) : Sl.instr list =
-  List.map insert_nothing' instrs
-
-and insert_nothing' (instr : instr) : Sl.instr =
-  let at = instr.at in
-  match instr.it with
-  | RelI { call; iterinstrs; block } ->
-      let block = insert_nothing block in
-      Sl.RelI { call; iterinstrs; block } $ at
-  | RelAssertI { call; expect; iterexps; block } ->
-      let block = insert_nothing block in
-      Sl.RelAssertI { call; expect; iterexps; block; phantom = None } $ at
-  | IfI (exp_cond, iterexps, instrs_then) ->
-      let instrs_then = insert_nothing instrs_then in
-      Sl.IfI (exp_cond, iterexps, instrs_then, None) $ at
-  | CaseI (exp, cases, _total) ->
-      let cases =
-        let guards, blocks = List.split cases in
-        let guards =
-          List.map
-            (function
-              | BoolG b -> Sl.BoolG b
-              | CmpG (cmpop, optyp, exp) -> Sl.CmpG (cmpop, optyp, exp)
-              | SubG typ -> Sl.SubG typ
-              | MatchG pattern -> Sl.MatchG pattern
-              | MemG exp -> Sl.MemG exp)
-            guards
-        in
-        let blocks = List.map insert_nothing blocks in
-        List.combine guards blocks
-      in
-      Sl.CaseI (exp, cases, None) $ at
-  | OtherwiseI instr ->
-      let instr = insert_nothing' instr in
-      Sl.OtherwiseI instr $ at
-  | LetI (exp_l, exp_r, iterinstrs, block) ->
-      let block = insert_nothing block in
-      Sl.LetI (exp_l, exp_r, iterinstrs, block) $ at
-  | ResultI exps -> Sl.ResultI exps $ at
-  | ReturnI exp -> Sl.ReturnI exp $ at
-  | DebugI (exp, instr_body) ->
-      let instr_body = insert_nothing' instr_body in
+      let instr_body = sl_of_instr instr_body ~insert_phantoms ~pathconds in
       Sl.DebugI (exp, instr_body) $ at
 
 (* Instrumentation *)
 
-let instrument (senv : SEnv.t) (block : instr list)
-    (elseblock_opt : instr list option) : Sl.instr list * Sl.instr list option =
+let instrument (block : instr list) (elseblock_opt : instr list option) :
+    Sl.instr list * Sl.instr list option =
   match elseblock_opt with
   | Some elseblock ->
-      let block = insert_nothing block in
-      let elseblock = insert_nothing elseblock in
+      let block = sl_of_instrs block ~insert_phantoms:false ~pathconds:[] in
+      let elseblock =
+        sl_of_instrs elseblock ~insert_phantoms:false ~pathconds:[]
+      in
       (block, Some elseblock)
   | None ->
-      let block =
-        if
-          List.exists
-            (fun instr ->
-              match instr.it with OtherwiseI _ -> true | _ -> false)
-            block
-        then insert_nothing block
-        else insert_phantom senv [] block
-      in
+      let block = sl_of_instrs block ~insert_phantoms:true ~pathconds:[] in
       (block, None)

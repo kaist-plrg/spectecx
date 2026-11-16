@@ -30,6 +30,14 @@ let groupby (eq : 'a -> 'a -> bool) (xs : 'a list) : 'a list list =
   in
   groupby' [] xs
 
+let rec check_otherwise_last (prems : prem list) : unit =
+  match prems with
+  | [] | [ _ ] -> ()
+  | { it = ElsePr; at; _ } :: _ ->
+      error at "only the last premise can be `otherwise`"
+        ~code:Otherwise_premise_not_last
+  | _ :: prems -> check_otherwise_last prems
+
 (* Identifiers *)
 
 let valid_tid (id : id) = id.it = (Var.strip_var_suffix id).it
@@ -1574,6 +1582,7 @@ and elab_prem' (ctx : Ctx.t) (prem : prem') : Ctx.t * Il.prem' option =
   | DebugPr exp -> elab_debug_prem ctx exp |> wrap_some
 
 and elab_prems (ctx : Ctx.t) (prems : prem list) : Ctx.t * Il.prem list =
+  check_otherwise_last prems;
   let ctx, prems_il = List.fold_left_map elab_prem ctx prems in
   (ctx, List.filter_map Fun.id prems_il)
 

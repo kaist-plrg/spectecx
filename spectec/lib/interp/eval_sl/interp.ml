@@ -57,7 +57,6 @@ and eval_instr (ctx : Ctx.t) (instr : instr) : Sign.t =
   | IfI (exp_cond, iterexps, instrs_then, _phantom_opt) ->
       eval_if_instr ctx exp_cond iterexps instrs_then
   | CaseI (exp, cases, _phantom_opt) -> eval_case_instr ctx exp cases
-  | OtherwiseI instr -> eval_instr ctx instr
   | LetI (exp_l, exp_r, iterinstrs, block) ->
       eval_let_instr ctx exp_l exp_r iterinstrs block
   | ResultI exps -> eval_result_instr ctx exps

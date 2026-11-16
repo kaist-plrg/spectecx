@@ -16,17 +16,9 @@ and instr' =
     }
   | IfI of exp * iterexp list * instr list
   | CaseI of exp * case list * bool
-  | OtherwiseI of instr
   | LetI of exp * exp * iterinstr list * instr list
   | ResultI of exp list
   | ReturnI of exp
   | DebugI of exp * instr
 
 and case = guard * instr list
-
-and guard =
-  | BoolG of bool
-  | CmpG of cmpop * optyp * exp
-  | SubG of typ
-  | MatchG of pattern
-  | MemG of exp

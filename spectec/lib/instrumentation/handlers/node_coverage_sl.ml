@@ -54,7 +54,6 @@ let instr_header instr =
         (Sl.Print.string_of_iterexps iterexps)
   | Sl.CaseI (exp, _, _) ->
       Format.sprintf "Case on %s" (Sl.Print.string_of_exp exp)
-  | Sl.OtherwiseI _ -> "Otherwise"
   | Sl.LetI (exp_l, exp_r, iterinstrs, _) ->
       Format.sprintf "Let %s = %s%s"
         (Sl.Print.string_of_exp exp_l)
@@ -83,7 +82,6 @@ module M : Instrumentation_api.Handler.S = struct
     | Sl.IfI (_, _, instrs, _) -> List.iter count_instr instrs
     | Sl.CaseI (_, cases, _) ->
         List.iter (fun (_, instrs) -> List.iter count_instr instrs) cases
-    | Sl.OtherwiseI inner -> count_instr inner
     | Sl.LetI (_, _, _, block) -> List.iter count_instr block
     | _ -> ()
 
@@ -185,7 +183,6 @@ module M : Instrumentation_api.Handler.S = struct
               (Sl.Print.string_of_guard guard);
             List.iter (print_instr (indent ^ "    ")) instrs)
           cases
-    | Sl.OtherwiseI inner -> print_instr (indent ^ "  ") inner
     | Sl.LetI (_, _, _, block) -> List.iter (print_instr (indent ^ "  ")) block
     | _ -> ()
 
