@@ -40,3 +40,15 @@ Summary branch coverage lists the uncovered rules and clauses. This run uses AL 
     y -> true,
     x -> 5
   ]
+
+An SL batch reports branch coverage against the SL relations.
+
+  $ spectec impty batch --spec $SPEC --batch-dir ../../testdata/interp/impty/base --color never --sl --branch-coverage.level summary
+  
+  === Branch Coverage ===
+  
+  Rules: 7/7 (100.00%)
+  
+  Clauses: 1/1 (100.00%)
+  typechecker: 14/14 passed, 0 failed
+  evaluator: 14/14 passed, 0 failed
