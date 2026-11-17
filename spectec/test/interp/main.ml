@@ -221,8 +221,15 @@ let impty_typecheck_command =
   let open Command.Let_syntax in
   let open Command.Param in
   let%map variant =
-    flag "--variant" (required string)
-      ~doc:"VARIANT impty variant (base|closure|recursion)"
+    flag "--variant"
+      (required
+         (Arg_type.of_alist_exn
+            [
+              ("base", "base");
+              ("closure", "closure");
+              ("recursion", "recursion");
+            ]))
+      ~doc:"VARIANT impty variant"
   and testdirs = testdirs_flag
   and negative = negative_flag in
   run_impty_typecheck ~variant ~negative ~testdirs
