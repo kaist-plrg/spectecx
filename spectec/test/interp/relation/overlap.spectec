@@ -1,0 +1,342 @@
+syntax letter = A | B | C
+syntax ab = A | B
+;; ba reorders the cases of ab. Subtypes on B fails if structuring treats
+;; these equal sets of cases as disjoint.
+syntax ba = B | A
+syntax bc = B | C
+syntax onlya = A
+syntax onlyb = B
+syntax onlyc = C
+
+var n : nat
+var m : nat
+var x : letter
+var y : letter
+var q : (nat, text, bool, letter, nat*)
+
+;; Several relations end with a rule disjoint from all earlier rules. A false
+;; Partition answer for an earlier pair makes merge_case fail its assertion
+;; when structuring adds the final rule.
+
+;; When two conditions can both hold, the first rule has a further premise
+;; that fails on an input satisfying both. Only a later rule can return for
+;; that input, except where a comment below states otherwise.
+
+;; The second rule compares m with a literal on the right, and the third puts
+;; the literal on the left. Neither condition is disjoint from n = 1.
+relation Equalities_on_two_values: nat; nat ==> text
+  hint(input %0 %1)
+
+rule Equalities_on_two_values/first:
+  n; m ==> "first"
+  -- if n = 1
+  -- if m = 0
+
+rule Equalities_on_two_values/second:
+  n; m ==> "second"
+  -- if m = 2
+
+rule Equalities_on_two_values/third:
+  n; m ==> "third"
+  -- if 3 = m
+
+relation Equal_numbers_swapped: nat ==> text
+  hint(input %0)
+
+rule Equal_numbers_swapped/first:
+  n ==> "first"
+  -- if n = 1
+
+rule Equal_numbers_swapped/second:
+  n ==> "second"
+  -- if 2 = n
+
+rule Equal_numbers_swapped/third:
+  n ==> "third"
+  -- if n = 4
+
+rule Equal_numbers_swapped/other:
+  n ==> "other"
+  -- otherwise
+
+relation Equal_or_unequal_swapped: nat; nat ==> text
+  hint(input %0 %1)
+
+rule Equal_or_unequal_swapped/first:
+  n; m ==> "first"
+  -- if n = m
+
+rule Equal_or_unequal_swapped/second:
+  n; m ==> "second"
+  -- if m =/= n
+
+relation Earlier_negation: nat ==> text
+  hint(input %0)
+
+rule Earlier_negation/first:
+  n ==> "first"
+  -- if ~$(n > 5)
+
+rule Earlier_negation/second:
+  n ==> "second"
+  -- if $(n > 5)
+
+relation Later_negation: nat ==> text
+  hint(input %0)
+
+rule Later_negation/first:
+  n ==> "first"
+  -- if $(n > 5)
+
+rule Later_negation/second:
+  n ==> "second"
+  -- if ~$(n > 5)
+
+;; Input A satisfies both earlier rules. Subtypes on A returns the second
+;; result if structuring puts the later block first when merging the
+;; identical conditions.
+relation Subtypes: letter ==> text
+  hint(input %0)
+
+rule Subtypes/first:
+  x ==> "first"
+  -- if x <: ab
+  -- if x = A
+
+rule Subtypes/second:
+  x ==> "second"
+  -- if x <: ba
+
+rule Subtypes/third:
+  x ==> "third"
+  -- if x <: onlyc
+
+relation Overlapping_subtypes: letter ==> text
+  hint(input %0)
+
+rule Overlapping_subtypes/first:
+  x ==> "first"
+  -- if x <: ab
+  -- if x = A
+
+rule Overlapping_subtypes/second:
+  x ==> "second"
+  -- if x <: bc
+
+;; If structuring treats onlya and onlyb as a partition of letter, it adds
+;; the third rule to a total case analysis and fails.
+relation Single_case_subtypes: letter ==> text
+  hint(input %0)
+
+rule Single_case_subtypes/first:
+  x ==> "first"
+  -- if x <: onlya
+
+rule Single_case_subtypes/second:
+  x ==> "second"
+  -- if x <: onlyb
+
+rule Single_case_subtypes/third:
+  x ==> "third"
+  -- if x <: onlyc
+
+relation Contained_subtypes: letter; nat ==> text
+  hint(input %0 %1)
+
+rule Contained_subtypes/first:
+  x; n ==> "first"
+  -- if x <: onlyc
+  -- if n = 0
+
+rule Contained_subtypes/second:
+  x; n ==> "second"
+  -- if x <: bc
+
+relation Constructors: letter ==> text
+  hint(input %0)
+
+rule Constructors/first:
+  A ==> "first"
+
+rule Constructors/second:
+  B ==> "second"
+
+rule Constructors/third:
+  C ==> "third"
+
+relation List_lengths: nat* ==> text
+  hint(input %0)
+
+rule List_lengths/first:
+  [n] ==> "first"
+
+rule List_lengths/second:
+  [n, m] ==> "second"
+
+rule List_lengths/third:
+  eps ==> "third"
+
+;; The empty pattern directly follows a fixed-length pattern. Structuring
+;; compares those patterns and uses the returned guards to build a case
+;; analysis. In List_lengths, structuring adds the empty pattern to an
+;; existing case analysis.
+relation Empty_after_singleton: nat* ==> text
+  hint(input %0)
+
+rule Empty_after_singleton/first:
+  [n] ==> "first"
+
+rule Empty_after_singleton/second:
+  eps ==> "second"
+
+rule Empty_after_singleton/third:
+  [n, m] ==> "third"
+
+relation Options: nat? ==> text
+  hint(input %0)
+
+rule Options/first:
+  n ==> "first"
+
+rule Options/second:
+  eps ==> "second"
+
+relation Membership: nat ==> text
+  hint(input %0)
+
+rule Membership/first:
+  n ==> "first"
+  -- if n <- [1, 2]
+
+rule Membership/second:
+  n ==> "second"
+  -- if n <- [3]
+
+rule Membership/third:
+  n ==> "third"
+  -- if n <- [4]
+
+;; The shared tuple contains a literal of each kind. When structuring
+;; compares the list members, each kind of literal comparison must recognize
+;; equal values.
+relation Overlapping_membership: (nat, text, bool, letter, nat*); nat ==> text
+  hint(input %0 %1)
+
+rule Overlapping_membership/first:
+  q; n ==> "first"
+  -- if q <- [(1, "a", true, A, [1])]
+  -- if n = 0
+
+rule Overlapping_membership/second:
+  q; n ==> "second"
+  -- if q <- [(1, "a", true, A, [1]), (2, "b", false, B, [2])]
+
+;; Each relation named on_two_values applies its conditions to different
+;; values. Structuring must not compare them as conditions on one value.
+relation Earlier_negation_on_two_values: nat; nat ==> text
+  hint(input %0 %1)
+
+rule Earlier_negation_on_two_values/first:
+  n; m ==> "first"
+  -- if ~$(n > 5)
+  -- if m = 0
+
+rule Earlier_negation_on_two_values/second:
+  n; m ==> "second"
+  -- if $(m > 5)
+
+relation Subtypes_on_two_values: letter; letter ==> text
+  hint(input %0 %1)
+
+rule Subtypes_on_two_values/first:
+  x; y ==> "first"
+  -- if x <: ab
+  -- if y = A
+
+rule Subtypes_on_two_values/second:
+  x; y ==> "second"
+  -- if y <: onlyc
+
+relation Patterns_on_two_values: letter; letter ==> text
+  hint(input %0 %1)
+
+rule Patterns_on_two_values/first:
+  A; y ==> "first"
+  -- if y = A
+
+rule Patterns_on_two_values/second:
+  x; B ==> "second"
+
+relation Membership_on_two_values: nat; nat ==> text
+  hint(input %0 %1)
+
+rule Membership_on_two_values/first:
+  n; m ==> "first"
+  -- if n <- [1]
+  -- if m = 0
+
+rule Membership_on_two_values/second:
+  n; m ==> "second"
+  -- if m <- [2]
+
+relation Equal_or_unequal_literals: nat; nat ==> text
+  hint(input %0 %1)
+
+rule Equal_or_unequal_literals/first:
+  n; m ==> "first"
+  -- if n = 1
+  -- if m = 0
+
+rule Equal_or_unequal_literals/second:
+  n; m ==> "second"
+  -- if n =/= 2
+
+relation Equal_or_unequal_on_two_values: nat; nat ==> text
+  hint(input %0 %1)
+
+rule Equal_or_unequal_on_two_values/first:
+  n; m ==> "first"
+  -- if n = 1
+  -- if m = 0
+
+rule Equal_or_unequal_on_two_values/second:
+  n; m ==> "second"
+  -- if m =/= 1
+
+relation Equal_or_unequal_literals_swapped: nat; nat ==> text
+  hint(input %0 %1)
+
+rule Equal_or_unequal_literals_swapped/first:
+  n; m ==> "first"
+  -- if n = 1
+  -- if m = 0
+
+rule Equal_or_unequal_literals_swapped/second:
+  n; m ==> "second"
+  -- if 2 =/= n
+
+relation Equal_or_unequal_on_two_values_swapped: nat; nat ==> text
+  hint(input %0 %1)
+
+rule Equal_or_unequal_on_two_values_swapped/first:
+  n; m ==> "first"
+  -- if n = 1
+  -- if m = 0
+
+rule Equal_or_unequal_on_two_values_swapped/second:
+  n; m ==> "second"
+  -- if 1 =/= m
+
+;; A wrong comparison puts the first rule's block under a guard on m. Only an
+;; input satisfying the first rule exposes that fault.
+relation Later_negation_on_two_values: nat; nat ==> text
+  hint(input %0 %1)
+
+rule Later_negation_on_two_values/first:
+  n; m ==> "first"
+  -- if $(n > 5)
+  -- if m = 0
+
+rule Later_negation_on_two_values/second:
+  n; m ==> "second"
+  -- if ~$(m > 5)

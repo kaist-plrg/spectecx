@@ -13,4 +13,5 @@ let () =
   Casts.run ();
   Determinism.run ();
   Structuring.run ();
+  Overlap.run ();
   Value_handlers.run ()
