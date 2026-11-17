@@ -33,6 +33,8 @@
     p4-il-pos.err
     (run
      ./main.exe
+     p4
+     typecheck
      -i
      ../../../../../spectec/testdata/interp/p4/p4c/includes
      -e
@@ -62,6 +64,8 @@
     p4-il-neg.err
     (run
      ./main.exe
+     p4
+     typecheck
      -neg
      -i
      ../../../../../spectec/testdata/interp/p4/p4c/includes
@@ -92,6 +96,8 @@
     p4-sl-pos.err
     (run
      ./main.exe
+     p4
+     typecheck
      --sl
      -i
      ../../../../../spectec/testdata/interp/p4/p4c/includes
@@ -122,6 +128,8 @@
     p4-pl-pos.err
     (run
      ./main.exe
+     p4
+     typecheck
      --pl
      -i
      ../../../../../spectec/testdata/interp/p4/p4c/includes
@@ -152,6 +160,8 @@
     p4-sl-neg.err
     (run
      ./main.exe
+     p4
+     typecheck
      --sl
      -neg
      -i
@@ -183,6 +193,8 @@
     p4-pl-neg.err
     (run
      ./main.exe
+     p4
+     typecheck
      --pl
      -neg
      -i
@@ -214,7 +226,8 @@
     p4-il-eval.err
     (run
      ./main.exe
-     --eval
+     p4
+     eval
      -i
      ../../../../../spectec/testdata/interp/p4/p4c/includes
      -e
@@ -244,8 +257,9 @@
     p4-sl-eval.err
     (run
      ./main.exe
+     p4
+     eval
      --sl
-     --eval
      -i
      ../../../../../spectec/testdata/interp/p4/p4c/includes
      -e
@@ -275,8 +289,9 @@
     p4-pl-eval.err
     (run
      ./main.exe
+     p4
+     eval
      --pl
-     --eval
      -i
      ../../../../../spectec/testdata/interp/p4/p4c/includes
      -e
@@ -308,7 +323,8 @@
     impty-base-il-pos.err
     (run
      ./main.exe
-     --impty
+     impty
+     typecheck
      --variant
      base
      -d
@@ -334,7 +350,8 @@
     impty-base-il-neg.err
     (run
      ./main.exe
-     --impty
+     impty
+     typecheck
      --variant
      base
      -neg
@@ -361,7 +378,8 @@
     impty-base-sl-pos.err
     (run
      ./main.exe
-     --impty
+     impty
+     typecheck
      --variant
      base
      --sl
@@ -388,7 +406,8 @@
     impty-base-pl-pos.err
     (run
      ./main.exe
-     --impty
+     impty
+     typecheck
      --variant
      base
      --pl
@@ -415,7 +434,8 @@
     impty-base-sl-neg.err
     (run
      ./main.exe
-     --impty
+     impty
+     typecheck
      --variant
      base
      --sl
@@ -443,7 +463,8 @@
     impty-base-pl-neg.err
     (run
      ./main.exe
-     --impty
+     impty
+     typecheck
      --variant
      base
      --pl
@@ -476,7 +497,8 @@
     impty-closure-il-pos.err
     (run
      ./main.exe
-     --impty
+     impty
+     typecheck
      --variant
      closure
      -d
@@ -505,7 +527,8 @@
     impty-closure-il-neg.err
     (run
      ./main.exe
-     --impty
+     impty
+     typecheck
      --variant
      closure
      -neg
@@ -535,7 +558,8 @@
     impty-closure-sl-pos.err
     (run
      ./main.exe
-     --impty
+     impty
+     typecheck
      --variant
      closure
      --sl
@@ -565,7 +589,8 @@
     impty-closure-pl-pos.err
     (run
      ./main.exe
-     --impty
+     impty
+     typecheck
      --variant
      closure
      --pl
@@ -595,7 +620,8 @@
     impty-closure-sl-neg.err
     (run
      ./main.exe
-     --impty
+     impty
+     typecheck
      --variant
      closure
      --sl
@@ -626,7 +652,8 @@
     impty-closure-pl-neg.err
     (run
      ./main.exe
-     --impty
+     impty
+     typecheck
      --variant
      closure
      --pl
@@ -662,7 +689,8 @@
     impty-recursion-il-pos.err
     (run
      ./main.exe
-     --impty
+     impty
+     typecheck
      --variant
      recursion
      -d
@@ -694,7 +722,8 @@
     impty-recursion-il-neg.err
     (run
      ./main.exe
-     --impty
+     impty
+     typecheck
      --variant
      recursion
      -neg
@@ -727,7 +756,8 @@
     impty-recursion-sl-pos.err
     (run
      ./main.exe
-     --impty
+     impty
+     typecheck
      --variant
      recursion
      --sl
@@ -760,7 +790,8 @@
     impty-recursion-pl-pos.err
     (run
      ./main.exe
-     --impty
+     impty
+     typecheck
      --variant
      recursion
      --pl
@@ -793,7 +824,8 @@
     impty-recursion-sl-neg.err
     (run
      ./main.exe
-     --impty
+     impty
+     typecheck
      --variant
      recursion
      --sl
@@ -827,7 +859,8 @@
     impty-recursion-pl-neg.err
     (run
      ./main.exe
-     --impty
+     impty
+     typecheck
      --variant
      recursion
      --pl
@@ -863,7 +896,8 @@
     miniml-il-pos.err
     (run
      ./main.exe
-     --miniml
+     miniml
+     eval
      -d
      ../../../../../spectec/testdata/interp/miniml)))))
 
@@ -887,7 +921,8 @@
     miniml-il-neg.err
     (run
      ./main.exe
-     --miniml
+     miniml
+     eval
      -neg
      -d
      ../../../../../spectec/testdata/interp/miniml)))))
@@ -912,7 +947,8 @@
     miniml-sl-pos.err
     (run
      ./main.exe
-     --miniml
+     miniml
+     eval
      --sl
      -d
      ../../../../../spectec/testdata/interp/miniml)))))
@@ -937,7 +973,8 @@
     miniml-pl-pos.err
     (run
      ./main.exe
-     --miniml
+     miniml
+     eval
      --pl
      -d
      ../../../../../spectec/testdata/interp/miniml)))))
@@ -962,7 +999,8 @@
     miniml-sl-neg.err
     (run
      ./main.exe
-     --miniml
+     miniml
+     eval
      --sl
      -neg
      -d
@@ -988,7 +1026,8 @@
     miniml-pl-neg.err
     (run
      ./main.exe
-     --miniml
+     miniml
+     eval
      --pl
      -neg
      -d

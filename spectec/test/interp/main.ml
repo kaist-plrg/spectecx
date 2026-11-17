@@ -165,28 +165,27 @@ let run_miniml_eval ~negative ~request ~testdirs =
     (module Targets_miniml.Miniml.Eval)
     ~request ~spec_files ~inputs ~exclude_set:Exclude.empty
 
-let command =
-  Command.basic ~summary:"run interpreter test (IL, SL, or PL)"
+let includes_flag =
+  Command.Param.(flag "-i" (listed string) ~doc:"DIR include paths")
+
+let exclude_dirs_flag =
+  Command.Param.(flag "-e" (listed string) ~doc:"DIR exclude paths")
+
+let testdirs_flag =
+  Command.Param.(
+    flag "-d" (listed string) ~doc:"DIR test directory (repeatable)")
+
+let negative_flag =
+  Command.Param.(flag "-neg" no_arg ~doc:" expect failures (negative mode)")
+
+let test_command ~summary task_flags =
+  Command.basic ~summary
   @@
   let open Command.Let_syntax in
   let open Command.Param in
-  let%map includes = flag "-i" (listed string) ~doc:"DIR include paths"
-  and exclude_dirs = flag "-e" (listed string) ~doc:"DIR exclude paths"
-  and testdirs =
-    flag "-d" (listed string) ~doc:"DIR test directory (repeatable)"
-  and negative = flag "-neg" no_arg ~doc:" expect failures (negative mode)"
+  let%map run = task_flags
   and sl_mode = flag "--sl" no_arg ~doc:" use SL interpreter (default: IL)"
-  and pl_mode = flag "--pl" no_arg ~doc:" use PL interpreter (default: IL)"
-  and impty = flag "--impty" no_arg ~doc:" use impty target (default: p4)"
-  and miniml = flag "--miniml" no_arg ~doc:" use Mini-ML target (default: p4)"
-  and eval =
-    flag "--eval" no_arg
-      ~doc:" run p4 programs on their STF packets (default: typecheck)"
-  and variant =
-    flag "--variant" (optional string)
-      ~doc:
-        "VARIANT impty variant (base|closure|recursion); required with --impty"
-  in
+  and pl_mode = flag "--pl" no_arg ~doc:" use PL interpreter (default: IL)" in
   fun () ->
     let request : Spectec.Interp_mode.request =
       match (sl_mode, pl_mode) with
@@ -195,21 +194,58 @@ let command =
       | false, true -> `PL
       | true, true -> failwith "--sl and --pl are mutually exclusive"
     in
-    if eval && (negative || impty || miniml) then
-      failwith "--eval runs only positive p4 tests";
-    match (impty, miniml) with
-    | true, true -> failwith "--impty and --miniml are mutually exclusive"
-    | true, false ->
-        let v =
-          match variant with
-          | Some v -> v
-          | None -> failwith "--variant is required when using --impty"
-        in
-        run_impty_typecheck ~variant:v ~negative ~request ~testdirs
-    | false, true -> run_miniml_eval ~negative ~request ~testdirs
-    | false, false when eval ->
-        run_p4_eval ~request ~includes ~exclude_dirs ~testdirs
-    | false, false ->
-        run_p4_typecheck ~negative ~request ~includes ~exclude_dirs ~testdirs
+    run ~request
+
+let p4_typecheck_command =
+  test_command ~summary:"typecheck P4 programs"
+  @@
+  let open Command.Let_syntax in
+  let%map includes = includes_flag
+  and exclude_dirs = exclude_dirs_flag
+  and testdirs = testdirs_flag
+  and negative = negative_flag in
+  run_p4_typecheck ~negative ~includes ~exclude_dirs ~testdirs
+
+let p4_eval_command =
+  test_command ~summary:"run P4 programs on their STF packets"
+  @@
+  let open Command.Let_syntax in
+  let%map includes = includes_flag
+  and exclude_dirs = exclude_dirs_flag
+  and testdirs = testdirs_flag in
+  run_p4_eval ~includes ~exclude_dirs ~testdirs
+
+let impty_typecheck_command =
+  test_command ~summary:"typecheck impty programs"
+  @@
+  let open Command.Let_syntax in
+  let open Command.Param in
+  let%map variant =
+    flag "--variant" (required string)
+      ~doc:"VARIANT impty variant (base|closure|recursion)"
+  and testdirs = testdirs_flag
+  and negative = negative_flag in
+  run_impty_typecheck ~variant ~negative ~testdirs
+
+let miniml_eval_command =
+  test_command ~summary:"evaluate Mini-ML programs"
+  @@
+  let open Command.Let_syntax in
+  let%map testdirs = testdirs_flag and negative = negative_flag in
+  run_miniml_eval ~negative ~testdirs
+
+let command =
+  Command.group ~summary:"run interpreter test (IL, SL, or PL)"
+    [
+      ( "p4",
+        Command.group ~summary:"P4 tests"
+          [ ("typecheck", p4_typecheck_command); ("eval", p4_eval_command) ] );
+      ( "impty",
+        Command.group ~summary:"impty tests"
+          [ ("typecheck", impty_typecheck_command) ] );
+      ( "miniml",
+        Command.group ~summary:"Mini-ML tests" [ ("eval", miniml_eval_command) ]
+      );
+    ]
 
 let () = Command_unix.run command
