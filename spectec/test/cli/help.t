@@ -35,8 +35,8 @@ eval shares this exact set:
                                . verbosity level (e.g., summary|full)
     [--branch-coverage.output FILE]
                                . output destination file
-    [--color WHEN]             . colorize diagnostics: auto|always|never (default:
-                                 auto)
+    [--color WHEN]             . colorize diagnostics (default: auto) (can be:
+                                 always, auto, never)
     [--det]                    . reject multiple successful alternatives for the
                                  current input
     [--instruction-coverage.level LEVEL]
@@ -71,8 +71,8 @@ parse has a distinct, minimal surface with no instrumentation flags:
   === flags ===
   
     -p FILE                    . impty file
-    [--color WHEN]             . colorize diagnostics: auto|always|never (default:
-                                 auto)
+    [--color WHEN]             . colorize diagnostics (default: auto) (can be:
+                                 always, auto, never)
     [--spec FILES] ...         . spec files; mutually exclusive with --spec-dir
     [--spec-dir DIR]           . directory of .spectec files, collected
                                  recursively; mutually exclusive with --spec
@@ -96,8 +96,8 @@ batch drops -p and adds the checkpoint-persistence flags:
     [--branch-coverage.output FILE]
                                . output destination file
     [--checkpoint FILE]        . save checkpoint to file (enables resume)
-    [--color WHEN]             . colorize diagnostics: auto|always|never (default:
-                                 auto)
+    [--color WHEN]             . colorize diagnostics (default: auto) (can be:
+                                 always, auto, never)
     [--det]                    . reject multiple successful alternatives for the
                                  current input
     [--instruction-coverage.level LEVEL]

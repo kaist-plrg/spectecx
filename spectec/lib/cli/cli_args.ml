@@ -7,7 +7,7 @@ open Instrumentation
 type color = Auto | Always | Never
 
 let color_arg : color Core.Command.Arg_type.t =
-  Core.Command.Arg_type.of_alist_exn ~list_values_in_help:false
+  Core.Command.Arg_type.of_alist_exn
     [ ("auto", Auto); ("always", Always); ("never", Never) ]
 
 (** Output presentation. *)
@@ -16,7 +16,7 @@ module Output = struct
     let open Core.Command.Param in
     flag "--color"
       (optional_with_default Auto color_arg)
-      ~doc:"WHEN colorize diagnostics: auto|always|never (default: auto)"
+      ~doc:"WHEN colorize diagnostics (default: auto)"
 end
 
 (** Spec source override — an explicit list of files or a directory (mutually
