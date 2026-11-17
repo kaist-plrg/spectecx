@@ -6,6 +6,7 @@
   (pps ppx_let))
  (libraries
   test_lib
+  spectec.cli
   targets_p4
   targets_impty
   targets_miniml

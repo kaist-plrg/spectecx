@@ -182,19 +182,8 @@ let test_command ~summary task_flags =
   Command.basic ~summary
   @@
   let open Command.Let_syntax in
-  let open Command.Param in
-  let%map run = task_flags
-  and sl_mode = flag "--sl" no_arg ~doc:" use SL interpreter (default: IL)"
-  and pl_mode = flag "--pl" no_arg ~doc:" use PL interpreter (default: IL)" in
-  fun () ->
-    let request : Spectec.Interp_mode.request =
-      match (sl_mode, pl_mode) with
-      | false, false -> `IL
-      | true, false -> `SL
-      | false, true -> `PL
-      | true, true -> failwith "--sl and --pl are mutually exclusive"
-    in
-    run ~request
+  let%map run = task_flags and request = Cli.Cli_args.Interpreter.mode_flag in
+  fun () -> run ~request
 
 let p4_typecheck_command =
   test_command ~summary:"typecheck P4 programs"

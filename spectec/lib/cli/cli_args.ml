@@ -38,13 +38,14 @@ module Spec = struct
          exclusive with --spec"
 
   let source_flag : Spec_source.t option Core.Command.Param.t =
-    let open Core.Command.Let_syntax in
-    let%map files = files_flag and dir = dir_flag in
-    match (files, dir) with
-    | [], None -> None
-    | files, None -> Some (Spec_source.Files files)
-    | [], Some dir -> Some (Spec_source.Dir dir)
-    | _ :: _, Some _ -> failwith "--spec and --spec-dir are mutually exclusive"
+    let open Core.Command.Param in
+    choose_one ~if_nothing_chosen:Return_none
+      [
+        map files_flag ~f:(function
+          | [] -> None
+          | files -> Some (Spec_source.Files files));
+        map dir_flag ~f:(Option.map (fun dir -> Spec_source.Dir dir));
+      ]
 end
 
 (** Running a task across many inputs. *)
@@ -86,15 +87,12 @@ end
 (** Interpreter selection and instrumentation. *)
 module Interpreter = struct
   let mode_flag : Spectec.Interp_mode.request Core.Command.Param.t =
-    let open Core.Command.Let_syntax in
     let open Core.Command.Param in
-    let%map sl = flag "--sl" no_arg ~doc:" use SL interpreter (default: IL)"
-    and pl = flag "--pl" no_arg ~doc:" use PL interpreter (default: IL)" in
-    match (sl, pl) with
-    | false, false -> `IL
-    | true, false -> `SL
-    | false, true -> `PL
-    | true, true -> failwith "--sl and --pl are mutually exclusive"
+    choose_one ~if_nothing_chosen:(Default_to `IL)
+      [
+        flag "--sl" (no_arg_some `SL) ~doc:" use SL interpreter (default: IL)";
+        flag "--pl" (no_arg_some `PL) ~doc:" use PL interpreter (default: IL)";
+      ]
 
   let det_flag : bool Core.Command.Param.t =
     let open Core.Command.Param in
