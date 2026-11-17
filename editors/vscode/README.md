@@ -33,6 +33,27 @@ The nearest ancestor directory containing a `*.spec` marker defines a spec, incl
 
 The server checks the whole spec synchronously after each edit. Large specs can delay diagnostic updates.
 
+## Debugging
+
+The extension runs SpecTecX's IL debugger as a VS Code debug adapter. Build the `spectecx` executable with `make exe`; the extension looks for it at an open workspace folder's root, then on `PATH`, unless `spectec.debugger.path` names it.
+
+A `spectec` launch configuration names the target and task, as in `spectecx <target> debug <task>`, with the task's own arguments in `args`:
+
+```json
+{
+  "type": "spectec",
+  "request": "launch",
+  "name": "Debug eval",
+  "target": "miniml",
+  "task": "eval",
+  "args": ["--spec", "${workspaceFolder}/spectec/specs/miniml/spec.spectec", "-p", "${file}"]
+}
+```
+
+Without `--spec` or `--spec-dir` in `args`, the spec comes from `spectecx.config` or the target's default. `cwd` sets the directory the run starts in, the workspace folder by default.
+
+Breakpoints go on premises in `.spectec` files, or on a relation or rule by name as function breakpoints (`Rel` or `Rel/rule`). When the run stops, the Variables view shows each call's inputs and local bindings, and hovering a variable shows its value. The run's own output goes to the adapter's standard error, which VS Code does not show yet.
+
 ## Tests
 
 `make test-lsp` tests the server and its editor protocol. From this directory, `npm test` checks extension startup, configuration and shutdown. `npm run test:host` checks multi-file diagnostics, editing recovery, server restart and startup cancellation in an isolated VS Code profile. It requires a built server and a VS Code executable on `PATH`, or the `VSCODE_EXECUTABLE` environment variable. It does not modify the normal editor profile. Successful runs remove their temporary profile, and failed runs retain it for inspection.

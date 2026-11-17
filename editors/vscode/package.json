@@ -1,7 +1,7 @@
 {
   "name": "spectecx-syntax",
   "displayName": "SpecTecX",
-  "description": "Syntax highlighting and diagnostics for SpecTecX specification files (.spectec).",
+  "description": "Syntax highlighting, diagnostics and debugging for SpecTecX specification files (.spectec).",
   "categories": [
     "Programming Languages"
   ],
@@ -37,6 +37,78 @@
         "path": "./syntaxes/spectec.tmLanguage.json"
       }
     ],
+    "breakpoints": [
+      {
+        "language": "spectec"
+      }
+    ],
+    "debuggers": [
+      {
+        "type": "spectec",
+        "label": "SpecTecX",
+        "languages": [
+          "spectec"
+        ],
+        "configurationAttributes": {
+          "launch": {
+            "required": [
+              "target",
+              "task"
+            ],
+            "properties": {
+              "target": {
+                "type": "string",
+                "description": "The language whose spec runs, as in `spectecx <target> debug <task>`, e.g. `miniml`."
+              },
+              "task": {
+                "type": "string",
+                "description": "The task to run under the debugger, e.g. `eval`."
+              },
+              "args": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "default": [],
+                "description": "The task's own arguments, and spec options such as `--spec` or `--spec-dir`. Without them, the spec comes from `spectecx.config` or the target's default."
+              },
+              "cwd": {
+                "type": "string",
+                "default": "${workspaceFolder}",
+                "description": "The directory the run starts in. Defaults to the workspace folder."
+              }
+            }
+          }
+        },
+        "initialConfigurations": [
+          {
+            "type": "spectec",
+            "request": "launch",
+            "name": "Debug a SpecTecX run",
+            "target": "<target, e.g. miniml>",
+            "task": "<task, e.g. eval>",
+            "args": [
+              "-p",
+              "${workspaceFolder}/<program>"
+            ]
+          }
+        ],
+        "configurationSnippets": [
+          {
+            "label": "SpecTecX: Launch",
+            "description": "Run a task under the debugger",
+            "body": {
+              "type": "spectec",
+              "request": "launch",
+              "name": "Debug ${1:task}",
+              "target": "${2:target}",
+              "task": "${1:task}",
+              "args": []
+            }
+          }
+        ]
+      }
+    ],
     "configuration": {
       "title": "SpecTecX",
       "properties": {
@@ -67,6 +139,11 @@
           ],
           "default": "off",
           "description": "Log the traffic between VS Code and spectecx-lsp in the SpecTecX output channel."
+        },
+        "spectec.debugger.path": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Path to the `spectecx` executable that debugging runs. Leave empty to look for it at the root of an open workspace folder (where `make exe` puts it), then on `PATH`. Supports `~` and `${workspaceFolder}`."
         }
       }
     },

@@ -7,6 +7,8 @@ const vscode = require("vscode");
 const { LanguageClient, CloseAction, State } = require("vscode-languageclient/node");
 
 const SERVER_NAME = "spectecx-lsp";
+const DEBUGGER_NAME = "spectecx";
+const DEBUG_TYPE = "spectec";
 const CONFIG_SECTION = "spectec";
 const START_TIMEOUT_MS = 10000;
 
@@ -68,44 +70,46 @@ function findOnPath(name) {
   return findExecutable(name, (process.env.PATH || "").split(path.delimiter));
 }
 
-function findInWorkspace() {
+function findInWorkspace(name) {
   const folders = vscode.workspace.workspaceFolders || [];
   return findExecutable(
-    SERVER_NAME,
+    name,
     folders.map((folder) => folder.uri.fsPath),
   );
 }
 
 /** @returns {{command: string} | {error: string}} */
-function resolveServer() {
-  const configured = config().get("languageServer.path", "").trim();
+function resolveExecutable(key, name) {
+  const configured = config().get(key, "").trim();
   if (configured) {
     const p = expand(configured);
     if (path.isAbsolute(p) || p.includes(path.sep) || p.includes("/")) {
       return isExecutableFile(p)
         ? { command: p }
         : {
-            error: `\`${CONFIG_SECTION}.languageServer.path\` is not an executable file: ${p}`,
-          };
+          error: `\`${CONFIG_SECTION}.${key}\` is not an executable file: ${p}`,
+        };
     }
     const found = findOnPath(p);
     return found
       ? { command: found }
       : {
-          error: `\`${CONFIG_SECTION}.languageServer.path\` is set to \`${p}\`, which is not on PATH`,
-        };
+        error: `\`${CONFIG_SECTION}.${key}\` is set to \`${p}\`, which is not on PATH`,
+      };
   }
-  const found = findInWorkspace() || findOnPath(SERVER_NAME);
-  return found
-    ? { command: found }
-    : { error: `\`${SERVER_NAME}\` is not in this workspace or on PATH` };
+  const found = findInWorkspace(name) || findOnPath(name);
+  return found ? { command: found } : { error: `\`${name}\` is not in this workspace or on PATH` };
+}
+
+function resolveServer() {
+  return resolveExecutable("languageServer.path", SERVER_NAME);
 }
 
 async function reportResolutionError(message) {
   log?.appendLine(`server not started: ${message}`);
   const choice = await vscode.window.showWarningMessage(
     `SpecTecX: ${message}. Build the server with \`make lsp\` and put the executable on PATH, ` +
-      `or point \`${CONFIG_SECTION}.languageServer.path\` at the server executable. Syntax highlighting still works.`,
+    `or point \`${CONFIG_SECTION}.languageServer.path\` at the server executable. Syntax highlighting still works.`,
     "Open Settings",
     "Show Log",
   );
@@ -247,6 +251,65 @@ async function stop() {
   await shutdown?.();
 }
 
+// Debugging
+
+/** The arguments that start a launch configuration's run under the debugger. */
+function debugArguments(configuration) {
+  return [
+    configuration.target,
+    "debug",
+    configuration.task,
+    "--dap",
+    ...(configuration.args || []),
+  ];
+}
+
+const debugConfigurations = {
+  resolveDebugConfiguration(_folder, configuration) {
+    // Without a launch.json, null opens one to fill in.
+    if (!configuration.type && !configuration.request) return null;
+    const missing = ["target", "task"].filter((field) => !configuration[field]);
+    if (missing.length > 0) {
+      void Promise.resolve(
+        vscode.window.showErrorMessage(
+          `SpecTecX: the launch configuration needs ${missing.map((f) => `\`${f}\``).join(" and ")}.`,
+        ),
+      ).catch((error) => log?.appendLine(`could not show launch error: ${error}`));
+      return null;
+    }
+    return configuration;
+  },
+};
+
+const debugAdapters = {
+  createDebugAdapterDescriptor(session) {
+    const resolved = resolveExecutable("debugger.path", DEBUGGER_NAME);
+    if ("error" in resolved) {
+      throw new Error(
+        `SpecTecX: ${resolved.error}. Build it with \`make exe\`, or point ` +
+        `\`${CONFIG_SECTION}.debugger.path\` at it.`,
+      );
+    }
+    const configuration = session.configuration;
+    const args = debugArguments(configuration);
+    log?.appendLine(`debugging with ${resolved.command} ${args.join(" ")}`);
+    return new vscode.DebugAdapterExecutable(resolved.command, args, {
+      cwd: configuration.cwd || session.workspaceFolder?.uri.fsPath,
+    });
+  },
+};
+
+// A variable as the debugger names it: primes and iterations included, so that
+// hovering `x'` or `x*` does not evaluate `x`.
+const VARIABLE = /[A-Za-z_][A-Za-z0-9_]*'*[*?]*/;
+
+const evaluatableExpressions = {
+  provideEvaluatableExpression(document, position) {
+    const range = document.getWordRangeAtPosition(position, VARIABLE);
+    return range && new vscode.EvaluatableExpression(range);
+  },
+};
+
 async function restart() {
   cancelStart?.();
   return enqueue(async () => {
@@ -267,6 +330,12 @@ function activate(context) {
         void restart().catch((error) => log?.appendLine(`restart failed: ${error}`));
       }
     }),
+    vscode.debug.registerDebugConfigurationProvider(DEBUG_TYPE, debugConfigurations),
+    vscode.debug.registerDebugAdapterDescriptorFactory(DEBUG_TYPE, debugAdapters),
+    vscode.languages.registerEvaluatableExpressionProvider(
+      { language: "spectec" },
+      evaluatableExpressions,
+    ),
   );
   enqueue(start);
 }

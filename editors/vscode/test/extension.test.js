@@ -19,7 +19,10 @@ function setup({
   const errors = [];
   const messages = [];
   const settings = { "languageServer.path": "/test/server" };
-  const disposable = { dispose() {} };
+  const disposable = { dispose() { } };
+  const debugProviders = {};
+  const debugFactories = {};
+  const evaluatables = [];
   let onConfiguration;
   const State = { Stopped: 1, Starting: 2, Running: 3 };
   const CloseAction = { DoNotRestart: 1, Restart: 2 };
@@ -30,7 +33,7 @@ function setup({
       clients.push(this);
     }
     createDefaultErrorHandler() {
-      return { error() {}, closed: () => ({ action: CloseAction.Restart }) };
+      return { error() { }, closed: () => ({ action: CloseAction.Restart }) };
     }
     onDidChangeState(action) {
       this.onState = action;
@@ -85,10 +88,36 @@ function setup({
         return disposable;
       },
     },
+    debug: {
+      registerDebugConfigurationProvider: (type, provider) => {
+        debugProviders[type] = provider;
+        return disposable;
+      },
+      registerDebugAdapterDescriptorFactory: (type, factory) => {
+        debugFactories[type] = factory;
+        return disposable;
+      },
+    },
+    languages: {
+      registerEvaluatableExpressionProvider: (selector, provider) => {
+        evaluatables.push({ selector, provider });
+        return disposable;
+      },
+    },
+    DebugAdapterExecutable: class {
+      constructor(command, args, options) {
+        Object.assign(this, { command, args, options });
+      }
+    },
+    EvaluatableExpression: class {
+      constructor(range) {
+        this.range = range;
+      }
+    },
     window: {
       createOutputChannel: () => ({
         appendLine: (message) => messages.push(message),
-        dispose() {},
+        dispose() { },
       }),
       showWarningMessage: async (message) => {
         warnings.push(message);
@@ -150,6 +179,9 @@ function setup({
     errors,
     messages,
     changed,
+    debugProviders,
+    debugFactories,
+    evaluatables,
   };
 }
 
@@ -164,6 +196,7 @@ test("keeps the extension identity and file association", () => {
   assert.deepEqual(pkg.contributes.languages[0].extensions, [".spectec"]);
   assert.equal(pkg.capabilities.untrustedWorkspaces.supported, false);
   assert.deepEqual(Object.keys(pkg.contributes.configuration.properties).sort(), [
+    "spectec.debugger.path",
     "spectec.languageServer.arguments",
     "spectec.languageServer.enable",
     "spectec.languageServer.path",
@@ -364,6 +397,121 @@ for (const failure of ["warning", "settings", "startup error"]) {
     } else context.vscode.window.showErrorMessage = reject;
     await context.activate();
     assert.ok(context.messages.some((message) => message.includes("UI unavailable")));
+    await context.extension.deactivate();
+  });
+}
+
+test("declares the spectec debugger", () => {
+  const pkg = require("../package.json");
+  assert.deepEqual(pkg.contributes.breakpoints, [{ language: "spectec" }]);
+  const [debuggerContribution] = pkg.contributes.debuggers;
+  assert.equal(debuggerContribution.type, "spectec");
+  assert.deepEqual(debuggerContribution.configurationAttributes.launch.required, [
+    "target",
+    "task",
+  ]);
+});
+
+const launch = {
+  type: "spectec",
+  request: "launch",
+  name: "Debug",
+  target: "miniml",
+  task: "eval",
+  args: ["-p", "/test/program.ml"],
+};
+
+for (const [mode, debuggerPath, expected] of [
+  ["configured", "/test/spectecx", "/test/spectecx"],
+  ["workspace", "", "/test/spectecx"],
+  ["path", "", "/tools/spectecx"],
+]) {
+  test(`starts the debug adapter from the ${mode} executable`, async () => {
+    const context = setup({ files: [expected] });
+    context.settings["debugger.path"] = debuggerPath;
+    await context.activate();
+    const adapter = context.debugFactories.spectec.createDebugAdapterDescriptor({
+      configuration: launch,
+      workspaceFolder: { uri: { fsPath: "/test" } },
+    });
+    assert.equal(adapter.command, expected);
+    assert.deepEqual([...adapter.args], [
+      "miniml",
+      "debug",
+      "eval",
+      "--dap",
+      "-p",
+      "/test/program.ml",
+    ]);
+    assert.deepEqual({ ...adapter.options }, { cwd: "/test" });
+    await context.extension.deactivate();
+  });
+}
+
+test("runs the debug adapter in the configured directory", async () => {
+  const context = setup({ files: ["/test/spectecx"] });
+  await context.activate();
+  const adapter = context.debugFactories.spectec.createDebugAdapterDescriptor({
+    configuration: { ...launch, args: undefined, cwd: "/test/specs" },
+    workspaceFolder: { uri: { fsPath: "/test" } },
+  });
+  assert.deepEqual([...adapter.args], ["miniml", "debug", "eval", "--dap"]);
+  assert.deepEqual({ ...adapter.options }, { cwd: "/test/specs" });
+  await context.extension.deactivate();
+});
+
+test("reports a missing debugger executable", async () => {
+  const context = setup({ files: ["/test/server"] });
+  await context.activate();
+  assert.throws(
+    () =>
+      context.debugFactories.spectec.createDebugAdapterDescriptor({ configuration: launch }),
+    /`spectecx` is not in this workspace or on PATH\. Build it with `make exe`/,
+  );
+  await context.extension.deactivate();
+});
+
+test("checks launch configurations", async () => {
+  const context = setup();
+  await context.activate();
+  const provider = context.debugProviders.spectec;
+  assert.equal(provider.resolveDebugConfiguration(undefined, {}), null);
+  assert.equal(provider.resolveDebugConfiguration(undefined, launch), launch);
+  assert.equal(
+    provider.resolveDebugConfiguration(undefined, { ...launch, target: "", task: undefined }),
+    null,
+  );
+  await flush();
+  assert.deepEqual(context.errors, [
+    "SpecTecX: the launch configuration needs `target` and `task`.",
+  ]);
+  await context.extension.deactivate();
+});
+
+for (const [line, column, expected] of [
+  ["-- Eval_expr: e1 ==> v1", 15, "e1"],
+  ["-- if s' = s", 7, "s'"],
+  ["-- if x? = eps", 7, "x?"],
+]) {
+  test(`hovers the variable ${expected}`, async () => {
+    const context = setup();
+    await context.activate();
+    const [{ selector, provider }] = context.evaluatables;
+    assert.deepEqual({ ...selector }, { language: "spectec" });
+    const document = {
+      getWordRangeAtPosition(position, pattern) {
+        const matcher = new RegExp(pattern.source, "g");
+        for (const match of line.matchAll(matcher)) {
+          const end = match.index + match[0].length;
+          if (match.index <= position.character && position.character <= end) {
+            return { text: match[0] };
+          }
+        }
+        return undefined;
+      },
+    };
+    const expression = provider.provideEvaluatableExpression(document, { character: column });
+    assert.equal(expression.range.text, expected);
     await context.extension.deactivate();
   });
 }
