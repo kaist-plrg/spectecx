@@ -1,11 +1,3 @@
-(** Debugger CLI: a gdb-style prompt on stdin, driving the engine.
-
-    The prompt opens before the run starts, so breakpoints can be set and the
-    run started with [run]. Breakpoints are written [Rel], [Rel/rule], or
-    [FILE:LINE] for a written premise ([LINE] alone: in the current call's
-    file). Enabled by the [debug] subcommand, which also restricts it to single
-    IL runs. *)
-
 module Il = Lang.Il
 module Location = Common.Location
 module VEnv = Envs_interp.VEnv

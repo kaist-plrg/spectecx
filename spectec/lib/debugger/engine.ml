@@ -7,12 +7,14 @@ exception Error of string
 
 let error fmt = Format.kasprintf (fun message -> raise (Error message)) fmt
 
-type site = { owner : string; span : Location.t; hit : Location.t }
+type site = Sites.site = { owner : string; span : Location.t; hit : Location.t }
 
-(* A rule or function clause, with its written premises in order. *)
-type body = { owner : string; at : Location.t; sites : site list }
-type target = Rel of string | Rule of string * string | Prem of site
-type breakpoint = { number : int; target : target }
+type target = Breakpoints.target =
+  | Rel of string
+  | Rule of string * string
+  | Prem of site
+
+type breakpoint = Breakpoints.breakpoint = { number : int; target : target }
 
 type frame = {
   name : string;
@@ -62,15 +64,34 @@ type call = {
    call at that depth returns. *)
 type step = Step_in | Step_over of int | Step_out of int
 
-let string_of_line at =
-  match at with
-  | Location.Span { file; left; _ } -> Format.sprintf "%s:%d" file left.line
-  | Location.Unknown | Location.File _ -> Location.to_string at
+module State = struct
+  let spec : Il.spec ref = ref []
+  let sites = ref Sites.empty
+  let breakpoints = ref (Breakpoints.create ())
+  let calls : call list ref = ref []
+  let step : step option ref = ref None
 
-let string_of_target = function
-  | Rel id -> id
-  | Rule (id, rule_id) -> id ^ "/" ^ rule_id
-  | Prem { owner; span; _ } -> string_of_line span ^ " in " ^ owner
+  let reset il_spec =
+    spec := il_spec;
+    sites := Sites.index il_spec;
+    breakpoints := Breakpoints.create ();
+    calls := [];
+    step := None
+end
+
+(* Breakpoints *)
+
+let string_of_target = Breakpoints.string_of_target
+let canonical = Sites.canonical
+
+let or_error = function
+  | Ok value -> value
+  | Error message -> raise (Error message)
+
+let spec_file file = Sites.file !State.sites file |> or_error
+
+let premise_at ~file ~line =
+  Sites.premise_at !State.sites ~file:(spec_file file) ~line |> or_error
 
 let defines (spec : Il.spec) target =
   List.exists
@@ -85,145 +106,6 @@ let defines (spec : Il.spec) target =
       | _ -> false)
     spec
 
-let is_written (prem : Il.prem) = prem.note <> Some Il.Synthesized
-
-(* Premise index *)
-
-(* An iterated premise is entered at the premise it iterates. *)
-let rec entered_at (prem : Il.prem) =
-  match prem.it with Il.IterPr (prem, _) -> entered_at prem | _ -> prem.at
-
-let body owner at prems =
-  let sites =
-    List.filter is_written prems
-    |> List.map (fun (prem : Il.prem) ->
-           { owner; span = prem.at; hit = entered_at prem })
-  in
-  { owner; at; sites }
-
-let bodies_of_spec (spec : Il.spec) =
-  List.concat_map
-    (fun (def : Il.def) ->
-      match def.it with
-      | Il.RelD { relid; rules; _ } ->
-          List.map
-            (fun (rule : Il.rule) ->
-              let owner =
-                if rule.it.ruleid.it = "" then relid.it
-                else relid.it ^ "/" ^ rule.it.ruleid.it
-              in
-              body owner rule.at rule.it.prems)
-            rules
-      | Il.DecD { defid; clauses; _ } ->
-          List.map
-            (fun (clause : Il.clause) ->
-              body ("$" ^ defid.it) clause.at clause.it.prems)
-            clauses
-      | _ -> [])
-    spec
-
-let lines_of = function
-  | Location.Span { left; right; _ } -> Some (left.line, right.line)
-  | Location.Unknown | Location.File _ -> None
-
-let covers line at =
-  match lines_of at with
-  | Some (first, last) -> first <= line && line <= last
-  | None -> false
-
-let starts_after line at =
-  match lines_of at with Some (first, _) -> first > line | None -> false
-
-let canonical file =
-  match Unix.realpath file with
-  | path -> path
-  | exception Unix.Unix_error _ ->
-      if Filename.is_relative file then Filename.concat (Sys.getcwd ()) file
-      else file
-
-(* The file of the spec that [name] names. A relative [name] is the same path
-   or a suffix of it; an absolute one is the same file. *)
-let resolve_file bodies name =
-  let files =
-    List.filter_map (fun (body : body) -> Location.file body.at) bodies
-    |> List.sort_uniq String.compare
-  in
-  let names =
-    if Filename.is_relative name then
-      let suffix = "/" ^ name in
-      fun file -> file = name || String.ends_with ~suffix file
-    else
-      let name = canonical name in
-      fun file -> canonical file = name
-  in
-  match List.filter names files with
-  | [ file ] -> file
-  | [] -> error "No rule or clause in `%s`." name
-  | files ->
-      error "`%s` matches several files: %s." name (String.concat ", " files)
-
-(* The written premise at [line] of [file], or else the next one in the same
-   rule or clause. *)
-let resolve_line bodies file line =
-  let bodies =
-    List.filter
-      (fun (body : body) ->
-        Location.file body.at = Some file && covers line body.at)
-      bodies
-  in
-  let at_line =
-    List.concat_map (fun (body : body) -> body.sites) bodies
-    |> List.filter (fun site -> covers line site.span)
-  in
-  let latest a b =
-    match (lines_of a.span, lines_of b.span) with
-    | Some (first_a, _), Some (first_b, _) when first_b > first_a -> b
-    | _ -> a
-  in
-  match (at_line, bodies) with
-  | site :: sites, _ ->
-      (* select the last premise covering the line *)
-      List.fold_left latest site sites
-  | [], [] -> error "No rule or clause at %s:%d." file line
-  | [], body :: _ -> (
-      (* no premise on the line, but it is inside a rule or clause *)
-      match
-        List.find_opt (fun site -> starts_after line site.span) body.sites
-      with
-      | Some site -> site
-      | None -> error "No premise at or after line %d in %s." line body.owner)
-
-module State = struct
-  let spec : Il.spec ref = ref []
-  let bodies : body list ref = ref []
-  let breakpoints : breakpoint list ref = ref []
-  let next_number = ref 1
-  let calls : call list ref = ref []
-  let step : step option ref = ref None
-
-  let reset il_spec =
-    spec := il_spec;
-    bodies := bodies_of_spec il_spec;
-    breakpoints := [];
-    next_number := 1;
-    calls := [];
-    step := None
-
-  let breakpoint_for target =
-    List.find_opt (fun b -> b.target = target) !breakpoints
-
-  (* The breakpoint on the written premise entered at [at]. *)
-  let breakpoint_at at =
-    List.find_opt
-      (fun b -> match b.target with Prem site -> site.hit = at | _ -> false)
-      !breakpoints
-end
-
-(* Breakpoints *)
-
-let spec_file file = resolve_file !State.bodies file
-let premise_at ~file ~line = resolve_line !State.bodies (spec_file file) line
-
 let add_breakpoint target =
   let defined =
     match target with
@@ -232,21 +114,13 @@ let add_breakpoint target =
   in
   if not defined then
     error "No definition matches `%s`." (string_of_target target);
-  match State.breakpoint_for target with
-  | Some breakpoint -> `Existing breakpoint
-  | None ->
-      let breakpoint = { number = !State.next_number; target } in
-      incr State.next_number;
-      State.breakpoints := !State.breakpoints @ [ breakpoint ];
-      `New breakpoint
+  Breakpoints.add !State.breakpoints target
 
 let delete_breakpoint number =
-  if not (List.exists (fun b -> b.number = number) !State.breakpoints) then
-    error "No breakpoint number %d." number;
-  State.breakpoints :=
-    List.filter (fun b -> b.number <> number) !State.breakpoints
+  if not (Breakpoints.delete !State.breakpoints number) then
+    error "No breakpoint number %d." number
 
-let breakpoints () = !State.breakpoints
+let breakpoints () = Breakpoints.to_list !State.breakpoints
 
 (* Frames *)
 
@@ -336,7 +210,7 @@ module Make (F : FRONTEND) : Instrumentation_api.Handler.S = struct
   let stop_if_breakpoint target =
     Option.iter
       (fun hit -> stop (Breakpoints [ hit ]))
-      (State.breakpoint_for target)
+      (Breakpoints.find !State.breakpoints target)
 
   (* Rule breakpoints. A rule is tried before it is known to apply: its
      conclusion's input patterns are checked by premises that elaboration puts
@@ -347,7 +221,8 @@ module Make (F : FRONTEND) : Instrumentation_api.Handler.S = struct
 
   let arm_rule id rule_id =
     match !State.calls with
-    | call :: _ -> call.armed <- State.breakpoint_for (Rule (id, rule_id))
+    | call :: _ ->
+        call.armed <- Breakpoints.find !State.breakpoints (Rule (id, rule_id))
     | [] -> ()
 
   (* Disarms and returns the armed breakpoint, if any. *)
@@ -422,10 +297,13 @@ module Make (F : FRONTEND) : Instrumentation_api.Handler.S = struct
         leave_scope ()
     | Prem_enter { prem; at; env } ->
         update (fun call -> call.env <- env);
-        if is_written prem then (
+        if Sites.is_written prem then (
           update (fun call -> call.prem_at <- Some at);
           (* At most two breakpoints can be on the same premise. *)
-          match take_armed () @ Option.to_list (State.breakpoint_at at) with
+          match
+            take_armed ()
+            @ Option.to_list (Breakpoints.on_premise !State.breakpoints at)
+          with
           | [] -> step_at at
           | hits -> stop (Breakpoints hits))
     | Prem_exit { env; _ } -> update (fun call -> call.env <- env)
