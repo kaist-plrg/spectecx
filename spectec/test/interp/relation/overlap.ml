@@ -26,8 +26,10 @@ let check_text_results = H.check_text_results spec
    detect that answer. *)
 (* Disjoint in place of Partition changes only the Else Phantom coverage
    marker in SL, so result checks cannot distinguish these answers. *)
-(* Describe in structuring.ml checks equality paired with inequality on the
-   same operands in the same order. *)
+(* structuring.ml checks equalities of one variable with literals on the
+   same side through Case_analyses_on_two_values and similar relations. *)
+(* Describe and the Case_and inequality relations in structuring.ml check
+   equality paired with inequality on the same operands in the same order. *)
 (* determinism.ml checks cons patterns paired with fixed-length and empty
    list patterns. *)
 let run () =
