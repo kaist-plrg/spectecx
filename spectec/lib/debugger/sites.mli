@@ -18,7 +18,7 @@ type site = { owner : string; span : Location.t; hit : Location.t }
 (** The rules and clauses of a spec, each with its written premises in order. *)
 type t
 
-val index : Al.spec -> t
+val index : Lang.Al.spec -> t
 val empty : t
 
 (** Whether [prem] is written (see above). *)

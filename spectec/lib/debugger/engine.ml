@@ -1,3 +1,4 @@
+module Al = Lang.Al
 module Il = Lang.Il
 module Location = Common.Location
 module VEnv = Envs_interp.VEnv
