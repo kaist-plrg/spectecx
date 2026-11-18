@@ -1,12 +1,12 @@
 (** Where a run can stop in a spec: the written premises of its rules and
     function clauses, found by file and line.
 
-    A {e written} premise is one the spec's author wrote: an IL premise whose
-    note is not [Lang.Al.Synthesized]. Elaboration synthesizes premises with no
-    source of their own: the guards that check a rule's or clause's input
-    patterns, and the side conditions that dataflow analysis adds after a
-    premise. Leaving those out lets stepping and line breakpoints follow the
-    spec as written. *)
+    A {e written} premise is one the spec's author wrote: an AL premise whose
+    note is not [Lang.Al.Synthesized]. The algo pass synthesizes premises with
+    no source of their own: the guards that check a rule's or clause's input
+    patterns, the premises that destructure those inputs, and the side
+    conditions that dataflow analysis adds after a premise. Leaving those out
+    lets stepping and line breakpoints follow the spec as written. *)
 
 module Il = Lang.Il
 module Location = Common.Location

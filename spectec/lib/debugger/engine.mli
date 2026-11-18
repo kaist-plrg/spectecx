@@ -1,9 +1,9 @@
-(** Debugger engine: follows an IL run through its events and decides where it
+(** Debugger engine: follows an AL run through its events and decides where it
     stops, leaving commands and display to a frontend.
 
     Breakpoints ({!Breakpoints}) name a relation, one of its rules, or a written
     premise of a rule or function clause ({!Sites}). Stepping stops at the
-    premises written in the spec, skipping those elaboration synthesized.
+    premises written in the spec, skipping those the algo pass synthesized.
 
     The engine keeps one debugging session at a time: {!Make} builds the handler
     that runs it, and the other functions act on it, from the frontend's hooks.
