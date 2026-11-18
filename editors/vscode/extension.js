@@ -87,15 +87,15 @@ function resolveExecutable(key, name) {
       return isExecutableFile(p)
         ? { command: p }
         : {
-          error: `\`${CONFIG_SECTION}.${key}\` is not an executable file: ${p}`,
-        };
+            error: `\`${CONFIG_SECTION}.${key}\` is not an executable file: ${p}`,
+          };
     }
     const found = findOnPath(p);
     return found
       ? { command: found }
       : {
-        error: `\`${CONFIG_SECTION}.${key}\` is set to \`${p}\`, which is not on PATH`,
-      };
+          error: `\`${CONFIG_SECTION}.${key}\` is set to \`${p}\`, which is not on PATH`,
+        };
   }
   const found = findInWorkspace(name) || findOnPath(name);
   return found ? { command: found } : { error: `\`${name}\` is not in this workspace or on PATH` };
@@ -109,7 +109,7 @@ async function reportResolutionError(message) {
   log?.appendLine(`server not started: ${message}`);
   const choice = await vscode.window.showWarningMessage(
     `SpecTecX: ${message}. Build the server with \`make lsp\` and put the executable on PATH, ` +
-    `or point \`${CONFIG_SECTION}.languageServer.path\` at the server executable. Syntax highlighting still works.`,
+      `or point \`${CONFIG_SECTION}.languageServer.path\` at the server executable. Syntax highlighting still works.`,
     "Open Settings",
     "Show Log",
   );
@@ -287,7 +287,7 @@ const debugAdapters = {
     if ("error" in resolved) {
       throw new Error(
         `SpecTecX: ${resolved.error}. Build it with \`make exe\`, or point ` +
-        `\`${CONFIG_SECTION}.debugger.path\` at it.`,
+          `\`${CONFIG_SECTION}.debugger.path\` at it.`,
       );
     }
     const configuration = session.configuration;
