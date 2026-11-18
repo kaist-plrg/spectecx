@@ -1,4 +1,4 @@
-; Interactive debugger for IL runs: the engine, and its two frontends (a text
+; Interactive debugger for AL runs: the engine, and its two frontends (a text
 ; prompt in Repl, and the Debug Adapter Protocol under dap/)
 
 (include_subdirs qualified)

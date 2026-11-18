@@ -214,11 +214,10 @@ module Make (F : FRONTEND) : Instrumentation_api.Handler.S = struct
       (Breakpoints.find !State.breakpoints target)
 
   (* Rule breakpoints. A rule is tried before it is known to apply: its
-     conclusion's input patterns are checked by premises that elaboration puts
-     first and marks [Synthesized]. Every premise after them starts with a
-     written one, so a rule breakpoint is armed when the rule is entered and
-     fires at its first written premise, or when the rule succeeds if it has
-     none. *)
+     conclusion's input patterns are checked by guards that the algo pass puts
+     first and marks [Synthesized]. So a rule breakpoint is armed when the rule
+     is entered, and stops the run at the rule's first written premise, or when
+     the rule succeeds if it reaches none. *)
 
   let arm_rule id rule_id =
     match !State.calls with

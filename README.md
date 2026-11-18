@@ -143,7 +143,7 @@ It rejects an input as soon as more than one alternative succeeds for it, even w
 
 ### Debugging
 
-`debug` runs one input of a task on the IL interpreter under an interactive, gdb-style debugger:
+`debug` runs one input of a task on the default interpreter, which runs AL, under an interactive, gdb-style debugger:
 
 ```bash
 ./spectecx miniml debug eval -p spectec/testdata/interp/miniml/distr_pair.ml
@@ -155,6 +155,7 @@ The prompt opens before the run, so breakpoints can be set first; `run` starts i
 | Command | |
 |---|---|
 | `b NAME` | stop at a relation (`Rel`) or one of its rules (`Rel/rule`) |
+| `b FILE:LINE`, `b LINE` | stop at the written premise on that line, or the next one in its rule or clause (`LINE` alone: in the current call's file) |
 | `d N`, `info b` | delete breakpoint `N`, list breakpoints |
 | `r`, `c` | start the run, continue to the next breakpoint |
 | `s`, `n`, `f` | step into calls, step over them, run until the current call returns |
@@ -163,7 +164,7 @@ The prompt opens before the run, so breakpoints can be set first; `run` starts i
 | `show` | show the current rule or clause in the spec, marking the current premise |
 | `q`, `h` | abort the run, list commands |
 
-A rule breakpoint stops once the rule applies, after the checks on its conclusion's input patterns pass. Steps stop at the premises written in the spec and skip those that elaboration adds. Handler flags such as `--trace.level` still apply, but `debug` has no `--batch`, `--sl` or `--pl`.
+A rule breakpoint stops once the rule applies, after the checks on its conclusion's input patterns pass. Steps stop at the premises written in the spec and skip those that the algo pass adds. Handler flags such as `--trace.level` still apply, but `debug` has no `--batch`, `--sl` or `--pl`.
 
 ### Editor support
 

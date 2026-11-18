@@ -4,8 +4,9 @@
     A {e written} premise is one the spec's author wrote: an AL instruction
     whose origin is [Premise]. The algo pass synthesizes instructions with no
     source of their own: the guards that check a rule's or clause's input
-    patterns, and the side conditions that check a premise's results. Leaving
-    those out lets stepping and line breakpoints follow the spec as written. *)
+    patterns, the instructions that destructure those inputs, and the side
+    conditions that check a premise's results. Leaving those out lets stepping
+    and line breakpoints follow the spec as written. *)
 
 module Il = Lang.Il
 module Location = Common.Location
