@@ -10,7 +10,7 @@ let extract (spec_el : El.spec) : (string * string) list =
   spec_el |> List.filter_map key_of_def
   |> List.map (fun (key, def) -> (key, El.Print.string_of_def def))
 
-let source : Anchor.Source.entry =
+let source : El.spec Anchor.entry =
   {
     frame =
       {

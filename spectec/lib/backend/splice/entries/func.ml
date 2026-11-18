@@ -21,7 +21,7 @@ let source_extract (spec_el : El.spec) : (string * string) list =
          in
          (key, body))
 
-let source : Anchor.Source.entry =
+let source : El.spec Anchor.entry =
   {
     frame =
       {
@@ -45,7 +45,7 @@ let prose_extract (spec_pl : Pl.spec) : (string * string) list =
       | _ -> None)
     spec_pl
 
-let prose : Anchor.Prose.entry =
+let prose : Pl.spec Anchor.entry =
   {
     frame =
       {
