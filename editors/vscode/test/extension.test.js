@@ -19,7 +19,7 @@ function setup({
   const errors = [];
   const messages = [];
   const settings = { "languageServer.path": "/test/server" };
-  const disposable = { dispose() { } };
+  const disposable = { dispose() {} };
   const debugProviders = {};
   const debugFactories = {};
   const evaluatables = [];
@@ -33,7 +33,7 @@ function setup({
       clients.push(this);
     }
     createDefaultErrorHandler() {
-      return { error() { }, closed: () => ({ action: CloseAction.Restart }) };
+      return { error() {}, closed: () => ({ action: CloseAction.Restart }) };
     }
     onDidChangeState(action) {
       this.onState = action;
@@ -117,7 +117,7 @@ function setup({
     window: {
       createOutputChannel: () => ({
         appendLine: (message) => messages.push(message),
-        dispose() { },
+        dispose() {},
       }),
       showWarningMessage: async (message) => {
         warnings.push(message);
@@ -435,14 +435,10 @@ for (const [mode, debuggerPath, expected] of [
       workspaceFolder: { uri: { fsPath: "/test" } },
     });
     assert.equal(adapter.command, expected);
-    assert.deepEqual([...adapter.args], [
-      "miniml",
-      "debug",
-      "eval",
-      "--dap",
-      "-p",
-      "/test/program.ml",
-    ]);
+    assert.deepEqual(
+      [...adapter.args],
+      ["miniml", "debug", "eval", "--dap", "-p", "/test/program.ml"],
+    );
     assert.deepEqual({ ...adapter.options }, { cwd: "/test" });
     await context.extension.deactivate();
   });
@@ -464,8 +460,7 @@ test("reports a missing debugger executable", async () => {
   const context = setup({ files: ["/test/server"] });
   await context.activate();
   assert.throws(
-    () =>
-      context.debugFactories.spectec.createDebugAdapterDescriptor({ configuration: launch }),
+    () => context.debugFactories.spectec.createDebugAdapterDescriptor({ configuration: launch }),
     /`spectecx` is not in this workspace or on PATH\. Build it with `make exe`/,
   );
   await context.extension.deactivate();
