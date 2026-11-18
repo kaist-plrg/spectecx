@@ -6,11 +6,13 @@ module Location = Common.Location
 let spec_file = "../../../specs/miniml/spec.spectec"
 
 let sites =
-  let il =
-    Result.bind (Spectec.parse_spec_files [ spec_file ]) Spectec.elaborate
+  let al =
+    Result.bind
+      (Spectec.parse_spec_files [ spec_file ])
+      Spectec.elaborate_and_algorithmize
   in
-  match il with
-  | Ok il -> Sites.index il
+  match al with
+  | Ok (_, al) -> Sites.index al
   | Error _ -> failwith ("cannot elaborate " ^ spec_file)
 
 let print_result to_string = function

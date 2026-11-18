@@ -158,7 +158,7 @@ let is_authored_prem prem =
 (* Looks up each free variable without iteration dimensions, so a variable bound
    only as an iteration (e.g. [t*]) is missing and renders as [?]. *)
 let prem_bindings prem env =
-  Il.Free.free_prem prem |> Common.Domain.IdSet.elements
+  Al.Free.free_prem prem |> Common.Domain.IdSet.elements
   |> List.filter_map (fun id ->
          Envs_interp.VEnv.find_opt (id, []) env
          |> Option.map (fun value -> (id, value)))

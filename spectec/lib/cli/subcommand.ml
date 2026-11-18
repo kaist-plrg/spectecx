@@ -96,7 +96,7 @@ let make_debug (module Tgt : Spectec.Target.S) ~name
             ~from_config_file:cfg.Config_file.spec_source
             ~default_dir:Tgt.spec_dir
         in
-        let* _files, spec_il, _henv = load_spec source in
+        let* _files, spec_al, _henv = load_al_spec source in
         let debugger =
           if dap then Spectec_debugger.Dap.Server.config
           else Spectec_debugger.Repl.config
@@ -104,7 +104,7 @@ let make_debug (module Tgt : Spectec.Target.S) ~name
         let config = config @ [ debugger ] in
         Batch.run_and_print_single
           (module TC.Task)
-          ~config ~check_determinism ~mode:Interp_mode.Il ~spec_il input
+          ~config ~check_determinism ~mode:Interp_mode.Il ~spec_al input
     in
     (task_name, cmd)
   in

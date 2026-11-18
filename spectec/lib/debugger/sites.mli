@@ -2,7 +2,7 @@
     function clauses, found by file and line.
 
     A {e written} premise is one the spec's author wrote: an IL premise whose
-    note is not [Il.Synthesized]. Elaboration synthesizes premises with no
+    note is not [Lang.Al.Synthesized]. Elaboration synthesizes premises with no
     source of their own: the guards that check a rule's or clause's input
     patterns, and the side conditions that dataflow analysis adds after a
     premise. Leaving those out lets stepping and line breakpoints follow the
@@ -19,11 +19,11 @@ type site = { owner : string; span : Location.t; hit : Location.t }
 (** The rules and clauses of a spec, each with its written premises in order. *)
 type t
 
-val index : Il.spec -> t
+val index : Lang.Al.spec -> t
 val empty : t
 
 (** Whether [prem] is written (see above). *)
-val is_written : Il.prem -> bool
+val is_written : Lang.Al.prem -> bool
 
 (** The absolute path of [file] with [.], [..] and symbolic links resolved, so
     that two paths to one file are equal. A file that cannot be found is only

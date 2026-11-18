@@ -1,3 +1,4 @@
+module Al = Lang.Al
 module Il = Lang.Il
 module Location = Common.Location
 open Common.Annotated
@@ -9,38 +10,38 @@ type body = { owner : string; at : Location.t; sites : site list }
 type t = body list
 
 let error fmt = Format.kasprintf Result.error fmt
-let is_written (prem : Il.prem) = prem.note <> Some Il.Synthesized
+let is_written (prem : Al.prem) = prem.note <> Some Al.Synthesized
 
 (* An iterated premise is entered at the premise it iterates. *)
-let rec entered_at (prem : Il.prem) =
-  match prem.it with Il.IterPr (prem, _) -> entered_at prem | _ -> prem.at
+let rec entered_at (prem : Al.prem) =
+  match prem.it with Al.IterPr (prem, _) -> entered_at prem | _ -> prem.at
 
 let body owner at prems =
   let sites =
     List.filter is_written prems
-    |> List.map (fun (prem : Il.prem) ->
+    |> List.map (fun (prem : Al.prem) ->
            { owner; span = prem.at; hit = entered_at prem })
   in
   { owner; at; sites }
 
 let empty = []
 
-let index (spec : Il.spec) =
+let index (spec : Al.spec) =
   List.concat_map
-    (fun (def : Il.def) ->
+    (fun (def : Al.def) ->
       match def.it with
-      | Il.RelD { relid; rules; _ } ->
+      | Al.RelD { relid; rules; _ } ->
           List.map
-            (fun (rule : Il.rule) ->
+            (fun (rule : Al.rule) ->
               let owner =
                 if rule.it.ruleid.it = "" then relid.it
                 else relid.it ^ "/" ^ rule.it.ruleid.it
               in
               body owner rule.at rule.it.prems)
             rules
-      | Il.DecD { defid; clauses; _ } ->
+      | Al.DecD { defid; clauses; _ } ->
           List.map
-            (fun (clause : Il.clause) ->
+            (fun (clause : Al.clause) ->
               body ("$" ^ defid.it) clause.at clause.it.prems)
             clauses
       | _ -> [])

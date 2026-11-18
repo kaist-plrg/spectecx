@@ -1,3 +1,4 @@
+module Al = Lang.Al
 module Il = Lang.Il
 module Location = Common.Location
 module VEnv = Envs_interp.VEnv
@@ -65,7 +66,7 @@ type call = {
 type step = Step_in | Step_over of int | Step_out of int
 
 module State = struct
-  let spec : Il.spec ref = ref []
+  let spec : Al.spec ref = ref []
   let sites = ref Sites.empty
   let breakpoints = ref (Breakpoints.create ())
   let calls : call list ref = ref []
@@ -93,15 +94,15 @@ let spec_file file = Sites.file !State.sites file |> or_error
 let premise_at ~file ~line =
   Sites.premise_at !State.sites ~file:(spec_file file) ~line |> or_error
 
-let defines (spec : Il.spec) target =
+let defines (spec : Al.spec) target =
   List.exists
-    (fun (def : Il.def) ->
+    (fun (def : Al.def) ->
       match (def.it, target) with
-      | Il.RelD { relid; _ }, Rel id -> relid.it = id
-      | Il.RelD { relid; rules; _ }, Rule (id, rule_id) ->
+      | Al.RelD { relid; _ }, Rel id -> relid.it = id
+      | Al.RelD { relid; rules; _ }, Rule (id, rule_id) ->
           relid.it = id
           && List.exists
-               (fun (rule : Il.rule) -> rule.it.ruleid.it = rule_id)
+               (fun (rule : Al.rule) -> rule.it.ruleid.it = rule_id)
                rules
       | _ -> false)
     spec
@@ -133,10 +134,10 @@ let name_of_call call =
 (* The definition of the relation or function a call runs. *)
 let find_def call =
   List.find_opt
-    (fun (def : Il.def) ->
+    (fun (def : Al.def) ->
       match (call.kind, def.it) with
-      | `Rel, Il.RelD { relid; _ } -> relid.it = call.id
-      | `Func, (Il.DecD { defid; _ } | Il.BuiltinDecD { defid; _ }) ->
+      | `Rel, Al.RelD { relid; _ } -> relid.it = call.id
+      | `Func, (Al.DecD { defid; _ } | Al.BuiltinDecD { defid; _ }) ->
           defid.it = call.id
       | _ -> false)
     !State.spec
@@ -149,14 +150,14 @@ let location_of_call call =
   | Some def -> (
       let inner =
         match (def.it, call.rule_id, call.clause_idx) with
-        | Il.RelD { rules; _ }, Some rule_id, _ ->
+        | Al.RelD { rules; _ }, Some rule_id, _ ->
             List.find_opt
-              (fun (rule : Il.rule) -> rule.it.ruleid.it = rule_id)
+              (fun (rule : Al.rule) -> rule.it.ruleid.it = rule_id)
               rules
-            |> Option.map (fun (rule : Il.rule) -> rule.at)
-        | Il.DecD { clauses; _ }, _, Some idx ->
+            |> Option.map (fun (rule : Al.rule) -> rule.at)
+        | Al.DecD { clauses; _ }, _, Some idx ->
             List.nth_opt clauses idx
-            |> Option.map (fun (clause : Il.clause) -> clause.at)
+            |> Option.map (fun (clause : Al.clause) -> clause.at)
         | _ -> None
       in
       match inner with Some at -> at | None -> def.at)
@@ -178,6 +179,8 @@ let frames () = List.map frame_of_call !State.calls
 let depth () = List.length !State.calls
 
 module Make (F : FRONTEND) : Instrumentation_api.Handler.S = struct
+  let handle_value = None
+
   (* Every stop ends the step in progress; the frontend picks the next one. *)
   let stop reason =
     State.step :=
