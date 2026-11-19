@@ -1,0 +1,6 @@
+check-elab.rs
+verdict: ELAB
+check-not-elab.rs
+verdict: NOT_ELAB
+check-parse-reject.rs
+parse: reject

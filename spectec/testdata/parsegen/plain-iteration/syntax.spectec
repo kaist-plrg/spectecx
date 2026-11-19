@@ -1,0 +1,4 @@
+;; A syntax defined as one iteration is an alias of that list type, so its
+;; value is the list itself, not a case wrapping it.
+syntax bar = FN
+syntax program = bar*
