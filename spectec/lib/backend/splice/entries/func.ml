@@ -14,7 +14,7 @@ let source_extract (spec_el : El.spec) : (string * string) list =
          match def.it with
          | DefD (id, _, _, _, _) -> Some (id.it, def)
          | _ -> None)
-  |> Group.in_order
+  |> Common.Group.in_order
   |> List.map (fun (key, defs) ->
          let body =
            defs |> List.map El.Print.string_of_def |> String.concat "\n\n"

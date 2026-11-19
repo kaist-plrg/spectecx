@@ -15,7 +15,7 @@ let server =
 
     method private uri_for path =
       Option.value
-        (Paths.find_opt (Sources.canonical path) uris)
+        (Paths.find_opt (Sources.canonical_path path) uris)
         ~default:(DocumentUri.of_path path)
 
     val mutable published = Publication.empty
@@ -37,7 +37,7 @@ let server =
 
     method private update ~notify_back uri text =
       let path = DocumentUri.to_path uri in
-      uris <- Paths.add (Sources.canonical path) uri uris;
+      uris <- Paths.add (Sources.canonical_path path) uri uris;
       workspace <- Workspace.set workspace ~path text;
       self#recheck ~notify_back path
 

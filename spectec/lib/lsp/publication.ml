@@ -1,34 +1,37 @@
-module Scopes = Map.Make (struct
-  type t = Sources.scope
+module Spec_directories = Map.Make (struct
+  type t = Sources.spec_directory
 
   let compare = compare
 end)
 
 type reports = (string * Linol_eio.Diagnostic.t list) list
 type spec_reports = { files : string list; diagnostics : reports }
-type t = spec_reports Scopes.t
+type t = spec_reports Spec_directories.t
 
-let empty = Scopes.empty
+let empty = Spec_directories.empty
 
-let files_for scope published =
-  match Scopes.find_opt scope published with
+let files_for spec_directory published =
+  match Spec_directories.find_opt spec_directory published with
   | Some spec -> spec.files
   | None -> []
 
 let update ~encoding ?closed published analyses =
   let removed =
-    Option.fold ~none:[] ~some:(fun scope -> files_for scope published) closed
+    Option.fold ~none:[]
+      ~some:(fun spec_directory -> files_for spec_directory published)
+      closed
   in
   let published =
     Option.fold ~none:published
-      ~some:(fun scope -> Scopes.remove scope published)
+      ~some:(fun spec_directory ->
+        Spec_directories.remove spec_directory published)
       closed
   in
   let published, files =
     List.fold_left
       (fun (published, files) (analysis : Workspace.analysis) ->
-        let scope = analysis.sources.scope in
-        let old = files_for scope published in
+        let spec_directory = analysis.sources.spec_directory in
+        let old = files_for spec_directory published in
         let diagnostics =
           Check.diagnostics ~encoding ~sources:analysis.sources
             analysis.diagnostics
@@ -37,7 +40,9 @@ let update ~encoding ?closed published analyses =
           List.sort_uniq Spectec.compare_spec_files
             (analysis.sources.files @ List.map fst diagnostics)
         in
-        ( Scopes.add scope { files = current; diagnostics } published,
+        ( Spec_directories.add spec_directory
+            { files = current; diagnostics }
+            published,
           old @ current @ files ))
       (published, removed) analyses
   in
@@ -45,7 +50,7 @@ let update ~encoding ?closed published analyses =
     List.sort_uniq Spectec.compare_spec_files files
     |> List.map (fun file ->
            let diagnostics =
-             Scopes.fold
+             Spec_directories.fold
                (fun _ spec all ->
                  Option.value (List.assoc_opt file spec.diagnostics) ~default:[]
                  @ all)
