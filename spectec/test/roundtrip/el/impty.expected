@@ -14,7 +14,7 @@ def $lookup<K, V>((K_h -> V_h) :: (K_t -> V_t)*, K_query) = V_h
 
 def $lookup<K, V>((K_h -> V_h) :: (K_t -> V_t)*, K_query)
   = $lookup<K, V>((K_t -> V_t)*, K_query)
-  -- otherwise
+  -- if K_h =/= K_query
 
 syntax type =
   | INT

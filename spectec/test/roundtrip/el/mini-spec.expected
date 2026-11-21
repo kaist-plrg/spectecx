@@ -112,11 +112,11 @@ dec $lookup_<K, V>(map<K, V>, K) : V?
 def $lookup_<K, V>(eps, K) = eps
 
 def $lookup_<K, V>((K_h -> V_h) :: (K_t -> V_t)*, K) = V_h
-  -- if K_h = K_query
+  -- if K_h = K
 
 def $lookup_<K, V>((K_h -> V_h) :: (K_t -> V_t)*, K)
   = $lookup_<K, V>((K_t -> V_t)*, K)
-  -- otherwise
+  -- if K_h =/= K
 
 def $lookup_context(context, id) = $lookup_<id, type>(context, id)
 
@@ -273,11 +273,11 @@ dec $lookup_<K, V>(map<K, V>, K) : V?
 def $lookup_<K, V>(eps, K) = eps
 
 def $lookup_<K, V>((K_h -> V_h) :: (K_t -> V_t)*, K) = V_h
-  -- if K_h = K_query
+  -- if K_h = K
 
 def $lookup_<K, V>((K_h -> V_h) :: (K_t -> V_t)*, K)
   = $lookup_<K, V>((K_t -> V_t)*, K)
-  -- otherwise
+  -- if K_h =/= K
 
 def $lookup_context(context, id) = $lookup_<id, type>(context, id)
 
@@ -486,11 +486,11 @@ dec $lookup_<K, V>(map<K, V>, K) : V?
 def $lookup_<K, V>(eps, K) = eps
 
 def $lookup_<K, V>((K_h -> V_h) :: (K_t -> V_t)*, K) = V_h
-  -- if K_h = K_query
+  -- if K_h = K
 
 def $lookup_<K, V>((K_h -> V_h) :: (K_t -> V_t)*, K)
   = $lookup_<K, V>((K_t -> V_t)*, K)
-  -- otherwise
+  -- if K_h =/= K
 
 def $lookup_context(contextLayer, id) = $lookup_<id, type>(contextLayer, id)
 

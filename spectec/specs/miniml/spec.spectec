@@ -43,12 +43,12 @@ dec $subst_fun(id, expr, id, expr) : expr
 def $subst_var(y, x, v) = v
   -- if x = y
 def $subst_var(y, x, v) = Evar y
- -- otherwise
+ -- if x =/= y
 
 def $subst_fun(y, e1, x, v) = Efun y e1
   -- if x = y
 def $subst_fun(y, e1, x, v) = Efun y $subst(e1, x, v)
-  -- otherwise
+  -- if x =/= y
 
 
 def $subst(Ecst n, x, v) = Ecst n
@@ -59,7 +59,7 @@ def $subst(Efun y e1, x, v) = $subst_fun(y, e1,x, v)
 def $subst(Elet y e1 e2, x, v) = Elet y $subst(e1, x, v) e2
   -- if x = y
 def $subst(Elet y e1 e2, x, v) = Elet y $subst(e1, x, v) $subst(e2, x, v)
-  -- otherwise
+  -- if x =/= y
 def $subst(Epair e1 e2, x, v) = Epair $subst(e1, x, v) $subst(e2, x, v)
 
 ;;--------------------
