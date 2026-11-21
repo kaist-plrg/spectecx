@@ -26,3 +26,355 @@ rule Describe/LargeOdd:
   -- Positive: |- n
   -- if $(n \ 2 =/= 0)
   -- if $(n >= 10)
+
+var m : nat
+var k : nat
+var j : nat
+
+syntax letter = A | B | C | D
+syntax onlya = A
+syntax onlyc = C
+syntax onlyd = D
+
+var x : letter
+var y : letter
+
+;; When the first rule has a further premise such as m = 0, that premise fails
+;; on the test input so only a later rule can return. In Later_if, the input
+;; satisfies the first rule, so Later_if must return the first rule's result.
+
+relation Zero: |- nat
+  hint(input %0)
+
+rule Zero:
+  |- n
+  -- if n = 0
+
+;; Different_assertions on 0 fails if structuring merges assertions of different
+;; relations.
+relation Different_assertions: nat ==> text
+  hint(input %0)
+
+rule Different_assertions/first:
+  n ==> "first"
+  -- Positive: |- n
+
+rule Different_assertions/second:
+  n ==> "second"
+  -- Zero: |- n
+
+;; Earlier_negated_assertion on 0 fails if structuring merges the second rule's
+;; assertion of Zero into the first rule's negated assertion.
+relation Earlier_negated_assertion: nat ==> text
+  hint(input %0)
+
+rule Earlier_negated_assertion/first:
+  n ==> "first"
+  -- Zero:/ |- n
+
+rule Earlier_negated_assertion/second:
+  n ==> "second"
+  -- Zero: |- n
+
+;; Later_negated_assertion on 1 fails if structuring merges the second rule's
+;; negated assertion of Zero into the first rule's positive assertion.
+relation Later_negated_assertion: nat ==> text
+  hint(input %0)
+
+rule Later_negated_assertion/first:
+  n ==> "first"
+  -- Zero: |- n
+
+rule Later_negated_assertion/second:
+  n ==> "second"
+  -- Zero:/ |- n
+
+;; Each relation named on_two_values applies its conditions to different values.
+;; Structuring must not merge them as conditions on one value.
+;; In Case_analyses_on_two_values and each Case_and relation, the input
+;; satisfies no earlier rule. Merging the matching rule into the case analysis
+;; on the other value leaves the input without a result.
+relation Case_analyses_on_two_values: nat; nat ==> text
+  hint(input %0 %1)
+
+rule Case_analyses_on_two_values/first:
+  n; m ==> "first"
+  -- if n = 1
+
+rule Case_analyses_on_two_values/second:
+  n; m ==> "second"
+  -- if n = 2
+
+rule Case_analyses_on_two_values/third:
+  n; m ==> "third"
+  -- if m = 1
+
+rule Case_analyses_on_two_values/fourth:
+  n; m ==> "fourth"
+  -- if m = 2
+
+relation Case_and_membership_on_two_values: nat; nat ==> text
+  hint(input %0 %1)
+
+rule Case_and_membership_on_two_values/first:
+  n; m ==> "first"
+  -- if n <- [1]
+
+rule Case_and_membership_on_two_values/second:
+  n; m ==> "second"
+  -- if n <- [2]
+
+rule Case_and_membership_on_two_values/third:
+  n; m ==> "third"
+  -- if m <- [1]
+
+relation Case_and_subtype_on_two_values: letter; letter ==> text
+  hint(input %0 %1)
+
+rule Case_and_subtype_on_two_values/first:
+  x; y ==> "first"
+  -- if x <: onlya
+
+rule Case_and_subtype_on_two_values/second:
+  x; y ==> "second"
+  -- if x <: onlyc
+
+rule Case_and_subtype_on_two_values/third:
+  x; y ==> "third"
+  -- if y <: onlyd
+
+relation Case_and_pattern_on_two_values: letter; letter ==> text
+  hint(input %0 %1)
+
+rule Case_and_pattern_on_two_values/first:
+  A; y ==> "first"
+
+rule Case_and_pattern_on_two_values/second:
+  B; y ==> "second"
+
+rule Case_and_pattern_on_two_values/third:
+  x; D ==> "third"
+
+relation Case_and_negation_on_two_values: nat; nat ==> text
+  hint(input %0 %1)
+
+rule Case_and_negation_on_two_values/first:
+  n; m ==> "first"
+  -- if ~$(n > 5)
+
+rule Case_and_negation_on_two_values/second:
+  n; m ==> "second"
+  -- if $(n > 5)
+  -- if m = 0
+
+rule Case_and_negation_on_two_values/third:
+  n; m ==> "third"
+  -- if ~$(m > 5)
+
+relation Case_and_inequality_on_two_values: nat; nat ==> text
+  hint(input %0 %1)
+
+rule Case_and_inequality_on_two_values/first:
+  n; m ==> "first"
+  -- if n = 1
+  -- if m = 0
+
+rule Case_and_inequality_on_two_values/second:
+  n; m ==> "second"
+  -- if n =/= 1
+
+rule Case_and_inequality_on_two_values/third:
+  n; m ==> "third"
+  -- if m =/= 1
+
+relation Case_and_swapped_equality_on_two_values: nat; nat ==> text
+  hint(input %0 %1)
+
+rule Case_and_swapped_equality_on_two_values/first:
+  n; m ==> "first"
+  -- if n = 1
+
+rule Case_and_swapped_equality_on_two_values/second:
+  n; m ==> "second"
+  -- if n = 2
+
+rule Case_and_swapped_equality_on_two_values/third:
+  n; m ==> "third"
+  -- if 1 = m
+
+relation Case_and_swapped_inequality_on_two_values: nat; nat ==> text
+  hint(input %0 %1)
+
+rule Case_and_swapped_inequality_on_two_values/first:
+  n; m ==> "first"
+  -- if n = 1
+  -- if m = 0
+
+rule Case_and_swapped_inequality_on_two_values/second:
+  n; m ==> "second"
+  -- if n =/= 1
+
+rule Case_and_swapped_inequality_on_two_values/third:
+  n; m ==> "third"
+  -- if 1 =/= m
+
+relation Assertions_on_two_values: nat; nat ==> text
+  hint(input %0 %1)
+
+rule Assertions_on_two_values/first:
+  n; m ==> "first"
+  -- Positive: |- n
+  -- if m = 5
+
+rule Assertions_on_two_values/second:
+  n; m ==> "second"
+  -- Positive: |- m
+
+;; The third rule puts the literal on the left, so structuring builds a case
+;; analysis from the first two rules before merging the third rule into it.
+relation Later_if: nat; nat ==> text
+  hint(input %0 %1)
+
+rule Later_if/first:
+  n; m ==> "first"
+  -- if n = 2
+  -- if m = 0
+
+rule Later_if/second:
+  n; m ==> "second"
+  -- if n = 3
+
+rule Later_if/third:
+  n; m ==> "third"
+  -- if 2 = n
+
+;; The first two rules put the literal on the left. Structuring groups their
+;; conditions on n into one if statement and merges it into the case analysis on
+;; n from the last three rules. This places two case analyses on m side by side
+;; in one case.
+;; Input (2, 3) reaches the fourth rule only if the merged case analysis keeps
+;; every case of the later one.
+;; Input (2, 1) satisfies both the second and third rules. Two_case_analyses on
+;; that input returns the second result only if the merged case analysis keeps
+;; the earlier block first.
+relation Two_case_analyses: nat; nat ==> text
+  hint(input %0 %1)
+
+rule Two_case_analyses/first:
+  n; m ==> "first"
+  -- if 2 = n
+  -- if m = 0
+
+rule Two_case_analyses/second:
+  n; m ==> "second"
+  -- if 2 = n
+  -- if m = 1
+
+rule Two_case_analyses/third:
+  n; m ==> "third"
+  -- if n = 2
+  -- if m = 1
+
+rule Two_case_analyses/fourth:
+  n; m ==> "fourth"
+  -- if n = 2
+  -- if m = 3
+
+rule Two_case_analyses/fifth:
+  n; m ==> "fifth"
+  -- if n = 3
+
+;; Structuring builds a case analysis on n from the first two rules. The third
+;; rule compares n with a variable, so structuring cannot compare its condition
+;; with the guards in that case analysis. The third rule must stay after the
+;; case analysis.
+relation Fuzzy_if: nat; nat ==> text
+  hint(input %0 %1)
+
+rule Fuzzy_if/first:
+  n; m ==> "first"
+  -- if n = 1
+  -- if m = 0
+
+rule Fuzzy_if/second:
+  n; m ==> "second"
+  -- if n = 2
+
+rule Fuzzy_if/third:
+  n; m ==> "third"
+  -- if n = m
+
+;; Structuring must rename j to k when it merges the second let into the first.
+;; Shared_let on 3 fails if structuring merges lets with different right sides.
+;; Structuring can confuse repeated bindings of a name (#141), so the merged
+;; rules bind k and j only once.
+relation Shared_let: nat ==> text
+  hint(input %0)
+
+rule Shared_let/first:
+  n ==> "first"
+  -- if k = $(n + 1)
+  -- if k = 2
+
+rule Shared_let/second:
+  n ==> "second"
+  -- if j = $(n + 1)
+  -- if j = 3
+
+rule Shared_let/third:
+  n ==> "third"
+  -- if k = $(n + 2)
+  -- if k = 5
+
+;; Let_past_let on 2 returns the third result if structuring merges the third
+;; let into the first past the second, which binds j to a different expression.
+relation Let_past_let: nat ==> text
+  hint(input %0)
+
+rule Let_past_let/first:
+  n ==> "first"
+  -- if k = $(n + 1)
+  -- if k = 10
+
+rule Let_past_let/second:
+  n ==> "second"
+  -- if j = $(n + 2)
+  -- if j = 4
+
+rule Let_past_let/third:
+  n ==> "third"
+  -- if k = $(n + 1)
+  -- if k = 3
+
+relation Twice: nat ==> nat
+  hint(input %0)
+
+rule Twice:
+  n ==> $(n + n)
+
+relation Thrice: nat ==> nat
+  hint(input %0)
+
+rule Thrice:
+  n ==> $(n + n + n)
+
+;; Shared_call on 3 fails if structuring merges calls of different relations.
+;; The calls to Twice have equal inputs and outputs to avoid the fault in
+;; merging calls with different inputs reported in #123.
+relation Shared_call: nat ==> text
+  hint(input %0)
+
+rule Shared_call/first:
+  n ==> "first"
+  -- Twice: n ==> k
+  -- if k = 2
+
+rule Shared_call/second:
+  n ==> "second"
+  -- Twice: n ==> k
+  -- if k = 4
+
+rule Shared_call/third:
+  n ==> "third"
+  -- Thrice: n ==> k
+  -- if k = 9

@@ -123,3 +123,10 @@ let check spec ?(target = (module Pure_target : Interp.Target.S))
           let args = args () in
           eval ~check_determinism target_state spec mode relation args
           |> check_result ~name ~mode ~check_determinism expectation))
+
+let check_text_results spec ~relation cases =
+  List.iter cases ~f:(fun (input, args, text) ->
+      check spec
+        ~name:(relation ^ " on " ^ input)
+        ~relation ~args
+        (returns (fun () -> [ Value.text text ])))

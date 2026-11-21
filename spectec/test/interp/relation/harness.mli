@@ -43,3 +43,15 @@ val check :
   args:(unit -> Lang.Il.Value.t list) ->
   expectation ->
   unit
+
+(** [check_text_results spec ~relation cases] checks the text returned by
+    [relation] in all three modes. Each case supplies an input description, an
+    argument callback, and the expected text. Check names combine [relation]
+    with the input description. [check_text_results] leaves [check_determinism]
+    at its default of [false]. When an input satisfies two rules, [relation]
+    must return the earlier rule's text. *)
+val check_text_results :
+  compiled_spec ->
+  relation:string ->
+  (string * (unit -> Lang.Il.Value.t list) * string) list ->
+  unit
