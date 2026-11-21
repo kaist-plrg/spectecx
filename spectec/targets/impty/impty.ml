@@ -138,6 +138,8 @@ module Cli : Cli.Target_cli.S = struct
           (module Typecheck_cli);
         Subcommand.make_task target ~name:"eval" ~summary:"Run impty evaluator"
           (module Eval_cli);
+        Subcommand.make_debug target ~name:"debug"
+          [ ("typecheck", (module Typecheck_cli)); ("eval", (module Eval_cli)) ];
         Subcommand.make_parse target ~name:"parse"
           ~summary:"parse an impty program to an IL value"
           (module Typecheck_cli);

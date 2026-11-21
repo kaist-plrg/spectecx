@@ -64,6 +64,57 @@ let make_task (module Tgt : Spectec.Target.S) ~name ~summary
   in
   (name, cmd)
 
+let make_debug (module Tgt : Spectec.Target.S) ~name
+    (tasks : (string * (module Task_cli.S)) list) =
+  let debug_task (task_name, (module TC : Task_cli.S)) =
+    let cmd =
+      Core.Command.basic ~summary:("Run " ^ task_name ^ " under the debugger")
+      @@
+      let open Core.Command.Let_syntax in
+      let open Core.Command.Param in
+      let%map cli_source = Cli_args.Spec.source_flag
+      and check_determinism = Cli_args.Interpreter.det_flag
+      and input = TC.flags
+      and config = Cli_args.Interpreter.config_flags
+      and color = Cli_args.Output.color_flag
+      and dap =
+        flag "--dap" no_arg
+          ~doc:
+            " serve the Debug Adapter Protocol on stdin and stdout instead of \
+             a prompt; the run's output goes to stderr"
+      in
+      fun () ->
+        guard_unit ~color
+          ~suppress_trace:
+            (Instrumentation.Config.has_handler config ~name:"tree")
+        @@ fun () ->
+        let open Spectec in
+        let* () = validate_config config ~mode:`IL in
+        let* cfg = Config_file.load ~target:Tgt.name () in
+        let source =
+          Spec_source.resolve ~from_cli:cli_source
+            ~from_config_file:cfg.Config_file.spec_source
+            ~default_dir:Tgt.spec_dir
+        in
+        let* _files, spec_al, _henv = load_al_spec source in
+        let debugger =
+          if dap then Spectec_debugger.Dap.Server.config
+          else Spectec_debugger.Repl.config
+        in
+        let config = config @ [ debugger ] in
+        Batch.run_and_print_single
+          (module TC.Task)
+          ~config ~check_determinism ~mode:Interp_mode.Il ~spec_al input
+    in
+    (task_name, cmd)
+  in
+  let cmd =
+    Core.Command.group
+      ~summary:("Run " ^ Tgt.name ^ " tasks under the interactive debugger")
+      (List.map debug_task tasks)
+  in
+  (name, cmd)
+
 let make_parse (module Tgt : Spectec.Target.S) ~name ~summary
     (module TC : Task_cli.S) =
   let cmd =

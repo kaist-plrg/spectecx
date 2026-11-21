@@ -71,7 +71,7 @@ module M : Instrumentation_api.Handler.S = struct
           (if success then "ok" else "fail");
         if success then
           print_values (List.filter_map Fun.id (Il.Mode.outputs conclusion))
-    | Rule_enter { id; rule_id; at = _ } ->
+    | Rule_enter { id; rule_id; at = _; env = _ } ->
         printf_at_least Rules "%s→ %s/%s\n%!" (State.indent ()) id rule_id
     | Rule_exit { id; rule_id; at = _; success } ->
         printf_at_least Rules "%s← %s/%s [%s]\n%!" (State.indent ()) id rule_id
@@ -84,7 +84,7 @@ module M : Instrumentation_api.Handler.S = struct
         decr State.depth;
         Format.fprintf !fmt "%s← $%s\n%!" (State.indent ()) id;
         print_values (Option.to_list output)
-    | Clause_enter { id; clause_idx; at = _ } ->
+    | Clause_enter { id; clause_idx; at = _; env = _ } ->
         printf_at_least Full "%s→ $%s/%d\n%!" (State.indent ()) id clause_idx
     | Clause_exit { id; clause_idx = _; at = _; success = _ } ->
         printf_at_least Full "%s← $%s\n%!" (State.indent ()) id
@@ -92,7 +92,7 @@ module M : Instrumentation_api.Handler.S = struct
         printf_at_least Full "%s  → [iteration]\n%!" (State.indent ())
     | Iter_prem_exit _ ->
         printf_at_least Full "%s  ← [iteration]\n%!" (State.indent ())
-    | Prem_enter { prem; at = _ } ->
+    | Prem_enter { prem; at = _; env = _ } ->
         printf_at_least Full "%s  | -- %s\n%!" (State.indent ())
           (Al.Print.string_of_prem prem |> normalize_whitespace)
     | Prem_exit _ -> ()

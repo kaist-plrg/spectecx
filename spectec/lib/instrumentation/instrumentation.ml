@@ -32,7 +32,7 @@ module Config = struct
   let close_outputs = Run_config.close_outputs
 end
 
-(* *** Add one entry here when adding a new handler *** *)
+(* *** Add one entry here when adding a new flag-driven handler *** *)
 let builtin_handler_specs : Handler.Spec.t list =
   [
     Trace.spec;

@@ -128,11 +128,11 @@ module M : Instrumentation_api.Handler.S = struct
   let handle : Instrumentation_api.Event.t -> unit = function
     | Test_start { test_case_id } -> State.set_test_case_id test_case_id
     | Test_end _ -> State.clear_test_case_id ()
-    | Prem_enter { prem; at = _ } ->
+    | Prem_enter { prem; at = _; env = _ } ->
         let key = prem_key prem in
         State.incr_count State.prems_attempted key;
         State.record_premise_coverage key
-    | Prem_exit { prem; at = _; success; bindings = _ } ->
+    | Prem_exit { prem; at = _; success; env = _ } ->
         let key = prem_key prem in
         if success then (
           State.incr_count State.prems_succeeded key;

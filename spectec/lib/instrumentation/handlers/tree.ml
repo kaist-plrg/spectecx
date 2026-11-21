@@ -155,6 +155,14 @@ end
 let is_authored_prem prem =
   match prem.note with Some Al.Synthesized -> false | _ -> true
 
+(* Looks up each free variable without iteration dimensions, so a variable bound
+   only as an iteration (e.g. [t*]) is missing and renders as [?]. *)
+let prem_bindings prem env =
+  Al.Free.free_prem prem |> Common.Domain.IdSet.elements
+  |> List.filter_map (fun id ->
+         Envs_interp.VEnv.find_opt (id, []) env
+         |> Option.map (fun value -> (id, value)))
+
 (* === Rendering ===================================================== *)
 
 let dim s = Ansi.style !ansi [ Dim ] s
@@ -327,13 +335,13 @@ module M : Instrumentation_api.Handler.S = struct
        relations, so a failed clause leaves no sub-derivation to roll back. *)
     | Clause_enter _ | Clause_exit _ -> ()
     | Iter_prem_enter _ | Iter_prem_exit _ -> ()
-    | Prem_enter { prem; at = _ } ->
+    | Prem_enter { prem; at = _; env = _ } ->
         if !config.level = Premise && is_authored_prem prem then
           State.enter_premise prem
-    | Prem_exit { prem; at = _; success; bindings } ->
+    | Prem_exit { prem; at = _; success; env } ->
         if not success then State.record_unmet_prem prem;
         if !config.level = Premise then (
-          State.record_bindings ~bindings;
+          State.record_bindings ~bindings:(prem_bindings prem env);
           if is_authored_prem prem then State.record_premise ())
     | Instr _ -> ()
 end

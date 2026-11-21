@@ -13,6 +13,7 @@ The command group presents the language name and surface operations consistently
   === subcommands ===
   
     checkpoint                 . Checkpoint utilities
+    debug                      . Run miniml tasks under the interactive debugger
     eval                       . Run Mini-ML evaluator
     parse                      . Parse a Mini-ML program to an IL value
     help                       . explain a given subcommand (perhaps recursively)

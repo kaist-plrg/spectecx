@@ -25,7 +25,8 @@
     ppx_let
     pprint
     linol-eio
-    eio_main))
+    eio_main
+    yojson))
 
 (package
   (name spectec-target-itpl)

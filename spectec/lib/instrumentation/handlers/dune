@@ -8,5 +8,6 @@
   instrumentation_config
   instrumentation_spec
   instrumentation_static
+  spectec.envs.interp
   diag
   unix))

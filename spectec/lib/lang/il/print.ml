@@ -98,7 +98,7 @@ and string_of_typcases sep typcases =
 
 (* Values *)
 
-and string_of_value ?(short = false) ?(level = 0) value =
+and string_of_value ?(short = false) ?(parens = false) ?(level = 0) value =
   match value.it with
   | BoolV b -> string_of_bool b
   | NumV n -> string_of_num n
@@ -113,18 +113,18 @@ and string_of_value ?(short = false) ?(level = 0) value =
               (fun (atom, value) ->
                 let indent = indent (level + 1) in
                 Format.asprintf "%s%s %s" indent (string_of_atom atom)
-                  (string_of_value ~short ~level:(level + 1) value))
+                  (string_of_value ~short ~parens ~level:(level + 1) value))
               valuefields))
         (indent level)
   | CaseV vc when short -> string_of_mixop (Mixfix.to_mixop vc)
-  | CaseV vc -> string_of_notval ~level vc
+  | CaseV vc -> string_of_notval ~parens ~level vc
   | TupleV values ->
       Format.asprintf "(%s)"
         (String.concat ", "
-           (List.map (string_of_value ~short ~level:(level + 1)) values))
+           (List.map (string_of_value ~short ~parens ~level:(level + 1)) values))
   | OptV (Some value) ->
       Format.asprintf "Some(%s)"
-        (string_of_value ~short ~level:(level + 1) value)
+        (string_of_value ~short ~parens ~level:(level + 1) value)
   | OptV None -> "None"
   | ListV [] -> "[]"
   | ListV values when short -> Format.asprintf "[ .../%d ]" (List.length values)
@@ -134,16 +134,36 @@ and string_of_value ?(short = false) ?(level = 0) value =
            (List.map
               (fun value ->
                 let indent = indent (level + 1) in
-                indent ^ string_of_value ~short ~level:(level + 1) value)
+                indent ^ string_of_value ~short ~parens ~level:(level + 1) value)
               values))
         (indent level)
   | FuncV id -> string_of_defid id
   | OpaqueV value -> "<opaque " ^ Opaque.name value ^ ">"
 
-and string_of_notval ?(level = 0) notval =
-  Mixfix.render ~pad_brackets:true ~string_of_atom
-    ~string_of_arg:(string_of_value ~level:(level + 1))
-    notval
+and string_of_notval ?(parens = false) ?(level = 0) notval =
+  let string_of_arg value =
+    let s = string_of_value ~parens ~level:(level + 1) value in
+    if parens && needs_parens value then "(" ^ s ^ ")" else s
+  in
+  Mixfix.render ~pad_brackets:true ~string_of_atom ~string_of_arg notval
+
+and needs_parens value =
+  match value.it with
+  | CaseV notval -> (
+      let visible =
+        List.filter
+          (function
+            | Mixfix.Atom atom -> string_of_atom atom <> ""
+            | Mixfix.Arg _ -> true)
+          notval
+      in
+      Mixfix.arity notval > 0
+      &&
+      match (visible, List.rev visible) with
+      | first :: _ :: _, last :: _ ->
+          not (Mixfix.opens_bracket first && Mixfix.closes_bracket last)
+      | _ -> false)
+  | _ -> false
 
 (* Operators *)
 
