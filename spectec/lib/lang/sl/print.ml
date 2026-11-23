@@ -227,6 +227,10 @@ and string_of_guard guard =
 
 (* Instructions *)
 
+and string_of_instr ?(short = false) ?(level = 0) ?(index = 0) instr =
+  if short then string_of_instr_short instr
+  else string_of_instr_full ~level ~index instr
+
 and string_of_instr_short instr =
   match instr.it with
   | RelI { call = { relid; notexp }; iterinstrs; block = _ } ->
@@ -252,7 +256,7 @@ and string_of_instr_short instr =
   | ReturnI exp -> Format.asprintf "Return %s" (string_of_exp exp)
   | DebugI (exp, _) -> Format.asprintf "Debug: %s" (string_of_exp exp)
 
-and string_of_instr ?(level = 0) ?(index = 0) instr =
+and string_of_instr_full ~level ~index instr =
   let indent = String.make (level * 2) ' ' in
   let order = Format.asprintf "%s%d. " indent index in
   let header = string_of_instr_short instr in

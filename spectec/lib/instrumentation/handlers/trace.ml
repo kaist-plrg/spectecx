@@ -3,10 +3,12 @@
     - [Summary] shows the start and end of each call.
     - [Rules] adds rule attempts.
     - [Inputs] adds call arguments and results.
-    - [Full] adds AL instructions, clauses and iterations. *)
+    - [Full] adds instructions, clauses and repetitions. *)
 
 module Il = Lang.Il
 module Al = Lang.Al
+module Sl = Lang.Sl
+module Pl = Lang.Pl
 open Util
 
 type level = Summary | Rules | Inputs | Full
@@ -31,11 +33,27 @@ let printf_at_least target =
 
 module State = struct
   let depth = ref 0
-  let reset () = depth := 0
+
+  (* Depth of each open repetition, innermost first. *)
+  let repetition_depths : int list ref = ref []
+
+  let reset () =
+    depth := 0;
+    repetition_depths := []
 
   let indent () =
     Format.sprintf "[%2d] %s" !depth (String.make (!depth * 2) ' ')
+
+  let directly_in_repetition () =
+    match !repetition_depths with
+    | innermost :: _ -> innermost = !depth
+    | [] -> false
 end
+
+let string_of_instr : Instrumentation_api.Event.instr -> string = function
+  | AlInstr instr -> "-- " ^ Al.Print.string_of_instr instr
+  | SlInstr instr -> Sl.Print.string_of_instr ~short:true instr
+  | PlInstr instr -> Pl.Print.string_of_instr ~short:true instr
 
 module M : Instrumentation_api.Handler.S = struct
   let static_dependencies = []
@@ -82,14 +100,29 @@ module M : Instrumentation_api.Handler.S = struct
         printf_at_least Full "%s→ $%s/%d\n%!" (State.indent ()) id clause_idx
     | Clause_exit { id; clause_idx = _; at = _; success = _ } ->
         printf_at_least Full "%s← $%s\n%!" (State.indent ()) id
-    | Repetition_enter _ ->
-        printf_at_least Full "%s  → [iteration]\n%!" (State.indent ())
-    | Repetition_exit _ ->
-        printf_at_least Full "%s  ← [iteration]\n%!" (State.indent ())
-    | Instr_enter { instr = AlInstr instr; at = _ } ->
-        printf_at_least Full "%s  | -- %s\n%!" (State.indent ())
-          (Al.Print.string_of_instr instr |> normalize_whitespace)
-    | Instr_enter { instr = SlInstr _ | PlInstr _; at = _ } | Instr_exit _ -> ()
+    | Repetition_enter { index; count; at = _ } ->
+        if at_least Full !config.level then (
+          Format.fprintf !fmt "%s→ repetition %d of %d\n%!" (State.indent ())
+            (index + 1) count;
+          incr State.depth;
+          State.repetition_depths := !State.depth :: !State.repetition_depths)
+    | Repetition_exit { index; count; at = _; success } ->
+        if at_least Full !config.level then (
+          (State.repetition_depths :=
+             match !State.repetition_depths with
+             | _ :: outer -> outer
+             | [] -> []);
+          decr State.depth;
+          Format.fprintf !fmt "%s← repetition %d of %d [%s]\n%!"
+            (State.indent ()) (index + 1) count
+            (if success then "ok" else "fail"))
+    | Instr_enter { instr; at = _ } ->
+        if at_least Full !config.level then
+          (* The trace puts each instruction two columns past its repetition. *)
+          let offset = if State.directly_in_repetition () then "" else "  " in
+          Format.fprintf !fmt "%s%s| %s\n%!" (State.indent ()) offset
+            (string_of_instr instr |> normalize_whitespace)
+    | Instr_exit _ -> ()
 end
 
 let make cfg =
@@ -99,7 +132,7 @@ let make cfg =
 
 module Spec : Instrumentation_spec.Spec.S = struct
   let name = "trace"
-  let modes = [ `IL; `SL ]
+  let modes = [ `IL; `SL; `PL ]
 
   let params =
     [
