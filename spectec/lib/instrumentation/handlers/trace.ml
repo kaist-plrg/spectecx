@@ -122,7 +122,7 @@ module M : Instrumentation_api.Handler.S = struct
           let offset = if State.directly_in_repetition () then "" else "  " in
           Format.fprintf !fmt "%s%s| %s\n%!" (State.indent ()) offset
             (string_of_instr instr |> normalize_whitespace)
-    | Instr_exit _ -> ()
+    | Instr_exit _ | Case_match _ -> ()
 end
 
 let make cfg =

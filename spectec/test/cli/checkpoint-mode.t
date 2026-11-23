@@ -14,14 +14,10 @@ A checkpoint records the interpreter mode of the batch that saved it.
 
 Reporting a checkpoint uses its saved mode to display coverage.
 
-  $ spectec impty checkpoint report sl.ckpt --instruction-coverage.level summary --color never | sed -n '/SL Instruction Coverage/,$p'
+  $ spectec impty checkpoint report sl.ckpt --instruction-coverage.level summary --color never | grep -A2 'SL Instruction Coverage'
   === SL Instruction Coverage ===
   
-  SL Instructions: 67/149 (44.97%)
-  
-  Uncovered SL instructions:
-    lookup:
-      If ((pair<K, V>* matches pattern _ :: _))
+  SL Instructions: 67/149 attempted (44.97%), 67/149 succeeded (44.97%)
 
   $ spectec impty checkpoint report al.ckpt --instruction-coverage.level summary --color never | grep -A2 'Instruction Coverage'
   === AL Instruction Coverage ===
@@ -65,4 +61,4 @@ Merging two checkpoints from the same mode adds their coverage counts.
   $ spectec impty checkpoint report sl-merged.ckpt --instruction-coverage.level summary --color never | grep -A2 'SL Instruction Coverage'
   === SL Instruction Coverage ===
   
-  SL Instructions: 67/149 (44.97%)
+  SL Instructions: 67/149 attempted (44.97%), 67/149 succeeded (44.97%)

@@ -372,7 +372,8 @@ module M : Instrumentation_api.Handler.S = struct
             State.record_premise ~bindings)
     | Instr_enter { instr = SlInstr _ | PlInstr _; at = _ }
     | Instr_exit
-        { instr = SlInstr _ | PlInstr _; at = _; success = _; bindings = _ } ->
+        { instr = SlInstr _ | PlInstr _; at = _; success = _; bindings = _ }
+    | Case_match _ ->
         ()
 end
 

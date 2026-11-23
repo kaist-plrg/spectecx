@@ -1,4 +1,6 @@
-(** Counts runs of each SL instruction. *)
+(** [Summary] lists every instruction and case that never succeeded. [Full]
+    annotates the spec with counts, including failed checks and matches or
+    failures of individual cases. *)
 
 open Common.Annotated
 module Location = Common.Location
@@ -19,69 +21,87 @@ let fmt = ref Format.std_formatter
 (* Runtime state - changes during execution *)
 module State = struct
   let sl_spec : Sl.spec ref = ref []
-  let instrs_hit : (Location.t * string, int) Hashtbl.t = Hashtbl.create 256
+
+  let instrs_attempted : (Location.t * string, int) Hashtbl.t =
+    Hashtbl.create 256
+
+  let instrs_succeeded : (Location.t * string, int) Hashtbl.t =
+    Hashtbl.create 256
+
+  let instrs_failed : (Location.t * string, int) Hashtbl.t = Hashtbl.create 256
+
+  let cases_matched : ((Location.t * string) * int, int) Hashtbl.t =
+    Hashtbl.create 64
+
+  let cases_failed : ((Location.t * string) * int, int) Hashtbl.t =
+    Hashtbl.create 64
+
+  let fallible_keys : (Location.t * string, unit) Hashtbl.t = Hashtbl.create 256
   let total_instrs = ref 0
+  let total_rel_instrs = ref 0
+  let total_fallible_instrs = ref 0
 
   let reset () =
     sl_spec := [];
-    Hashtbl.clear instrs_hit;
-    total_instrs := 0
+    Hashtbl.clear instrs_attempted;
+    Hashtbl.clear instrs_succeeded;
+    Hashtbl.clear instrs_failed;
+    Hashtbl.clear cases_matched;
+    Hashtbl.clear cases_failed;
+    Hashtbl.clear fallible_keys;
+    total_instrs := 0;
+    total_rel_instrs := 0;
+    total_fallible_instrs := 0
 
-  let incr tbl key =
+  let incr_count tbl key =
     let count = Hashtbl.find_opt tbl key |> Option.value ~default:0 in
     Hashtbl.replace tbl key (count + 1)
 end
 
-(* Get short header for instruction (without recursive children) *)
-let instr_header instr =
-  match instr.it with
-  | Sl.RelI { call; iterinstrs; _ } ->
-      Format.sprintf "%s: %s%s"
-        (Sl.Print.string_of_relid call.relid)
-        (Sl.Print.string_of_notexp call.notexp)
-        (Sl.Print.string_of_iterinstrs iterinstrs)
-  | Sl.RelAssertI { call; expect; iterexps; _ } ->
-      Format.sprintf "If (%s: %s %s)%s"
-        (Sl.Print.string_of_relid call.relid)
-        (Sl.Print.string_of_notexp call.notexp)
-        (if expect then "holds" else "does not hold")
-        (Sl.Print.string_of_iterexps iterexps)
-  | Sl.IfI (exp, iterexps, _, _) ->
-      Format.sprintf "If (%s)%s"
-        (Sl.Print.string_of_exp exp)
-        (Sl.Print.string_of_iterexps iterexps)
-  | Sl.CaseI (exp, _, _) ->
-      Format.sprintf "Case on %s" (Sl.Print.string_of_exp exp)
-  | Sl.LetI (exp_l, exp_r, iterinstrs, _) ->
-      Format.sprintf "Let %s = %s%s"
-        (Sl.Print.string_of_exp exp_l)
-        (Sl.Print.string_of_exp exp_r)
-        (Sl.Print.string_of_iterinstrs iterinstrs)
-  | Sl.ResultI [] -> "Relation holds"
-  | Sl.ResultI exps ->
-      Format.sprintf "Result %s" (Sl.Print.string_of_exps ", " exps)
-  | Sl.ReturnI exp -> Format.sprintf "Return %s" (Sl.Print.string_of_exp exp)
-  | Sl.DebugI (exp, _) ->
-      Format.sprintf "Debug: %s" (Sl.Print.string_of_exp exp)
+let instr_header instr = Sl.Print.string_of_instr ~short:true instr
 
-(* Create a unique key for an instruction using location + content header *)
+(* SL instructions have no identifiers, so coverage uses their locations and
+   headers (the printed instructions without their child blocks). *)
 let instr_key instr =
   let content = instr_header instr |> normalize_whitespace in
   (instr.at, content)
 
+let is_fallible instr =
+  match instr.it with
+  | Sl.IfI _ | Sl.RelAssertI _ | Sl.CaseI _ -> true
+  | Sl.RelI _ | Sl.LetI _ | Sl.ResultI _ | Sl.ReturnI _ | Sl.DebugI _ -> false
+
+let blocks_of_instr instr =
+  match instr.it with
+  | Sl.RelI { block; _ } | Sl.RelAssertI { block; _ } | Sl.LetI (_, _, _, block)
+    ->
+      [ block ]
+  | Sl.IfI (_, _, instrs, _) -> [ instrs ]
+  | Sl.CaseI (_, cases, _) -> List.map snd cases
+  | Sl.DebugI (_, inner) -> [ [ inner ] ]
+  | Sl.ResultI _ | Sl.ReturnI _ -> []
+
+let blocks_of_def def =
+  match def.it with
+  | Sl.RelD (id, _, block, elseblock_opt) ->
+      Some (id, block :: Option.to_list elseblock_opt)
+  | Sl.DecD (id, _, _, block, elseblock_opt) ->
+      Some (id, block :: Option.to_list elseblock_opt)
+  | Sl.TypD _ | Sl.BuiltinDecD _ -> None
+
+let rec iter_instr_preorder ~f instr =
+  f instr;
+  List.iter (List.iter (iter_instr_preorder ~f)) (blocks_of_instr instr)
+
 module M : Instrumentation_api.Handler.S = struct
   let static_dependencies = []
 
-  let rec count_instr instr =
-    State.total_instrs := !State.total_instrs + 1;
-    match instr.it with
-    | Sl.RelI { block; _ } -> List.iter count_instr block
-    | Sl.RelAssertI { block; _ } -> List.iter count_instr block
-    | Sl.IfI (_, _, instrs, _) -> List.iter count_instr instrs
-    | Sl.CaseI (_, cases, _) ->
-        List.iter (fun (_, instrs) -> List.iter count_instr instrs) cases
-    | Sl.LetI (_, _, _, block) -> List.iter count_instr block
-    | _ -> ()
+  let count_instr instr =
+    incr State.total_instrs;
+    if is_fallible instr then (
+      incr State.total_fallible_instrs;
+      Hashtbl.replace State.fallible_keys (instr_key instr) ());
+    match instr.it with Sl.RelI _ -> incr State.total_rel_instrs | _ -> ()
 
   let init ~spec =
     State.reset ();
@@ -91,99 +111,146 @@ module M : Instrumentation_api.Handler.S = struct
         State.sl_spec := sl_spec;
         List.iter
           (fun def ->
-            match def.it with
-            | Sl.RelD (_, _, block, elseblock_opt) ->
-                List.iter count_instr block;
-                Option.iter (List.iter count_instr) elseblock_opt
-            | Sl.DecD (_, _, _, block, elseblock_opt) ->
-                List.iter count_instr block;
-                Option.iter (List.iter count_instr) elseblock_opt
-            | _ -> ())
+            Option.iter
+              (fun (_, blocks) ->
+                List.iter
+                  (List.iter (iter_instr_preorder ~f:count_instr))
+                  blocks)
+              (blocks_of_def def))
           sl_spec
 
   let handle_value = None
 
   let handle : Instrumentation_api.Event.t -> unit = function
     | Instr_enter { instr = SlInstr instr; at = _ } ->
-        State.incr State.instrs_hit (instr_key instr)
+        State.incr_count State.instrs_attempted (instr_key instr)
+    | Instr_exit { instr = SlInstr instr; at = _; success; bindings = _ } ->
+        let key = instr_key instr in
+        if success then State.incr_count State.instrs_succeeded key
+        else if is_fallible instr then State.incr_count State.instrs_failed key
+    | Case_match { instr = SlInstr instr; at = _; case_idx } -> (
+        let key = instr_key instr in
+        let failed_before n =
+          List.iter
+            (fun idx -> State.incr_count State.cases_failed (key, idx))
+            (List.init n Fun.id)
+        in
+        match (case_idx, instr.it) with
+        | Some idx, _ ->
+            State.incr_count State.cases_matched (key, idx);
+            failed_before idx
+        | None, Sl.CaseI (_, cases, _) -> failed_before (List.length cases)
+        | None, _ -> ())
     | _ -> ()
 
-  (* --- Output: Summary mode (stats + uncovered only) --- *)
-
   let print_stats () =
-    let hit = Hashtbl.length State.instrs_hit in
-    let total = !State.total_instrs in
-    if total > 0 then
-      Format.fprintf !fmt "SL Instructions: %d/%d (%.2f%%)\n" hit total
-        (percentage hit total)
-
-  let print_uncovered () =
+    let attempted = Hashtbl.length State.instrs_attempted in
+    let succeeded = Hashtbl.length State.instrs_succeeded in
     let total = !State.total_instrs in
     if total > 0 then (
-      (* Collect uncovered instructions *)
-      let uncovered = ref [] in
+      Format.fprintf !fmt
+        "SL Instructions: %d/%d attempted (%.2f%%), %d/%d succeeded (%.2f%%)\n"
+        attempted total
+        (percentage attempted total)
+        succeeded total
+        (percentage succeeded total);
+      let total_fallible = !State.total_fallible_instrs in
+      let count_fallible tbl =
+        Hashtbl.fold
+          (fun key _ count ->
+            if Hashtbl.mem State.fallible_keys key then count + 1 else count)
+          tbl 0
+      in
+      let succeeded_fallible = count_fallible State.instrs_succeeded in
+      let failed_fallible = count_fallible State.instrs_failed in
+      let both_fallible =
+        Hashtbl.fold
+          (fun key _ count ->
+            if Hashtbl.mem State.instrs_succeeded key then count + 1 else count)
+          State.instrs_failed 0
+      in
+      let neither_fallible =
+        total_fallible - (succeeded_fallible + failed_fallible - both_fallible)
+      in
+      let total_score = succeeded_fallible + failed_fallible in
+      let twice_total_fallible = 2 * total_fallible in
+      Format.fprintf !fmt "%d rel instructions\n" !State.total_rel_instrs;
+      Format.fprintf !fmt
+        "%d if and case instructions: succeeded %d/%d (%.2f%%), failed %d/%d \
+         (%.2f%%), neither %d/%d (%.2f%%), total %d/%d (%.2f%%)\n"
+        total_fallible succeeded_fallible total_fallible
+        (percentage succeeded_fallible total_fallible)
+        failed_fallible total_fallible
+        (percentage failed_fallible total_fallible)
+        neither_fallible total_fallible
+        (percentage neither_fallible total_fallible)
+        total_score twice_total_fallible
+        (percentage total_score twice_total_fallible))
+
+  let print_never_succeeded () =
+    let never_succeeded = ref [] in
+    let add id content = never_succeeded := (id, content) :: !never_succeeded in
+    let rec visit id instr =
+      let key = instr_key instr in
+      if not (Hashtbl.mem State.instrs_succeeded key) then
+        add id (instr_header instr);
+      match instr.it with
+      | Sl.CaseI (_, cases, _) ->
+          List.iteri
+            (fun case_idx (guard, instrs) ->
+              if not (Hashtbl.mem State.cases_matched (key, case_idx)) then
+                add id ("Case " ^ Sl.Print.string_of_guard guard);
+              List.iter (visit id) instrs)
+            cases
+      | _ -> List.iter (List.iter (visit id)) (blocks_of_instr instr)
+    in
+    List.iter
+      (fun def ->
+        Option.iter
+          (fun ((id : Sl.id), blocks) ->
+            List.iter (List.iter (visit id.it)) blocks)
+          (blocks_of_def def))
+      !State.sl_spec;
+    if !never_succeeded <> [] then (
+      Format.fprintf !fmt "\nNever succeeded:\n";
       List.iter
-        (fun def ->
-          match def.it with
-          | Sl.RelD (id, _, block, elseblock_opt) ->
-              List.iter
-                (fun instr ->
-                  if not (Hashtbl.mem State.instrs_hit (instr_key instr)) then
-                    uncovered := (id.it, instr_header instr) :: !uncovered)
-                block;
-              Option.iter
-                (List.iter (fun instr ->
-                     if not (Hashtbl.mem State.instrs_hit (instr_key instr))
-                     then uncovered := (id.it, instr_header instr) :: !uncovered))
-                elseblock_opt
-          | Sl.DecD (id, _, _, block, elseblock_opt) ->
-              List.iter
-                (fun instr ->
-                  if not (Hashtbl.mem State.instrs_hit (instr_key instr)) then
-                    uncovered := (id.it, instr_header instr) :: !uncovered)
-                block;
-              Option.iter
-                (List.iter (fun instr ->
-                     if not (Hashtbl.mem State.instrs_hit (instr_key instr))
-                     then uncovered := (id.it, instr_header instr) :: !uncovered))
-                elseblock_opt
-          | _ -> ())
-        !State.sl_spec;
-      if !uncovered <> [] then (
-        Format.fprintf !fmt "\nUncovered SL instructions:\n";
-        List.iter
-          (fun (rel, content) ->
-            Format.fprintf !fmt "  %s:\n    %s\n" rel
-              (normalize_whitespace content))
-          (List.rev !uncovered)))
+        (fun (id, content) ->
+          Format.fprintf !fmt "  %s:\n    %s\n" id
+            (normalize_whitespace content))
+        (List.rev !never_succeeded))
 
   (* --- Output: Full mode (GCOV-style annotated spec) --- *)
 
-  let fmt_count tbl key =
-    match Hashtbl.find_opt tbl key with
-    | Some n -> Format.sprintf "%4d" n
-    | None -> "####"
+  let count_of tbl key = Hashtbl.find_opt tbl key |> Option.value ~default:0
+
+  let fmt_counts instr =
+    let key = instr_key instr in
+    let succeeded = format_count (count_of State.instrs_succeeded key) in
+    if is_fallible instr then
+      Format.sprintf "%s/%s" succeeded
+        (format_count (count_of State.instrs_failed key))
+    else Format.sprintf "%s     " succeeded
 
   let rec print_instr indent instr =
-    let count = fmt_count State.instrs_hit (instr_key instr) in
     let max_len = max 40 (80 - String.length indent) in
     let content = instr_header instr |> summarize ~max_len in
-    Format.fprintf !fmt "%5s %s%s\n" count indent content;
+    Format.fprintf !fmt "%s %s%s\n" (fmt_counts instr) indent content;
     match instr.it with
-    | Sl.RelI { block; _ } -> List.iter (print_instr (indent ^ "  ")) block
-    | Sl.RelAssertI { block; _ } ->
-        List.iter (print_instr (indent ^ "  ")) block
-    | Sl.IfI (_, _, instrs, _) -> List.iter (print_instr (indent ^ "  ")) instrs
     | Sl.CaseI (_, cases, _) ->
-        List.iter
-          (fun (guard, instrs) ->
-            (* Print hyphen for guards (untracked) *)
-            Format.fprintf !fmt "    - %s  Case %s:\n" indent
+        let key = instr_key instr in
+        List.iteri
+          (fun case_idx (guard, instrs) ->
+            Format.fprintf !fmt "%s/%s  %s  Case %s:\n"
+              (format_count (count_of State.cases_matched (key, case_idx)))
+              (format_count (count_of State.cases_failed (key, case_idx)))
+              indent
               (Sl.Print.string_of_guard guard);
             List.iter (print_instr (indent ^ "    ")) instrs)
           cases
-    | Sl.LetI (_, _, _, block) -> List.iter (print_instr (indent ^ "  ")) block
-    | _ -> ()
+    | _ ->
+        List.iter
+          (List.iter (print_instr (indent ^ "  ")))
+          (blocks_of_instr instr)
 
   let print_full () =
     List.iter
@@ -197,7 +264,7 @@ module M : Instrumentation_api.Handler.S = struct
             Format.fprintf !fmt "\ndef $%s:\n" id.it;
             List.iter (print_instr "  ") block;
             Option.iter (List.iter (print_instr "  ")) elseblock_opt
-        | _ -> ())
+        | Sl.TypD _ | Sl.BuiltinDecD _ -> ())
       !State.sl_spec
 
   (* --- Finish: print report --- *)
@@ -208,7 +275,7 @@ module M : Instrumentation_api.Handler.S = struct
       match !config.level with
       | Summary ->
           print_stats ();
-          print_uncovered ()
+          print_never_succeeded ()
       | Full ->
           print_stats ();
           print_full ())
@@ -216,22 +283,36 @@ end
 
 (* Result type for programmatic access *)
 type result = {
-  instrs_hit : ((Location.t * string) * int) list; (* key * count *)
+  instrs_attempted : ((Location.t * string) * int) list; (* key * count *)
+  instrs_succeeded : ((Location.t * string) * int) list; (* key * count *)
+  instrs_failed : ((Location.t * string) * int) list; (* key * count *)
+  cases_matched : (((Location.t * string) * int) * int) list;
+  cases_failed : (((Location.t * string) * int) * int) list;
   total_instrs : int;
 }
 
 let get_result () =
+  let to_list tbl = tbl |> Hashtbl.to_seq |> List.of_seq in
   {
-    instrs_hit = State.instrs_hit |> Hashtbl.to_seq |> List.of_seq;
+    instrs_attempted = to_list State.instrs_attempted;
+    instrs_succeeded = to_list State.instrs_succeeded;
+    instrs_failed = to_list State.instrs_failed;
+    cases_matched = to_list State.cases_matched;
+    cases_failed = to_list State.cases_failed;
     total_instrs = !State.total_instrs;
   }
 
 (* Restore state from a previous result (for checkpoint resume) *)
 let restore result =
-  Hashtbl.clear State.instrs_hit;
-  List.iter
-    (fun (key, count) -> Hashtbl.replace State.instrs_hit key count)
-    result.instrs_hit;
+  let restore_counts tbl counts =
+    Hashtbl.clear tbl;
+    List.iter (fun (key, count) -> Hashtbl.replace tbl key count) counts
+  in
+  restore_counts State.instrs_attempted result.instrs_attempted;
+  restore_counts State.instrs_succeeded result.instrs_succeeded;
+  restore_counts State.instrs_failed result.instrs_failed;
+  restore_counts State.cases_matched result.cases_matched;
+  restore_counts State.cases_failed result.cases_failed;
   State.total_instrs := result.total_instrs
 
 (* Merge two results — used for checkpoint merging *)
@@ -247,7 +328,11 @@ let merge_results r1 r2 =
     Hashtbl.to_seq tbl |> List.of_seq
   in
   {
-    instrs_hit = merge_counts r1.instrs_hit r2.instrs_hit;
+    instrs_attempted = merge_counts r1.instrs_attempted r2.instrs_attempted;
+    instrs_succeeded = merge_counts r1.instrs_succeeded r2.instrs_succeeded;
+    instrs_failed = merge_counts r1.instrs_failed r2.instrs_failed;
+    cases_matched = merge_counts r1.cases_matched r2.cases_matched;
+    cases_failed = merge_counts r1.cases_failed r2.cases_failed;
     total_instrs = r1.total_instrs;
   }
 

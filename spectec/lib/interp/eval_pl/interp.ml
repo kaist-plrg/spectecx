@@ -245,8 +245,9 @@ and eval_case_instr (ctx : Ctx.t) (instr : instr) ~(exp : exp)
     ~(cases : case list) : Ctx.t * Sign.t =
   let eval_cases ctx exp cases =
     cases
+    |> List.mapi (fun case_idx case -> (case_idx, case))
     |> List.fold_left
-         (fun (ctx, block_match, values_cond_rev) (guard, block) ->
+         (fun (ctx, block_match, values_cond_rev) (case_idx, (guard, block)) ->
            match block_match with
            | Some _ -> (ctx, block_match, values_cond_rev)
            | None ->
@@ -268,7 +269,7 @@ and eval_case_instr (ctx : Ctx.t) (instr : instr) ~(exp : exp)
                let cond = Value.get_bool value_cond in
                if cond then
                  let ctx = bind_guard_target ctx exp guard in
-                 (ctx, Some block, values_cond_rev)
+                 (ctx, Some (case_idx, block), values_cond_rev)
                else (ctx, None, values_cond_rev))
          (ctx, None, [])
     |> fun (ctx, block_match, values_cond) ->
@@ -284,7 +285,14 @@ and eval_case_instr (ctx : Ctx.t) (instr : instr) ~(exp : exp)
         (Option.is_some instrs_opt, ctx_out))
       ~f:(fun () ->
         let ctx, block_match, _value_cond = eval_cases ctx exp cases in
-        (ctx, block_match))
+        Instrumentation.Dispatcher.emit
+          (Events.Case_match
+             {
+               instr = PlInstr instr;
+               at = instr.node.at;
+               case_idx = Option.map fst block_match;
+             });
+        (ctx, Option.map snd block_match))
   in
   match instrs_opt with
   | Some instrs -> eval_instrs ctx Cont instrs

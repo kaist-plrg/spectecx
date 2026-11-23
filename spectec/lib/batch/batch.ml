@@ -32,7 +32,7 @@ module Checkpoint = struct
 
   (* Bump [current_version] when [t] or a handler's saved result changes layout.
      Older layouts cannot be safely unmarshalled. *)
-  let current_version = 5
+  let current_version = 6
 
   let compute_spec_hash spec_files =
     let contents =

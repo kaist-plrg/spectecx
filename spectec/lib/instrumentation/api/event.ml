@@ -45,6 +45,10 @@ type t =
       at : Location.t;
       success : bool;
     }
+  (* The SL and PL interpreters emit [Case_match] after guard evaluation and
+     before [Instr_exit]. [case_idx] is the zero-based index of the first
+     matching case, or [None] if all guards fail. *)
+  | Case_match of { instr : instr; at : Location.t; case_idx : int option }
   (* Each pair covers one evaluation of the instruction before its block runs.
      For an iterated instruction the pair falls inside the repetition events.
      AL [IterI] uses the events of its body. [bindings] holds the resulting
