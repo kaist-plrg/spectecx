@@ -27,9 +27,12 @@ module Checkpoint = struct
     coverage : coverage;
     timestamp : float;
     check_determinism : bool;
+    mode : Spectec.Interp_mode.request;
   }
 
-  let current_version = 3
+  (* Bump [current_version] when [t] or a handler's saved result changes layout.
+     Older layouts cannot be safely unmarshalled. *)
+  let current_version = 6
 
   let compute_spec_hash spec_files =
     let contents =
@@ -44,7 +47,7 @@ module Checkpoint = struct
     in
     Digest.string contents |> Digest.to_hex
 
-  let create ~spec_files ~completed_inputs ~coverage ~check_determinism =
+  let create ~spec_files ~completed_inputs ~coverage ~check_determinism ~mode =
     {
       version = current_version;
       spec_hash = compute_spec_hash spec_files;
@@ -52,6 +55,7 @@ module Checkpoint = struct
       coverage;
       timestamp = Unix.gettimeofday ();
       check_determinism;
+      mode;
     }
 
   let format_summary checkpoint =
@@ -110,6 +114,16 @@ module Checkpoint = struct
                "Checkpoint determinism checking is %s. Resume with the same \
                 setting."
                (determinism_label checkpoint.check_determinism) ))
+
+  let verify_mode checkpoint ~mode =
+    if checkpoint.mode = mode then Ok ()
+    else
+      Error
+        (Error.ConfigError
+           ( Common.Location.Unknown,
+             Printf.sprintf
+               "Checkpoint was saved in %s mode. Resume in the same mode."
+               (Spectec.Interp_mode.to_string checkpoint.mode) ))
 
   let snapshot_coverage () =
     List.filter_map
@@ -171,6 +185,15 @@ module Checkpoint = struct
         (Error.ConfigError
            ( Common.Location.Unknown,
              "Cannot merge checkpoints with different determinism settings" ))
+    else if checkpoint1.mode <> checkpoint2.mode then
+      Error
+        (Error.ConfigError
+           ( Common.Location.Unknown,
+             Printf.sprintf
+               "Cannot merge a checkpoint saved in %s mode with one saved in \
+                %s mode"
+               (Spectec.Interp_mode.to_string checkpoint1.mode)
+               (Spectec.Interp_mode.to_string checkpoint2.mode) ))
     else
       let completed_inputs =
         let seen = Hashtbl.create 256 in
@@ -191,6 +214,7 @@ module Checkpoint = struct
           coverage;
           timestamp = Unix.gettimeofday ();
           check_determinism = checkpoint1.check_determinism;
+          mode = checkpoint1.mode;
         }
 
   let verify_and_load ~file ~spec_files ~verbose =
@@ -209,12 +233,12 @@ module Checkpoint = struct
       (fun input -> not (List.mem (get_id input) checkpoint.completed_inputs))
       inputs
 
-  let save ~spec_files ~completed_inputs ~check_determinism ~output_file =
+  let save ~spec_files ~completed_inputs ~check_determinism ~mode ~output_file =
     match output_file with
     | Some file ->
         let checkpoint =
           create ~spec_files ~completed_inputs ~coverage:(snapshot_coverage ())
-            ~check_determinism
+            ~check_determinism ~mode
         in
         save_to_file ~file checkpoint
     | None -> ()
@@ -240,7 +264,7 @@ module Checkpoint = struct
         Instrumentation.builtin_handler_specs
     in
     Instrumentation.with_instrumentation active
-      (Instrumentation_static.Static.IlSpec spec) (fun () ->
+      (Spectec.static_spec ~mode:checkpoint.mode ~spec_al:spec) (fun () ->
         restore_coverage checkpoint)
 end
 
@@ -386,7 +410,7 @@ let run_batch_with_outcomes (type i) (module T : Task.S with type input = i)
     ~ansi ~mode ~spec_al ?(verbose = false) (inputs : i list) =
   let total = List.length inputs in
   Instrumentation.with_instrumentation config
-    (Instrumentation.Static.IlSpec spec_al)
+    (Spectec.static_spec ~mode:(Spectec.Interp_mode.to_request mode) ~spec_al)
   @@ fun () ->
   List.mapi
     (fun idx input ->
@@ -451,7 +475,7 @@ let run_target ?(config = Instrumentation.Config.default)
     ~(checkpoint_config : Checkpoint.config) ~verbose ~mode ~spec_files spec_al
     tasks =
   Instrumentation.with_instrumentation config
-    (Instrumentation.Static.IlSpec spec_al)
+    (Spectec.static_spec ~mode:(Spectec.Interp_mode.to_request mode) ~spec_al)
   @@ fun () ->
   let ( let* ) = Result.bind in
   let* loaded_checkpoint =
@@ -461,6 +485,10 @@ let run_target ?(config = Instrumentation.Config.default)
           Checkpoint.verify_and_load ~file ~spec_files ~verbose
         in
         let* () = Checkpoint.verify_determinism checkpoint ~check_determinism in
+        let* () =
+          Checkpoint.verify_mode checkpoint
+            ~mode:(Spectec.Interp_mode.to_request mode)
+        in
         Ok (Some checkpoint)
     | None -> Ok None
   in
@@ -472,7 +500,9 @@ let run_target ?(config = Instrumentation.Config.default)
   | None -> ());
   let save_current_checkpoint () =
     Checkpoint.save ~spec_files ~completed_inputs:!all_completed_inputs
-      ~check_determinism ~output_file:checkpoint_config.output_file
+      ~check_determinism
+      ~mode:(Spectec.Interp_mode.to_request mode)
+      ~output_file:checkpoint_config.output_file
   in
   let run_one_task (Task.Pack (module T)) =
     let all_inputs =

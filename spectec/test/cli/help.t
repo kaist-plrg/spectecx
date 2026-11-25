@@ -43,13 +43,9 @@ eval shares this exact set:
                                . verbosity level (e.g., summary|full)
     [--instruction-coverage.output FILE]
                                . output destination file
-    [--pl]                     . use PL interpreter (default: IL)
-    [--premise-coverage.level LEVEL]
-                               . verbosity level (e.g., summary|full)
-    [--premise-coverage.output FILE]
-                               . output destination file
+    [--pl]                     . use PL interpreter (default: AL)
     [--profile.output FILE]    . output destination file
-    [--sl]                     . use SL interpreter (default: IL)
+    [--sl]                     . use SL interpreter (default: AL)
     [--spec FILES] ...         . spec files; mutually exclusive with --spec-dir
     [--spec-dir DIR]           . directory of .spectec files, collected
                                  recursively; mutually exclusive with --spec
@@ -104,15 +100,11 @@ batch drops -p and adds the checkpoint-persistence flags:
                                . verbosity level (e.g., summary|full)
     [--instruction-coverage.output FILE]
                                . output destination file
-    [--pl]                     . use PL interpreter (default: IL)
-    [--premise-coverage.level LEVEL]
-                               . verbosity level (e.g., summary|full)
-    [--premise-coverage.output FILE]
-                               . output destination file
+    [--pl]                     . use PL interpreter (default: AL)
     [--profile.output FILE]    . output destination file
     [--resume FILE]            . resume from checkpoint file
     [--save-interval N]        . save checkpoint every N tests (default: 100)
-    [--sl]                     . use SL interpreter (default: IL)
+    [--sl]                     . use SL interpreter (default: AL)
     [--spec FILES] ...         . spec files; mutually exclusive with --spec-dir
     [--spec-dir DIR]           . directory of .spectec files, collected
                                  recursively; mutually exclusive with --spec

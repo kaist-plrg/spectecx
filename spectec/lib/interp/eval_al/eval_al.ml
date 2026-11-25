@@ -47,7 +47,7 @@ let eval_func (context : context) ~func ~values =
   catch (fun () -> Interp.callback context (func $ Location.Unknown) [] values)
 
 let error_to_diagnostic = function
-  | Plain (at, msg) -> Diag.error ~source:"il-interp" at msg
+  | Plain (at, msg) -> Diag.error ~source:"al-interp" at msg
   | Backtrack failtraces ->
-      Diag.of_failtraces ~source:"il-interp" ~fallback:"evaluation failed"
+      Diag.of_failtraces ~source:"al-interp" ~fallback:"evaluation failed"
         (prune_failtraces failtraces)

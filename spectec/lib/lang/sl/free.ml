@@ -27,26 +27,35 @@ let free_guard (guard : guard) : t =
   | BoolG _ | SubG _ | MatchG _ -> empty
   | CmpG (_, _, exp) | MemG exp -> free_exp exp
 
-let rec free_instr (instr : instr) : t =
+let free_instr_without_block (instr : instr) : t =
   match instr.it with
-  | RelI { call; iterinstrs; block } ->
-      free_relcall call + free_iterinstrs iterinstrs + free_block block
-  | RelAssertI { call; iterexps; block; _ } ->
-      free_relcall call + free_iterexps iterexps + free_block block
-  | IfI (exp_cond, iterexps, block, _) ->
-      free_exp exp_cond + free_iterexps iterexps + free_block block
+  | RelI { call; iterinstrs; block = _ } ->
+      free_relcall call + free_iterinstrs iterinstrs
+  | RelAssertI { call; iterexps; _ } ->
+      free_relcall call + free_iterexps iterexps
+  | IfI (exp_cond, iterexps, _, _) -> free_exp exp_cond + free_iterexps iterexps
   | CaseI (exp, cases, _) ->
       free_exp exp
-      + unions
-          (List.map
-             (fun (guard, block) -> free_guard guard + free_block block)
-             cases)
-  | LetI (exp_l, exp_r, iterinstrs, block) ->
+      + unions (List.map (fun (guard, _) -> free_guard guard) cases)
+  | LetI (exp_l, exp_r, iterinstrs, _) ->
       free_exp exp_l + free_exp exp_r + free_iterinstrs iterinstrs
-      + free_block block
   | ResultI exps -> free_exps exps
-  | ReturnI exp -> free_exp exp
-  | DebugI (exp, instr) -> free_exp exp + free_instr instr
+  | ReturnI exp | DebugI (exp, _) -> free_exp exp
+
+let rec free_instr (instr : instr) : t =
+  let free_inner =
+    match instr.it with
+    | RelI { block; _ }
+    | RelAssertI { block; _ }
+    | IfI (_, _, block, _)
+    | LetI (_, _, _, block) ->
+        free_block block
+    | CaseI (_, cases, _) ->
+        unions (List.map (fun (_, block) -> free_block block) cases)
+    | DebugI (_, instr) -> free_instr instr
+    | ResultI _ | ReturnI _ -> empty
+  in
+  free_instr_without_block instr + free_inner
 
 and free_block (block : block) : t = unions (List.map free_instr block)
 

@@ -1,4 +1,4 @@
-Running typechecker test on 8 files
+Running typechecker test on 6 files
 
 >>> Running typechecker test on ../../../../../spectec/testdata/interp/impty/base/_errors_add_bool.imp
 Expected typechecker failure: ../../../../../spectec/testdata/interp/impty/base/_errors_add_bool.imp
@@ -56,33 +56,9 @@ application of rule Check_prog/ failed
     └── application of rule Check_command/assign failed
         └── condition ($lookup<id, type>(tenv, x) = ?(t)) was not met
 
->>> Running typechecker test on ../../../../../spectec/testdata/interp/impty/closure/_errors_arg_type.imp
-Expected typechecker failure: ../../../../../spectec/testdata/interp/impty/closure/_errors_arg_type.imp
-error: invocation of relation Check_prog failed
-application of rule Check_prog/ failed
-└── invocation of relation Check_command failed
-    └── application of rule Check_command/seq failed
-        └── invocation of relation Check_command failed
-            └── application of rule Check_command/decl failed
-                └── invocation of relation Check_expr failed
-                    └── application of rule Check_expr/call failed
-                        └── condition (type' = t_arg) was not met
-
->>> Running typechecker test on ../../../../../spectec/testdata/interp/impty/closure/_errors_call_non_function.imp
-Expected typechecker failure: ../../../../../spectec/testdata/interp/impty/closure/_errors_call_non_function.imp
-error: invocation of relation Check_prog failed
-application of rule Check_prog/ failed
-└── invocation of relation Check_command failed
-    └── application of rule Check_command/seq failed
-        └── invocation of relation Check_command failed
-            └── application of rule Check_command/decl failed
-                └── invocation of relation Check_expr failed
-                    └── application of rule Check_expr/call failed
-                        └── condition type matches `% -> %` was not met
-
-Typechecker (il) summary
-  Ran:          8 / 8      (100.00%)
-  Passed:       8 (100.00% of ran)
+Typechecker (al) summary
+  Ran:          6 / 6      (100.00%)
+  Passed:       6 (100.00% of ran)
   Failed:       0 (0.00% of ran)
   Skipped:      0 (0.00% of total)
 

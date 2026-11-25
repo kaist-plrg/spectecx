@@ -90,6 +90,12 @@ val shorten : Pl.spec -> Pl.spec
 val validate_config :
   Instrumentation.Config.t -> mode:Interp_mode.request -> unit result
 
+(** SL and PL both use the structured SL spec for instrumentation. *)
+val static_spec :
+  mode:Interp_mode.request ->
+  spec_al:Lang.Al.spec ->
+  Instrumentation.Static.spec
+
 (** {1 Unified interpreter entry points}
 
     [eval_task] and [eval_task_with_instrumentation] parse task input and run

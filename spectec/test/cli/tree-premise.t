@@ -4,7 +4,8 @@ impty CLI: tree premise against hello.imp.
   $ HELLO=../../testdata/interp/impty/base/hello.imp
 
 The premise level adds each rule's premises below its conclusion, rendered in
-author syntax with runtime values substituted at variable leaves. It is IL only.
+author syntax with runtime values substituted at variable leaves.
+The premise level requires AL mode.
 
   $ spectec impty eval --spec $SPEC -p $HELLO --color never --tree.level premise
   Run_prog:
@@ -91,14 +92,14 @@ its headline:
   256 |   -- Check_prog: |- command
       |      ^^^^^^^^^^
       |
-      | source: il-interp
+      | source: al-interp
   [1]
 
 The SL interpreter reports no premises, so the premise level is refused rather
 than silently falling back to a coarser view:
 
   $ spectec impty eval --spec $SPEC -p $HELLO --color never --sl --tree.level premise
-  error: Instrumentation handlers incompatible with SL mode: tree (IL only)
+  error: Instrumentation handlers incompatible with SL mode: tree (AL only)
   
     source: config
   [1]

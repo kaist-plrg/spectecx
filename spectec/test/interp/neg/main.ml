@@ -1,10 +1,6 @@
-(** Impty interpreter negative test harness.
-
-    Invoked as [main.exe SPEC_DIR FILE]: parse + elaborate the spec, typecheck
-    [FILE] through the IL interpreter, render any diagnostics to stderr in plain
-    (non-ANSI) form, and exit 1 if any were emitted. [SPEC_DIR] is an argument
-    rather than hardcoded so the [closure] variant stays reachable; the impty
-    CLI only exposes [base]. *)
+(** [main.exe SPEC_DIR FILE] typechecks [FILE] with the AL interpreter. It
+    prints plain diagnostics to stderr and exits 1 if any were emitted.
+    [SPEC_DIR] can select the impty [closure] spec. *)
 
 module D = Spectec.Diagnostic
 
@@ -19,7 +15,7 @@ let run spec_dir file =
   in
   Spectec.eval_task_with_instrumentation
     (module Targets_impty.Impty.Typecheck)
-    ~mode:Spectec.Interp_mode.Il ~spec_al input
+    ~mode:Spectec.Interp_mode.Al ~spec_al input
   |> Result.map ignore
 
 let () =

@@ -21,12 +21,12 @@ end
 (* Populating expression templates *)
 
 let rec populate_exp_template (uenv : UEnv.t) (exp_template : exp) (exp : exp) :
-    prem list =
+    instr list =
   let populate_exp_template_unequal () =
     match (exp_template.it, exp.it) with
     | VarE id_template, _ when UEnv.unified id_template uenv ->
-        let prem = LetPr (exp, exp_template) $$ (exp.at, None) in
-        [ prem ]
+        let instr = LetI (exp, exp_template) $$ (exp.at, Input_sidecondition) in
+        [ instr ]
     | TupleE exps_template, TupleE exps ->
         populate_exps_templates uenv exps_template exps
     | CaseE notexp_template, CaseE notexp
@@ -49,9 +49,9 @@ let rec populate_exp_template (uenv : UEnv.t) (exp_template : exp) (exp : exp) :
           in
           { iter = iter_template; vars_input = vars_template; vars_output }
         in
-        let prem = LetPr (exp, exp_template) $$ (exp.at, None) in
-        let prem = IterPr (prem, iterinstr) $$ (exp.at, None) in
-        [ prem ]
+        let instr = LetI (exp, exp_template) $$ (exp.at, Input_sidecondition) in
+        let instr = IterI (instr, iterinstr) $$ (exp.at, Input_sidecondition) in
+        [ instr ]
     | _ ->
         Format.asprintf "cannot populate anti-unified expressions %s and %s"
           (Il.Print.string_of_exp exp_template)
@@ -61,10 +61,10 @@ let rec populate_exp_template (uenv : UEnv.t) (exp_template : exp) (exp : exp) :
   if Il.Eq.eq_exp exp_template exp then [] else populate_exp_template_unequal ()
 
 and populate_exps_templates (uenv : UEnv.t) (exps_template : exp list)
-    (exps : exp list) : prem list =
+    (exps : exp list) : instr list =
   List.fold_left2
-    (fun prems exp_template exp ->
-      prems @ populate_exp_template uenv exp_template exp)
+    (fun instrs exp_template exp ->
+      instrs @ populate_exp_template uenv exp_template exp)
     [] exps_template exps
 
 (* Anti-unification of expressions *)
@@ -198,7 +198,7 @@ let antiunify_exps_group (frees : IdSet.t) (exps_group : exp list list) :
 (* Populating argument templates *)
 
 let rec populate_arg_template (uenv : UEnv.t) (arg_template : arg) (arg : arg) :
-    prem list =
+    instr list =
   match (arg_template.it, arg.it) with
   | ExpA exp_template, ExpA exp -> populate_exp_template uenv exp_template exp
   | DefA id_template, DefA id when Il.Eq.eq_id id_template id -> []
@@ -209,10 +209,10 @@ let rec populate_arg_template (uenv : UEnv.t) (arg_template : arg) (arg : arg) :
       |> failwith
 
 and populate_args_templates (uenv : UEnv.t) (args_template : arg list)
-    (args : arg list) : prem list =
+    (args : arg list) : instr list =
   List.fold_left2
-    (fun prems arg_template arg ->
-      prems @ populate_arg_template uenv arg_template arg)
+    (fun instrs arg_template arg ->
+      instrs @ populate_arg_template uenv arg_template arg)
     [] args_template args
 
 (* Anti-unification of arguments *)
@@ -265,58 +265,58 @@ let antiunify_args_group (frees : IdSet.t) (args_group : arg list list) :
 (* Anti-unification of rules *)
 
 let antiunify_rules (reltyp : Il.reltyp') (rules : rule list) :
-    exp list * (prem list * exp list) list =
-  let exps_input_group, exps_output_group, prems_group, frees =
+    exp list * (instr list * exp list) list =
+  let exps_input_group, exps_output_group, instrs_group, frees =
     List.fold_left
-      (fun (exps_input_group, exps_output_group, prems_group, frees) rule ->
-        let { concl; prems; _ } = rule.it in
+      (fun (exps_input_group, exps_output_group, instrs_group, frees) rule ->
+        let { concl; instrs; _ } = rule.it in
         let exps_input, exps_output =
           Il.Mode.partition reltyp (Il.Mixfix.args concl)
         in
         let exps_input_group = exps_input_group @ [ exps_input ] in
         let exps_output_group = exps_output_group @ [ exps_output ] in
-        let prems_group = prems_group @ [ prems ] in
+        let instrs_group = instrs_group @ [ instrs ] in
         let frees = rule |> Al.Free.free_rule |> IdSet.union frees in
-        (exps_input_group, exps_output_group, prems_group, frees))
+        (exps_input_group, exps_output_group, instrs_group, frees))
       ([], [], [], IdSet.empty) rules
   in
   let uenv, exps_input_template = antiunify_exps_group frees exps_input_group in
-  let prems_group =
+  let instrs_group =
     List.map2
-      (fun exps_input prems ->
-        let prems_template =
+      (fun exps_input instrs ->
+        let instrs_template =
           populate_exps_templates uenv exps_input_template exps_input
         in
-        prems_template @ prems)
-      exps_input_group prems_group
+        instrs_template @ instrs)
+      exps_input_group instrs_group
   in
-  let paths = List.combine prems_group exps_output_group in
+  let paths = List.combine instrs_group exps_output_group in
   (exps_input_template, paths)
 
 (* Anti-unification of clauses *)
 
 let antiunify_clauses (clauses : clause list) :
-    arg list * (prem list * exp) list =
-  let args_input_group, exp_output_group, prems_group, frees =
+    arg list * (instr list * exp) list =
+  let args_input_group, exp_output_group, instrs_group, frees =
     List.fold_left
-      (fun (args_input_group, exp_output_group, prems_group, frees) clause ->
-        let { args = args_input; body = exp_output; prems } = clause.it in
+      (fun (args_input_group, exp_output_group, instrs_group, frees) clause ->
+        let { args = args_input; body = exp_output; instrs } = clause.it in
         let args_input_group = args_input_group @ [ args_input ] in
         let exp_output_group = exp_output_group @ [ exp_output ] in
-        let prems_group = prems_group @ [ prems ] in
+        let instrs_group = instrs_group @ [ instrs ] in
         let frees = clause |> Al.Free.free_clause |> IdSet.union frees in
-        (args_input_group, exp_output_group, prems_group, frees))
+        (args_input_group, exp_output_group, instrs_group, frees))
       ([], [], [], IdSet.empty) clauses
   in
   let uenv, args_input_template = antiunify_args_group frees args_input_group in
-  let prems_group =
+  let instrs_group =
     List.map2
-      (fun args_input prems ->
-        let prems_template =
+      (fun args_input instrs ->
+        let instrs_template =
           populate_args_templates uenv args_input_template args_input
         in
-        prems_template @ prems)
-      args_input_group prems_group
+        instrs_template @ instrs)
+      args_input_group instrs_group
   in
-  let paths = List.combine prems_group exp_output_group in
+  let paths = List.combine instrs_group exp_output_group in
   (args_input_template, paths)

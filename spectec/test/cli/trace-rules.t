@@ -143,3 +143,69 @@ tried and failed before the one that fired:
     y -> true,
     x -> 5
   ]
+
+When an error ends the run, the trace prints a failed exit line for every open relation and rule in all three modes.
+
+In AL mode a relation can fail to match without raising. This test uses overlapping rules and `--det` to raise an error.
+
+  $ OVERLAY=determinism-overlay.spectec
+  $ HELLO=../../testdata/interp/impty/base/hello.imp
+  $ spectec impty typecheck --spec $SPEC --spec $OVERLAY -p $HELLO --color never --det --trace.level rules 2>/dev/null | tail -n 6
+  [ 3]       ← Check_command/decl-dup [ok]
+  [ 2]     ← Check_command [fail]
+  [ 2]     ← Check_command/seq [fail]
+  [ 1]   ← Check_command [fail]
+  [ 1]   ← Check_prog/ [fail]
+  [ 0] ← Check_prog [fail]
+
+  $ ERR=../../testdata/interp/impty/base/_errors_add_bool.imp
+  $ spectec impty typecheck --spec $SPEC -p $ERR --color never --sl --trace.level rules
+  [ 0] → Check_prog
+  [ 1]   → Check_prog/0
+  [ 1]   → Check_command
+  [ 2]     → Check_command/0
+  [ 2]     → Check_expr
+  [ 3]       → Check_expr/0
+  [ 3]       → Check_expr
+  [ 4]         → Check_expr/0
+  [ 4]         ← Check_expr/0 [ok]
+  [ 3]       ← Check_expr [ok]
+  [ 3]       ← Check_expr/0 [fail]
+  [ 2]     ← Check_expr [fail]
+  [ 2]     ← Check_command/0 [fail]
+  [ 1]   ← Check_command [fail]
+  [ 1]   ← Check_prog/0 [fail]
+  [ 0] ← Check_prog [fail]
+  error: relation was not matched
+    --> ../../specs/impty/base/spec.spectec:110:6
+      |
+  110 |   -- Check_expr: tenv |- e : t
+      |      ^^^^^^^^^^
+      |
+      | source: sl-interp
+  [1]
+  $ spectec impty typecheck --spec $SPEC -p $ERR --color never --pl --trace.level rules
+  [ 0] → Check_prog
+  [ 1]   → Check_prog/0
+  [ 1]   → Check_command
+  [ 2]     → Check_command/0
+  [ 2]     → Check_expr
+  [ 3]       → Check_expr/0
+  [ 3]       → Check_expr
+  [ 4]         → Check_expr/0
+  [ 4]         ← Check_expr/0 [ok]
+  [ 3]       ← Check_expr [ok]
+  [ 3]       ← Check_expr/0 [fail]
+  [ 2]     ← Check_expr [fail]
+  [ 2]     ← Check_command/0 [fail]
+  [ 1]   ← Check_command [fail]
+  [ 1]   ← Check_prog/0 [fail]
+  [ 0] ← Check_prog [fail]
+  error: relation was not matched
+    --> ../../specs/impty/base/spec.spectec:110:6
+      |
+  110 |   -- Check_expr: tenv |- e : t
+      |      ^^^^^^^^^^
+      |
+      | source: pl-interp
+  [1]

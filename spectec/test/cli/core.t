@@ -39,7 +39,7 @@ A static type error renders a diagnostic to stderr and exits nonzero:
   142 |   -- Check_command: eps |- command -| tenv
       |      ^^^^^^^^^^^^^
       |
-      | source: il-interp
+      | source: al-interp
       |
       | trace:
       | application of rule Check_prog/ failed

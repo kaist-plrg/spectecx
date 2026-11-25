@@ -17,7 +17,7 @@ module type S = sig
   val name : string
 
   (** The interpreter modes this handler can observe. *)
-  val modes : [ `IL | `SL | `PL ] list
+  val modes : [ `AL | `SL | `PL ] list
 
   (** [(param_name, doc)] entries for CLI help. *)
   val params : (string * string) list

@@ -21,7 +21,7 @@ execution. hello.imp declares a variable through the overlapping decl-init case:
   130 |   -- Check_command: tenv |- c_1 -| tenv_1
       |      ^^^^^^^^^^^^^
       |
-      | source: il-interp
+      | source: al-interp
   [1]
   $ spectec impty typecheck --spec $BASE_SPEC --spec $OVERLAY -p $PROG --color never --det --sl --profile.output profile.json
   error: this alternative applies, and so does the alternative at ../../specs/impty/base/spec.spectec:109:26-109:40

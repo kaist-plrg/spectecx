@@ -5,14 +5,12 @@ type compiled_spec = {
   henv : Hints.Henv.t;  (** The hints used to annotate [spec_pl]. *)
 }
 
-type mode = Il | Sl | Pl
+type mode = Al | Sl | Pl
 type expectation
 
 module Pure_target : Interp.Target.S
 
-(** [compile_file filename] compiles [filename] into the IL, SL, and PL forms
-    used by [check]. Any diagnostic emitted during compilation fails the test.
-*)
+(** Any diagnostic during compilation fails the test. *)
 val compile_file : string -> compiled_spec
 
 (** [returns expected] requires evaluation to return values equal to those

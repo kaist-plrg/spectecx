@@ -1,7 +1,5 @@
-(** EL -> IL -> EL premise roundtrip: for each IL rule/clause, recover its EL
-    premises and assert they match what the author wrote, catching a dropped,
-    reordered, or mistagged premise. EL and IL pair positionally within an id,
-    since rule ids and clause defids both repeat and cannot key the pairing. *)
+(** Checks that AL retains the authored premises in order. Rule and clause ids
+    can repeat, so the test pairs definitions with the same id in order. *)
 
 open Core
 open Test_lib
@@ -10,9 +8,11 @@ module El = Lang.El
 module Il = Lang.Il
 module Al = Lang.Al
 
-let recover (prems : Al.prem list) : El.prem list =
-  List.filter_map prems ~f:(fun prem ->
-      match prem.note with Some (Al.Source el) -> Some el | _ -> None)
+let recover (instrs : Al.instr list) : El.prem list =
+  List.filter_map instrs ~f:(fun instr ->
+      match instr.note with
+      | Al.Premise prem_il -> Some prem_il.note
+      | Al.Sidecondition _ | Al.Input_sidecondition -> None)
 
 let authored_rule_premises (spec : El.spec) relid : El.prem list list =
   List.filter_map spec ~f:(fun def ->
@@ -67,11 +67,11 @@ let check_def (spec : El.spec) (tally : tally) (def : Al.def) : tally =
       let authored = authored_rule_premises spec (Annotated.it relid) in
       let failures =
         List.filter_mapi rules ~f:(fun i rule ->
-            let { Al.ruleid; prems; _ } = Annotated.it rule in
+            let { Al.ruleid; instrs; _ } = Annotated.it rule in
             find_mismatch
               ~label:
                 (sprintf "%s/%s" (Annotated.it relid) (Annotated.it ruleid))
-              ~authored:(List.nth authored i) ~recovered:(recover prems))
+              ~authored:(List.nth authored i) ~recovered:(recover instrs))
       in
       {
         tally with
@@ -82,10 +82,10 @@ let check_def (spec : El.spec) (tally : tally) (def : Al.def) : tally =
       let authored = authored_clause_premises spec (Annotated.it defid) in
       let failures =
         List.filter_mapi clauses ~f:(fun i clause ->
-            let { Al.prems; _ } = Annotated.it clause in
+            let { Al.instrs; _ } = Annotated.it clause in
             find_mismatch
               ~label:(sprintf "%s clause %d" (Annotated.it defid) i)
-              ~authored:(List.nth authored i) ~recovered:(recover prems))
+              ~authored:(List.nth authored i) ~recovered:(recover instrs))
       in
       {
         tally with
@@ -124,7 +124,7 @@ let run specdir =
       exit 1
 
 let command =
-  Command.basic ~summary:"run premise-provenance roundtrip test"
+  Command.basic ~summary:"run premise-origin roundtrip test"
   @@
   let open Command.Let_syntax in
   let open Command.Param in

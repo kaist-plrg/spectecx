@@ -12,6 +12,7 @@ module VEnv = Envs.Interp.VEnv
 module IdHashtbl = Envs.Make.IdHashtbl
 module FIdMap = Envs.Make.FIdMap
 module TIdMap = Envs.Make.TIdMap
+module Event = Instrumentation_api.Event
 
 exception Error of Location.t * string
 
@@ -153,6 +154,13 @@ struct
     | None -> error_undef id.at "relation" id.it
 
   let has_value ctx ~var = VEnv.mem var ctx.local.values
+
+  let bound_values ctx ~ids =
+    IdSet.elements ids
+    |> List.filter_map (fun id ->
+           find_value_opt ctx ~var:(id, [])
+           |> Option.map (fun value -> (id, value)))
+
   let has_local_func ctx ~id = FIdMap.mem id ctx.local.functions
 
   let replace_values ctx values =
@@ -310,17 +318,46 @@ struct
       in
       ignore (Emit_value.combined value ~sources:(ranged @ produced))
 
-  let iteration_outputs ctx ~iterinstr:Al.{ iter; vars_input; vars_output } ~f =
+  let with_repetition_events ~at ~index ~count ~is_success ~f =
+    Instrumentation_dispatcher.Dispatcher.with_enter_exit
+      ~enter:(fun () -> Event.Repetition_enter { index; count; at })
+      ~exit:(fun outcome ->
+        let success = Option.fold ~none:false ~some:is_success outcome in
+        Event.Repetition_exit { index; count; at; success })
+      ~f
+
+  let with_instr_events ctx ~instr ~at ~ids ~success_and_ctx ~f =
+    Instrumentation_dispatcher.Dispatcher.with_enter_exit
+      ~enter:(fun () -> Event.Instr_enter { instr; at })
+      ~exit:(fun outcome ->
+        let success, ctx_out =
+          match outcome with
+          | Some result -> success_and_ctx result
+          | None -> (false, ctx)
+        in
+        Event.Instr_exit
+          {
+            instr;
+            at;
+            success;
+            bindings = bound_values ctx_out ~ids:(Lazy.force ids);
+          })
+      ~f
+
+  let iteration_outputs ctx ~at ~iterinstr:Al.{ iter; vars_input; vars_output }
+      ~f =
     let* ctxs = expand_iteration_inputs ctx ~iter ~vars:vars_input in
-    let* ctxs_output_rev =
-      List.fold_left
-        (fun ctxs_output_rev ctx ->
-          let* ctxs_output_rev = ctxs_output_rev in
-          let* ctx_output = f ctx in
-          Ok (ctx_output :: ctxs_output_rev))
-        (Ok []) ctxs
+    let count = List.length ctxs in
+    let rec outputs_from index ctxs_output_rev = function
+      | [] -> Ok (List.rev ctxs_output_rev)
+      | ctx :: ctxs ->
+          let* ctx_output =
+            with_repetition_events ~at ~index ~count ~is_success:Result.is_ok
+              ~f:(fun () -> f ctx)
+          in
+          outputs_from (index + 1) (ctx_output :: ctxs_output_rev) ctxs
     in
-    let ctxs_output = List.rev ctxs_output_rev in
+    let* ctxs_output = outputs_from 0 [] ctxs in
     let bindings =
       collect_iteration_bindings ctxs_output ~iter ~vars:vars_output
     in
@@ -329,19 +366,29 @@ struct
       bindings;
     Ok bindings
 
-  let eval_iterations ctx ~iterinstrs ~f =
+  let eval_iterations ctx ~at ~iterinstrs ~f =
     let iterate body iterinstr ctx =
-      let* bindings = iteration_outputs ctx ~iterinstr ~f:body in
+      let* bindings = iteration_outputs ctx ~at ~iterinstr ~f:body in
       Ok (set_values ctx ~bindings)
     in
     List.fold_left iterate f iterinstrs ctx
 
-  let for_all_body_contexts ctx ~iterexps ~f =
+  let for_all_body_contexts ctx ~at ~iterexps ~f =
+    let holds_in_repetition = function Ok holds -> holds | Error _ -> false in
     let iterate body (iter, vars) ctx =
       let* ctxs = expand_iteration_inputs ctx ~iter ~vars in
-      List.fold_left
-        (fun holds ctx -> match holds with Ok true -> body ctx | _ -> holds)
-        (Ok true) ctxs
+      let count = List.length ctxs in
+      let rec holds_from index = function
+        | [] -> Ok true
+        | ctx :: ctxs -> (
+            match
+              with_repetition_events ~at ~index ~count
+                ~is_success:holds_in_repetition ~f:(fun () -> body ctx)
+            with
+            | Ok true -> holds_from (index + 1) ctxs
+            | stopped -> stopped)
+      in
+      holds_from 0 ctxs
     in
     List.fold_left iterate (fun ctx -> Ok (f ctx)) iterexps ctx
 

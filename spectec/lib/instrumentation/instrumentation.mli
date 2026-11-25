@@ -8,10 +8,9 @@ module Origin = Instrumentation_api.Origin
 module Output = Instrumentation_api.Output
 module Util = Instrumentation_handlers.Util
 module Static = Instrumentation_static.Static
-module Premise_uid = Instrumentation_static.Premise_uid
+module Instr_uid = Instrumentation_static.Instr_uid
 module Branch_coverage = Instrumentation_handlers.Branch_coverage
-module Node_coverage_il = Instrumentation_handlers.Node_coverage_il
-module Node_coverage_sl = Instrumentation_handlers.Node_coverage_sl
+module Instruction_coverage = Instrumentation_handlers.Instruction_coverage
 module Profile = Instrumentation_handlers.Profile
 module Trace = Instrumentation_handlers.Trace
 
@@ -28,7 +27,7 @@ module Config : sig
   val register_static_dependencies : t -> unit
   val handlers : t -> (module Handler.S) list
   val has_handler : t -> name:string -> bool
-  val validate_mode : t -> mode:[ `IL | `SL | `PL ] -> (unit, string) result
+  val validate_mode : t -> mode:[ `AL | `SL | `PL ] -> (unit, string) result
   val close_outputs : t -> unit
 end
 

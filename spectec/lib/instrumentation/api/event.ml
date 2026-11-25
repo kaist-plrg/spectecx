@@ -2,7 +2,13 @@ module Location = Common.Location
 module Il = Lang.Il
 module Al = Lang.Al
 module Sl = Lang.Sl
+module Pl = Lang.Pl
 
+(* The instruction's language matches the mode of the emitting interpreter. *)
+type instr = AlInstr of Al.instr | SlInstr of Sl.instr | PlInstr of Pl.instr
+
+(* Each enter has a matching exit. If evaluation raises, the interpreter
+   emits pending exits as failures, innermost first. *)
 type t =
   | Test_start of { test_case_id : string }
   | Test_end of { test_case_id : string }
@@ -29,13 +35,28 @@ type t =
       at : Location.t;
       success : bool;
     }
-  | Iter_prem_enter of { prem : Al.prem; at : Location.t }
-  | Iter_prem_exit of { at : Location.t }
-  | Prem_enter of { prem : Al.prem; at : Location.t }
-  | Prem_exit of {
-      prem : Al.prem;
+  (* The interpreter emits these events for repetitions of an instruction.
+     [index] starts at zero. [count] includes repetitions that may be skipped
+     after a failure. *)
+  | Repetition_enter of { index : int; count : int; at : Location.t }
+  | Repetition_exit of {
+      index : int;
+      count : int;
+      at : Location.t;
+      success : bool;
+    }
+  (* The SL and PL interpreters emit [Case_match] after guard evaluation and
+     before [Instr_exit]. [case_idx] is the zero-based index of the first
+     matching case, or [None] if all guards fail. *)
+  | Case_match of { instr : instr; at : Location.t; case_idx : int option }
+  (* Each pair covers one evaluation of the instruction before its block runs.
+     For an iterated instruction the pair falls inside the repetition events.
+     AL [IterI] uses the events of its body. [bindings] holds the resulting
+     values of variables named by the instruction and bound with no iterators. *)
+  | Instr_enter of { instr : instr; at : Location.t }
+  | Instr_exit of {
+      instr : instr;
       at : Location.t;
       success : bool;
       bindings : (Il.id * Il.Value.t) list;
     }
-  | Instr of { instr : Sl.instr; at : Location.t }

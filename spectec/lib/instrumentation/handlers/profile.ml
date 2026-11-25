@@ -173,7 +173,7 @@ let make cfg =
 
 module Spec : Instrumentation_spec.Spec.S = struct
   let name = "profile"
-  let modes = [ `IL; `SL ]
+  let modes = [ `AL; `SL ]
   let params = [ Instrumentation_spec.Param_utils.output_param ]
 
   let parse alist =

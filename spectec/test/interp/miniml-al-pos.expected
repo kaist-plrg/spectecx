@@ -36,7 +36,7 @@ Evaluator success: ../../../../../spectec/testdata/interp/miniml/let1.ml
 >>> Running evaluator test on ../../../../../spectec/testdata/interp/miniml/proj.ml
 Evaluator success: ../../../../../spectec/testdata/interp/miniml/proj.ml
 
-Evaluator (il) summary
+Evaluator (al) summary
   Ran:         12 / 12     (100.00%)
   Passed:      12 (100.00% of ran)
   Failed:       0 (0.00% of ran)

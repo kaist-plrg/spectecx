@@ -117,13 +117,13 @@ let check_nested_callbacks () =
     (fun mode ->
       let instrumented_spec =
         match mode with
-        | H.Il -> Instrumentation.Static.IlSpec spec.spec_al
+        | H.Al -> Instrumentation.Static.AlSpec spec.spec_al
         | Sl | Pl -> SlSpec spec.spec_sl
       in
       let config : Instrumentation.Handler.Config.t =
         {
           name = "callback-test";
-          modes = [ `IL; `SL; `PL ];
+          modes = [ `AL; `SL; `PL ];
           handler = (module Observer);
           output = Instrumentation.Output.stdout;
         }
@@ -145,7 +145,7 @@ let check_nested_callbacks () =
           (List.mem "next" !Observer.functions
           && List.mem "keep" !Observer.functions)
       then failwith "callback instrumentation is missing")
-    [ H.Il; H.Sl; H.Pl ]
+    [ H.Al; H.Sl; H.Pl ]
 
 let run () =
   check_nested_callbacks ();

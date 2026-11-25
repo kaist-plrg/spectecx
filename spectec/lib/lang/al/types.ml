@@ -17,8 +17,6 @@ type iter = Il.iter
 type var = Il.var
 type iterexp = Il.iterexp
 
-(* Each run of an iterated premise reads [vars_input] and binds
-   [vars_output]. *)
 type iterinstr = { iter : iter; vars_input : var list; vars_output : var list }
 
 let iterexp_of_iterinstr ({ iter; vars_input; vars_output } : iterinstr) :
@@ -28,30 +26,33 @@ let iterexp_of_iterinstr ({ iter; vars_input; vars_output } : iterinstr) :
 (* Rules *)
 
 type rule = rule' located
-and rule' = { ruleid : id; concl : notexp; prems : prem list }
+and rule' = { ruleid : id; concl : notexp; instrs : instr list }
 
 (* Clauses *)
 
 and clause = clause' located
-and clause' = { args : arg list; body : exp; prems : prem list }
+and clause' = { args : arg list; body : exp; instrs : instr list }
 
-(* Premises *)
+(* Instructions *)
 
 and relcall = Il.relcall = { relid : id; notexp : notexp }
 
-and prem = (prem', prem_prov option) annotated
-and prem_prov =
-  | Source of El.prem  (* lowered from this EL premise *)
-  | Synthesized        (* introduced by the algo pass, with no EL source *)
-and prem' =
-  | RelPr of relcall               (* id `:` notexp *)
-  | RelAssertPr of { call : relcall; expect : bool }
+and instr = (instr', origin) annotated
+and origin =
+  | Premise of Il.prem
+  | Sidecondition of Il.prem  (* Checks for variables bound by the given
+                                 premise. *)
+  | Input_sidecondition       (* Checks for variables bound by inputs or
+                                 arguments. *)
+and instr' =
+  | RelI of relcall                 (* id `:` notexp *)
+  | RelAssertI of { call : relcall; expect : bool }
                                    (* `if` id `:` notexp `holds` when expect, else `does not hold` *)
-  | IfPr of { cond : exp; role : if_role }  (* `if` exp *)
-  | ElsePr                         (* `otherwise` *)
-  | LetPr of exp * exp             (* `let` exp `=` exp *)
-  | IterPr of prem * iterinstr     (* prem iterinstr *)
-  | DebugPr of exp                 (* `debug` exp *)
+  | IfI of { cond : exp; role : if_role }  (* `if` exp *)
+  | OtherwiseI                     (* `otherwise` *)
+  | LetI of exp * exp              (* `let` exp `=` exp *)
+  | IterI of instr * iterinstr     (* instr iterinstr *)
+  | DebugI of exp                  (* `debug` exp *)
 
 and if_role =
   | Condition

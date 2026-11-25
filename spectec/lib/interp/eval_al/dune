@@ -1,8 +1,8 @@
 (include_subdirs qualified)
 
 (library
- (name eval_il)
- (public_name spectec.interp.eval_il)
+ (name eval_al)
+ (public_name spectec.interp.eval_al)
  (libraries
   spectec.common
   spectec.diagnostic

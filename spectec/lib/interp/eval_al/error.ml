@@ -6,7 +6,7 @@ exception BacktrackError of Common.Attempt.failtrace list
 (* Interpreter errors *)
 
 let error (at : Location.t) (msg : string) = raise (InterpError (at, msg))
-let warn (at : Location.t) (msg : string) = Diag.warn at "il-interp" msg
+let warn (at : Location.t) (msg : string) = Diag.warn at "al-interp" msg
 
 (* Builtin errors *)
 

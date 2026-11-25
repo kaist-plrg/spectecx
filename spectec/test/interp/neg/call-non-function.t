@@ -7,7 +7,7 @@ Calling a non-function value fails the typechecker.
   150 |   -- Check_command: eps |- command -| tenv
       |      ^^^^^^^^^^^^^
       |
-      | source: il-interp
+      | source: al-interp
       |
       | trace:
       | application of rule Check_prog/ failed

@@ -60,7 +60,7 @@ let input relation values = { relation; decode = (fun () -> Ok (values ())) }
 
 let modes =
   [
-    ("IL", Spectec.Interp_mode.Il);
+    ("AL", Spectec.Interp_mode.Al);
     ("SL", Spectec.Interp_mode.Sl);
     ("PL", Spectec.Interp_mode.Pl spec.henv);
   ]
@@ -93,7 +93,7 @@ let handler_config ~name ?handle_value ?(finish = fun () -> ()) () :
   end in
   {
     name;
-    modes = [ `IL; `SL; `PL ];
+    modes = [ `AL; `SL; `PL ];
     handler = (module Handler);
     output = Instrumentation.Output.stdout;
   }
@@ -635,6 +635,63 @@ let decoded_fields_reach_later_events () =
         fail_check ~name ~mode_name "no computed value read the X field")
     modes
 
+let tree_handler ~path : Instrumentation.Handler.Config.t =
+  let (module Spec) =
+    List.find
+      (fun (module Spec : Instrumentation.Handler.Spec.S) ->
+        String.equal Spec.name "tree")
+      Instrumentation.builtin_handler_specs
+  in
+  match Spec.parse [ ("level", Some "premise"); ("output", Some path) ] with
+  | Some config -> config
+  | None -> failwith "the tree handler rejected its parameters"
+
+let tree_premise_lines ~path =
+  let lines =
+    In_channel.with_open_text path In_channel.input_all
+    |> String.split_on_char '\n'
+    |> List.filter (fun line ->
+           String.starts_with ~prefix:"-- " line
+           || String.starts_with ~prefix:"✗  " line)
+  in
+  Sys.remove path;
+  lines
+
+let tree_renders_iterated_premises_as_authored () =
+  let name = "tree renders iterated premises as authored" in
+  let path = Filename.temp_file "tree" ".txt" in
+  let input = input "Offset_pair" (fun () -> [ nats [ 1; 2 ]; nat 3 ]) in
+  ignore
+    (evaluate ~config:[ tree_handler ~path ] Spectec.Interp_mode.Al input
+    |> values_exn ~name ~mode_name:"AL");
+  let premises = tree_premise_lines ~path in
+  let expected =
+    [
+      "-- if (4, 4) = ($(1 + 3), $(1 + 3))";
+      "-- if (5, 5) = ($(2 + 3), $(2 + 3))";
+    ]
+  in
+  if not (List.equal String.equal premises expected) then
+    fail_check ~name ~mode_name:"AL"
+      ("premise lines were:\n" ^ String.concat "\n" premises)
+
+let tree_marks_the_failed_repetition () =
+  let name = "tree marks the failed repetition of an iterated premise" in
+  let path = Filename.temp_file "tree" ".txt" in
+  let input =
+    input "Pair_mismatch" (fun () -> [ nats [ 1; 2 ]; nats [ 5; 2 ] ])
+  in
+  (match
+     evaluate ~config:[ tree_handler ~path ] Spectec.Interp_mode.Al input
+   with
+  | Ok _ -> fail_check ~name ~mode_name:"AL" "the relation held"
+  | Error _ -> ());
+  let premises = tree_premise_lines ~path in
+  let expected = [ "✗  if (1, 1) = (1, 5)"; "-- if (2, 2) = (2, 2)" ] in
+  if not (List.equal String.equal premises expected) then
+    fail_check ~name ~mode_name:"AL"
+      ("premise lines were:\n" ^ String.concat "\n" premises)
+
 let run () =
   handlers_preserve_results ();
   composed_handlers_receive_events_in_order ();
@@ -652,4 +709,6 @@ let run () =
   iteration_events_include_body_results ();
   handler_failure_finishes_handlers ();
   decode_failures_finish_handlers ();
-  decoded_fields_reach_later_events ()
+  decoded_fields_reach_later_events ();
+  tree_renders_iterated_premises_as_authored ();
+  tree_marks_the_failed_repetition ()

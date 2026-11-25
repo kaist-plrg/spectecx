@@ -80,6 +80,11 @@ let validate_config config ~(mode : Interp_mode.request) =
 
 (* --- Unified interpreter entry point --- *)
 
+let static_spec ~(mode : Interp_mode.request) ~spec_al =
+  match mode with
+  | `AL -> Instrumentation.Static.AlSpec spec_al
+  | `SL | `PL -> Instrumentation.Static.SlSpec (structure spec_al)
+
 let interp_error e = Error.InterpError e
 
 let eval_run ~check_determinism ~(mode : Interp_mode.t) ~spec_al target_state
@@ -93,9 +98,9 @@ let eval_run ~check_determinism ~(mode : Interp_mode.t) ~spec_al target_state
         Interp.eval_func context ~func ~values |> Result.map_error interp_error)
   in
   match mode with
-  | Il ->
+  | Al ->
       run_layer
-        (Interp.context_of_il_spec ~check_determinism target_state spec_al)
+        (Interp.context_of_al_spec ~check_determinism target_state spec_al)
   | Sl ->
       let spec_sl = structure spec_al in
       run_layer
@@ -116,10 +121,6 @@ let eval_task_with_instrumentation (type i)
     (module T : Task.S with type input = i)
     ?(config = Instrumentation.Config.default) ?(check_determinism = false)
     ~(mode : Interp_mode.t) ~spec_al (input : i) =
-  let instrumented_spec =
-    match mode with
-    | Il -> Instrumentation.Static.IlSpec spec_al
-    | Sl | Pl _ -> Instrumentation.Static.SlSpec (structure spec_al)
-  in
-  Instrumentation.with_instrumentation config instrumented_spec @@ fun () ->
-  eval_task (module T) ~check_determinism ~mode ~spec_al input
+  Instrumentation.with_instrumentation config
+    (static_spec ~mode:(Interp_mode.to_request mode) ~spec_al)
+  @@ fun () -> eval_task (module T) ~check_determinism ~mode ~spec_al input

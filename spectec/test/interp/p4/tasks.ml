@@ -237,6 +237,6 @@ let () =
               (P4.contains_substring diagnostics
                  "unsupported eBPF extern object: Unsupported")
           then failwith diagnostics)
-    [ ("IL", Spectec.Interp_mode.Il); ("SL", Sl); ("PL", Pl henv) ];
+    [ ("AL", Spectec.Interp_mode.Al); ("SL", Sl); ("PL", Pl henv) ];
   check_mismatch spec_al Spectec.Interp_mode.Sl;
   check_malformed spec_al Spectec.Interp_mode.Sl

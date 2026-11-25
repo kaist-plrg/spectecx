@@ -195,3 +195,18 @@ The inputs level adds the input values on enter and the output on exit:
     y -> true,
     x -> 5
   ]
+
+The PL trace includes the function arguments, as the AL trace does.
+
+  $ spectec impty eval --spec $SPEC -p $HELLO --color never --pl --trace.level inputs | grep -A4 '→ \$lookup'
+  [ 6]             → $lookup
+  [ 6]                 [ x -> int ]
+  [ 6]                 x
+  [ 6]             ← $lookup
+  [ 6]                 Some(int)
+  --
+  [ 6]             → $lookup
+  [ 6]                 [ x -> 5 ]
+  [ 6]                 x
+  [ 6]             ← $lookup
+  [ 6]                 Some(5)

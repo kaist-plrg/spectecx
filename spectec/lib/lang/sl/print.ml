@@ -227,101 +227,71 @@ and string_of_guard guard =
 
 (* Instructions *)
 
-and string_of_instr ?(level = 0) ?(index = 0) instr =
-  let indent = String.make (level * 2) ' ' in
-  let order = Format.asprintf "%s%d. " indent index in
+and string_of_instr ?(short = false) ?(level = 0) ?(index = 0) instr =
+  if short then string_of_instr_short instr
+  else string_of_instr_full ~level ~index instr
+
+and string_of_instr_short instr =
   match instr.it with
-  | RelI { call = { relid; notexp }; iterinstrs; block } ->
-      Format.asprintf "%s(%s: %s)%s\n\n%s" order (string_of_relid relid)
+  | RelI { call = { relid; notexp }; iterinstrs; block = _ } ->
+      Format.asprintf "(%s: %s)%s" (string_of_relid relid)
         (string_of_notexp notexp)
         (string_of_iterinstrs iterinstrs)
-        (fst (string_of_instrs_from ~level ~index:(index + 1) block))
-  | RelAssertI
-      {
-        call = { relid; notexp };
-        expect;
-        iterexps;
-        block = instrs_then;
-        phantom = None;
-      } ->
-      Format.asprintf "%sIf (%s: %s %s)%s, then\n\n%s" order
-        (string_of_relid relid) (string_of_notexp notexp)
+  | RelAssertI { call = { relid; notexp }; expect; iterexps; _ } ->
+      Format.asprintf "If (%s: %s %s)%s, then" (string_of_relid relid)
+        (string_of_notexp notexp)
         (if expect then "holds" else "does not hold")
         (string_of_iterexps iterexps)
-        (string_of_instrs ~level:(level + 1) instrs_then)
-  | RelAssertI
-      {
-        call = { relid; notexp };
-        expect;
-        iterexps;
-        block = instrs_then;
-        phantom = Some phantom;
-      } ->
-      Format.asprintf "%sIf (%s: %s %s)%s, then\n\n%s\n\n%sElse %s" order
-        (string_of_relid relid) (string_of_notexp notexp)
-        (if expect then "holds" else "does not hold")
+  | IfI (exp_cond, iterexps, _, _) ->
+      Format.asprintf "If (%s)%s, then" (string_of_exp exp_cond)
         (string_of_iterexps iterexps)
-        (string_of_instrs ~level:(level + 1) instrs_then)
-        order
-        (string_of_phantom phantom)
-  | IfI (exp_cond, iterexps, instrs_then, None) ->
-      Format.asprintf "%sIf (%s)%s, then\n\n%s" order (string_of_exp exp_cond)
-        (string_of_iterexps iterexps)
-        (string_of_instrs ~level:(level + 1) instrs_then)
-  | IfI (exp_cond, iterexps, instrs_then, Some phantom) ->
-      Format.asprintf "%sIf (%s)%s, then\n\n%s\n\n%sElse %s" order
-        (string_of_exp exp_cond)
-        (string_of_iterexps iterexps)
-        (string_of_instrs ~level:(level + 1) instrs_then)
-        order
-        (string_of_phantom phantom)
-  | CaseI (exp, cases, None) ->
-      Format.asprintf "%sCase analysis on %s\n\n%s" order (string_of_exp exp)
-        (string_of_cases ~level:(level + 1) cases)
-  | CaseI (exp, cases, Some phantom) ->
-      Format.asprintf "%sCase analysis on %s\n\n%s\n\n%sElse %s" order
-        (string_of_exp exp)
-        (string_of_cases ~level:(level + 1) cases)
-        order
-        (string_of_phantom phantom)
-  | LetI (exp_l, exp_r, iterinstrs, block) ->
-      Format.asprintf "%s(Let %s be %s)%s\n\n%s" order (string_of_exp exp_l)
+  | CaseI (exp, _, _) ->
+      Format.asprintf "Case analysis on %s" (string_of_exp exp)
+  | LetI (exp_l, exp_r, iterinstrs, _) ->
+      Format.asprintf "(Let %s be %s)%s" (string_of_exp exp_l)
         (string_of_exp exp_r)
         (string_of_iterinstrs iterinstrs)
-        (fst (string_of_instrs_from ~level ~index:(index + 1) block))
-  | ResultI [] -> Format.asprintf "%sThe relation holds" order
-  | ResultI exps ->
-      Format.asprintf "%sResult in %s" order (string_of_exps ", " exps)
-  | ReturnI exp -> Format.asprintf "%sReturn %s" order (string_of_exp exp)
-  | DebugI (exp, instr_body) ->
-      let body, _next =
-        string_of_instr_with_next ~level ~index:(index + 1) instr_body
-      in
-      Format.asprintf "%sDebug: %s\n\n%s" order (string_of_exp exp) body
+  | ResultI [] -> "The relation holds"
+  | ResultI exps -> Format.asprintf "Result in %s" (string_of_exps ", " exps)
+  | ReturnI exp -> Format.asprintf "Return %s" (string_of_exp exp)
+  | DebugI (exp, _) -> Format.asprintf "Debug: %s" (string_of_exp exp)
+
+and string_of_instr_full ~level ~index instr =
+  let indent = String.make (level * 2) ' ' in
+  let order = Format.asprintf "%s%d. " indent index in
+  let header = string_of_instr_short instr in
+  let string_of_else = function
+    | Some phantom -> "\n\n" ^ order ^ "Else " ^ string_of_phantom phantom
+    | None -> ""
+  in
+  match instr.it with
+  | RelI _ | LetI _ | DebugI _ ->
+      fst (string_of_instr_with_next ~level ~index instr)
+  | RelAssertI { block = instrs_then; phantom = phantom_opt; _ }
+  | IfI (_, _, instrs_then, phantom_opt) ->
+      Format.asprintf "%s%s\n\n%s%s" order header
+        (string_of_instrs ~level:(level + 1) instrs_then)
+        (string_of_else phantom_opt)
+  | CaseI (_, cases, phantom_opt) ->
+      Format.asprintf "%s%s\n\n%s%s" order header
+        (string_of_cases ~level:(level + 1) cases)
+        (string_of_else phantom_opt)
+  | ResultI _ | ReturnI _ -> order ^ header
 
 and string_of_instr_with_next ?(level = 0) ~(index : int) instr =
   let indent = String.make (level * 2) ' ' in
   let order = Format.asprintf "%s%d. " indent index in
   match instr.it with
-  | LetI (exp_l, exp_r, iterinstrs, block) ->
+  | LetI (_, _, _, block) | RelI { block; _ } ->
       let block, next = string_of_instrs_from ~level ~index:(index + 1) block in
-      ( Format.asprintf "%s(Let %s be %s)%s\n\n%s" order (string_of_exp exp_l)
-          (string_of_exp exp_r)
-          (string_of_iterinstrs iterinstrs)
-          block,
+      ( Format.asprintf "%s%s\n\n%s" order (string_of_instr_short instr) block,
         next )
-  | RelI { call = { relid; notexp }; iterinstrs; block } ->
-      let block, next = string_of_instrs_from ~level ~index:(index + 1) block in
-      ( Format.asprintf "%s(%s: %s)%s\n\n%s" order (string_of_relid relid)
-          (string_of_notexp notexp)
-          (string_of_iterinstrs iterinstrs)
-          block,
-        next )
-  | DebugI (exp, instr_body) ->
+  | DebugI (_, instr_body) ->
       let body, next =
         string_of_instr_with_next ~level ~index:(index + 1) instr_body
       in
-      (Format.asprintf "%sDebug: %s\n\n%s" order (string_of_exp exp) body, next)
+      ( Format.asprintf "%s%s\n\n%s" order (string_of_instr_short instr) body,
+        next )
   | _ -> (string_of_instr ~level ~index instr, index + 1)
 
 and string_of_instrs_from ?(level = 0) ~(index : int) instrs =

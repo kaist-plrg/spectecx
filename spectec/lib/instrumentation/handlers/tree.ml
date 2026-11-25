@@ -1,17 +1,10 @@
-(** Tree: buffers a top-level relation invocation and emits one ASCII derivation
-    tree when it completes: conclusion on top, sub-derivations below as premises
-    led by [--]. Unlike {!Trace}, backtracking is pruned to the rules that
-    applied, yielding a clean derivation tree.
+(** Prints a tree when a top-level relation call finishes. Failed calls show the
+    rules that could not finish.
 
-    A failed run is rendered like a successful one, with the rule that could not
-    be completed crossed out.
-
-    Levels:
-    - [Rule]: each relation node tagged with the rule that matched.
-    - [Conclusion]: [Rule] + the conclusion judgment under each tag (e.g.
-      [[ x -> int ] |- 5 : int]).
-    - [Premise]: [Conclusion] + each rule's premises in source order,
-      concretized with runtime values. IL only. *)
+    - [Rule] labels each relation with its rule.
+    - [Conclusion] adds the conclusion judgment.
+    - [Premise] adds source premises with runtime values, once per repetition
+      for iterated premises. This level requires AL mode. *)
 
 module Il = Lang.Il
 module Al = Lang.Al
@@ -42,6 +35,10 @@ type outcome =
   | Rel_result of { conclusion : judgment; holds : bool }
   | Func_result of Il.Value.t option (* [None] if the call got stuck. *)
 
+(* The failed step may be an input side condition, which has no IL premise.
+   The step's exit event supplies [bindings]. *)
+type failed_instr = { instr : Al.instr; bindings : (Il.id * Il.Value.t) list }
+
 type node = {
   kind : kind;
   id : string;
@@ -53,23 +50,26 @@ type node = {
   mutable failures_rev : derivation list;
   (* The premise being evaluated now, awaiting its sub-derivation; premise level. *)
   mutable pending_prem : prem_entry option;
-  (* Variable values across the rule's premises, synthesized binders included. *)
+  (* Newest values first across all rule attempts. *)
   mutable binding_env : (Il.id * Il.Value.t) list;
 }
 
-and prem_entry = { prem : Al.prem; mutable subderiv : node option }
+and prem_entry = {
+  prem_il : Il.prem;
+  (* Values for this repetition of the premise. *)
+  mutable bindings : (Il.id * Il.Value.t) list;
+  mutable subderiv : node option;
+}
 
-(* One rule's attempt at a goal; [unmet_prem] is the premise that defeated it, or
-   [None] if the rule fired. *)
 and derivation = {
   mutable rule : string option;
   mutable prems_rev : prem_entry list;
   mutable children_rev : node list;
-  mutable unmet_prem : Al.prem option;
+  mutable failed_instr : failed_instr option;
 }
 
 let empty_derivation () =
-  { rule = None; prems_rev = []; children_rev = []; unmet_prem = None }
+  { rule = None; prems_rev = []; children_rev = []; failed_instr = None }
 
 let new_node kind id inputs =
   {
@@ -89,7 +89,7 @@ let is_failed node =
   | _ -> false
 
 let is_applied = function
-  | Some { it = Al.IfPr { role = Al.Guard; _ }; _ } -> false
+  | Some { instr = { it = Al.IfI { role = Al.Guard; _ }; _ }; _ } -> false
   | _ -> true
 
 (* === Mutable state ================================================= *)
@@ -128,17 +128,18 @@ module State = struct
     with_current (fun current ->
         let derivation = current.derivation in
         derivation.rule <- Some rule_id;
-        if (not success) && is_applied derivation.unmet_prem then
+        if (not success) && is_applied derivation.failed_instr then
           current.failures_rev <- derivation :: current.failures_rev)
 
-  let enter_premise prem =
+  let enter_premise ~prem_il =
     with_current (fun current ->
-        current.pending_prem <- Some { prem; subderiv = None })
+        current.pending_prem <- Some { prem_il; bindings = []; subderiv = None })
 
-  let record_premise () =
+  let record_premise ~bindings =
     with_current (fun current ->
         Option.iter
           (fun entry ->
+            entry.bindings <- bindings;
             current.derivation.prems_rev <-
               entry :: current.derivation.prems_rev)
           current.pending_prem;
@@ -148,12 +149,15 @@ module State = struct
     with_current (fun current ->
         current.binding_env <- bindings @ current.binding_env)
 
-  let record_unmet_prem prem =
-    with_current (fun current -> current.derivation.unmet_prem <- Some prem)
+  let record_failed_instr instr ~bindings =
+    with_current (fun current ->
+        current.derivation.failed_instr <- Some { instr; bindings })
 end
 
-let is_authored_prem prem =
-  match prem.note with Some Al.Synthesized -> false | _ -> true
+let as_premise_opt instr =
+  match instr.note with
+  | Al.Premise prem_il -> Some prem_il
+  | Al.Sidecondition _ | Al.Input_sidecondition -> None
 
 (* === Rendering ===================================================== *)
 
@@ -218,13 +222,41 @@ let render_prem ~binding_env entry =
   (* Returning [None] would let the unparser print the variable's name; show [?]
      for an unbound variable instead. *)
   let values varid =
-    match List.find_opt (fun (id, _) -> id.it = varid.it) binding_env with
+    match
+      List.find_opt
+        (fun (id, _) -> id.it = varid.it)
+        (entry.bindings @ binding_env)
+    with
     | Some (_, v) -> Some (render_value v)
     | None -> Some (dim "?")
   in
-  match entry.prem.note with
-  | Some (Al.Source el_prem) -> El.Unparse.string_of_prem ~values el_prem
-  | _ -> Al.Print.string_of_prem entry.prem
+  El.Unparse.string_of_prem ~values entry.prem_il.note
+
+(* Side conditions run after all repetitions of the premise, so a failed
+   check may belong to an earlier repetition. *)
+let marked_index entries ~failed =
+  let last = List.length entries - 1 in
+  match failed with
+  | None -> None
+  | Some { instr; bindings } -> (
+      match instr.note with
+      | Al.Sidecondition prem_il ->
+          (* The algo pass shares this [Il.prem] with the side conditions. *)
+          let agrees entry =
+            entry.prem_il == prem_il
+            && List.for_all
+                 (fun (id, value) ->
+                   match
+                     List.find_opt
+                       (fun (id', _) -> id'.it = id.it)
+                       entry.bindings
+                   with
+                   | Some (_, value') -> Il.Eq.eq_value value value'
+                   | None -> true)
+                 bindings
+          in
+          Some (Option.value (List.find_index agrees entries) ~default:last)
+      | Al.Premise _ | Al.Input_sidecondition -> Some last)
 
 let derivations_of node =
   if is_failed node then List.rev node.failures_rev else [ node.derivation ]
@@ -271,22 +303,22 @@ and print_derivation_body ~rest_prefix node derivation out =
     let text = render_prem ~binding_env:node.binding_env entry in
     Format.fprintf out "%s%s\n" (rest_prefix ^ connector marked) text
   in
-  let is_synthesized =
-    match derivation.unmet_prem with
-    | Some p -> not (is_authored_prem p)
+  let failed_in_sidecondition =
+    match derivation.failed_instr with
+    | Some { instr; _ } -> Option.is_none (as_premise_opt instr)
     | None -> false
   in
   let entries = List.rev derivation.prems_rev in
-  let last = List.length entries - 1 in
+  let marked = marked_index entries ~failed:derivation.failed_instr in
   List.iteri
     (fun i entry ->
-      let is_culprit = Option.is_some derivation.unmet_prem && i = last in
-      let show_as_text = is_culprit && is_synthesized in
-      match (entry.prem.it, entry.subderiv) with
-      | (Al.RelPr _ | Al.RelAssertPr { expect = true; _ }), Some subderiv
+      let is_marked = marked = Some i in
+      let show_as_text = is_marked && failed_in_sidecondition in
+      match (entry.prem_il.it, entry.subderiv) with
+      | (Il.RelPr _ | Il.RelAssertPr { expect = true; _ }), Some subderiv
         when not show_as_text ->
           print_child ~rest_prefix out subderiv
-      | _ -> print_prem ~marked:is_culprit entry)
+      | _ -> print_prem ~marked:is_marked entry)
     entries;
   let children =
     match !config.level with
@@ -326,16 +358,23 @@ module M : Instrumentation_api.Handler.S = struct
     (* Function clauses are tried like rules, but functions never invoke
        relations, so a failed clause leaves no sub-derivation to roll back. *)
     | Clause_enter _ | Clause_exit _ -> ()
-    | Iter_prem_enter _ | Iter_prem_exit _ -> ()
-    | Prem_enter { prem; at = _ } ->
-        if !config.level = Premise && is_authored_prem prem then
-          State.enter_premise prem
-    | Prem_exit { prem; at = _; success; bindings } ->
-        if not success then State.record_unmet_prem prem;
+    | Repetition_enter _ | Repetition_exit _ -> ()
+    | Instr_enter { instr = AlInstr instr; at = _ } ->
+        if !config.level = Premise then
+          Option.iter
+            (fun prem_il -> State.enter_premise ~prem_il)
+            (as_premise_opt instr)
+    | Instr_exit { instr = AlInstr instr; at = _; success; bindings } ->
+        if not success then State.record_failed_instr instr ~bindings;
         if !config.level = Premise then (
           State.record_bindings ~bindings;
-          if is_authored_prem prem then State.record_premise ())
-    | Instr _ -> ()
+          if Option.is_some (as_premise_opt instr) then
+            State.record_premise ~bindings)
+    | Instr_enter { instr = SlInstr _ | PlInstr _; at = _ }
+    | Instr_exit
+        { instr = SlInstr _ | PlInstr _; at = _; success = _; bindings = _ }
+    | Case_match _ ->
+        ()
 end
 
 let resolve_ansi : Instrumentation_api.Output.t -> Ansi.t = function
@@ -350,7 +389,7 @@ let make cfg =
 
 module Spec : Instrumentation_spec.Spec.S = struct
   let name = "tree"
-  let modes = [ `IL; `SL ]
+  let modes = [ `AL; `SL ]
 
   let params =
     [
@@ -366,10 +405,10 @@ module Spec : Instrumentation_spec.Spec.S = struct
         failwith
           ("Invalid tree level: " ^ s ^ " (expected: rule|conclusion|premise)")
 
-  (* Premises are IL-only. *)
+  (* The premise level needs the IL origins carried by AL instructions. *)
   let modes_of_level = function
-    | Premise -> [ `IL ]
-    | Rule | Conclusion -> [ `IL; `SL ]
+    | Premise -> [ `AL ]
+    | Rule | Conclusion -> [ `AL; `SL ]
 
   let parse alist =
     match Instrumentation_spec.Param_utils.get alist "level" with

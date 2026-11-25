@@ -1,4 +1,4 @@
-AE arithmetic and VAE binding follow the same semantics in IL, SL, and PL.
+Tests cover AE arithmetic and VAE binding in AL, SL and PL mode.
 
   $ check() {
   >   target=$1
@@ -44,7 +44,7 @@ Free identifiers, including those outside a binding's scope, fail during evaluat
   >       printf 'unexpected success: %s\n' "$1"
   >       return 1
   >     fi
-  >     grep -Eq 'source: (il|sl|pl)-interp' error || { cat error; return 1; }
+  >     grep -Eq 'source: (al|sl|pl)-interp' error || { cat error; return 1; }
   >   done
   > }
   $ rejects 'x'

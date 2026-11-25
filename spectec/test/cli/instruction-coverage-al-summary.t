@@ -1,18 +1,19 @@
-impty CLI: premise-coverage summary against hello.imp.
+impty CLI: instruction-coverage summary in AL mode against hello.imp.
 
   $ SPEC=../../specs/impty/base/spec.spectec
   $ HELLO=../../testdata/interp/impty/base/hello.imp
 
-Premise coverage is IL-only; run it on the typechecker. Summary lists only the
-premises that never succeeded:
+AL coverage counts attempts and successes for each instruction and
+failures for `if` and relation instructions.
+The summary lists the AL instructions that never succeeded.
 
-  $ spectec impty typecheck --spec $SPEC -p $HELLO --color never --premise-coverage.level summary
+  $ spectec impty typecheck --spec $SPEC -p $HELLO --color never --instruction-coverage.level summary
   
-  === IL Node Coverage ===
+  === AL Instruction Coverage ===
   
-  IL Premises: 35/147 attempted (23.81%), 27/147 succeeded (18.37%)
-  38 rel premises
-  60 if-premises: succeeded 12/60 (20.00%), failed 11/60 (18.33%), neither 40/60 (66.67%), total 23/120 (19.17%)
+  AL Instructions: 35/147 attempted (23.81%), 27/147 succeeded (18.37%)
+  38 rel instructions
+  60 if instructions: succeeded 12/60 (20.00%), failed 11/60 (18.33%), neither 40/60 (66.67%), total 23/120 (19.17%)
   
   Never succeeded:
     lookup/clause/0:
