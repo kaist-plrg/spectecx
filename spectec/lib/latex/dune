@@ -1,0 +1,9 @@
+(library
+ (name latex)
+ (public_name spectec.latex)
+ (libraries
+  zarith
+  bignum.bigint
+  spectec.common
+  spectec.lang.el
+  spectec.lang.xl))

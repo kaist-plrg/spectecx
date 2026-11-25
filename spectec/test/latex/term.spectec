@@ -1,0 +1,143 @@
+var TC : nat
+
+;; Types
+
+var boolean : bool
+var tuple : (nat, int, text)
+var application : box<bool, nat>
+var iteration : item*
+var nested_iteration : (item*)*
+var parenthesized : (item)
+
+relation Sequence_type: p TC x
+relation Bracket_type: `<CASE x_t`>
+relation Arrow_sub_type: x ->_ n y z
+relation Arrow_sub_only_type: x ->_ n
+relation Double_arrow_sub_type: p =>_ k
+relation Judgment_type: context |- exp : typ
+relation Leading_turnstile_type: |- exp : typ
+
+;; Literals and names
+
+rule Exp/literals: true 123456789012345678901234567890 0x123456789ABCDEF0123456789ABCDEF "a_#%&{}\\^~" eps
+rule Exp/sequence: p TC x
+rule Exp/variable-subscripts: plain TC_0 typeId_fresh_local _ignored
+rule Exp/variable-trailing-underscores: x_ x__
+rule Exp/dollar: "a$b"
+rule Exp/string-bytes: "\u{3BB} \FF"
+rule Exp/string-escapes: "quote\" newline\n tab\t backslash\\ control\1F braces{} three   spaces"
+
+;; Parentheses from precedence
+
+rule Exp/stronger-right: $(a + b * c)
+rule Exp/weaker-left: $((a + b) * c)
+rule Exp/left-associative-right-child: $(a - (b - c))
+rule Exp/left-associative-left-child: $((a - b) - c)
+rule Exp/right-associative-left-child: (a => b) => c
+rule Exp/right-associative-right-child: a => (b => c)
+rule Exp/comparison-chain: $(a = (b = c))
+rule Exp/comparison: $(a <= b)
+rule Exp/author-parentheses: (x_under)
+rule Exp/power-left: $(a ^ b ^ c)
+rule Exp/power-right: $(a ^ (b ^ c))
+rule Exp/power-of-negation: $((-a) ^ 2)
+rule Exp/negation-of-power: $(-a ^ 2)
+rule Exp/negation-of-sum: $(-(a + b))
+rule Exp/not-conjunction: ~(a /\ b)
+rule Exp/conjunction-in-disjunction: a \/ b /\ c
+rule Exp/disjunction-in-conjunction: (a \/ b) /\ c
+rule Exp/cons-right: x :: y :: zs
+rule Exp/step-over-colon: a ~> b : c
+rule Exp/colon-over-implication: a : b => c
+rule Exp/arrow-under-cons: x -> t :: tenv
+rule Exp/comparison-under-assignment: a := $(b = c)
+rule Exp/arrow-under-comparison: a = x -> t
+rule Exp/arrow-under-conjunction: a /\ x -> t
+rule Exp/assignment-under-conjunction: a /\ b := c
+rule Exp/relations-under-disjunction: a = b \/ c <: nat
+rule Exp/turnstile-over-tilesturn: C |- s -| D
+rule Exp/tilesturn-over-step: a -| b ~> c
+rule Exp/range-over-concatenation: a .. b ++ c
+rule Exp/negation-in-product: $(-a * b)
+rule Exp/negation-over-sequence: ~a b
+rule Exp/power-in-sequence: x $(a ^ b)
+rule Exp/implication-over-disjunction: a => b \/ c
+rule Exp/conjunction-over-subtype: a /\ b <: nat
+rule Exp/comparison-over-cons: a = b :: c
+rule Exp/arrow-over-semicolon: a -> b ; c
+rule Exp/negation-of-negation: $(-(-a))
+rule Exp/sign-after-slash: $(a / -b)
+rule Exp/sign-after-dot: a . -b
+rule Exp/sign-after-two-dots: a .. -b
+rule Exp/sign-after-ellipsis: a ... -b
+rule Exp/semicolon-over-range: a ; b .. c
+rule Exp/range-over-set-minus: a .. b \ c
+rule Exp/equivalence: a <=> b
+rule Exp/arithmetic-symbols: $(a / b \ c)
+rule Exp/comparison-symbols: $(a =/= b /\ a < b /\ a > b /\ a >= b)
+rule Exp/unary-plus: $(+a)
+rule Exp/list-operators: (x :: xs) ++ [y]
+rule Exp/nested-sequence: x (a b) y
+rule Exp/iterated-sequence: (a b)*
+rule Exp/object-term: env |- (e_l '+' e_r) ==> (_NUM i)
+
+;; Collections and access
+
+rule Exp/collections: [x, y] (x, y) {FIELD x, OTHER y z}
+rule Exp/field-arithmetic: {FIELD $(a + b)}
+rule Exp/list-leading-silent-item: [_META, x, y]
+rule Exp/tuple-middle-silent-item: (x, _META, y)
+rule Exp/call-trailing-silent-argument: $call_fn(x, y, _META)
+rule Exp/all-silent-list: [_META, _META]
+rule Exp/access: record.FIELD[lo : hi][[i].NEXT = |value|]
+rule Exp/index: xs[i]
+rule Exp/update-paths: r[.F = v] r[[l : h] = v]
+rule Exp/update-with-comparison: r[.F = $(a = b)]
+rule Exp/length-of-negation: |$(-a)|
+rule Exp/membership-and-subtype: x <- xs <: element_t
+rule Exp/call: $lookup_fn<key_t>(key_v, def $fallback_fn)
+rule Exp/call-without-arguments: $constant
+rule Exp/iteration: entry?
+rule Exp/bracket-notation: `{payload`}
+rule Exp/paren-notation: `(payload`)
+rule Exp/square-notation: `[payload`]
+
+;; Notation operators
+
+rule Exp/subscripted-arrows: (x ->_ n y z) (p =>_ k q)
+rule Exp/arrow-sub-only: x ->_ n
+rule Exp/double-arrow-sub-only: p =>_ k
+rule Exp/silent-tag: left _META right
+rule Exp/object-operator: _META '<+>' rightvisible
+rule Exp/object-operator-symbols: a '->' b
+rule Exp/leading-turnstile: |- e
+rule Exp/leading-step: ~> a : b
+rule Exp/leading-arrow-under-semicolon: -> a ; b
+rule Exp/leading-arrow-over-semicolon: -> (a ; b)
+rule Exp/arrow-sub-alone: ->_ n
+rule Exp/leading-arrow-sub-under-semicolon: ->_ n ; b
+rule Exp/dot: a . b
+rule Exp/step-arrows: s ~> t ~>* u
+rule Exp/similar: a ~~ b
+rule Exp/assignment-and-semicolon: a := b ; c
+rule Exp/dots: a .. b ... c
+
+;; Premises
+
+rule Prem/forms: conclusion
+  -- var x : nat
+  -- Eval: p |- e
+  -- Eval:/ p |- e
+  -- if x = y
+  -- if x*
+  -- (if x = y)*
+  -- (var x : nat)*
+  -- debug x
+  -- otherwise
+
+;; Forms allowed only in hints
+
+rule Error/hole: %
+rule Error/fuse: a#b
+rule Error/unparen: ##a
+rule Error/latex: %latex("x_1")

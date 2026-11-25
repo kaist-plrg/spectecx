@@ -72,13 +72,9 @@ let string_of_defid = Sl.Print.string_of_defid
 let render_varid (ctx : context) (id_var : id) =
   if is_underscored id_var then "++_++" |> adoc_as_code ctx
   else
-    let slices = String.split_on_char '_' id_var.it in
-    match slices with
-    | [] -> assert false
-    | [ var_type ] -> var_type |> adoc_as_code ctx
-    | var_type :: subs ->
-        var_type ^ (subs |> String.concat "_" |> adoc_subscript)
-        |> adoc_as_code ctx
+    match Xl.Var.split_subscript id_var.it with
+    | base, None -> base |> adoc_as_code ctx
+    | base, Some sub -> base ^ adoc_subscript sub |> adoc_as_code ctx
 
 (* Curated notation atoms only; concrete operators render literally. *)
 let unicode_of_atom : Xl.Atom.t -> string option = function

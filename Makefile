@@ -87,6 +87,7 @@ vsix:
 #   make test-annotate   - Annotate/prose render test (impty x3 + p4-old)
 #   make test-roundtrip-al - EL<->AL premise roundtrip test (impty base + closure, p4)
 #   make test-roundtrip-el - EL pretty-printer roundtrip test (mini-spec, p4-old, p4, impty)
+#   make test-latex      - LaTeX math of EL expressions, types and premises
 #   make test-parsegen   - Grammar-driven parser differential test (impty expressions + programs)
 #   make test-package    - Package ownership and plugin discovery tests
 #   make test-al-pos     - AL interpreter positive tests (slow)
@@ -128,7 +129,7 @@ vsix:
 #
 #   make test            - quick + interpreter tests
 
-.PHONY: test test-quick test-lang test-context test-interp test-elab test-algo test-elab-neg test-interp-relation test-interp-neg test-cli test-launcher test-lsp test-struct test-annotate test-roundtrip-al test-roundtrip-el test-parsegen test-package
+.PHONY: test test-quick test-lang test-context test-interp test-elab test-algo test-elab-neg test-interp-relation test-interp-neg test-cli test-launcher test-lsp test-struct test-annotate test-roundtrip-al test-roundtrip-el test-latex test-parsegen test-package
 .PHONY: test-al test-al-pos test-al-neg test-al-eval
 .PHONY: test-sl test-sl-pos test-sl-neg test-sl-eval
 .PHONY: test-pl test-pl-pos test-pl-neg test-pl-eval
@@ -161,6 +162,10 @@ test-algo:
 test-roundtrip-el:
 	@echo "#### Running EL pretty-printer roundtrip test"
 	@$(DUNE) build @test/roundtrip/el/runtest --profile=release && echo OK
+
+test-latex:
+	@echo "#### Running LaTeX math test"
+	@$(DUNE) build @test/latex/runtest --profile=release && echo OK
 
 test-elab-neg:
 	@echo "#### Running elaboration negative tests"
@@ -247,7 +252,7 @@ test-sl-eval:
 test-pl-eval:
 	$(call run_interp_test,p4,pl,eval)
 
-test-quick: test-context test-lang test-elab test-algo test-elab-neg test-interp-relation test-interp-neg test-cli test-launcher test-lsp test-struct test-annotate test-roundtrip-al test-roundtrip-el test-impty test-miniml test-parsegen test-package
+test-quick: test-context test-lang test-elab test-algo test-elab-neg test-interp-relation test-interp-neg test-cli test-launcher test-lsp test-struct test-annotate test-roundtrip-al test-roundtrip-el test-latex test-impty test-miniml test-parsegen test-package
 	@$(DUNE) build @test/interp/p4/runtest --profile=release
 	@echo "#### Quick tests passed"
 
