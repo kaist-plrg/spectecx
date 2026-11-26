@@ -67,6 +67,11 @@ type frame = {
 (** The calls in progress, innermost first. *)
 val frames : unit -> frame list
 
+(** The bindings in [frame]'s scope that [name] names: the one whose full name,
+    as {!Envs_interp.Var.to_string} prints it (e.g. [K_t*]), is [name]; or else
+    every binding whose identifier is [name], at any iteration depth. *)
+val find_local : frame -> string -> (Envs_interp.Var.t * Il.Value.t) list
+
 (** {1 Running} *)
 
 (** What a finished call produced. *)

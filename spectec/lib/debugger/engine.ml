@@ -175,6 +175,14 @@ let frame_of_call call =
 
 let frames () = List.map frame_of_call !State.calls
 
+let find_local (frame : frame) name =
+  let bindings = VEnv.bindings frame.env in
+  match
+    List.filter (fun (var, _) -> Envs_interp.Var.to_string var = name) bindings
+  with
+  | [] -> List.filter (fun (((id : Il.id), _), _) -> id.it = name) bindings
+  | found -> found
+
 (* Running *)
 
 let depth () = List.length !State.calls

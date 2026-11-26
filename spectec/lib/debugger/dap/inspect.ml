@@ -134,20 +134,12 @@ let evaluate request =
   in
   let frame = frame_at (int_or "frameId" ~default:0 request) in
   let value =
-    match List.assoc_opt expression (locals frame) with
-    | Some value -> value
-    | None -> (
-        match
-          VEnv.bindings frame.env
-          |> List.filter (fun (((id : Il.id), _), _) -> id.it = expression)
-        with
-        | [ (_, value) ] -> value
-        | [] -> bad_request "No local `%s`." expression
-        | several ->
-            bad_request "`%s` could be %s; give the full name." expression
-              (String.concat " or "
-                 (List.map
-                    (fun (var, _) -> Envs_interp.Var.to_string var)
-                    several)))
+    match Engine.find_local frame expression with
+    | [ (_, value) ] -> value
+    | [] -> bad_request "No local `%s`." expression
+    | several ->
+        bad_request "`%s` could be %s; give the full name." expression
+          (String.concat " or "
+             (List.map (fun (var, _) -> Envs_interp.Var.to_string var) several))
   in
   `Assoc (describe ~value_key:"result" value)

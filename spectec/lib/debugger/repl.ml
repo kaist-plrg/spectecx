@@ -104,10 +104,7 @@ let print_local name =
   match Engine.frames () with
   | [] -> say "No call in progress."
   | frame :: _ -> (
-      match
-        VEnv.bindings frame.env
-        |> List.filter (fun (((id : Il.id), _), _) -> id.it = name)
-      with
+      match Engine.find_local frame name with
       | [] -> raise (Bad_command ("No local `" ^ name ^ "`."))
       | bindings -> List.iter say_binding bindings)
 

@@ -79,6 +79,37 @@ premise; step enters a call, and finish returns from one call at a time:
     x -> 5
   ]
 
+print takes a local by the name locals shows, or by its identifier alone:
+
+  $ printf 'b spec.spectec:11\nr\nlocals\np K_t*\np K_t\np pair<K, V>*\np pair\nq\n' | debug
+  Set breakpoints, then `run` to start. `help` lists commands.
+  (dbg) b spec.spectec:11
+  Breakpoint 1 at ../../../specs/impty/base/spec.spectec:11 in $lookup.
+  (dbg) r
+  Breakpoint 1, $lookup (called at ../../../specs/impty/base/spec.spectec:76:10-76:17)
+       11    -- if K_h = K_query
+  (dbg) locals
+    K_h = x
+    K_query = x
+    K_t* = []
+    V_h = int
+    V_t* = []
+    pair<K, V>* = [
+                    x -> int
+                  ]
+  (dbg) p K_t*
+    K_t* = []
+  (dbg) p K_t
+    K_t* = []
+  (dbg) p pair<K, V>*
+    pair<K, V>* = [
+                    x -> int
+                  ]
+  (dbg) p pair
+  No local `pair`.
+  (dbg) q
+  [1]
+
 Quitting aborts the run:
 
   $ printf 'q\n' | debug
