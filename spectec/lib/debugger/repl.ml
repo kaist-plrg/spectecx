@@ -181,98 +181,153 @@ let print_breakpoints () =
 
 (* Commands *)
 
-let help =
-  {|Commands:
-  r, run             start the run
-  c, continue        resume until the next breakpoint
-  s, step            run to the next premise, entering calls
-  n, next            run to the next premise, stepping over calls
-  f, finish          run until the current call returns
-  bt, backtrace      show the call stack, innermost call first
-  args               show the current call's input values
-  locals             show the bindings in scope
-  p, print NAME      show the binding of NAME
-  show               show the source of the current rule or clause
-  b, break WHERE     stop at WHERE: Rel, Rel/rule, or the premise at
-                     FILE:LINE (LINE alone: in the current file)
-  d, delete N        remove breakpoint N
-  info b             list breakpoints
-  q, quit            abort the run
-  h, help            show this help|}
+type action =
+  | Plain of (running:bool -> Engine.resume option)
+  | With_arg of string * (running:bool -> string -> Engine.resume option)
+
+type command = { names : string list; summary : string; action : action }
+
+let plain names summary run = { names; summary; action = Plain run }
+
+let with_arg names arg summary run =
+  { names; summary; action = With_arg (arg, run) }
+
+let require_running ~running =
+  if not running then raise (Bad_command "The run hasn't started.")
+
+let start ~running =
+  if running then raise (Bad_command "The run is already in progress.");
+  Some Engine.Continue
+
+let resume (resume : Engine.resume) ~running =
+  require_running ~running;
+  (match resume with
+  | Continue -> ()
+  | Step | Next | Finish ->
+      if Engine.frames () = [] then raise (Bad_command "No call in progress."));
+  Some resume
+
+let inspect print ~running =
+  require_running ~running;
+  print ();
+  None
+
+let add_breakpoint ~running:_ name =
+  (match Engine.add_breakpoint (resolve_where name) with
+  | `New { number; target } ->
+      say "Breakpoint %d at %s." number (Engine.string_of_target target)
+  | `Existing { number; target } ->
+      say "Breakpoint %d is already at %s." number
+        (Engine.string_of_target target));
+  None
+
+let delete_breakpoint ~running:_ number =
+  match int_of_string_opt number with
+  | None -> raise (Bad_command ("Not a breakpoint number: " ^ number))
+  | Some number ->
+      Engine.delete_breakpoint number;
+      None
+
+let info ~running:_ = function
+  | "b" | "breakpoints" ->
+      print_breakpoints ();
+      None
+  | _ -> raise (Bad_command "Usage: info b")
 
 let quit () = exit 1
 
+(* The command's names and its argument, such as [p, print NAME]. *)
+let usage { names; action; _ } =
+  let names = String.concat ", " names in
+  match action with Plain _ -> names | With_arg (arg, _) -> names ^ " " ^ arg
+
+let help_of commands =
+  let indent = String.make 21 ' ' in
+  "Commands:"
+  :: List.map
+       (fun command ->
+         Format.sprintf "  %-19s%s" (usage command)
+           (String.split_on_char '\n' command.summary
+           |> String.concat ("\n" ^ indent)))
+       commands
+  |> String.concat "\n"
+
+(* Lazy, so that [help] can list the commands it is one of. *)
+let rec commands =
+  lazy
+    [
+      plain [ "r"; "run" ] "start the run" start;
+      plain [ "c"; "continue" ] "resume until the next breakpoint"
+        (resume Continue);
+      plain [ "s"; "step" ] "run to the next premise, entering calls"
+        (resume Step);
+      plain [ "n"; "next" ] "run to the next premise, stepping over calls"
+        (resume Next);
+      plain [ "f"; "finish" ] "run until the current call returns"
+        (resume Finish);
+      plain [ "bt"; "backtrace" ] "show the call stack, innermost call first"
+        (inspect print_backtrace);
+      plain [ "args" ] "show the current call's input values"
+        (inspect print_args);
+      plain [ "locals" ] "show the bindings in scope" (inspect print_locals);
+      with_arg [ "p"; "print" ] "NAME" "show the binding of NAME"
+        (fun ~running name -> inspect (fun () -> print_local name) ~running);
+      plain [ "show" ] "show the source of the current rule or clause"
+        (inspect print_current_source);
+      with_arg [ "b"; "break" ] "WHERE"
+        "stop at WHERE: Rel, Rel/rule, or the premise at\n\
+         FILE:LINE (LINE alone: in the current file)"
+        add_breakpoint;
+      with_arg [ "d"; "delete" ] "N" "remove breakpoint N" delete_breakpoint;
+      with_arg [ "info" ] "b" "list breakpoints" info;
+      plain [ "q"; "quit" ] "abort the run" (fun ~running:_ -> quit ());
+      plain [ "h"; "help" ] "show this help" (fun ~running:_ ->
+          say "%s" (help_of (Lazy.force commands));
+          None);
+    ]
+
+(* The command a line names, and the rest of the line as its argument. *)
 let read_command () =
   Format.fprintf stdout "(dbg) %!";
   match In_channel.input_line stdin with
   | None ->
       say "";
       quit ()
-  | Some line ->
+  | Some line -> (
       if echo_commands then say "%s" line;
-      String.split_on_char ' ' line |> List.filter (( <> ) "")
+      let line = String.trim line in
+      match String.index_opt line ' ' with
+      | None -> (line, "")
+      | Some idx ->
+          ( String.sub line 0 idx,
+            String.trim (String.sub line idx (String.length line - idx)) ))
+
+let run_command ~running (name, arg) =
+  match
+    List.find_opt
+      (fun { names; _ } -> List.mem name names)
+      (Lazy.force commands)
+  with
+  | None -> raise (Bad_command ("Unknown command `" ^ name ^ "`. Try `help`."))
+  | Some command -> (
+      match (command.action, arg) with
+      | Plain run, "" -> run ~running
+      | Plain _, _ -> raise (Bad_command ("`" ^ name ^ "` takes no arguments."))
+      | With_arg (_, run), arg when arg <> "" -> run ~running arg
+      | With_arg (placeholder, _), _ ->
+          raise (Bad_command ("Usage: " ^ name ^ " " ^ placeholder)))
 
 (* Reads commands until one starts or resumes the run. Before the run,
    [running] is false and [run] starts it. *)
 let rec prompt ~running : Engine.resume =
-  let require_running () =
-    if not running then raise (Bad_command "The run hasn't started.")
-  in
-  let resume (resume : Engine.resume) =
-    require_running ();
-    (match resume with
-    | Continue -> ()
-    | Step | Next | Finish ->
-        if Engine.frames () = [] then raise (Bad_command "No call in progress."));
-    Some resume
-  in
-  let inspect print =
-    require_running ();
-    print ();
-    None
-  in
   let resumed =
-    try
-      match read_command () with
-      | [ ("r" | "run") ] ->
-          if running then raise (Bad_command "The run is already in progress.");
-          Some Engine.Continue
-      | [ ("c" | "continue") ] -> resume Continue
-      | [ ("s" | "step") ] -> resume Step
-      | [ ("n" | "next") ] -> resume Next
-      | [ ("f" | "finish") ] -> resume Finish
-      | [ ("bt" | "backtrace") ] -> inspect print_backtrace
-      | [ "args" ] -> inspect print_args
-      | [ "show" ] -> inspect print_current_source
-      | [ "locals" ] -> inspect print_locals
-      | [ ("p" | "print"); name ] -> inspect (fun () -> print_local name)
-      | [ ("b" | "break"); name ] ->
-          (match Engine.add_breakpoint (resolve_where name) with
-          | `New { number; target } ->
-              say "Breakpoint %d at %s." number (Engine.string_of_target target)
-          | `Existing { number; target } ->
-              say "Breakpoint %d is already at %s." number
-                (Engine.string_of_target target));
-          None
-      | [ ("d" | "delete"); number ] -> (
-          match int_of_string_opt number with
-          | None -> raise (Bad_command ("Not a breakpoint number: " ^ number))
-          | Some number ->
-              Engine.delete_breakpoint number;
-              None)
-      | [ "info"; ("b" | "breakpoints") ] ->
-          print_breakpoints ();
-          None
-      | [ ("q" | "quit") ] -> quit ()
-      | [ ("h" | "help") ] ->
-          say "%s" help;
-          None
-      | [] -> None
-      | command :: _ ->
-          raise (Bad_command ("Unknown command `" ^ command ^ "`. Try `help`."))
-    with Bad_command message | Engine.Error message ->
-      say "%s" message;
-      None
+    match read_command () with
+    | "", _ -> None
+    | line -> (
+        try run_command ~running line
+        with Bad_command message | Engine.Error message ->
+          say "%s" message;
+          None)
   in
   match resumed with Some resume -> resume | None -> prompt ~running
 
