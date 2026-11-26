@@ -20,7 +20,12 @@ type t =
       success : bool;
       conclusion : (Il.Value.t, Il.Value.t option) Il.Mode.t;
     }
-  | Rule_enter of { id : string; rule_id : string; at : Location.t }
+  | Rule_enter of {
+      id : string;
+      rule_id : string;
+      at : Location.t;
+      env : VEnv.t;
+    }
   | Rule_exit of {
       id : string;
       rule_id : string;
@@ -29,7 +34,12 @@ type t =
     }
   | Func_enter of { id : string; at : Location.t; inputs : Il.Value.t list }
   | Func_exit of { id : string; at : Location.t; output : Il.Value.t option }
-  | Clause_enter of { id : string; clause_idx : int; at : Location.t }
+  | Clause_enter of {
+      id : string;
+      clause_idx : int;
+      at : Location.t;
+      env : VEnv.t;
+    }
   | Clause_exit of {
       id : string;
       clause_idx : int;

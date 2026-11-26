@@ -164,9 +164,20 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
       Ok values_output
     in
     let attempt_rule () : value list attempt =
+      (* Create a subtrace for the rule, and match it *)
+      let ctx_local = Ctx.for_call ctx in
+      let ctx_local, instrs, exps_output =
+        match_rule ctx_local reltyp rule values_input
+      in
       Instrumentation.Dispatcher.with_enter_exit
         ~enter:(fun () ->
-          Events.Rule_enter { id = id.it; rule_id = id_rule.it; at = id.at })
+          Events.Rule_enter
+            {
+              id = id.it;
+              rule_id = id_rule.it;
+              at = id.at;
+              env = Ctx.local_values ctx_local;
+            })
         ~exit:(fun outcome ->
           Events.Rule_exit
             {
@@ -176,12 +187,6 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
               success = succeeded outcome;
             })
         ~f:(fun () ->
-          (* Create a subtrace for the rule *)
-          let ctx_local = Ctx.for_call ctx in
-          (* Try to match the rule *)
-          let ctx_local, instrs, exps_output =
-            match_rule ctx_local reltyp rule values_input
-          in
           (* Try evaluating the rule *)
           attempt_rule' ctx_local instrs exps_output
           |> nest id.at
@@ -292,7 +297,7 @@ and invoke_func_values (ctx : Ctx.t) (id : id) (targs : targ list)
         let value_output = eval_exp ctx_local exp_output in
         Ok value_output
       in
-      let attempt_clause' () : value attempt =
+      let attempt_clause () : value attempt =
         (* Create a subtrace for the clause *)
         let ctx_local = Ctx.for_call ctx in
         (* Add type arguments to the context *)
@@ -311,17 +316,15 @@ and invoke_func_values (ctx : Ctx.t) (id : id) (targs : targ list)
         let ctx_local, args_input, instrs, exp_output =
           match_clause ctx ctx_local clause values_input
         in
-        (* Try evaluating the clause *)
-        eval_clause ctx_local instrs exp_output
-        |> nest id.at
-             (F.asprintf "application of clause %s%s failed" id.it
-                (Il.Print.string_of_args args_input))
-      in
-      let attempt_clause () : value attempt =
         Instrumentation.Dispatcher.with_enter_exit
           ~enter:(fun () ->
             Events.Clause_enter
-              { id = id.it; clause_idx = idx_clause; at = id.at })
+              {
+                id = id.it;
+                clause_idx = idx_clause;
+                at = id.at;
+                env = Ctx.local_values ctx_local;
+              })
           ~exit:(fun outcome ->
             Events.Clause_exit
               {
@@ -330,7 +333,12 @@ and invoke_func_values (ctx : Ctx.t) (id : id) (targs : targ list)
                 at = id.at;
                 success = succeeded outcome;
               })
-          ~f:attempt_clause'
+          ~f:(fun () ->
+            (* Try evaluating the clause *)
+            eval_clause ctx_local instrs exp_output
+            |> nest id.at
+                 (F.asprintf "application of clause %s%s failed" id.it
+                    (Il.Print.string_of_args args_input)))
       in
       attempt_clause
     in
