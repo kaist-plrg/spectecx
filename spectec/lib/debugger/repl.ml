@@ -315,24 +315,20 @@ let describe_stop : Engine.stop_reason -> unit = function
   | Returned { name; result = Func_output value } ->
       say_value (name ^ " returned ") value
 
-module Frontend = struct
-  let before_run () =
-    say "Set breakpoints, then `run` to start. `help` lists commands.";
-    ignore (prompt ~running:false)
+let before_run () =
+  say "Set breakpoints, then `run` to start. `help` lists commands.";
+  ignore (prompt ~running:false)
 
-  let stopped stop =
-    describe_stop stop;
-    prompt ~running:true
+let stopped stop =
+  describe_stop stop;
+  prompt ~running:true
 
-  let after_run () = ()
-end
-
-module Handler = Engine.Make (Frontend)
+let after_run () = ()
 
 let config : Instrumentation_config.Handler_config.t =
   {
     name = "debugger";
     modes = [ `AL ];
-    handler = (module Handler : Instrumentation_api.Handler.S);
+    handler = Engine.handler ~before_run ~stopped ~after_run;
     output = Instrumentation_api.Output.stdout;
   }

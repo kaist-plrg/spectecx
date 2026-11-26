@@ -92,26 +92,22 @@ let rec serve ~running : Engine.resume =
       prerr_endline ("DAP: " ^ message);
       quit ()
 
-module Frontend = struct
-  let before_run () =
-    Session.connect ();
-    ignore (serve ~running:false)
+let before_run () =
+  Session.connect ();
+  ignore (serve ~running:false)
 
-  let stopped reason =
-    Inspect.reset ();
-    Transport.send_event (Session.current ()).conn "stopped"
-      ~body:(Convert.stopped reason);
-    serve ~running:true
+let stopped reason =
+  Inspect.reset ();
+  Transport.send_event (Session.current ()).conn "stopped"
+    ~body:(Convert.stopped reason);
+  serve ~running:true
 
-  let after_run () = Transport.send_event (Session.current ()).conn "terminated"
-end
-
-module Handler = Engine.Make (Frontend)
+let after_run () = Transport.send_event (Session.current ()).conn "terminated"
 
 let config : Instrumentation_config.Handler_config.t =
   {
     name = "debugger";
     modes = [ `AL ];
-    handler = (module Handler : Instrumentation_api.Handler.S);
+    handler = Engine.handler ~before_run ~stopped ~after_run;
     output = Instrumentation_api.Output.stdout;
   }

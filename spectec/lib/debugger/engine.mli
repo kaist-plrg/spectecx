@@ -87,17 +87,17 @@ type stop_reason =
     current call returns. *)
 type resume = Continue | Step | Next | Finish
 
-module type FRONTEND = sig
-  (** Called once the spec is loaded; the run starts when it returns. *)
-  val before_run : unit -> unit
+(** The handler that runs a session, driven by a frontend:
 
-  (** Called whenever the run pauses, with the reason. The run stays paused
-      until this returns, and then continues as the returned [resume] says. *)
-  val stopped : stop_reason -> resume
-
-  (** Called once the run has ended, whether it succeeded or failed. *)
-  val after_run : unit -> unit
-end
-
-(** The handler that runs a session, driven by a frontend. *)
-module Make (_ : FRONTEND) : Instrumentation_api.Handler.S
+    - [before_run] is called once the spec is loaded; the run starts when it
+      returns.
+    - [stopped] is called whenever the run pauses, with the reason. The run
+      stays paused until it returns, and then continues as the returned [resume]
+      says.
+    - [after_run] is called once the run has ended, whether it succeeded or
+      failed. *)
+val handler :
+  before_run:(unit -> unit) ->
+  stopped:(stop_reason -> resume) ->
+  after_run:(unit -> unit) ->
+  (module Instrumentation_api.Handler.S)
