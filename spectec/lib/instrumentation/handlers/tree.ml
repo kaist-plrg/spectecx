@@ -154,11 +154,6 @@ module State = struct
         current.derivation.failed_instr <- Some { instr; bindings })
 end
 
-let as_premise_opt instr =
-  match instr.note with
-  | Al.Premise prem_il -> Some prem_il
-  | Al.Sidecondition _ | Al.Input_sidecondition -> None
-
 (* === Rendering ===================================================== *)
 
 let dim s = Ansi.style !ansi [ Dim ] s
@@ -305,7 +300,7 @@ and print_derivation_body ~rest_prefix node derivation out =
   in
   let failed_in_sidecondition =
     match derivation.failed_instr with
-    | Some { instr; _ } -> Option.is_none (as_premise_opt instr)
+    | Some { instr; _ } -> Al.is_synthesized instr
     | None -> false
   in
   let entries = List.rev derivation.prems_rev in
@@ -363,14 +358,13 @@ module M : Instrumentation_api.Handler.S = struct
         if !config.level = Premise then
           Option.iter
             (fun prem_il -> State.enter_premise ~prem_il)
-            (as_premise_opt instr)
+            (Al.premise_of instr)
     | Instr_exit { instr = AlInstr instr; at = _; success; env = _; bindings }
       ->
         if not success then State.record_failed_instr instr ~bindings;
         if !config.level = Premise then (
           State.record_bindings ~bindings;
-          if Option.is_some (as_premise_opt instr) then
-            State.record_premise ~bindings)
+          if not (Al.is_synthesized instr) then State.record_premise ~bindings)
     | Instr_enter { instr = SlInstr _ | PlInstr _; at = _; env = _ }
     | Instr_exit
         {

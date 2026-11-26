@@ -11,20 +11,13 @@ type t = body list
 
 let error fmt = Format.kasprintf Result.error fmt
 
-(* An instruction the spec's author wrote as a premise, not one the algo pass
-   synthesized. *)
-let is_written (instr : Al.instr) =
-  match instr.note with
-  | Al.Premise _ -> true
-  | Al.Sidecondition _ | Al.Input_sidecondition -> false
-
 (* An iterated premise is entered at the premise it iterates. *)
 let rec entered_at (prem : Al.instr) =
   match prem.it with Al.IterI (prem, _) -> entered_at prem | _ -> prem.at
 
 let body owner at prems =
   let sites =
-    List.filter is_written prems
+    List.filter (fun prem -> not (Al.is_synthesized prem)) prems
     |> List.map (fun (prem : Al.instr) ->
            { owner; span = prem.at; hit = entered_at prem })
   in

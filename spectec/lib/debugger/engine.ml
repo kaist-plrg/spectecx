@@ -298,7 +298,7 @@ module Make (F : FRONTEND) : Instrumentation_api.Handler.S = struct
         leave_scope ()
     | Instr_enter { instr = AlInstr prem; at; env } ->
         update (fun call -> call.env <- env);
-        if Sites.is_written prem then (
+        if not (Al.is_synthesized prem) then (
           update (fun call -> call.prem_at <- Some at);
           (* At most two breakpoints can be on the same premise. *)
           match

@@ -1,12 +1,10 @@
 (** Where a run can stop in a spec: the written premises of its rules and
     function clauses, found by file and line.
 
-    A {e written} premise is one the spec's author wrote: an AL instruction
-    whose origin is [Premise]. The algo pass synthesizes instructions with no
-    source of their own: the guards that check a rule's or clause's input
-    patterns, the instructions that destructure those inputs, and the side
-    conditions that check a premise's results. Leaving those out lets stepping
-    and line breakpoints follow the spec as written. *)
+    A {e written} premise is one the spec's author wrote: an AL instruction that
+    the algo pass did not synthesize ({!Lang.Al.is_synthesized}). Leaving
+    synthesized instructions out lets stepping and line breakpoints follow the
+    spec as written. *)
 
 module Il = Lang.Il
 module Location = Common.Location
@@ -21,9 +19,6 @@ type t
 
 val index : Lang.Al.spec -> t
 val empty : t
-
-(** Whether [prem] is written (see above). *)
-val is_written : Lang.Al.instr -> bool
 
 (** The absolute path of [file] with [.], [..] and symbolic links resolved, so
     that two paths to one file are equal. A file that cannot be found is only
