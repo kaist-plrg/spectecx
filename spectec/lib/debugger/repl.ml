@@ -231,7 +231,7 @@ let info ~running:_ = function
       None
   | _ -> raise (Bad_command "Usage: info b")
 
-let quit () = exit 1
+let quit () = raise Engine.Quit
 
 (* The command's names and its argument, such as [p, print NAME]. *)
 let usage { names; action; _ } =

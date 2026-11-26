@@ -102,9 +102,13 @@ let make_debug (module Tgt : Spectec.Target.S) ~name
           else Spectec_debugger.Repl.config
         in
         let config = config @ [ debugger ] in
-        Batch.run_and_print_single
-          (module TC.Task)
-          ~config ~check_determinism ~mode:Interp_mode.Al ~spec_al input
+        match
+          Batch.run_and_print_single
+            (module TC.Task)
+            ~config ~check_determinism ~mode:Interp_mode.Al ~spec_al input
+        with
+        | result -> result
+        | exception Spectec_debugger.Engine.Quit -> exit 1
     in
     (task_name, cmd)
   in

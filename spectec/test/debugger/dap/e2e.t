@@ -144,3 +144,21 @@ frame's locals:
   {"seq":17,"type":"event","event":"terminated"}
   stderr:
   42
+
+Terminating while stopped aborts the run, and the session still ends with
+terminated:
+
+  $ session <<'EOF2'
+  > {"seq":1,"type":"request","command":"initialize","arguments":{"adapterID":"spectec"}}
+  > {"seq":2,"type":"request","command":"setFunctionBreakpoints","arguments":{"breakpoints":[{"name":"Eval_expr/let"}]}}
+  > {"seq":3,"type":"request","command":"configurationDone"}
+  > {"seq":4,"type":"request","command":"terminate"}
+  > EOF2
+  {"seq":1,"type":"response","request_seq":1,"success":true,"command":"initialize","body":{"supportsConfigurationDoneRequest":true,"supportsFunctionBreakpoints":true,"supportsTerminateRequest":true,"supportsEvaluateForHovers":true}}
+  {"seq":2,"type":"event","event":"initialized"}
+  {"seq":3,"type":"response","request_seq":2,"success":true,"command":"setFunctionBreakpoints","body":{"breakpoints":[{"id":1,"verified":true}]}}
+  {"seq":4,"type":"response","request_seq":3,"success":true,"command":"configurationDone"}
+  {"seq":5,"type":"event","event":"stopped","body":{"reason":"breakpoint","threadId":1,"allThreadsStopped":true,"hitBreakpointIds":[1]}}
+  {"seq":6,"type":"response","request_seq":4,"success":true,"command":"terminate"}
+  {"seq":7,"type":"event","event":"terminated"}
+  stderr:

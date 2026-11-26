@@ -1,7 +1,7 @@
 module Util = Yojson.Safe.Util
 open Request
 
-let quit () = exit 1
+let quit () = raise Engine.Quit
 
 (* Answers [request], and returns how to go on when it resumes the run. Before
    the run, [running] is false and [configurationDone] starts it. *)

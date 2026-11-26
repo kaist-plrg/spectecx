@@ -16,6 +16,9 @@ module VEnv = Envs_interp.VEnv
 (** A request the engine refuses, with a message for the user. *)
 exception Error of string
 
+(** Raised by a frontend to abort the run. *)
+exception Quit
+
 (** {1 Breakpoints} *)
 
 type site = Sites.site = { owner : string; span : Location.t; hit : Location.t }

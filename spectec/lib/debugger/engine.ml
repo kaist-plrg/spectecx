@@ -5,6 +5,7 @@ module VEnv = Envs_interp.VEnv
 open Common.Annotated
 
 exception Error of string
+exception Quit
 
 let error fmt = Format.kasprintf (fun message -> raise (Error message)) fmt
 
@@ -72,12 +73,17 @@ module State = struct
   let calls : call list ref = ref []
   let step : step option ref = ref None
 
+  (* Set once the frontend quits. The run then unwinds, and the interpreter
+     emits the exits it skips, which must not stop the run again. *)
+  let quit = ref false
+
   let reset al_spec =
     spec := al_spec;
     sites := Sites.index al_spec;
     breakpoints := Breakpoints.create ();
     calls := [];
-    step := None
+    step := None;
+    quit := false
 end
 
 (* Breakpoints *)
@@ -194,12 +200,16 @@ let handler ~before_run ~stopped ~after_run :
 
     (* Every stop ends the step in progress; the frontend picks the next one. *)
     let stop reason =
-      State.step :=
-        match stopped reason with
-        | Continue -> None
-        | Step -> Some Step_in
-        | Next -> Some (Step_over (depth ()))
-        | Finish -> Some (Step_out (depth ()))
+      if not !State.quit then
+        State.step :=
+          match stopped reason with
+          | Continue -> None
+          | Step -> Some Step_in
+          | Next -> Some (Step_over (depth ()))
+          | Finish -> Some (Step_out (depth ()))
+          | exception Quit ->
+              State.quit := true;
+              raise Quit
 
     (* Stops at a written premise when the step in progress lands on it. *)
     let step_at at =
