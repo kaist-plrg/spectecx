@@ -262,6 +262,7 @@ module Cli : Cli.Target_cli.S = struct
           [
             ("typecheck", (module Typecheck_cli));
             ("instantiate", (module Instantiate_cli));
+            ("eval", (module Eval_cli));
           ];
         Subcommand.make_parse target ~name:"parse"
           ~summary:"parse a P4 program to an IL value"
