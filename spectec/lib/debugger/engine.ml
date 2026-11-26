@@ -35,6 +35,7 @@ type call_result =
 type stop_reason =
   | Breakpoints of breakpoint list
   | Stepped of Location.t
+  | Premise_failed of Location.t
   | Returned of { name : string; result : call_result }
 
 type resume = Continue | Step | Next | Finish
@@ -211,11 +212,11 @@ let handler ~before_run ~stopped ~after_run :
               State.quit := true;
               raise Quit
 
-    (* Stops at a written premise when the step in progress lands on it. *)
-    let step_at at =
+    (* Stops for [reason] when the step in progress stops at this depth. *)
+    let step_at reason =
       match !State.step with
-      | Some Step_in -> stop (Stepped at)
-      | Some (Step_over depth') when depth () <= depth' -> stop (Stepped at)
+      | Some Step_in -> stop reason
+      | Some (Step_over depth') when depth () <= depth' -> stop reason
       | _ -> ()
 
     (* Pops the innermost call, stopping when it is the one being finished. *)
@@ -330,10 +331,14 @@ let handler ~before_run ~stopped ~after_run :
               take_armed ()
               @ Option.to_list (Breakpoints.on_premise !State.breakpoints at)
             with
-            | [] -> step_at at
+            | [] -> step_at (Stepped at)
             | hits -> stop (Breakpoints hits))
-      | Instr_exit { instr = AlInstr _; env; _ } ->
-          update (fun call -> { call with env })
+      | Instr_exit { instr = AlInstr instr; success; env; _ } -> (
+          update (fun call -> { call with env });
+          match instr.note with
+          | (Al.Premise prem | Al.Sidecondition prem) when not success ->
+              step_at (Premise_failed prem.at)
+          | Al.Premise _ | Al.Sidecondition _ | Al.Input_sidecondition -> ())
       | Func_enter { id; at; inputs } ->
           push_call (Function { clause_idx = None }) id at inputs
       | Clause_enter { clause_idx; env; _ } ->

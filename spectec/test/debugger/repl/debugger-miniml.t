@@ -45,10 +45,12 @@ rule is tried on every call, but stops only on the two pairs:
   Breakpoint 1 at Eval_expr/pair.
   (dbg) r
   Breakpoint 1, Eval_expr/pair (called at ../../../specs/miniml/spec.spectec:152:6-152:15)
+      138    -- Eval_expr: e1 ==> v1
   (dbg) args
     0: epair (ecst 40) (ecst 2)
   (dbg) c
   Breakpoint 1, Eval_expr/pair (called at ../../../specs/miniml/spec.spectec:154:6-154:15)
+      138    -- Eval_expr: e1 ==> v1
   (dbg) args
     0: epair (eapp (efun x (evar x)) (eapp (eop fst) (epair (ecst 40) (ecst 2)))) (eapp (efun x (evar x)) (eapp (eop snd) (epair (ecst 40) (ecst 2))))
   (dbg) c
@@ -79,6 +81,7 @@ and next after the last premise leaves for the caller:
   Breakpoint 1 at Eval_expr/let.
   (dbg) r
   Breakpoint 1, Eval_expr/let
+      143    -- Eval_expr: e1 ==> v1
   (dbg) locals
     e1 = efun f (efun p (epair (eapp (evar f) (eapp (eop fst) (evar p))) (eapp (evar f) (eapp (eop snd) (evar p)))))
     e2 = eapp (eop add) (eapp (eapp (evar distr_pair) (efun x (evar x))) (epair (ecst 40) (ecst 2)))

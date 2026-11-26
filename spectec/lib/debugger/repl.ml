@@ -158,12 +158,35 @@ let print_current_source () =
   | [] -> say "No call in progress."
   | frame :: _ -> print_source ?current:frame.premise frame.location
 
-let say_source_line at =
+(* The characters in the first [column] bytes of [text]. Columns count bytes,
+   and a UTF-8 character starts at each byte that is not a continuation byte
+   (10xxxxxx). *)
+let chars_before text column =
+  String.sub text 0 (min column (String.length text))
+  |> String.fold_left
+       (fun count char ->
+         if Char.code char land 0xC0 = 0x80 then count else count + 1)
+       0
+
+(* Prints the first line of [at]. With [~failed], underlines [at] on it and
+   says that it failed; an [at] that goes on past the line is underlined to
+   the line's end, then [...]. *)
+let say_source_line ?(failed = false) at =
   match at with
-  | Location.Span { file; left; _ } -> (
+  | Location.Span { file; left; right } -> (
       match lines_of_file file with
       | Some lines when left.line <= Array.length lines ->
-          say "%7d  %s" left.line lines.(left.line - 1)
+          let text = lines.(left.line - 1) in
+          say "%7d  %s" left.line text;
+          if failed then
+            let start = chars_before text left.column in
+            let stop, rest =
+              if right.line = left.line then (chars_before text right.column, "")
+              else (chars_before text (String.length text), "...")
+            in
+            say "         %s%s%s failed" (String.make start ' ')
+              (String.make (max 1 (stop - start)) '^')
+              rest
       | _ -> ())
   | Location.Unknown | Location.File _ -> ()
 
@@ -330,19 +353,20 @@ let rec prompt ~running : Engine.resume =
 
 (* Stops *)
 
-(* Prints the first line of [at], as gdb does when stepping. *)
-let say_line name at =
+(* Prints where [name] is, then the first line of [at], as gdb does when
+   stepping. [where] joins [name] and [at]'s file and line. *)
+let say_line ?(where = ", ") ?failed name at =
   match at with
   | Location.Span { file; left; _ } ->
-      say "%s, %s:%d" name file left.line;
-      say_source_line at
+      say "%s%s%s:%d" name where file left.line;
+      say_source_line ?failed at
   | Location.Unknown | Location.File _ -> say "%s" name
 
 let current_name () =
   match Engine.frames () with frame :: _ -> frame.name | [] -> ""
 
 let describe_stop : Engine.stop_reason -> unit = function
-  | Breakpoints hits ->
+  | Breakpoints hits -> (
       let numbers =
         List.map
           (fun ({ number; _ } : Engine.breakpoint) -> string_of_int number)
@@ -352,13 +376,12 @@ let describe_stop : Engine.stop_reason -> unit = function
         (if List.length hits > 1 then "s" else "")
         (String.concat " and " numbers)
         (current_name ()) (current_call_site ());
-      List.find_map
-        (function
-          | ({ target = Prem site; _ } : Engine.breakpoint) -> Some site.span
-          | _ -> None)
-        hits
-      |> Option.iter say_source_line
+      match Engine.frames () with
+      | { premise = Some at; _ } :: _ -> say_source_line at
+      | _ -> ())
   | Stepped at -> say_line (current_name ()) at
+  | Premise_failed at ->
+      say_line ~where:" failed at " ~failed:true (current_name ()) at
   | Returned { name; result = Failed } -> say "%s failed." name
   | Returned { name; result = Rel_outputs [] } -> say "%s holds." name
   | Returned { name; result = Rel_outputs outputs } ->

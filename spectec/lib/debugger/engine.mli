@@ -88,6 +88,9 @@ type stop_reason =
   | Breakpoints of breakpoint list
       (** One breakpoint, or a rule's and one on its first written premise. *)
   | Stepped of Location.t  (** at this written premise *)
+  | Premise_failed of Location.t
+      (** The step ended at this written premise because it failed, or a check
+          on its results did, so its rule or clause does not apply. *)
   | Returned of { name : string; result : call_result }
       (** The call being finished returned; {!frames} shows its caller. *)
 

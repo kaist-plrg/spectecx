@@ -40,3 +40,11 @@ let stopped : Engine.stop_reason -> Yojson.Safe.t = function
           ("threadId", `Int Session.thread_id);
           ("allThreadsStopped", `Bool true);
         ]
+  | Premise_failed _ ->
+      `Assoc
+        [
+          ("reason", `String "step");
+          ("description", `String "Premise failed");
+          ("threadId", `Int Session.thread_id);
+          ("allThreadsStopped", `Bool true);
+        ]

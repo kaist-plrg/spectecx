@@ -162,3 +162,35 @@ terminated:
   {"seq":6,"type":"response","request_seq":4,"success":true,"command":"terminate"}
   {"seq":7,"type":"event","event":"terminated"}
   stderr:
+
+A step stops where a premise fails, before the run tries the next rule. The
+third time Eval_expr/add is tried, e1 evaluates to a function, not Eop ADD:
+
+  $ session <<'EOF2'
+  > {"seq":1,"type":"request","command":"initialize","arguments":{"adapterID":"spectec"}}
+  > {"seq":2,"type":"request","command":"setFunctionBreakpoints","arguments":{"breakpoints":[{"name":"Eval_expr/add"}]}}
+  > {"seq":3,"type":"request","command":"configurationDone"}
+  > {"seq":4,"type":"request","command":"continue","arguments":{"threadId":1}}
+  > {"seq":5,"type":"request","command":"next","arguments":{"threadId":1}}
+  > {"seq":6,"type":"request","command":"next","arguments":{"threadId":1}}
+  > {"seq":7,"type":"request","command":"stackTrace","arguments":{"threadId":1,"levels":1}}
+  > {"seq":8,"type":"request","command":"setFunctionBreakpoints","arguments":{"breakpoints":[]}}
+  > {"seq":9,"type":"request","command":"continue","arguments":{"threadId":1}}
+  > EOF2
+  {"seq":1,"type":"response","request_seq":1,"success":true,"command":"initialize","body":{"supportsConfigurationDoneRequest":true,"supportsFunctionBreakpoints":true,"supportsTerminateRequest":true,"supportsEvaluateForHovers":true}}
+  {"seq":2,"type":"event","event":"initialized"}
+  {"seq":3,"type":"response","request_seq":2,"success":true,"command":"setFunctionBreakpoints","body":{"breakpoints":[{"id":1,"verified":true}]}}
+  {"seq":4,"type":"response","request_seq":3,"success":true,"command":"configurationDone"}
+  {"seq":5,"type":"event","event":"stopped","body":{"reason":"breakpoint","threadId":1,"allThreadsStopped":true,"hitBreakpointIds":[1]}}
+  {"seq":6,"type":"response","request_seq":4,"success":true,"command":"continue"}
+  {"seq":7,"type":"event","event":"stopped","body":{"reason":"breakpoint","threadId":1,"allThreadsStopped":true,"hitBreakpointIds":[1]}}
+  {"seq":8,"type":"response","request_seq":5,"success":true,"command":"next"}
+  {"seq":9,"type":"event","event":"stopped","body":{"reason":"breakpoint","threadId":1,"allThreadsStopped":true,"hitBreakpointIds":[1]}}
+  {"seq":10,"type":"response","request_seq":6,"success":true,"command":"next"}
+  {"seq":11,"type":"event","event":"stopped","body":{"reason":"step","description":"Premise failed","threadId":1,"allThreadsStopped":true}}
+  {"seq":12,"type":"response","request_seq":7,"success":true,"command":"stackTrace","body":{"stackFrames":[{"id":0,"name":"Eval_expr/add","source":{"name":"spec.spectec","path":"SPECS/spec.spectec"},"line":94,"column":6,"endLine":94,"endColumn":31}],"totalFrames":4}}
+  {"seq":13,"type":"response","request_seq":8,"success":true,"command":"setFunctionBreakpoints","body":{"breakpoints":[]}}
+  {"seq":14,"type":"response","request_seq":9,"success":true,"command":"continue"}
+  {"seq":15,"type":"event","event":"terminated"}
+  stderr:
+  42

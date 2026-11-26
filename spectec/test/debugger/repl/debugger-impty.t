@@ -40,11 +40,13 @@ premise; step enters a call, and finish returns from one call at a time:
   Breakpoint 1 at Check_command/decl.
   (dbg) r
   Breakpoint 1, Check_command/decl (called at ../../../specs/impty/base/spec.spectec:130:6-130:19)
+      110    -- Check_expr: tenv |- e : t
   (dbg) n
   Check_command/seq, ../../../specs/impty/base/spec.spectec:131
       131    -- Check_command: tenv_1 |- c_2 -| tenv_2
   (dbg) n
   Breakpoint 1, Check_command/decl (called at ../../../specs/impty/base/spec.spectec:131:6-131:19)
+      110    -- Check_expr: tenv |- e : t
   (dbg) locals
     command = bool y = (x <= 10)
     e = x <= 10
@@ -107,6 +109,28 @@ print takes a local by the name locals shows, or by its identifier alone:
                   ]
   (dbg) p pair
   No local `pair`.
+  (dbg) q
+  [1]
+
+Stepping stops where a premise fails, before the run tries the next rule.
+while-false's premise fails because e evaluates to true:
+
+  $ printf 'b Eval_command/while-false\nr\nn\np literal\nn\nq\n' | spectec impty debug eval --spec $SPEC -p ../../../testdata/interp/impty/base/loop.imp --color never
+  Set breakpoints, then `run` to start. `help` lists commands.
+  (dbg) b Eval_command/while-false
+  Breakpoint 1 at Eval_command/while-false.
+  (dbg) r
+  Breakpoint 1, Eval_command/while-false (called at ../../../specs/impty/base/spec.spectec:235:6-235:18)
+      224    -- Eval_expr: env |- e ==> (_BOOL false)
+  (dbg) n
+  Eval_command/while-false failed at ../../../specs/impty/base/spec.spectec:224
+      224    -- Eval_expr: env |- e ==> (_BOOL false)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ failed
+  (dbg) p literal
+    literal = true
+  (dbg) n
+  Eval_command/while-true, ../../../specs/impty/base/spec.spectec:228
+      228    -- Eval_expr: env |- e ==> (_BOOL true)
   (dbg) q
   [1]
 
