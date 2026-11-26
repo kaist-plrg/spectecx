@@ -3,6 +3,7 @@ module Il = Lang.Il
 module Al = Lang.Al
 module Sl = Lang.Sl
 module Pl = Lang.Pl
+module VEnv = Envs_interp.VEnv
 
 (* The instruction's language matches the mode of the emitting interpreter. *)
 type instr = AlInstr of Al.instr | SlInstr of Sl.instr | PlInstr of Pl.instr
@@ -51,12 +52,14 @@ type t =
   | Case_match of { instr : instr; at : Location.t; case_idx : int option }
   (* Each pair covers one evaluation of the instruction before its block runs.
      For an iterated instruction the pair falls inside the repetition events.
-     AL [IterI] uses the events of its body. [bindings] holds the resulting
+     AL [IterI] uses the events of its body. [env] holds the local bindings in
+     scope before and after the instruction. [bindings] holds the resulting
      values of variables named by the instruction and bound with no iterators. *)
-  | Instr_enter of { instr : instr; at : Location.t }
+  | Instr_enter of { instr : instr; at : Location.t; env : VEnv.t }
   | Instr_exit of {
       instr : instr;
       at : Location.t;
       success : bool;
+      env : VEnv.t;
       bindings : (Il.id * Il.Value.t) list;
     }

@@ -116,7 +116,7 @@ module M : Instrumentation_api.Handler.S = struct
           Format.fprintf !fmt "%s← repetition %d of %d [%s]\n%!"
             (State.indent ()) (index + 1) count
             (if success then "ok" else "fail"))
-    | Instr_enter { instr; at = _ } ->
+    | Instr_enter { instr; at = _; env = _ } ->
         if at_least Full !config.level then
           (* The trace puts each instruction two columns past its repetition. *)
           let offset = if State.directly_in_repetition () then "" else "  " in

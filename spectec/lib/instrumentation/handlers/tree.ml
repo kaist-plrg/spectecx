@@ -359,20 +359,27 @@ module M : Instrumentation_api.Handler.S = struct
        relations, so a failed clause leaves no sub-derivation to roll back. *)
     | Clause_enter _ | Clause_exit _ -> ()
     | Repetition_enter _ | Repetition_exit _ -> ()
-    | Instr_enter { instr = AlInstr instr; at = _ } ->
+    | Instr_enter { instr = AlInstr instr; at = _; env = _ } ->
         if !config.level = Premise then
           Option.iter
             (fun prem_il -> State.enter_premise ~prem_il)
             (as_premise_opt instr)
-    | Instr_exit { instr = AlInstr instr; at = _; success; bindings } ->
+    | Instr_exit { instr = AlInstr instr; at = _; success; env = _; bindings }
+      ->
         if not success then State.record_failed_instr instr ~bindings;
         if !config.level = Premise then (
           State.record_bindings ~bindings;
           if Option.is_some (as_premise_opt instr) then
             State.record_premise ~bindings)
-    | Instr_enter { instr = SlInstr _ | PlInstr _; at = _ }
+    | Instr_enter { instr = SlInstr _ | PlInstr _; at = _; env = _ }
     | Instr_exit
-        { instr = SlInstr _ | PlInstr _; at = _; success = _; bindings = _ }
+        {
+          instr = SlInstr _ | PlInstr _;
+          at = _;
+          success = _;
+          env = _;
+          bindings = _;
+        }
     | Case_match _ ->
         ()
 end
