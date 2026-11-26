@@ -115,7 +115,8 @@ let lines_of_file file =
   | text -> Some (String.split_on_char '\n' text |> Array.of_list)
   | exception Sys_error _ -> None
 
-(* Lines shown around a span, and the most of a long span shown. *)
+(* How many lines to show around a span, and at most how many lines of a long
+   span to show. *)
 let context_lines = 2
 let max_span_lines = 20
 

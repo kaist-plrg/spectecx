@@ -28,7 +28,6 @@ let set_function_breakpoints request =
           breakpoints
     | _ -> bad_request "`breakpoints` is not a list."
   in
-  (* clear all existing relation / rule breakpoints. *)
   Engine.breakpoints ()
   |> List.iter (fun ({ number; target } : Engine.breakpoint) ->
          match target with

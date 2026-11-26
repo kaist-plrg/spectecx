@@ -16,7 +16,7 @@ val make_task :
   string * Core.Command.t
 
 (** [make_debug target ~name tasks] builds a group with one command per
-    [(name, task)], each running a single input of that task on the IL
+    [(name, task)], each running a single input of that task on the AL
     interpreter under the interactive debugger. *)
 val make_debug :
   (module Spectec.Target.S) ->

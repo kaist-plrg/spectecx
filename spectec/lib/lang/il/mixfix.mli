@@ -60,9 +60,10 @@ val eq : eq_arg:('a -> 'b -> bool) -> 'a t -> 'b t -> bool
 
 (** {1 Rendering} *)
 
-(** Whether a mixeme is an opening or closing bracket atom. *)
+(** Whether a mixeme is an opening bracket atom. *)
 val opens_bracket : 'a mixeme -> bool
 
+(** Whether a mixeme is a closing bracket atom. *)
 val closes_bracket : 'a mixeme -> bool
 
 (** Render by interleaving atom and argument strings. Empty renderings are

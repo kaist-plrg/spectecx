@@ -258,8 +258,8 @@ let handler ~before_run ~stopped ~after_run :
           Option.to_list r.armed
       | _ -> []
 
-    (* A rule failing a guard never reached a written premise, so does not
-     stop. *)
+    (* If an armed breakpoint exists on rule exit, only stop if the rule
+       succeeded. *)
     let exit_rule success =
       let hits = take_armed () in
       if success && hits <> [] then stop (Breakpoints hits)

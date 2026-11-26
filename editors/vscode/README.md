@@ -54,6 +54,8 @@ Without `--spec` or `--spec-dir` in `args`, the spec comes from `spectecx.config
 
 Breakpoints go on premises in `.spectec` files, or on a relation or rule by name as function breakpoints (`Rel` or `Rel/rule`). When the run stops, the Variables view shows each call's inputs and local bindings, and hovering a variable shows its value.
 
+The run's own output, such as its result or an error, goes to the adapter's stderr and does not appear in VS Code yet.
+
 ## Tests
 
 `make test-lsp` tests the server and its editor protocol. From this directory, `npm test` checks extension startup, configuration, shutdown and how debug runs start. `npm run test:host` checks multi-file diagnostics, editing recovery, server restart and startup cancellation in an isolated VS Code profile. It requires a built server and a VS Code executable on `PATH`, or the `VSCODE_EXECUTABLE` environment variable. It does not modify the normal editor profile. Successful runs remove their temporary profile, and failed runs retain it for inspection.
