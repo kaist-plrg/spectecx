@@ -12,6 +12,10 @@ type breakpoint = { number : int; target : target }
 (** [Rel], [Rel/rule], or [file:line in owner]. *)
 val string_of_target : target -> string
 
+(** The relation ([Rel]) or rule ([Rel/rule]) that [name] names, or [None] when
+    [name] is neither. *)
+val target_of_string : string -> target option
+
 type t
 
 val create : unit -> t

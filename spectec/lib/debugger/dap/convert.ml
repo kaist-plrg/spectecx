@@ -1,11 +1,5 @@
 module Location = Common.Location
 
-let target_of_name name : Engine.target option =
-  match String.split_on_char '/' (String.trim name) with
-  | [ id ] when id <> "" -> Some (Rel id)
-  | [ id; rule_id ] when id <> "" && rule_id <> "" -> Some (Rule (id, rule_id))
-  | _ -> None
-
 let position session (frame : Engine.frame) =
   match Option.value frame.premise ~default:frame.location with
   | Location.Span { file; left; right } ->

@@ -35,7 +35,7 @@ let set_function_breakpoints request =
          | Rel _ | Rule _ -> Engine.delete_breakpoint number
          | Prem _ -> ());
   let answer name =
-    match Convert.target_of_name name with
+    match Breakpoints.target_of_string name with
     | None -> unverified ("Cannot read `" ^ name ^ "` as Rel or Rel/rule.")
     | Some target -> (
         match Engine.add_breakpoint target with

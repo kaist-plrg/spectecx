@@ -16,11 +16,7 @@ type where = Def of Engine.target | Line of string option * int
 let where_of_string name =
   let name = String.trim name in
   let def () =
-    match String.split_on_char '/' name with
-    | [ id ] when id <> "" -> Some (Def (Rel id))
-    | [ id; rule_id ] when id <> "" && rule_id <> "" ->
-        Some (Def (Rule (id, rule_id)))
-    | _ -> None
+    Option.map (fun target -> Def target) (Breakpoints.target_of_string name)
   in
   match int_of_string_opt name with
   | Some line when line > 0 -> Some (Line (None, line))

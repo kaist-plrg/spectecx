@@ -13,6 +13,12 @@ let string_of_target = function
   | Rule (id, rule_id) -> id ^ "/" ^ rule_id
   | Prem { owner; span; _ } -> string_of_line span ^ " in " ^ owner
 
+let target_of_string name =
+  match String.split_on_char '/' (String.trim name) with
+  | [ id ] when id <> "" -> Some (Rel id)
+  | [ id; rule_id ] when id <> "" && rule_id <> "" -> Some (Rule (id, rule_id))
+  | _ -> None
+
 type t = { mutable breakpoints : breakpoint list; mutable next_number : int }
 
 let create () = { breakpoints = []; next_number = 1 }
