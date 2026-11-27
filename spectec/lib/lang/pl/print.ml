@@ -1,4 +1,3 @@
-open Il.Expression
 open Types
 open Annot
 open Common.Annotated
@@ -14,8 +13,6 @@ let string_of_defid = Sl.Print.string_of_defid
 let string_of_atom = Sl.Print.string_of_atom
 let string_of_mixop = Sl.Print.string_of_mixop
 let string_of_iter = Sl.Print.string_of_iter
-let string_of_iterexp = Sl.Print.string_of_iterexp
-let string_of_iterexps = Sl.Print.string_of_iterexps
 let string_of_iterinstrs = Sl.Print.string_of_iterinstrs
 let string_of_var = Sl.Print.string_of_var
 let string_of_typ = Sl.Print.string_of_typ
@@ -35,116 +32,50 @@ let string_of_phantom = Sl.Print.string_of_phantom
 
 (* Expressions *)
 
-let rec string_of_exp exp =
-  match exp.it with
-  | BoolE b -> string_of_bool b
-  | NumE n -> string_of_num n
-  | TextE text -> "\"" ^ String.escaped text ^ "\""
-  | VarE varid -> string_of_varid varid
-  | UnE (unop, _, exp) -> string_of_unop unop ^ string_of_exp exp
-  | BinE (binop, _, exp_l, exp_r) ->
-      "(" ^ string_of_exp exp_l ^ " " ^ string_of_binop binop ^ " "
-      ^ string_of_exp exp_r ^ ")"
-  | CmpE (cmpop, _, exp_l, exp_r) ->
-      "(" ^ string_of_exp exp_l ^ " " ^ string_of_cmpop cmpop ^ " "
-      ^ string_of_exp exp_r ^ ")"
-  | UpCastE (typ, exp) ->
-      "(" ^ string_of_exp exp ^ " as " ^ string_of_typ typ ^ ")"
-  | DownCastE (typ, exp) ->
-      "(" ^ string_of_exp exp ^ " as " ^ string_of_typ typ ^ ")"
-  | SubE (exp, typ) ->
-      "(" ^ string_of_exp exp ^ " has type " ^ string_of_typ typ ^ ")"
-  | MatchE (exp, pattern) ->
-      "(" ^ string_of_exp exp ^ " matches pattern " ^ string_of_pattern pattern
-      ^ ")"
-  | TupleE exps -> "(" ^ string_of_exps ", " exps ^ ")"
-  | CaseE notexp -> string_of_notexp notexp
-  | StrE fields ->
-      "{ "
-      ^ String.concat ", "
-          (List.map
-             (fun (atom, exp) -> string_of_atom atom ^ " " ^ string_of_exp exp)
-             fields)
-      ^ " }"
-  | OptE None -> "?()"
-  | OptE (Some exp) -> "?(" ^ string_of_exp exp ^ ")"
-  | ListE exps -> "[" ^ string_of_exps ", " exps ^ "]"
-  | ConsE (exp_h, exp_t) -> string_of_exp exp_h ^ " :: " ^ string_of_exp exp_t
-  | CatE (exp_l, exp_r) -> string_of_exp exp_l ^ " ++ " ^ string_of_exp exp_r
-  | MemE (exp_e, exp_s) -> string_of_exp exp_e ^ " is in " ^ string_of_exp exp_s
-  | LenE exp -> "|" ^ string_of_exp exp ^ "|"
-  | DotE (exp_b, atom) -> string_of_exp exp_b ^ "." ^ string_of_atom atom
-  | IdxE (exp_b, exp_i) -> string_of_exp exp_b ^ "[" ^ string_of_exp exp_i ^ "]"
-  | SliceE (exp_b, exp_l, exp_h) ->
-      string_of_exp exp_b ^ "[" ^ string_of_exp exp_l ^ " : "
-      ^ string_of_exp exp_h ^ "]"
-  | UpdE (exp_b, path, exp_f) ->
-      string_of_exp exp_b ^ "[" ^ string_of_path path ^ " = "
-      ^ string_of_exp exp_f ^ "]"
-  | CallE (defid, targs, args) ->
-      string_of_defid defid ^ string_of_targs targs ^ string_of_args args
-  | IterE (exp, iterexp) ->
-      Format.asprintf "(%s)%s" (string_of_exp exp) (string_of_iterexp iterexp)
-
-and string_of_exps sep exps = String.concat sep (List.map string_of_exp exps)
-
-and string_of_notexp notexp =
-  Il.Mixfix.render ~pad_brackets:true ~string_of_atom
-    ~string_of_arg:string_of_exp notexp
+let string_of_exp = Il.Print.string_of_exp
+let string_of_exps = Il.Print.string_of_exps
+let string_of_notexp = Il.Print.string_of_notexp
+let string_of_iterexp = Il.Print.string_of_iterexp
+let string_of_iterexps = Il.Print.string_of_iterexps
 
 (* Paths *)
 
-and string_of_path path =
-  match path.it with
-  | RootP -> ""
-  | IdxP (path, exp) -> string_of_path path ^ "[" ^ string_of_exp exp ^ "]"
-  | SliceP (path, exp_l, exp_h) ->
-      string_of_path path ^ "[" ^ string_of_exp exp_l ^ " : "
-      ^ string_of_exp exp_h ^ "]"
-  | DotP ({ it = RootP; _ }, atom) -> string_of_atom atom
-  | DotP (path, atom) -> string_of_path path ^ "." ^ string_of_atom atom
+let string_of_path = Il.Print.string_of_path
 
 (* Arguments *)
 
-and string_of_arg arg =
-  match arg.it with
-  | ExpA exp -> string_of_exp exp
-  | DefA defid -> string_of_defid defid
-
-and string_of_args args =
-  match args with
-  | [] -> ""
-  | args -> "(" ^ String.concat ", " (List.map string_of_arg args) ^ ")"
+let string_of_arg = Il.Print.string_of_arg
+let string_of_args = Il.Print.string_of_args
 
 (* Parameters *)
 
-and string_of_param param =
+let string_of_param param =
   match param.it with
   | ExpP (_typ, exp) -> string_of_exp exp
   | DefP defid -> string_of_defid defid
 
-and string_of_params params =
+let string_of_params params =
   match params with
   | [] -> ""
   | params -> "(" ^ String.concat ", " (List.map string_of_param params) ^ ")"
 
 (* Case analysis *)
 
-and string_of_guard guard =
+let string_of_guard guard =
   match guard with
   | BoolG b -> string_of_bool b
   | CmpG (cmpop, _, exp) ->
       "(% " ^ string_of_cmpop cmpop ^ " " ^ string_of_exp exp ^ ")"
-  | SubG typ -> "(% has type " ^ string_of_typ typ ^ ")"
-  | MatchG pattern -> "(% matches pattern " ^ string_of_pattern pattern ^ ")"
-  | MemG exp -> "(% is in " ^ string_of_exp exp ^ ")"
+  | SubG typ -> "(% <: " ^ string_of_typ typ ^ ")"
+  | MatchG pattern -> "(% matches " ^ string_of_pattern pattern ^ ")"
+  | MemG exp -> "(% <- " ^ string_of_exp exp ^ ")"
   | CheckLetSubG (typ, exp) ->
-      "(let " ^ string_of_exp exp ^ " = % has type " ^ string_of_typ typ ^ ")"
+      "(let " ^ string_of_exp exp ^ " = % <: " ^ string_of_typ typ ^ ")"
   | CheckLetMatchG (pattern, exp) ->
-      "(let " ^ string_of_exp exp ^ " = % matches pattern "
-      ^ string_of_pattern pattern ^ ")"
+      "(let " ^ string_of_exp exp ^ " = % matches " ^ string_of_pattern pattern
+      ^ ")"
 
-and string_of_case ?(level = 0) ?(index = 0) case =
+let rec string_of_case ?(level = 0) ?(index = 0) case =
   let indent = String.make (level * 2) ' ' in
   let order = Format.asprintf "%s%d. " indent index in
   let guard, block = case in

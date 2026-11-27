@@ -30,7 +30,7 @@ The header has two fields, so each iteration runs twice. The trace shows the sec
   [ 3]       ← repetition 2 of 2 [ok]
   $ awk '/→ repetition 2 of 2/ { p = 1 } p { print } /← repetition 2 of 2/ && ++n == 2 { exit }' sl.txt
   [ 3]       → repetition 2 of 2
-  [ 4]         | (Type_ok: (block) TC_1 |- (type_f as typeOrVoid) : typeIR_f # typeId'*)*
+  [ 4]         | (Type_ok: block TC_1 |- type_f as typeOrVoid : typeIR_f # typeId'*{typeId' <- typeId'*})*
   [ 4]         → Type_ok
   [ 4]             block
   [ 4]             { control cont; loop out; global { constructor { [] }; type { [] }; callable { [] }; frame { [] }...
@@ -40,14 +40,14 @@ The header has two fields, so each iteration runs twice. The trace shows the sec
   [ 4]             []
   [ 3]       ← repetition 2 of 2 [ok]
   [ 3]       → repetition 1 of 2
-  [ 4]         | If ((typeId'* matches pattern []))*, then
+  [ 4]         | If (typeId'*{typeId' <- typeId'*} matches [])*{typeId'* <- typeId'**}, then
   [ 3]       ← repetition 1 of 2 [ok]
   [ 3]       → repetition 2 of 2
-  [ 4]         | If ((typeId'* matches pattern []))*, then
+  [ 4]         | If (typeId'*{typeId' <- typeId'*} matches [])*{typeId'* <- typeId'**}, then
   [ 3]       ← repetition 2 of 2 [ok]
   $ awk '/→ repetition 2 of 2/ { p = 1 } p { print } /← repetition 2 of 2/ && ++n == 2 { exit }' pl.txt
   [ 3]       → repetition 2 of 2
-  [ 4]         | (Type_ok: block TC_1 |- (type_f as typeOrVoid) : typeIR_f # (typeId')*)*
+  [ 4]         | (Type_ok: block TC_1 |- type_f as typeOrVoid : typeIR_f # typeId'*{typeId' <- typeId'*})*
   [ 4]         → Type_ok
   [ 4]             block
   [ 4]             { control cont; loop out; global { constructor { [] }; type { [] }; callable { [] }; frame { [] }...
@@ -57,10 +57,10 @@ The header has two fields, so each iteration runs twice. The trace shows the sec
   [ 4]             []
   [ 3]       ← repetition 2 of 2 [ok]
   [ 3]       → repetition 1 of 2
-  [ 4]         | If (((typeId')* matches pattern []))*, then
+  [ 4]         | If (typeId'*{typeId' <- typeId'*} matches [])*{typeId'* <- typeId'**}, then
   [ 3]       ← repetition 1 of 2 [ok]
   [ 3]       → repetition 2 of 2
-  [ 4]         | If (((typeId')* matches pattern []))*, then
+  [ 4]         | If (typeId'*{typeId' <- typeId'*} matches [])*{typeId'* <- typeId'**}, then
   [ 3]       ← repetition 2 of 2 [ok]
 
 The trace prints arguments and the result for a builtin call. Builtins have no clauses to print.
