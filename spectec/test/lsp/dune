@@ -1,7 +1,7 @@
 (executable
  (name main)
  (modules main)
- (libraries spectec.lsp spectec linol-eio yojson))
+ (libraries spectec.lsp spectec.sources spectec linol-eio yojson unix))
 
 (executable
  (name e2e)
@@ -43,7 +43,7 @@
 (test
  (name workspace)
  (modules workspace)
- (libraries spectec.lsp spectec)
+ (libraries spectec.lsp spectec.sources spectec)
  (deps
   (source_tree unmarked)
   (source_tree overlapping)))
@@ -56,6 +56,6 @@
 (test
  (name publication)
  (modules publication)
- (libraries spectec.lsp)
+ (libraries spectec.lsp spectec.sources)
  (deps
   (source_tree overlapping)))
