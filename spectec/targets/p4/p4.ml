@@ -258,6 +258,12 @@ module Cli : Cli.Target_cli.S = struct
         Subcommand.make_task target ~name:"eval"
           ~summary:"Run a P4 program on STF packets with the eBPF architecture"
           (module Eval_cli);
+        Subcommand.make_debug target ~name:"debug"
+          [
+            ("typecheck", (module Typecheck_cli));
+            ("instantiate", (module Instantiate_cli));
+            ("eval", (module Eval_cli));
+          ];
         Subcommand.make_parse target ~name:"parse"
           ~summary:"parse a P4 program to an IL value"
           (module Typecheck_cli);

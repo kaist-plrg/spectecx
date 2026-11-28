@@ -1,0 +1,13 @@
+## files
+file spec.spectec: ../../../specs/miniml/spec.spectec
+file miniml/spec.spectec: ../../../specs/miniml/spec.spectec
+file <absolute>: ../../../specs/miniml/spec.spectec
+file other.spectec: error: No rule or clause in `other.spectec`.
+
+## premises
+line 44: $subst_var at ../../../specs/miniml/spec.spectec:44:6-44:14
+line 55: error: No premise at or after line 55 in $subst.
+line 92: Eval_expr/add at ../../../specs/miniml/spec.spectec:94:6-94:31
+line 95: Eval_expr/add at ../../../specs/miniml/spec.spectec:95:6-95:35
+line 99: error: No rule or clause at ../../../specs/miniml/spec.spectec:99.
+line 8: error: No rule or clause at ../../../specs/miniml/spec.spectec:8.

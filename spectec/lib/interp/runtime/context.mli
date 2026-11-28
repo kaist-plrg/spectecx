@@ -38,6 +38,9 @@ end) : sig
     check_determinism:bool ->
     t
 
+  (** Local value bindings in scope, without global definitions. *)
+  val local_values : t -> Envs.Interp.VEnv.t
+
   val find_value_opt : t -> var:Var.t -> Value.t option
   val find_value_exn : t -> var:Var.t -> Value.t
 

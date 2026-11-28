@@ -3,6 +3,7 @@ module Il = Lang.Il
 module Al = Lang.Al
 module Sl = Lang.Sl
 module Pl = Lang.Pl
+module VEnv = Envs_interp.VEnv
 
 (* The instruction's language matches the mode of the emitting interpreter. *)
 type instr = AlInstr of Al.instr | SlInstr of Sl.instr | PlInstr of Pl.instr
@@ -19,7 +20,12 @@ type t =
       success : bool;
       conclusion : (Il.Value.t, Il.Value.t option) Il.Mode.t;
     }
-  | Rule_enter of { id : string; rule_id : string; at : Location.t }
+  | Rule_enter of {
+      id : string;
+      rule_id : string;
+      at : Location.t;
+      env : VEnv.t;
+    }
   | Rule_exit of {
       id : string;
       rule_id : string;
@@ -28,7 +34,12 @@ type t =
     }
   | Func_enter of { id : string; at : Location.t; inputs : Il.Value.t list }
   | Func_exit of { id : string; at : Location.t; output : Il.Value.t option }
-  | Clause_enter of { id : string; clause_idx : int; at : Location.t }
+  | Clause_enter of {
+      id : string;
+      clause_idx : int;
+      at : Location.t;
+      env : VEnv.t;
+    }
   | Clause_exit of {
       id : string;
       clause_idx : int;
@@ -51,12 +62,14 @@ type t =
   | Case_match of { instr : instr; at : Location.t; case_idx : int option }
   (* Each pair covers one evaluation of the instruction before its block runs.
      For an iterated instruction the pair falls inside the repetition events.
-     AL [IterI] uses the events of its body. [bindings] holds the resulting
+     AL [IterI] uses the events of its body. [env] holds the local bindings in
+     scope before and after the instruction. [bindings] holds the resulting
      values of variables named by the instruction and bound with no iterators. *)
-  | Instr_enter of { instr : instr; at : Location.t }
+  | Instr_enter of { instr : instr; at : Location.t; env : VEnv.t }
   | Instr_exit of {
       instr : instr;
       at : Location.t;
       success : bool;
+      env : VEnv.t;
       bindings : (Il.id * Il.Value.t) list;
     }

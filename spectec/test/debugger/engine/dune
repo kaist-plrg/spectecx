@@ -1,0 +1,18 @@
+(executable
+ (name sites)
+ (modules sites)
+ (libraries spectec spectec.common spectec.debugger))
+
+(rule
+ (target sites.actual)
+ (deps
+  (source_tree ../../../specs/miniml))
+ (action
+  (with-stdout-to
+   %{target}
+   (run ./sites.exe))))
+
+(rule
+ (alias runtest)
+ (action
+  (diff sites.expected sites.actual)))

@@ -117,6 +117,7 @@ struct
       check_determinism;
     }
 
+  let local_values ctx = ctx.local.values
   let find_value_opt ctx ~var = VEnv.find_opt var ctx.local.values
 
   let find_value_exn ctx ~var =
@@ -328,7 +329,7 @@ struct
 
   let with_instr_events ctx ~instr ~at ~ids ~success_and_ctx ~f =
     Instrumentation_dispatcher.Dispatcher.with_enter_exit
-      ~enter:(fun () -> Event.Instr_enter { instr; at })
+      ~enter:(fun () -> Event.Instr_enter { instr; at; env = local_values ctx })
       ~exit:(fun outcome ->
         let success, ctx_out =
           match outcome with
@@ -340,6 +341,7 @@ struct
             instr;
             at;
             success;
+            env = local_values ctx_out;
             bindings = bound_values ctx_out ~ids:(Lazy.force ids);
           })
       ~f

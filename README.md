@@ -141,6 +141,31 @@ The `--det` check works in AL, SL and PL mode.
 
 It rejects an input as soon as more than one alternative succeeds for it, even when the alternatives agree on their output, and it only checks inputs actually supplied to a run, not every input the spec could ever see. Evaluating the extra alternatives can invoke host operations (e.g. a builtin with a side effect) that are not rolled back. A resumed checkpoint must have been saved with the same `--det` setting as the run resuming it.
 
+### Debugging
+
+`debug` runs one input of a task on the default interpreter, which runs AL, under an interactive, gdb-style debugger:
+
+```bash
+./spectecx miniml debug eval -p spectec/testdata/interp/miniml/distr_pair.ml
+./spectecx impty debug typecheck -p spectec/testdata/interp/impty/base/hello.imp
+```
+
+The prompt opens before the run, so breakpoints can be set first; `run` starts it, and with no breakpoints it runs to the end.
+
+| Command | |
+|---|---|
+| `b NAME` | stop at a relation (`Rel`) or one of its rules (`Rel/rule`) |
+| `b FILE:LINE`, `b LINE` | stop at the written premise on that line, or the next one in its rule or clause (`LINE` alone: in the current call's file) |
+| `d N`, `info b` | delete breakpoint `N`, list breakpoints |
+| `r`, `c` | start the run, continue to the next breakpoint |
+| `s`, `n`, `f` | step into calls, step over them, run until the current call returns |
+| `bt`, `args` | show the call stack, the current call's inputs |
+| `locals`, `p NAME` | show the bindings in scope, or one of them |
+| `show` | show the current rule or clause in the spec, marking the current premise |
+| `q`, `h` | abort the run, list commands |
+
+A rule breakpoint stops once the rule applies, after the checks on its conclusion's input patterns pass. Steps stop at the premises written in the spec and skip those that the algo pass adds. Handler flags such as `--trace.level` still apply, but `debug` has no `--batch`, `--sl` or `--pl`.
+
 ### Editor support
 
 Integrations for `.spectec` files live in `editors/`:

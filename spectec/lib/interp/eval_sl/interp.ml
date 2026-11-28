@@ -242,9 +242,19 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
   let mode, block, elseblock_opt = Ctx.find_rel_exn ctx ~id in
   let exps_input = Lang.Il.Mode.inputs mode in
   let attempt_rules () =
+    let ctx_local = Ctx.for_call ctx in
+    let ctx_local =
+      Expressions.assign_exps ctx_local ~exps:exps_input ~values:values_input
+    in
     Instrumentation.Dispatcher.with_enter_exit
       ~enter:(fun () ->
-        Events.Rule_enter { id = id.it; rule_id = "0"; at = id.at })
+        Events.Rule_enter
+          {
+            id = id.it;
+            rule_id = "0";
+            at = id.at;
+            env = Ctx.local_values ctx_local;
+          })
       ~exit:(fun outcome ->
         Events.Rule_exit
           {
@@ -254,11 +264,6 @@ and invoke_rel (ctx : Ctx.t) (id : id) (values_input : value list) :
             success = Option.is_some (Option.join outcome);
           })
       ~f:(fun () ->
-        let ctx_local = Ctx.for_call ctx in
-        let ctx_local =
-          Expressions.assign_exps ctx_local ~exps:exps_input
-            ~values:values_input
-        in
         let sign = eval_instrs ctx_local block in
         let sign =
           match (sign, elseblock_opt) with
@@ -337,11 +342,11 @@ and invoke_func_values (ctx : Ctx.t) (id : id) (targs : targ list)
             ~syntax:([], Il.PlainT targ $ targ.at))
         ctx_local tparams targs
     in
+    let ctx_local =
+      Expressions.assign_args ctx_local ~caller:ctx ~args:args_input
+        ~values:values_input
+    in
     let attempt_clauses () =
-      let ctx_local =
-        Expressions.assign_args ctx_local ~caller:ctx ~args:args_input
-          ~values:values_input
-      in
       let sign = eval_instrs ctx_local block in
       let sign =
         match (sign, elseblock_opt) with
@@ -354,7 +359,13 @@ and invoke_func_values (ctx : Ctx.t) (id : id) (targs : targ list)
     in
     Instrumentation.Dispatcher.with_enter_exit
       ~enter:(fun () ->
-        Events.Clause_enter { id = id.it; clause_idx = 0; at = id.at })
+        Events.Clause_enter
+          {
+            id = id.it;
+            clause_idx = 0;
+            at = id.at;
+            env = Ctx.local_values ctx_local;
+          })
       ~exit:(fun outcome ->
         Events.Clause_exit
           {

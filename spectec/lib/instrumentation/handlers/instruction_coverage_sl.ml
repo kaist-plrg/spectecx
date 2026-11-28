@@ -122,9 +122,10 @@ module M : Instrumentation_api.Handler.S = struct
   let handle_value = None
 
   let handle : Instrumentation_api.Event.t -> unit = function
-    | Instr_enter { instr = SlInstr instr; at = _ } ->
+    | Instr_enter { instr = SlInstr instr; at = _; env = _ } ->
         State.incr_count State.instrs_attempted (instr_key instr)
-    | Instr_exit { instr = SlInstr instr; at = _; success; bindings = _ } ->
+    | Instr_exit
+        { instr = SlInstr instr; at = _; success; env = _; bindings = _ } ->
         let key = instr_key instr in
         if success then State.incr_count State.instrs_succeeded key
         else if is_fallible instr then State.incr_count State.instrs_failed key

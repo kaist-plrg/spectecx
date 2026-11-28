@@ -31,8 +31,9 @@ module Config : sig
   val close_outputs : t -> unit
 end
 
-(** Every built-in handler spec. Add a new handler by appending here and nowhere
-    else — the CLI discovers handlers through this list. *)
+(** Every built-in handler enabled by [--handler.param] flags. Add a new
+    flag-driven handler by appending here and nowhere else — the CLI discovers
+    them through this list. *)
 val builtin_handler_specs : Handler.Spec.t list
 
 (** [with_instrumentation config spec f] initializes static analyses, starts the

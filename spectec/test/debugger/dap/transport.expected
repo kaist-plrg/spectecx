@@ -1,0 +1,69 @@
+## two requests, with and without arguments
+{"seq":1,"command":"initialize","arguments":{"adapterID":"spectec"}}
+{"seq":2,"command":"threads","arguments":null}
+(end of input)
+
+## empty input
+(end of input)
+
+## other headers, LF line endings and any header case
+{"seq":3,"command":"configurationDone","arguments":null}
+(end of input)
+
+## length counts bytes, not characters
+{"seq":4,"command":"evaluate","arguments":{"expression":"λx"}}
+(end of input)
+
+## missing Content-Length
+protocol error: Message header has no Content-Length.
+
+## bad Content-Length
+protocol error: Bad Content-Length `-3`.
+
+## malformed header
+protocol error: Malformed header line `Content-Length 12`.
+
+## input ends in the header
+protocol error: Input ended inside a message header.
+
+## input ends in the body
+protocol error: Input ended inside a message body.
+
+## not JSON
+protocol error: Message is not JSON: Line 1, bytes 4-5:
+Unexpected end of input
+
+## not a request
+protocol error: Expected a request, got a response.
+
+## request without a command
+protocol error: Message has no valid `command`.
+
+## respond
+Content-Length: 81\r\n\r\n
+{"seq":1,"type":"response","request_seq":7,"success":true,"command":"stackTrace"}
+
+## respond with a body
+Content-Length: 106\r\n\r\n
+{"seq":1,"type":"response","request_seq":7,"success":true,"command":"stackTrace","body":{"totalFrames":0}}
+
+## respond_error
+Content-Length: 115\r\n\r\n
+{"seq":1,"type":"response","request_seq":7,"success":false,"command":"stackTrace","message":"No call in progress."}
+
+## send_event
+Content-Length: 46\r\n\r\n
+{"seq":1,"type":"event","event":"initialized"}
+
+## send_event with a body
+Content-Length: 73\r\n\r\n
+{"seq":1,"type":"event","event":"stopped","body":{"reason":"breakpoint"}}
+
+## seq counts each message on a connection
+Content-Length: 81\r\n\r\n
+{"seq":1,"type":"response","request_seq":7,"success":true,"command":"stackTrace"}
+Content-Length: 46\r\n\r\n
+{"seq":2,"type":"event","event":"initialized"}
+Content-Length: 45\r\n\r\n
+{"seq":3,"type":"event","event":"terminated"}
+
